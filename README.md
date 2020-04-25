@@ -1,5 +1,4 @@
-[![Build Status](https://travis-ci.org/Samourai-Wallet/whirlpool-client.svg?branch=develop)](https://travis-ci.org/Samourai-Wallet/whirlpool-client)
-[![](https://jitpack.io/v/Samourai-Wallet/whirlpool-client.svg)](https://jitpack.io/#Samourai-Wallet/whirlpool-client)
+[![](https://jitpack.io/v/io.samourai.code.whirlpool/whirlpool-client.svg)](https://jitpack.io/#io.samourai.code.whirlpool/whirlpool-client)
 
 # whirlpool-client
 
