@@ -66,7 +66,7 @@ public class MixSession {
       connectBeginTime = System.currentTimeMillis();
     }
 
-    String wsUrl = WhirlpoolProtocol.getUrlConnect(config.getServer());
+    String wsUrl = config.getServerApi().getWsUrlConnect();
     if (log.isDebugEnabled()) {
       log.debug("connecting to server: " + wsUrl);
     }
@@ -90,6 +90,12 @@ public class MixSession {
         new MessageErrorListener<Object, String>() {
           @Override
           public void onMessage(Object payload) {
+            if (done) {
+              if (log.isTraceEnabled()) {
+                log.trace("onMessage: done");
+              }
+              return;
+            }
             if (subscribePoolResponse == null) {
               if (SubscribePoolResponse.class.isAssignableFrom(payload.getClass())) {
                 // 1) input not registered yet => should be a SubscribePoolResponse
@@ -232,8 +238,8 @@ public class MixSession {
         transport = null;
 
         if (done) {
-          if (log.isDebugEnabled()) {
-            log.debug("onTransportDisconnected: done");
+          if (log.isTraceEnabled()) {
+            log.trace("onTransportDisconnected: done");
           }
           return;
         }
@@ -284,6 +290,9 @@ public class MixSession {
                         wait(waitDelay);
                       } catch (Exception e) {
                         log.error("", e);
+                      }
+                      if (done) {
+                        return;
                       }
                       connect();
                     }

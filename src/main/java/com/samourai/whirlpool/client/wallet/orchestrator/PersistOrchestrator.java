@@ -1,40 +1,37 @@
 package com.samourai.whirlpool.client.wallet.orchestrator;
 
-import com.samourai.whirlpool.client.wallet.WhirlpoolWallet;
-import com.samourai.whirlpool.client.wallet.beans.WhirlpoolAccount;
-import com.samourai.whirlpool.client.wallet.beans.WhirlpoolUtxo;
+import com.samourai.whirlpool.client.wallet.data.AbstractPersistableSupplier;
+import com.samourai.whirlpool.client.wallet.data.AbstractSupplier;
 import java.util.Collection;
+import java.util.LinkedList;
+import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class PersistOrchestrator extends AbstractOrchestrator {
   private final Logger log = LoggerFactory.getLogger(PersistOrchestrator.class);
-  private final WhirlpoolWallet whirlpoolWallet;
-  private final int cleanDelay;
+  private final Collection<AbstractPersistableSupplier> suppliers;
 
-  private long lastClean;
+  public PersistOrchestrator(int loopDelay, Collection<AbstractSupplier> suppliers) {
+    super(loopDelay, 0, null);
+    this.suppliers = filterPersistableSuppliers(suppliers);
+  }
 
-  public PersistOrchestrator(int loopDelay, WhirlpoolWallet whirlpoolWallet, int cleanDelay) {
-    super(loopDelay, 0, loopDelay);
-    this.whirlpoolWallet = whirlpoolWallet;
-    this.cleanDelay = cleanDelay;
-    this.lastClean = 0;
+  private static Collection<AbstractPersistableSupplier> filterPersistableSuppliers(
+      Collection<AbstractSupplier> suppliers) {
+    List<AbstractPersistableSupplier> list = new LinkedList<AbstractPersistableSupplier>();
+    for (AbstractSupplier supplier : suppliers) {
+      if (supplier instanceof AbstractPersistableSupplier) {
+        list.add((AbstractPersistableSupplier) supplier);
+      }
+    }
+    return list;
   }
 
   @Override
-  public synchronized void stop() {
-    super.stop();
-
-    // refresh utxos
+  protected void runOrchestrator() {
     try {
-      whirlpoolWallet.refreshUtxos(false);
-    } catch (Exception e) {
-      log.error("", e);
-    }
-
-    // persist
-    try {
-      persist();
+      persist(false);
       setLastRun();
     } catch (Exception e) {
       log.error("", e);
@@ -42,29 +39,26 @@ public class PersistOrchestrator extends AbstractOrchestrator {
   }
 
   @Override
-  protected void runOrchestrator() {
-    try {
-      long now = System.currentTimeMillis();
-      if ((now - lastClean) > cleanDelay) {
-        // clean
-        lastClean = now;
-        cleanUtxoConfig();
-      }
+  public synchronized void stop() {
+    super.stop();
 
-      // persist
-      persist();
+    // persist before exit
+    try {
+      persist(false);
     } catch (Exception e) {
       log.error("", e);
     }
   }
 
-  protected void cleanUtxoConfig() throws Exception {
-    Collection<WhirlpoolUtxo> knownUtxos =
-        whirlpoolWallet.getUtxos(false, WhirlpoolAccount.values());
-    whirlpoolWallet.getConfig().getPersistHandler().cleanUtxoConfig(knownUtxos);
+  public void persistInitialData() throws Exception {
+    // forced persist or fail
+    persist(true);
   }
 
-  protected void persist() throws Exception {
-    whirlpoolWallet.getConfig().getPersistHandler().save();
+  private void persist(boolean force) throws Exception {
+    // persist or fail
+    for (AbstractPersistableSupplier supplier : suppliers) {
+      supplier.persist(force);
+    }
   }
 }

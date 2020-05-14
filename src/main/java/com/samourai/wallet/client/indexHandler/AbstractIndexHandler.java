@@ -47,8 +47,8 @@ public abstract class AbstractIndexHandler implements IIndexHandler {
         it.remove();
       }
     }
-    if (log.isDebugEnabled()) {
-      log.debug(
+    if (log.isTraceEnabled()) {
+      log.trace(
           "confirmUnconfirmed("
               + confirmed
               + ") => get()="

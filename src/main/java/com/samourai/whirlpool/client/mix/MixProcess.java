@@ -9,16 +9,10 @@ import com.samourai.whirlpool.client.mix.handler.UtxoWithBalance;
 import com.samourai.whirlpool.client.mix.listener.MixSuccess;
 import com.samourai.whirlpool.client.utils.ClientCryptoService;
 import com.samourai.whirlpool.client.utils.ClientUtils;
-import com.samourai.whirlpool.client.whirlpool.WhirlpoolClientConfig;
 import com.samourai.whirlpool.protocol.WhirlpoolProtocol;
 import com.samourai.whirlpool.protocol.beans.Utxo;
 import com.samourai.whirlpool.protocol.rest.RegisterOutputRequest;
-import com.samourai.whirlpool.protocol.websocket.messages.ConfirmInputRequest;
-import com.samourai.whirlpool.protocol.websocket.messages.ConfirmInputResponse;
-import com.samourai.whirlpool.protocol.websocket.messages.RegisterInputRequest;
-import com.samourai.whirlpool.protocol.websocket.messages.RevealOutputRequest;
-import com.samourai.whirlpool.protocol.websocket.messages.SigningRequest;
-import com.samourai.whirlpool.protocol.websocket.messages.SubscribePoolResponse;
+import com.samourai.whirlpool.protocol.websocket.messages.*;
 import com.samourai.whirlpool.protocol.websocket.notifications.ConfirmInputMixStatusNotification;
 import com.samourai.whirlpool.protocol.websocket.notifications.RegisterOutputMixStatusNotification;
 import com.samourai.whirlpool.protocol.websocket.notifications.RevealOutputMixStatusNotification;
@@ -27,11 +21,7 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-import org.bitcoinj.core.NetworkParameters;
-import org.bitcoinj.core.ProtocolException;
-import org.bitcoinj.core.Transaction;
-import org.bitcoinj.core.TransactionInput;
-import org.bitcoinj.core.TransactionOutput;
+import org.bitcoinj.core.*;
 import org.bouncycastle.crypto.params.RSABlindingParameters;
 import org.bouncycastle.crypto.params.RSAKeyParameters;
 import org.bouncycastle.util.encoders.Hex;
@@ -40,7 +30,7 @@ import org.slf4j.LoggerFactory;
 
 public class MixProcess {
   private static final Logger log = LoggerFactory.getLogger(MixProcess.class);
-  private WhirlpoolClientConfig config;
+  private NetworkParameters params;
   private String poolId;
   private long poolDenomination;
   private IPremixHandler premixHandler;
@@ -70,13 +60,13 @@ public class MixProcess {
   private boolean signed;
 
   public MixProcess(
-      WhirlpoolClientConfig config,
+      NetworkParameters params,
       String poolId,
       long poolDenomination,
       IPremixHandler premixHandler,
       IPostmixHandler postmixHandler,
       ClientCryptoService clientCryptoService) {
-    this.config = config;
+    this.params = params;
     this.poolId = poolId;
     this.poolDenomination = poolDenomination;
     this.premixHandler = premixHandler;
@@ -108,14 +98,13 @@ public class MixProcess {
 
     // get mix settings
     UtxoWithBalance utxo = premixHandler.getUtxo();
-    NetworkParameters networkParameters = config.getNetworkParameters();
     String serverNetworkId = subscribePoolResponse.networkId;
-    if (!networkParameters.getPaymentProtocolId().equals(serverNetworkId)) {
+    if (!params.getPaymentProtocolId().equals(serverNetworkId)) {
       throw new Exception(
           "Client/server networkId mismatch: server is runinng "
               + serverNetworkId
               + ", client is expecting "
-              + networkParameters.getPaymentProtocolId());
+              + params.getPaymentProtocolId());
     }
     this.liquidity = utxo.getBalance() == poolDenomination;
 
@@ -151,15 +140,13 @@ public class MixProcess {
       throwProtocolException();
     }
 
-    NetworkParameters networkParameters = config.getNetworkParameters();
-
     // use receiveAddress as bordereau. keep it private, but transmit blindedBordereau
     // clear receiveAddress will be provided with unblindedSignedBordereau by connecting with
     // another identity for REGISTER_OUTPUT
     byte[] publicKey = WhirlpoolProtocol.decodeBytes(confirmInputMixStatusNotification.publicKey64);
     RSAKeyParameters serverPublicKey = ClientUtils.publicKeyUnserialize(publicKey);
     this.blindingParams = clientCryptoService.computeBlindingParams(serverPublicKey);
-    this.receiveAddress = postmixHandler.computeReceiveAddress(networkParameters);
+    this.receiveAddress = postmixHandler.computeReceiveAddress(params);
 
     String mixId = confirmInputMixStatusNotification.mixId;
     String blindedBordereau64 =
@@ -240,15 +227,13 @@ public class MixProcess {
       throwProtocolException();
     }
 
-    NetworkParameters networkParameters = config.getNetworkParameters();
-
     byte[] rawTx = WhirlpoolProtocol.decodeBytes(signingMixStatusNotification.transaction64);
-    Transaction tx = new Transaction(networkParameters, rawTx);
+    Transaction tx = new Transaction(params, rawTx);
 
     // verify tx
     int inputIndex = verifyTx(tx);
 
-    premixHandler.signTransaction(tx, inputIndex, networkParameters);
+    premixHandler.signTransaction(tx, inputIndex, params);
 
     // verify signature
     tx.verify();
@@ -316,8 +301,6 @@ public class MixProcess {
   }
 
   private int verifyTx(Transaction tx) throws Exception {
-    NetworkParameters params = config.getNetworkParameters();
-
     // verify inputsHash
     String txInputsHash = computeInputsHash(tx.getInputs());
     if (!txInputsHash.equals(inputsHash)) {

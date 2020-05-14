@@ -6,9 +6,10 @@ import com.samourai.wallet.api.backend.BackendApi;
 import com.samourai.wallet.api.backend.MinerFeeTarget;
 import com.samourai.wallet.bip47.rpc.java.SecretPointFactoryJava;
 import com.samourai.wallet.bip47.rpc.secretPoint.ISecretPointFactory;
-import com.samourai.whirlpool.client.tx0.Tx0Service;
+import com.samourai.whirlpool.client.tx0.ITx0ParamServiceConfig;
+import com.samourai.whirlpool.client.utils.ClientUtils;
 import com.samourai.whirlpool.client.wallet.beans.Tx0FeeTarget;
-import com.samourai.whirlpool.client.wallet.persist.WhirlpoolWalletPersistHandler;
+import com.samourai.whirlpool.client.whirlpool.ServerApi;
 import com.samourai.whirlpool.client.whirlpool.WhirlpoolClientConfig;
 import com.samourai.whirlpool.protocol.WhirlpoolProtocol;
 import java.util.LinkedHashMap;
@@ -18,7 +19,7 @@ import org.bitcoinj.core.NetworkParameters;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class WhirlpoolWalletConfig extends WhirlpoolClientConfig {
+public class WhirlpoolWalletConfig extends WhirlpoolClientConfig implements ITx0ParamServiceConfig {
   private final Logger log = LoggerFactory.getLogger(WhirlpoolWalletConfig.class);
 
   private int maxClients;
@@ -27,6 +28,9 @@ public class WhirlpoolWalletConfig extends WhirlpoolClientConfig {
   private String autoTx0PoolId;
   private Tx0FeeTarget autoTx0FeeTarget;
   private boolean autoMix;
+  private String scode;
+  private int tx0MaxOutputs;
+  private Map<String, Long> overspend;
 
   private BackendApi backendApi;
   private int tx0Delay;
@@ -35,8 +39,6 @@ public class WhirlpoolWalletConfig extends WhirlpoolClientConfig {
   private int refreshFeeDelay;
   private int refreshPoolsDelay;
   private int mixsTarget;
-  private int persistDelay;
-  private int persistCleanDelay;
 
   private int feeMin;
   private int feeMax;
@@ -44,17 +46,15 @@ public class WhirlpoolWalletConfig extends WhirlpoolClientConfig {
   private MinerFeeTarget feeTargetPremix;
 
   private ISecretPointFactory secretPointFactory;
-  private Tx0Service tx0Service;
 
   public WhirlpoolWalletConfig(
       IHttpClientService httpClientService,
       IStompClientService stompClientService,
-      WhirlpoolWalletPersistHandler persistHandler,
-      String server,
+      ServerApi serverApi,
       NetworkParameters params,
       boolean mobile,
       BackendApi backendApi) {
-    super(httpClientService, stompClientService, persistHandler, server, params, mobile);
+    super(httpClientService, stompClientService, serverApi, params, mobile);
 
     // default settings
     this.maxClients = 5;
@@ -63,6 +63,9 @@ public class WhirlpoolWalletConfig extends WhirlpoolClientConfig {
     this.autoTx0PoolId = null;
     this.autoTx0FeeTarget = Tx0FeeTarget.BLOCKS_4;
     this.autoMix = false;
+    this.scode = null;
+    this.tx0MaxOutputs = 0;
+    this.overspend = new LinkedHashMap<String, Long>();
 
     // technical settings
     this.backendApi = backendApi;
@@ -70,10 +73,8 @@ public class WhirlpoolWalletConfig extends WhirlpoolClientConfig {
     this.tx0MinConfirmations = 0;
     this.refreshUtxoDelay = 60; // 1min
     this.refreshFeeDelay = 300; // 5min
-    this.refreshPoolsDelay = 300; // 5min
+    this.refreshPoolsDelay = 600; // 10min
     this.mixsTarget = 1;
-    this.persistDelay = 4; // 4s
-    this.persistCleanDelay = 300; // 5min
 
     this.feeMin = 1;
     this.feeMax = 510;
@@ -81,7 +82,6 @@ public class WhirlpoolWalletConfig extends WhirlpoolClientConfig {
     this.feeTargetPremix = MinerFeeTarget.BLOCKS_12;
 
     this.secretPointFactory = SecretPointFactoryJava.getInstance();
-    this.tx0Service = new Tx0Service(this);
   }
 
   public int getMaxClients() {
@@ -136,6 +136,30 @@ public class WhirlpoolWalletConfig extends WhirlpoolClientConfig {
     this.autoMix = autoMix;
   }
 
+  public String getScode() {
+    return scode;
+  }
+
+  public void setScode(String scode) {
+    this.scode = scode;
+  }
+
+  public int getTx0MaxOutputs() {
+    return tx0MaxOutputs;
+  }
+
+  public void setTx0MaxOutputs(int tx0MaxOutputs) {
+    this.tx0MaxOutputs = tx0MaxOutputs;
+  }
+
+  public Long getOverspend(String poolId) {
+    return overspend != null ? overspend.get(poolId) : null;
+  }
+
+  public void setOverspend(Map<String, Long> overspend) {
+    this.overspend = overspend;
+  }
+
   public BackendApi getBackendApi() {
     return backendApi;
   }
@@ -188,22 +212,6 @@ public class WhirlpoolWalletConfig extends WhirlpoolClientConfig {
     this.mixsTarget = mixsTarget;
   }
 
-  public int getPersistDelay() {
-    return persistDelay;
-  }
-
-  public void setPersistDelay(int persistDelay) {
-    this.persistDelay = persistDelay;
-  }
-
-  public int getPersistCleanDelay() {
-    return persistCleanDelay;
-  }
-
-  public void setPersistCleanDelay(int persistCleanDelay) {
-    this.persistCleanDelay = persistCleanDelay;
-  }
-
   public int getFeeMin() {
     return feeMin;
   }
@@ -244,26 +252,11 @@ public class WhirlpoolWalletConfig extends WhirlpoolClientConfig {
     this.secretPointFactory = secretPointFactory;
   }
 
-  public Tx0Service getTx0Service() {
-    return tx0Service;
-  }
-
-  public void setTx0Service(Tx0Service tx0Service) {
-    this.tx0Service = tx0Service;
-  }
-
   public Map<String, String> getConfigInfo() {
     Map<String, String> configInfo = new LinkedHashMap<String, String>();
     configInfo.put("protocolVersion", WhirlpoolProtocol.PROTOCOL_VERSION);
     configInfo.put(
-        "server",
-        "url=" + getServer() + ", network=" + getNetworkParameters().getPaymentProtocolId());
-    configInfo.put(
-        "persist",
-        "persistDelay="
-            + Integer.toString(getPersistDelay())
-            + ", persistCleanDelay="
-            + Integer.toString(getPersistCleanDelay()));
+        "server", getServerApi() + ", network=" + getNetworkParameters().getPaymentProtocolId());
     configInfo.put(
         "refreshDelay",
         "refreshUtxoDelay="
@@ -290,8 +283,14 @@ public class WhirlpoolWalletConfig extends WhirlpoolClientConfig {
             + getAutoTx0FeeTarget().name()
             + ", autoMix="
             + isAutoMix()
+            + ", scode="
+            + (scode != null ? ClientUtils.maskString(scode) : "null")
+            + ", tx0MaxOutputs="
+            + tx0MaxOutputs
             + ", mixsTarget="
-            + getMixsTarget());
+            + getMixsTarget()
+            + ", overspend="
+            + (overspend != null ? overspend.toString() : "null"));
     configInfo.put(
         "fee",
         "fallback="

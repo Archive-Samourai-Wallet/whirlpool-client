@@ -1,61 +1,36 @@
 package com.samourai.whirlpool.client.wallet.beans;
 
-import io.reactivex.Observable;
-import io.reactivex.subjects.BehaviorSubject;
-import io.reactivex.subjects.Subject;
+import com.samourai.whirlpool.client.wallet.data.utxo.UtxoConfigPersisted;
+import com.samourai.whirlpool.client.wallet.data.utxo.UtxoConfigSupplier;
 
-public class WhirlpoolUtxoConfig {
+public abstract class WhirlpoolUtxoConfig {
   public static final int MIXS_TARGET_UNLIMITED = 0;
-  private String poolId;
-  private Integer mixsTarget;
-  private int mixsDone;
-  private long lastModified;
-  private Subject<WhirlpoolUtxoConfig> observable;
 
-  public WhirlpoolUtxoConfig() {
-    this(null, null, 0, 0);
-  }
+  public WhirlpoolUtxoConfig() {}
 
-  public WhirlpoolUtxoConfig(int mixsDone) {
-    this(null, null, mixsDone, 0);
-  }
+  protected abstract UtxoConfigPersisted getUtxoConfigPersisted();
 
-  protected WhirlpoolUtxoConfig(WhirlpoolUtxoConfig copy) {
-    this(copy.poolId, copy.mixsTarget, copy.mixsDone, System.currentTimeMillis());
-  }
-
-  public WhirlpoolUtxoConfig(String poolId, Integer mixsTarget, int mixsDone, long lastModified) {
-    this.poolId = poolId;
-    this.mixsTarget = mixsTarget;
-    this.mixsDone = mixsDone;
-    this.lastModified = lastModified;
-    this.observable = BehaviorSubject.create();
-  }
-
-  private void emit() {
-    // notify observers
-    observable.onNext(this);
-  }
-
-  public WhirlpoolUtxoConfig copy() {
-    WhirlpoolUtxoConfig copy = new WhirlpoolUtxoConfig(this);
-    return copy;
-  }
+  protected abstract UtxoConfigSupplier getUtxoConfigSupplier();
 
   public String getPoolId() {
-    return poolId;
+    return getUtxoConfigPersisted().getPoolId();
+  }
+
+  private void onChange() {
+    getUtxoConfigSupplier().setLastChange();
   }
 
   public void setPoolId(String poolId) {
-    this.poolId = poolId;
-    emit();
+    getUtxoConfigPersisted().setPoolId(poolId);
+    onChange();
   }
 
   public Integer getMixsTarget() {
-    return mixsTarget;
+    return getUtxoConfigPersisted().getMixsTarget();
   }
 
   public int getMixsTargetOrDefault(int mixsTargetMin) {
+    Integer mixsTarget = getMixsTarget();
     if (mixsTarget == null) {
       return mixsTargetMin;
     }
@@ -67,43 +42,26 @@ public class WhirlpoolUtxoConfig {
 
   public boolean isDone(int mixsTargetMin) {
     int mixsTargetOrDefault = getMixsTargetOrDefault(mixsTargetMin);
-    return (mixsDone >= mixsTargetOrDefault
+    return (getMixsDone() >= mixsTargetOrDefault
         && mixsTargetOrDefault != WhirlpoolUtxoConfig.MIXS_TARGET_UNLIMITED);
   }
 
   public void setMixsTarget(Integer mixsTarget) {
-    this.mixsTarget = mixsTarget;
+    getUtxoConfigPersisted().setMixsTarget(mixsTarget);
+    onChange();
   }
 
   public int getMixsDone() {
-    return mixsDone;
+    return getUtxoConfigPersisted().getMixsDone();
   }
 
   public void incrementMixsDone() {
-    this.mixsDone++;
-    setLastModified();
-  }
-
-  public long getLastModified() {
-    return lastModified;
-  }
-
-  private void setLastModified() {
-    this.lastModified = System.currentTimeMillis();
-    emit();
-  }
-
-  public Observable<WhirlpoolUtxoConfig> getObservable() {
-    return observable;
+    getUtxoConfigPersisted().incrementMixsDone();
+    onChange();
   }
 
   @Override
   public String toString() {
-    return "poolId="
-        + (poolId != null ? poolId : "null")
-        + ", mixsTarget="
-        + (mixsTarget != null ? mixsTarget : "null")
-        + ", mixsDone="
-        + mixsDone;
+    return getUtxoConfigPersisted().toString();
   }
 }

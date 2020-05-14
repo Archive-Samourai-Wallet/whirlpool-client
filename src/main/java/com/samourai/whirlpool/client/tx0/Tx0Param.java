@@ -1,28 +1,39 @@
 package com.samourai.whirlpool.client.tx0;
 
 import com.samourai.wallet.util.FeeUtil;
+import com.samourai.whirlpool.client.utils.ClientUtils;
 import com.samourai.whirlpool.client.whirlpool.beans.Pool;
+import org.bitcoinj.core.NetworkParameters;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class Tx0Param extends Tx0ParamSimple {
+public class Tx0Param {
   private static final Logger log = LoggerFactory.getLogger(Tx0Param.class);
   private static final FeeUtil feeUtil = FeeUtil.getInstance();
 
+  private NetworkParameters params;
+  private int feeTx0;
+  private int feePremix;
   private Pool pool;
-  private long premixValue;
+  private Long overspendValueOrNull;
 
-  public Tx0Param(int feeTx0, int feePremix, Pool pool, Long overspendValueOrNull) {
-    super(feeTx0, feePremix);
+  // computed
+  private Long premixValue;
+  private Long spendFromBalanceMin;
+
+  public Tx0Param(
+      NetworkParameters params, int feeTx0, int feePremix, Pool pool, Long overspendValueOrNull) {
+    this.params = params;
+    this.feeTx0 = feeTx0;
+    this.feePremix = feePremix;
     this.pool = pool;
-    this.premixValue = computePremixValue(pool, feePremix, overspendValueOrNull);
+    this.overspendValueOrNull = overspendValueOrNull;
+
+    this.premixValue = null;
+    this.spendFromBalanceMin = null;
   }
 
-  public Tx0Param(Tx0ParamSimple copy, Pool pool, long premixValue) {
-    this(copy.getFeeTx0(), copy.getFeePremix(), pool, premixValue);
-  }
-
-  private long computePremixValue(Pool pool, int feePremix, final Long overspendValueOrNull) {
+  private long computePremixValue() {
     long premixOverspend;
     if (overspendValueOrNull != null && overspendValueOrNull > 0) {
       premixOverspend = overspendValueOrNull;
@@ -68,16 +79,55 @@ public class Tx0Param extends Tx0ParamSimple {
     return premixValueFinal;
   }
 
+  protected boolean isTx0Possible(long utxoValue) {
+    long balanceMin = getSpendFromBalanceMin();
+    if (log.isTraceEnabled()) {
+      log.trace(
+          "isTx0Possible: spendFromBalanceMin="
+              + balanceMin
+              + " for utxoValue="
+              + utxoValue
+              + ", tx0Param="
+              + this);
+    }
+    return (utxoValue >= balanceMin);
+  }
+
+  private long computeSpendFromBalanceMin() {
+    int nbPremix = 1;
+    long tx0MinerFee = ClientUtils.computeTx0MinerFee(nbPremix, getFeeTx0(), null, params);
+    long samouraiFee = getPool().getFeeValue();
+    return ClientUtils.computeTx0SpendValue(getPremixValue(), nbPremix, samouraiFee, tx0MinerFee);
+  }
+
+  public int getFeeTx0() {
+    return feeTx0;
+  }
+
+  public int getFeePremix() {
+    return feePremix;
+  }
+
   public Pool getPool() {
     return pool;
   }
 
   public long getPremixValue() {
+    if (premixValue == null) {
+      premixValue = computePremixValue();
+    }
     return premixValue;
+  }
+
+  public long getSpendFromBalanceMin() {
+    if (spendFromBalanceMin == null) {
+      spendFromBalanceMin = computeSpendFromBalanceMin();
+    }
+    return spendFromBalanceMin;
   }
 
   @Override
   public String toString() {
-    return super.toString() + "pool=" + pool.getPoolId() + ", premixValue=" + premixValue;
+    return super.toString() + "pool=" + pool.getPoolId();
   }
 }

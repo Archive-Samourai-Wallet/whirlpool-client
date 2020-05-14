@@ -8,6 +8,7 @@ import com.samourai.wallet.api.backend.beans.UnspentResponse;
 import com.samourai.wallet.api.backend.beans.UnspentResponse.UnspentOutput;
 import com.samourai.wallet.segwit.bech32.Bech32UtilGeneric;
 import com.samourai.wallet.util.CallbackWithArg;
+import com.samourai.wallet.util.FeeUtil;
 import com.samourai.wallet.util.FormatsUtilGeneric;
 import com.samourai.whirlpool.client.exception.NotifiableException;
 import com.samourai.whirlpool.client.wallet.beans.WhirlpoolUtxo;
@@ -22,11 +23,13 @@ import java.security.KeyFactory;
 import java.security.SecureRandom;
 import java.security.interfaces.RSAPublicKey;
 import java.security.spec.X509EncodedKeySpec;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Iterator;
+import java.util.*;
+import java8.util.function.ToLongFunction;
+import java8.util.stream.StreamSupport;
 import org.bitcoinj.core.*;
+import org.bitcoinj.script.Script;
 import org.bouncycastle.crypto.params.RSAKeyParameters;
+import org.bouncycastle.util.encoders.Hex;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -34,11 +37,13 @@ public class ClientUtils {
   private static final Logger log = LoggerFactory.getLogger(ClientUtils.class);
   private static final SecureRandom secureRandom = new SecureRandom();
 
-  private static final int SLEEP_REFRESH_UTXOS_TESTNET = 20000;
-  private static final int SLEEP_REFRESH_UTXOS_MAINNET = 10000;
+  private static final int SLEEP_REFRESH_UTXOS_TESTNET = 10000;
+  private static final int SLEEP_REFRESH_UTXOS_MAINNET = 5000;
   public static final String USER_AGENT = "whirlpool-client/" + WhirlpoolProtocol.PROTOCOL_VERSION;
 
   private static final ObjectMapper objectMapper = new ObjectMapper();
+  private static final FeeUtil feeUtil = FeeUtil.getInstance();
+  private static final Bech32UtilGeneric bech32Util = Bech32UtilGeneric.getInstance();
 
   public static void setupEnv() {
     // prevent user-agent tracking
@@ -147,13 +152,12 @@ public class ClientUtils {
 
     while (var3.hasNext()) {
       WhirlpoolUtxo whirlpoolUtxo = (WhirlpoolUtxo) var3.next();
-      WhirlpoolUtxoConfig utxoConfig = whirlpoolUtxo.getUtxoConfig();
       WhirlpoolUtxoState utxoState = whirlpoolUtxo.getUtxoState();
       UnspentOutput o = whirlpoolUtxo.getUtxo();
       String utxo = o.tx_hash + ":" + o.tx_output_n;
       String mixableStatusName =
           utxoState.getMixableStatus() != null ? utxoState.getMixableStatus().name() : "-";
-      int mixsTargetOrDefault = utxoConfig.getMixsTargetOrDefault(mixsTargetMin);
+      int mixsTargetOrDefault = whirlpoolUtxo.getMixsTargetOrDefault(mixsTargetMin);
       sb.append(
           String.format(
               lineFormat,
@@ -163,8 +167,8 @@ public class ClientUtils {
               o.getPath(),
               utxoState.getStatus().name(),
               mixableStatusName,
-              utxoConfig.getPoolId() != null ? utxoConfig.getPoolId() : "-",
-              utxoConfig.getMixsDone()
+              whirlpoolUtxo.getPoolId() != null ? whirlpoolUtxo.getPoolId() : "-",
+              whirlpoolUtxo.getMixsDone()
                   + "/"
                   + (mixsTargetOrDefault == WhirlpoolUtxoConfig.MIXS_TARGET_UNLIMITED
                       ? "∞"
@@ -172,6 +176,20 @@ public class ClientUtils {
     }
 
     log.info("\n" + sb.toString());
+  }
+
+  public static Long computeUtxosBalance(Collection<WhirlpoolUtxo> utxos) {
+    long balance =
+        StreamSupport.stream(utxos)
+            .mapToLong(
+                new ToLongFunction<WhirlpoolUtxo>() {
+                  @Override
+                  public long applyAsLong(WhirlpoolUtxo utxo) {
+                    return utxo.getUtxo().value;
+                  }
+                })
+            .sum();
+    return balance;
   }
 
   public static double satToBtc(long sat) {
@@ -191,16 +209,33 @@ public class ClientUtils {
     return txHex;
   }
 
-  public static void sleepRefreshUtxos(NetworkParameters params) {
-    if (log.isDebugEnabled()) {
-      log.debug("Refreshing utxos...");
-    }
-    boolean isTestnet = FormatsUtilGeneric.getInstance().isTestNet(params);
-    int sleepDelay = isTestnet ? SLEEP_REFRESH_UTXOS_TESTNET : SLEEP_REFRESH_UTXOS_MAINNET;
-    try {
-      Thread.sleep(sleepDelay);
-    } catch (InterruptedException e) {
-    }
+  public static void sleepRefreshUtxos(final NetworkParameters params) {
+    sleepRefreshUtxos(params, null);
+  }
+
+  public static void sleepRefreshUtxos(final NetworkParameters params, final Runnable runnable) {
+    // delayed refresh utxos
+    new Thread(
+            new Runnable() {
+              @Override
+              public void run() {
+                // wait for delay
+                boolean isTestnet = FormatsUtilGeneric.getInstance().isTestNet(params);
+                int sleepDelay =
+                    isTestnet ? SLEEP_REFRESH_UTXOS_TESTNET : SLEEP_REFRESH_UTXOS_MAINNET;
+                try {
+                  Thread.sleep(sleepDelay);
+                } catch (InterruptedException e) {
+                }
+
+                // run callback
+                if (runnable != null) {
+                  runnable.run();
+                }
+              }
+            },
+            "refreshUtxos")
+        .start();
   }
 
   public static String sha256Hash(String str) {
@@ -216,6 +251,9 @@ public class ClientUtils {
   }
 
   private static String maskString(String value, int startEnd) {
+    if (value == null) {
+      return "null";
+    }
     if (value.length() <= startEnd) {
       return value;
     }
@@ -307,5 +345,52 @@ public class ClientUtils {
     LogbackUtils.setLogLevel("org.bitcoinj", org.slf4j.event.Level.ERROR.toString());
     LogbackUtils.setLogLevel(
         "org.bitcoin", org.slf4j.event.Level.WARN.toString()); // "no wallycore"
+  }
+
+  public static long computeTx0MinerFee(
+      int nbPremix,
+      long feeTx0,
+      Collection<? extends UnspentResponse.UnspentOutput> spendFroms,
+      NetworkParameters params) {
+    int nbOutputsNonOpReturn = nbPremix + 2; // outputs + change + fee
+
+    int nbP2PKH = 0;
+    int nbP2SH = 0;
+    int nbP2WPKH = 0;
+    if (spendFroms != null) { // spendFroms can be NULL (for fee simulation)
+      for (UnspentResponse.UnspentOutput uo : spendFroms) {
+
+        if (bech32Util.isP2WPKHScript(uo.script)) {
+          nbP2WPKH++;
+        } else {
+          String address = new Script(Hex.decode(uo.script)).getToAddress(params).toString();
+          if (Address.fromBase58(params, address).isP2SHAddress()) {
+            nbP2SH++;
+          } else {
+            nbP2PKH++;
+          }
+        }
+      }
+    }
+    long tx0MinerFee =
+        feeUtil.estimatedFeeSegwit(nbP2PKH, nbP2SH, nbP2WPKH, nbOutputsNonOpReturn, 1, feeTx0);
+
+    if (log.isTraceEnabled()) {
+      log.trace(
+          "tx0 minerFee: "
+              + tx0MinerFee
+              + "sats, totalBytes="
+              + "b for nbPremix="
+              + nbPremix
+              + ", feeTx0="
+              + feeTx0);
+    }
+    return tx0MinerFee;
+  }
+
+  public static long computeTx0SpendValue(
+      long premixValue, int nbPremix, long feeValueOrFeeChange, long tx0MinerFee) {
+    long spendValue = (premixValue * nbPremix) + feeValueOrFeeChange + tx0MinerFee;
+    return spendValue;
   }
 }

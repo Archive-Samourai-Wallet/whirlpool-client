@@ -23,18 +23,11 @@ public class WhirlpoolClientImpl implements WhirlpoolClient {
   private Thread mixThread;
   private WhirlpoolClientListener listener;
 
-  /**
-   * Get a new Whirlpool client.
-   *
-   * @param config client configuration (server...)
-   * @return
-   */
-  public static WhirlpoolClient newClient(WhirlpoolClientConfig config) {
-    String logPrefix = Long.toString(System.currentTimeMillis());
-    return new WhirlpoolClientImpl(config, logPrefix);
+  public WhirlpoolClientImpl(WhirlpoolClientConfig config) {
+    this(config, Long.toString(System.currentTimeMillis()));
   }
 
-  private WhirlpoolClientImpl(WhirlpoolClientConfig config, String logPrefix) {
+  public WhirlpoolClientImpl(WhirlpoolClientConfig config, String logPrefix) {
     this.log = LoggerFactory.getLogger(WhirlpoolClientImpl.class + "[" + logPrefix + "]");
     this.config = config;
     this.logPrefix = logPrefix;

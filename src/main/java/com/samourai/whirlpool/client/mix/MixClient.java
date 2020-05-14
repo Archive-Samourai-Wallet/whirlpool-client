@@ -1,7 +1,5 @@
 package com.samourai.whirlpool.client.mix;
 
-import com.samourai.http.client.HttpUsage;
-import com.samourai.http.client.IHttpClient;
 import com.samourai.whirlpool.client.exception.NotifiableException;
 import com.samourai.whirlpool.client.mix.dialog.MixDialogListener;
 import com.samourai.whirlpool.client.mix.dialog.MixSession;
@@ -9,7 +7,7 @@ import com.samourai.whirlpool.client.mix.listener.MixClientListener;
 import com.samourai.whirlpool.client.mix.listener.MixFailReason;
 import com.samourai.whirlpool.client.mix.listener.MixStep;
 import com.samourai.whirlpool.client.utils.ClientCryptoService;
-import com.samourai.whirlpool.client.utils.ClientUtils;
+import com.samourai.whirlpool.client.whirlpool.ServerApi;
 import com.samourai.whirlpool.client.whirlpool.WhirlpoolClientConfig;
 import com.samourai.whirlpool.protocol.WhirlpoolProtocol;
 import com.samourai.whirlpool.protocol.rest.RegisterOutputRequest;
@@ -39,7 +37,6 @@ public class MixClient {
   private ClientCryptoService clientCryptoService;
   private WhirlpoolProtocol whirlpoolProtocol;
   private String logPrefix;
-  private IHttpClient httpClientRegisterOutput;
   private MixSession mixSession;
 
   public MixClient(WhirlpoolClientConfig config, String logPrefix) {
@@ -75,10 +72,6 @@ public class MixClient {
     }
 
     try {
-      // connect httpClientRegisterOutput
-      httpClientRegisterOutput = config.getHttpClient(HttpUsage.COORDINATOR_REGISTER_OUTPUT);
-      httpClientRegisterOutput.connect();
-
       listenerProgress(MixStep.CONNECTING);
       mixSession =
           new MixSession(
@@ -99,7 +92,6 @@ public class MixClient {
     if (mixSession != null) {
       mixSession.disconnect();
       mixSession = null;
-      httpClientRegisterOutput = null;
     }
   }
 
@@ -116,7 +108,7 @@ public class MixClient {
 
   private MixProcess computeMixProcess() {
     return new MixProcess(
-        config,
+        config.getNetworkParameters(),
         mixParams.getPoolId(),
         mixParams.getDenomination(),
         mixParams.getPremixHandler(),
@@ -206,23 +198,18 @@ public class MixClient {
       @Override
       public Completable postRegisterOutput(
           RegisterOutputMixStatusNotification registerOutputMixStatusNotification,
-          String registerOutputUrl)
+          ServerApi serverApi)
           throws Exception {
         listenerProgress(MixStep.REGISTERING_OUTPUT);
         RegisterOutputRequest registerOutputRequest =
             mixProcess.registerOutput(registerOutputMixStatusNotification);
 
-        // POST request through a different identity for mix privacy
-        if (log.isDebugEnabled()) {
-          log.debug(
-              "POST " + registerOutputUrl + ": " + ClientUtils.toJsonString(registerOutputRequest));
-        }
         // confirm receive address even when REGISTER_OUTPUT fails, to avoid 'ouput already
         // registered'
         mixParams.getPostmixHandler().confirmReceiveAddress();
-        IHttpClient httpClient = config.getHttpClient(HttpUsage.COORDINATOR_REGISTER_OUTPUT);
-        Observable<Optional<String>> observable =
-            httpClient.postJson(registerOutputUrl, String.class, null, registerOutputRequest);
+
+        // send request
+        Observable<Optional<String>> observable = serverApi.registerOutput(registerOutputRequest);
         Observable chainedObservable =
             observable.doOnComplete(
                 new Action() {

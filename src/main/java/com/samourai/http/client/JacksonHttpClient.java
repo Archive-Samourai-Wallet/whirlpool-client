@@ -34,9 +34,6 @@ public abstract class JacksonHttpClient implements IHttpClient {
   @Override
   public <T> T getJson(String urlStr, Class<T> responseType, Map<String, String> headers)
       throws HttpException {
-    if (log.isDebugEnabled()) {
-      log.debug("getJson: " + urlStr);
-    }
     try {
       String responseContent = requestJsonGet(urlStr, headers);
       T result = parseJson(responseContent, responseType);
@@ -59,9 +56,6 @@ public abstract class JacksonHttpClient implements IHttpClient {
       final Class<T> responseType,
       final Map<String, String> headers,
       final Object bodyObj) {
-    if (log.isDebugEnabled()) {
-      log.debug("postJson: " + urlStr);
-    }
     return httpObservable(
         new Callable<T>() {
           @Override
@@ -86,10 +80,6 @@ public abstract class JacksonHttpClient implements IHttpClient {
   public <T> T postUrlEncoded(
       String urlStr, Class<T> responseType, Map<String, String> headers, Map<String, String> body)
       throws HttpException {
-    if (log.isDebugEnabled()) {
-      log.debug(
-          "postUrlEncoded: " + urlStr + ", POST.body=" + (body != null ? body.keySet() : "null"));
-    }
     try {
       String responseContent = requestJsonPostUrlEncoded(urlStr, headers, body);
       T result = parseJson(responseContent, responseType);

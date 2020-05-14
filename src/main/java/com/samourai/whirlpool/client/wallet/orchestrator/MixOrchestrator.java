@@ -11,7 +11,8 @@ import com.samourai.whirlpool.client.whirlpool.listener.LoggingWhirlpoolClientLi
 import com.samourai.whirlpool.client.whirlpool.listener.WhirlpoolClientListener;
 import io.reactivex.Observable;
 import io.reactivex.subjects.Subject;
-import java.util.*;
+import java.util.Collections;
+import java.util.List;
 import java8.util.Optional;
 import java8.util.function.Predicate;
 import java8.util.stream.Collectors;
@@ -25,6 +26,7 @@ public abstract class MixOrchestrator extends AbstractOrchestrator {
   private final Logger log = LoggerFactory.getLogger(MixOrchestrator.class);
   private static final int LAST_ERROR_DELAY = 60 * 5; // 5min
   private static final int MIX_MIN_CONFIRMATIONS = 1;
+  private static final int START_DELAY = 5000;
 
   private MixOrchestratorData data;
 
@@ -41,7 +43,7 @@ public abstract class MixOrchestrator extends AbstractOrchestrator {
       int maxClientsPerPool,
       boolean autoMix,
       int mixsTargetMin) {
-    super(loopDelay, 0, clientDelay);
+    super(loopDelay, START_DELAY, clientDelay);
     this.data = data;
 
     this.maxClients = maxClients;
@@ -82,7 +84,7 @@ public abstract class MixOrchestrator extends AbstractOrchestrator {
     }
   }
 
-  protected boolean findAndMix() throws Exception {
+  protected boolean findAndMix() {
     if (log.isDebugEnabled()) {
       log.debug("checking for queued utxos to mix...");
     }
@@ -216,7 +218,7 @@ public abstract class MixOrchestrator extends AbstractOrchestrator {
           @Override
           public boolean test(WhirlpoolUtxo whirlpoolUtxo) {
             // filter by poolId
-            if (!poolId.equals(whirlpoolUtxo.getUtxoConfig().getPoolId())) {
+            if (!poolId.equals(whirlpoolUtxo.getPoolId())) {
               return false;
             }
             return true;
@@ -238,7 +240,7 @@ public abstract class MixOrchestrator extends AbstractOrchestrator {
   private synchronized WhirlpoolUtxo[] findSwap(WhirlpoolUtxo toMix, boolean mixNow) {
     String toMixHash = toMix.getUtxo().tx_hash;
     final String mixingHashCriteria = data.isHashMixing(toMixHash) ? toMixHash : null;
-    String poolId = toMix.getUtxoConfig().getPoolId();
+    String poolId = toMix.getPoolId();
     boolean isIdle = hasMoreMixingThreadAvailable(poolId);
     if (mixingHashCriteria == null && isIdle) {
       // no swap required
@@ -310,7 +312,7 @@ public abstract class MixOrchestrator extends AbstractOrchestrator {
   private MixableStatus computeMixableStatus(WhirlpoolUtxo whirlpoolUtxo) {
 
     // check pool
-    if (whirlpoolUtxo.getUtxoConfig().getPoolId() == null) {
+    if (whirlpoolUtxo.getPoolId() == null) {
       return MixableStatus.NO_POOL;
     }
 
@@ -323,10 +325,11 @@ public abstract class MixOrchestrator extends AbstractOrchestrator {
     return MixableStatus.MIXABLE;
   }
 
-  private boolean refreshMixableStatus(WhirlpoolUtxo whirlpoolUtxo) {
+  private boolean isNewMixable(WhirlpoolUtxo whirlpoolUtxo) {
     boolean wasMixable =
         MixableStatus.MIXABLE.equals(whirlpoolUtxo.getUtxoState().getMixableStatus());
 
+    // refresh mixable status
     MixableStatus mixableStatus = computeMixableStatus(whirlpoolUtxo);
     whirlpoolUtxo.getUtxoState().setMixableStatus(mixableStatus);
 
@@ -338,12 +341,15 @@ public abstract class MixOrchestrator extends AbstractOrchestrator {
     if (!wasMixable
         && isMixable
         && WhirlpoolUtxoStatus.MIX_QUEUE.equals(whirlpoolUtxo.getUtxoState().getStatus())) {
-      return true; // wakeup on MIXABLE queued utxo
+      return true;
     }
     return false;
   }
 
   public void mixQueue(WhirlpoolUtxo whirlpoolUtxo) throws NotifiableException {
+    if (log.isDebugEnabled()) {
+      log.debug(" +mixQueue: " + whirlpoolUtxo);
+    }
     mixQueue(whirlpoolUtxo, true);
   }
 
@@ -365,15 +371,12 @@ public abstract class MixOrchestrator extends AbstractOrchestrator {
       throw new NotifiableException(
           "cannot add to mix queue: utxoStatus=" + utxoStatus + " for " + whirlpoolUtxo);
     }
-    if (whirlpoolUtxo.getUtxoConfig().getPoolId() == null) {
+    if (whirlpoolUtxo.getPoolId() == null) {
       throw new NotifiableException("cannot add to mix queue: no pool set for " + whirlpoolUtxo);
     }
 
     // add to queue
     utxoState.setStatus(WhirlpoolUtxoStatus.MIX_QUEUE, false);
-    if (log.isDebugEnabled()) {
-      log.debug(" + mixQueue: " + whirlpoolUtxo);
-    }
     data.getMixingState().incrementUtxoQueued(whirlpoolUtxo);
     if (notify) {
       notifyOrchestrator();
@@ -432,13 +435,7 @@ public abstract class MixOrchestrator extends AbstractOrchestrator {
     }
 
     if (log.isDebugEnabled()) {
-      log.debug(
-          " + Mix("
-              + (mixingToSwap != null ? "SWAP" : "IDLE")
-              + "): "
-              + whirlpoolUtxo
-              + " ; "
-              + whirlpoolUtxo.getUtxoConfig());
+      log.debug(" + Mix(" + (mixingToSwap != null ? "SWAP" : "IDLE") + "): " + whirlpoolUtxo);
     }
     if (mixingToSwap != null) {
       // stop mixingToSwap
@@ -453,15 +450,13 @@ public abstract class MixOrchestrator extends AbstractOrchestrator {
     WhirlpoolClientListener listener = computeMixListener(whirlpoolUtxo);
     WhirlpoolClient whirlpoolClient = runWhirlpoolClient(whirlpoolUtxo, listener);
     Subject<MixProgress> observable = listener.getObservable();
-    Mixing mixing =
-        new Mixing(
-            whirlpoolUtxo, whirlpoolUtxo.getUtxoConfig().getPoolId(), whirlpoolClient, observable);
+    Mixing mixing = new Mixing(whirlpoolUtxo, whirlpoolClient, observable);
     data.addMixing(mixing);
     return observable;
   }
 
   private WhirlpoolClientListener computeMixListener(final WhirlpoolUtxo whirlpoolUtxo) {
-    return new LoggingWhirlpoolClientListener(whirlpoolUtxo.getUtxoConfig().getPoolId()) {
+    return new LoggingWhirlpoolClientListener(whirlpoolUtxo.getPoolId()) {
       @Override
       public void success(MixSuccess mixSuccess) {
         super.success(mixSuccess);
@@ -471,7 +466,7 @@ public abstract class MixOrchestrator extends AbstractOrchestrator {
         // update utxo
         WhirlpoolUtxoState utxoState = whirlpoolUtxo.getUtxoState();
         utxoState.setStatus(WhirlpoolUtxoStatus.MIX_SUCCESS, true, mixProgress);
-        whirlpoolUtxo.getUtxoConfig().incrementMixsDone();
+        whirlpoolUtxo.incrementMixsDone();
 
         // manage
         data.removeMixing(whirlpoolUtxo);
@@ -545,19 +540,33 @@ public abstract class MixOrchestrator extends AbstractOrchestrator {
     boolean notify = false;
 
     // DETECTED
-    for (WhirlpoolUtxo whirlpoolUtxo : whirlpoolUtxoChanges.getUtxosDetected()) {
+    int nbQueued = 0;
+    for (WhirlpoolUtxo whirlpoolUtxo : whirlpoolUtxoChanges.getUtxosAdded()) {
       // autoQueue
-      autoQueue(whirlpoolUtxo, whirlpoolUtxoChanges.isFirstFetch());
-      // refresh MIXABLE status
-      if (refreshMixableStatus(whirlpoolUtxo)) {
+      if (isAutoQueue(whirlpoolUtxo, whirlpoolUtxoChanges.isFirstFetch())) {
+        try {
+          mixQueue(whirlpoolUtxo, false);
+        } catch (Exception e) {
+          log.error("", e);
+        }
         notify = true;
+        nbQueued++;
+      }
+      // refresh MIXABLE status
+      if (isNewMixable(whirlpoolUtxo)) {
+        notify = true;
+      }
+    }
+    if (nbQueued > 0) {
+      if (log.isDebugEnabled()) {
+        log.debug(" +mixQueue: " + nbQueued + " utxos");
       }
     }
 
     // UPDATED
     for (WhirlpoolUtxo whirlpoolUtxo : whirlpoolUtxoChanges.getUtxosUpdated()) {
       // refresh MIXABLE status
-      if (refreshMixableStatus(whirlpoolUtxo)) {
+      if (isNewMixable(whirlpoolUtxo)) {
         notify = true;
       }
     }
@@ -579,34 +588,22 @@ public abstract class MixOrchestrator extends AbstractOrchestrator {
     }
   }
 
-  private void autoQueue(WhirlpoolUtxo whirlpoolUtxo, boolean isFirstFetch) {
-    WhirlpoolUtxoConfig utxoConfig = whirlpoolUtxo.getUtxoConfig();
+  private boolean isAutoQueue(WhirlpoolUtxo whirlpoolUtxo, boolean isFirstFetch) {
     if (WhirlpoolUtxoStatus.READY.equals(whirlpoolUtxo.getUtxoState().getStatus())
-        && utxoConfig.getPoolId() != null) {
+        && whirlpoolUtxo.getPoolId() != null) {
 
       // automix : queue new PREMIX
-      boolean isAutoMixPremix =
-          autoMix && WhirlpoolAccount.PREMIX.equals(whirlpoolUtxo.getAccount());
-      // queue unfinished POSTMIX utxos
-      boolean isAutoRemix =
-          (!isFirstFetch || autoMix)
-              && WhirlpoolAccount.POSTMIX.equals(whirlpoolUtxo.getAccount())
-              && !utxoConfig.isDone(mixsTargetMin);
+      if (autoMix && WhirlpoolAccount.PREMIX.equals(whirlpoolUtxo.getAccount())) {
+        return true;
+      }
 
-      if (isAutoMixPremix || isAutoRemix) {
-        if (log.isDebugEnabled()) {
-          log.debug(
-              " o AutoMix: new "
-                  + whirlpoolUtxo.getAccount()
-                  + " utxo detected, adding to mixQueue: "
-                  + whirlpoolUtxo);
-        }
-        try {
-          mixQueue(whirlpoolUtxo, false);
-        } catch (Exception e) {
-          log.error("", e);
-        }
+      // queue unfinished POSTMIX utxos
+      if ((!isFirstFetch || autoMix)
+          && WhirlpoolAccount.POSTMIX.equals(whirlpoolUtxo.getAccount())
+          && !whirlpoolUtxo.isDone(mixsTargetMin)) {
+        return true;
       }
     }
+    return false;
   }
 }

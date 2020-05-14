@@ -5,27 +5,27 @@ import java.util.List;
 
 public class WhirlpoolUtxoChanges {
   private boolean isFirstFetch;
-  private List<WhirlpoolUtxo> utxosDetected;
+  private List<WhirlpoolUtxo> utxosAdded;
   private List<WhirlpoolUtxo> utxosUpdated;
   private List<WhirlpoolUtxo> utxosRemoved;
 
   public WhirlpoolUtxoChanges(boolean isFirstFetch) {
     this.isFirstFetch = isFirstFetch;
-    this.utxosDetected = new ArrayList<WhirlpoolUtxo>();
+    this.utxosAdded = new ArrayList<WhirlpoolUtxo>();
     this.utxosUpdated = new ArrayList<WhirlpoolUtxo>();
     this.utxosRemoved = new ArrayList<WhirlpoolUtxo>();
   }
 
   public boolean isEmpty() {
-    return utxosDetected.isEmpty() && utxosUpdated.isEmpty() && utxosRemoved.isEmpty();
+    return utxosAdded.isEmpty() && utxosUpdated.isEmpty() && utxosRemoved.isEmpty();
   }
 
   public boolean isFirstFetch() {
     return isFirstFetch;
   }
 
-  public List<WhirlpoolUtxo> getUtxosDetected() {
-    return utxosDetected;
+  public List<WhirlpoolUtxo> getUtxosAdded() {
+    return utxosAdded;
   }
 
   public List<WhirlpoolUtxo> getUtxosUpdated() {
@@ -34,5 +34,18 @@ public class WhirlpoolUtxoChanges {
 
   public List<WhirlpoolUtxo> getUtxosRemoved() {
     return utxosRemoved;
+  }
+
+  @Override
+  public String toString() {
+    if (isEmpty()) {
+      return "unchanged";
+    }
+    return utxosAdded.size()
+        + " added, "
+        + utxosUpdated.size()
+        + " updated, "
+        + utxosRemoved.size()
+        + " removed";
   }
 }

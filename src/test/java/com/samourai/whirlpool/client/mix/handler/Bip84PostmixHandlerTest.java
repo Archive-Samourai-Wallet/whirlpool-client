@@ -4,8 +4,7 @@ import com.samourai.wallet.client.Bip84Wallet;
 import com.samourai.wallet.client.indexHandler.MemoryIndexHandler;
 import com.samourai.wallet.hd.HD_Wallet;
 import com.samourai.whirlpool.client.test.AbstractTest;
-import com.samourai.whirlpool.client.tx0.*;
-import com.samourai.whirlpool.client.wallet.beans.WhirlpoolWalletAccount;
+import com.samourai.whirlpool.client.wallet.beans.WhirlpoolAccount;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
@@ -25,7 +24,7 @@ public class Bip84PostmixHandlerTest extends AbstractTest {
     bip84Wallet =
         new Bip84Wallet(
             bip84w,
-            WhirlpoolWalletAccount.POSTMIX.getAccountIndex(),
+            WhirlpoolAccount.POSTMIX.getAccountIndex(),
             new MemoryIndexHandler(),
             new MemoryIndexHandler());
   }

@@ -1,41 +1,20 @@
 package com.samourai.whirlpool.client.tx0;
 
-import com.samourai.whirlpool.client.wallet.beans.WhirlpoolWalletAccount;
+import com.samourai.whirlpool.client.wallet.beans.WhirlpoolAccount;
 
 public class Tx0Config {
-  private Integer maxOutputs;
-  private WhirlpoolWalletAccount changeWallet;
-  private Long overspend;
+  private WhirlpoolAccount changeWallet;
 
   public Tx0Config() {
-    this.maxOutputs = null; // spend whole utxo when possible
-    this.changeWallet = WhirlpoolWalletAccount.DEPOSIT;
-    this.overspend = null;
+    this.changeWallet = WhirlpoolAccount.DEPOSIT;
   }
 
-  public Integer getMaxOutputs() {
-    return maxOutputs;
-  }
-
-  public Tx0Config setMaxOutputs(Integer maxOutputs) {
-    this.maxOutputs = maxOutputs;
-    return this;
-  }
-
-  public WhirlpoolWalletAccount getChangeWallet() {
+  public WhirlpoolAccount getChangeWallet() {
     return changeWallet;
   }
 
-  public Tx0Config setChangeWallet(WhirlpoolWalletAccount changeWallet) {
+  public Tx0Config setChangeWallet(WhirlpoolAccount changeWallet) {
     this.changeWallet = changeWallet;
     return this;
-  }
-
-  public Long getOverspend() {
-    return overspend;
-  }
-
-  public void setOverspend(Long overspend) {
-    this.overspend = overspend;
   }
 }

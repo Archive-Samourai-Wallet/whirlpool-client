@@ -4,6 +4,7 @@ import com.samourai.wallet.api.backend.beans.UnspentResponse.UnspentOutput;
 import com.samourai.whirlpool.client.exception.EmptyWalletException;
 import com.samourai.whirlpool.client.exception.UnconfirmedUtxoException;
 import com.samourai.whirlpool.client.wallet.WhirlpoolWallet;
+import com.samourai.whirlpool.client.wallet.WhirlpoolWalletConfig;
 import com.samourai.whirlpool.client.wallet.beans.WhirlpoolUtxo;
 import com.samourai.whirlpool.client.wallet.beans.WhirlpoolUtxoChanges;
 import org.slf4j.Logger;
@@ -11,17 +12,15 @@ import org.slf4j.LoggerFactory;
 
 public class AutoTx0Orchestrator extends AbstractOrchestrator {
   private static final Logger log = LoggerFactory.getLogger(AutoTx0Orchestrator.class);
-  // start delay to make sure UTXOS are refreshed when starting
-  private static final int START_DELAY = 15000;
+  private static final int START_DELAY = 10000;
 
   private WhirlpoolWallet whirlpoolWallet;
-  private String autoTx0PoolId;
+  private WhirlpoolWalletConfig config;
 
-  public AutoTx0Orchestrator(
-      int loopDelay, WhirlpoolWallet whirlpoolWallet, int tx0Delay, String autoTx0PoolId) {
-    super(loopDelay, START_DELAY, tx0Delay);
+  public AutoTx0Orchestrator(WhirlpoolWallet whirlpoolWallet, WhirlpoolWalletConfig config) {
+    super(config.getTx0Delay(), START_DELAY, config.getTx0Delay());
     this.whirlpoolWallet = whirlpoolWallet;
-    this.autoTx0PoolId = autoTx0PoolId;
+    this.config = config;
   }
 
   @Override
@@ -54,7 +53,8 @@ public class AutoTx0Orchestrator extends AbstractOrchestrator {
       // no tx0 can be made now, wait for spendFrom to confirm...
     } catch (EmptyWalletException e) {
       // make sure that mixOrchestrator has no more to mix
-      boolean hasMoreThreadForTx0 = whirlpoolWallet.hasMoreMixingThreadAvailable(autoTx0PoolId);
+      boolean hasMoreThreadForTx0 =
+          whirlpoolWallet.hasMoreMixingThreadAvailable(config.getAutoTx0PoolId());
       boolean hasMorMixableOrUnconfirmed = whirlpoolWallet.hasMoreMixableOrUnconfirmed();
       if (hasMoreThreadForTx0 && !hasMorMixableOrUnconfirmed) {
         // wallet is empty
@@ -95,17 +95,15 @@ public class AutoTx0Orchestrator extends AbstractOrchestrator {
     boolean notify = false;
 
     // DETECTED
-    for (WhirlpoolUtxo whirlpoolUtxo : whirlpoolUtxoChanges.getUtxosDetected()) {
-      if (whirlpoolUtxo.getUtxo().confirmations
-          >= whirlpoolWallet.getConfig().getTx0MinConfirmations()) {
+    for (WhirlpoolUtxo whirlpoolUtxo : whirlpoolUtxoChanges.getUtxosAdded()) {
+      if (whirlpoolUtxo.getUtxo().confirmations >= config.getTx0MinConfirmations()) {
         notify = true;
       }
     }
 
     // UPDATED
-    for (WhirlpoolUtxo whirlpoolUtxo : whirlpoolUtxoChanges.getUtxosDetected()) {
-      if (whirlpoolUtxo.getUtxo().confirmations
-          >= whirlpoolWallet.getConfig().getTx0MinConfirmations()) {
+    for (WhirlpoolUtxo whirlpoolUtxo : whirlpoolUtxoChanges.getUtxosAdded()) {
+      if (whirlpoolUtxo.getUtxo().confirmations >= config.getTx0MinConfirmations()) {
         notify = true;
       }
     }

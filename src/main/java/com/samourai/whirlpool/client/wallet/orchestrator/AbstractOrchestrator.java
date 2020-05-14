@@ -19,11 +19,11 @@ public abstract class AbstractOrchestrator {
     this(loopDelay, 0, null);
   }
 
-  public AbstractOrchestrator(int loopDelay, int startDelay, Integer lastRunDelay) {
+  public AbstractOrchestrator(int loopDelayMs, int startDelayMs, Integer lastRunDelaySeconds) {
     this.log = LoggerFactory.getLogger(getClass().getName());
-    this.LOOP_DELAY = loopDelay;
-    this.START_DELAY = startDelay;
-    this.LAST_RUN_DELAY = lastRunDelay;
+    this.LOOP_DELAY = loopDelayMs;
+    this.START_DELAY = startDelayMs;
+    this.LAST_RUN_DELAY = lastRunDelaySeconds;
     resetOrchestrator();
   }
 
@@ -38,7 +38,11 @@ public abstract class AbstractOrchestrator {
       return;
     }
     if (log.isDebugEnabled()) {
-      log.debug("Starting...");
+      log.debug(
+          "Starting... loopDelay="
+              + LOOP_DELAY
+              + ", lastRunDelay="
+              + (LAST_RUN_DELAY != null ? LAST_RUN_DELAY : "null"));
     }
     this.started = true;
     this.myThread =
@@ -93,19 +97,16 @@ public abstract class AbstractOrchestrator {
       log.debug("Ending...");
     }
     this.started = false;
-    if (log.isDebugEnabled()) {
-      log.debug("Ended.");
-    }
     synchronized (myThread) {
       myThread.notify();
-    }
-    if (log.isDebugEnabled()) {
-      log.debug("Ended notified.");
     }
   }
 
   protected synchronized void notifyOrchestrator() {
     if (isStarted() && !isDontDisturb()) {
+      if (log.isTraceEnabled()) {
+        log.trace("notifying");
+      }
       synchronized (myThread) {
         myThread.notify();
       }

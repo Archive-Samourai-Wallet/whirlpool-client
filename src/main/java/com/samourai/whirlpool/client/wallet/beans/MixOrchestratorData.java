@@ -2,30 +2,52 @@ package com.samourai.whirlpool.client.wallet.beans;
 
 import com.samourai.wallet.api.backend.beans.UnspentResponse;
 import com.samourai.whirlpool.client.utils.ClientUtils;
+import com.samourai.whirlpool.client.wallet.data.pool.PoolSupplier;
+import com.samourai.whirlpool.client.wallet.data.utxo.UtxoSupplier;
 import com.samourai.whirlpool.client.whirlpool.beans.Pool;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java8.util.function.Function;
+import java8.util.function.Predicate;
 import java8.util.stream.Collectors;
 import java8.util.stream.Stream;
 import java8.util.stream.StreamSupport;
 
-public abstract class MixOrchestratorData {
+public class MixOrchestratorData {
   private ConcurrentHashMap<String, Mixing> mixing;
   private Set<String> mixingHashs;
   private Map<String, Integer> mixingPerPool;
 
   private MixingStateEditable mixingState;
+  private PoolSupplier poolSupplier;
+  private UtxoSupplier utxoSupplier;
 
-  public abstract Stream<WhirlpoolUtxo> getQueue();
-
-  public abstract Collection<Pool> getPools() throws Exception;
-
-  public MixOrchestratorData(MixingStateEditable mixingState) {
+  public MixOrchestratorData(
+      MixingStateEditable mixingState, PoolSupplier poolSupplier, UtxoSupplier utxoSupplier) {
     this.mixing = new ConcurrentHashMap<String, Mixing>();
     this.mixingHashs = new HashSet<String>();
     this.mixingPerPool = new HashMap<String, Integer>();
     this.mixingState = mixingState;
+    this.poolSupplier = poolSupplier;
+    this.utxoSupplier = utxoSupplier;
+  }
+
+  public Stream<WhirlpoolUtxo> getQueue() {
+    return StreamSupport.stream(
+            utxoSupplier.findUtxos(WhirlpoolAccount.PREMIX, WhirlpoolAccount.POSTMIX))
+        .filter(
+            new Predicate<WhirlpoolUtxo>() {
+              @Override
+              public boolean test(WhirlpoolUtxo whirlpoolUtxo) {
+                // queued
+                return WhirlpoolUtxoStatus.MIX_QUEUE.equals(
+                    whirlpoolUtxo.getUtxoState().getStatus());
+              }
+            });
+  }
+
+  public Collection<Pool> getPools() {
+    return poolSupplier.getPools();
   }
 
   public void clear() {
@@ -69,7 +91,7 @@ public abstract class MixOrchestratorData {
   private Map<String, Integer> computeMixingPerPool() {
     Map<String, Integer> mixingPerPool = new HashMap<String, Integer>();
     for (Mixing mixingItem : mixing.values()) {
-      String poolId = mixingItem.getPoolId();
+      String poolId = mixingItem.getUtxo().getPoolId();
       int currentCount = mixingPerPool.containsKey(poolId) ? mixingPerPool.get(poolId) : 0;
       mixingPerPool.put(poolId, currentCount + 1);
     }

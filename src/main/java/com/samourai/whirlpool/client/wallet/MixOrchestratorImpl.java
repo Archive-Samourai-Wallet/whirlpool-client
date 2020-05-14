@@ -12,13 +12,10 @@ import com.samourai.whirlpool.client.mix.listener.MixSuccess;
 import com.samourai.whirlpool.client.utils.ClientUtils;
 import com.samourai.whirlpool.client.wallet.beans.*;
 import com.samourai.whirlpool.client.wallet.orchestrator.MixOrchestrator;
+import com.samourai.whirlpool.client.whirlpool.WhirlpoolClientConfig;
+import com.samourai.whirlpool.client.whirlpool.WhirlpoolClientImpl;
 import com.samourai.whirlpool.client.whirlpool.beans.Pool;
 import com.samourai.whirlpool.client.whirlpool.listener.WhirlpoolClientListener;
-import java.util.ArrayList;
-import java.util.Collection;
-import java8.util.function.Predicate;
-import java8.util.stream.Stream;
-import java8.util.stream.StreamSupport;
 import org.bitcoinj.core.ECKey;
 import org.bitcoinj.core.NetworkParameters;
 import org.slf4j.Logger;
@@ -27,49 +24,27 @@ import org.slf4j.LoggerFactory;
 public class MixOrchestratorImpl extends MixOrchestrator {
   private final Logger log = LoggerFactory.getLogger(MixOrchestratorImpl.class);
 
+  private WhirlpoolDataService dataService;
   private WhirlpoolWallet whirlpoolWallet;
+  private WhirlpoolClientConfig config;
 
   public MixOrchestratorImpl(
-      MixingStateEditable mixingState, int loopDelay, WhirlpoolWallet whirlpoolWallet) {
+      MixingStateEditable mixingState,
+      int loopDelay,
+      WhirlpoolDataService dataService,
+      WhirlpoolWallet whirlpoolWallet) {
     super(
         loopDelay,
-        whirlpoolWallet.getConfig().getClientDelay(),
-        computeData(mixingState, whirlpoolWallet),
-        whirlpoolWallet.getConfig().getMaxClients(),
-        whirlpoolWallet.getConfig().getMaxClientsPerPool(),
-        whirlpoolWallet.getConfig().isAutoMix(),
-        whirlpoolWallet.getConfig().getMixsTarget());
+        dataService.getConfig().getClientDelay(),
+        new MixOrchestratorData(
+            mixingState, dataService.getPoolSupplier(), whirlpoolWallet.getUtxoSupplier()),
+        dataService.getConfig().getMaxClients(),
+        dataService.getConfig().getMaxClientsPerPool(),
+        dataService.getConfig().isAutoMix(),
+        dataService.getConfig().getMixsTarget());
+    this.dataService = dataService;
     this.whirlpoolWallet = whirlpoolWallet;
-  }
-
-  private static MixOrchestratorData computeData(
-      MixingStateEditable mixingState, final WhirlpoolWallet whirlpoolWallet) {
-    return new MixOrchestratorData(mixingState) {
-      @Override
-      public Stream<WhirlpoolUtxo> getQueue() {
-        try {
-          return StreamSupport.stream(
-                  whirlpoolWallet.getUtxos(
-                      false, WhirlpoolAccount.PREMIX, WhirlpoolAccount.POSTMIX))
-              .filter(
-                  new Predicate<WhirlpoolUtxo>() {
-                    @Override
-                    public boolean test(WhirlpoolUtxo whirlpoolUtxo) {
-                      // queued
-                      return WhirlpoolUtxoStatus.MIX_QUEUE.equals(
-                          whirlpoolUtxo.getUtxoState().getStatus());
-                    }
-                  });
-        } catch (Exception e) {
-          return StreamSupport.stream(new ArrayList());
-        }
-      }
-
-      @Override
-      public Collection<Pool> getPools() throws Exception {
-        return whirlpoolWallet.getPools();
-      }
-    };
+    this.config = dataService.getConfig();
   }
 
   @Override
@@ -90,31 +65,22 @@ public class MixOrchestratorImpl extends MixOrchestrator {
       WhirlpoolUtxo whirlpoolUtxo, WhirlpoolClientListener listener) throws NotifiableException {
     if (log.isDebugEnabled()) {
       log.info(
-          " • Connecting client to pool: "
-              + whirlpoolUtxo.getUtxoConfig().getPoolId()
-              + ", utxo="
-              + whirlpoolUtxo
-              + " ; "
-              + whirlpoolUtxo.getUtxoConfig());
+          " • Connecting client to pool: " + whirlpoolUtxo.getPoolId() + ", utxo=" + whirlpoolUtxo);
     } else {
-      log.info(" • Connecting client to pool: " + whirlpoolUtxo.getUtxoConfig().getPoolId());
+      log.info(" • Connecting client to pool: " + whirlpoolUtxo.getPoolId());
     }
 
     // find pool
-    String poolId = whirlpoolUtxo.getUtxoConfig().getPoolId();
-    Pool pool = null;
-    try {
-      pool = whirlpoolWallet.findPoolById(poolId);
-    } catch (Exception e) {
-      log.error("", e);
-    }
+    String poolId = whirlpoolUtxo.getPoolId();
+    Pool pool = dataService.getPoolSupplier().findPoolById(poolId);
     if (pool == null) {
       throw new NotifiableException("Pool not found: " + poolId);
     }
 
     // start mixing (whirlpoolClient will start a new thread)
     MixParams mixParams = computeMixParams(whirlpoolUtxo, pool);
-    WhirlpoolClient whirlpoolClient = whirlpoolWallet.getConfig().newClient();
+
+    WhirlpoolClient whirlpoolClient = new WhirlpoolClientImpl(config);
     whirlpoolClient.whirlpool(mixParams, listener);
     return whirlpoolClient;
   }
@@ -152,7 +118,10 @@ public class MixOrchestratorImpl extends MixOrchestrator {
 
   private IPremixHandler computePremixHandler(WhirlpoolUtxo whirlpoolUtxo) {
     HD_Address premixAddress =
-        whirlpoolWallet.getWallet(whirlpoolUtxo.getAccount()).getAddressAt(whirlpoolUtxo.getUtxo());
+        whirlpoolWallet
+            .getWalletSupplier()
+            .getWallet(whirlpoolUtxo.getAccount())
+            .getAddressAt(whirlpoolUtxo.getUtxo());
     ECKey premixKey = premixAddress.getECKey();
 
     UnspentResponse.UnspentOutput premixOrPostmixUtxo = whirlpoolUtxo.getUtxo();
@@ -163,8 +132,9 @@ public class MixOrchestratorImpl extends MixOrchestrator {
             premixOrPostmixUtxo.value);
 
     // use PREMIX(0,0) as userPreHash (not transmitted to server but rehashed with another salt)
-    HD_Address premix00 = whirlpoolWallet.getWallet(WhirlpoolAccount.PREMIX).getAddressAt(0, 0);
-    NetworkParameters params = whirlpoolWallet.getConfig().getNetworkParameters();
+    HD_Address premix00 =
+        whirlpoolWallet.getWalletSupplier().getWallet(WhirlpoolAccount.PREMIX).getAddressAt(0, 0);
+    NetworkParameters params = config.getNetworkParameters();
     String premix00Bech32 = Bech32UtilGeneric.getInstance().toBech32(premix00, params);
     String userPreHash = ClientUtils.sha256Hash(premix00Bech32);
 
@@ -172,7 +142,6 @@ public class MixOrchestratorImpl extends MixOrchestrator {
   }
 
   private IPostmixHandler computePostmixHandler() {
-    return new Bip84PostmixHandler(
-        whirlpoolWallet.getWalletPostmix(), whirlpoolWallet.getConfig().isMobile());
+    return new Bip84PostmixHandler(whirlpoolWallet.getWalletPostmix(), config.isMobile());
   }
 }

@@ -1,38 +1,52 @@
 package com.samourai.whirlpool.client.wallet.beans;
 
 import com.samourai.wallet.api.backend.beans.UnspentResponse.UnspentOutput;
+import com.samourai.whirlpool.client.wallet.data.utxo.UtxoConfigPersisted;
+import com.samourai.whirlpool.client.wallet.data.utxo.UtxoConfigSupplier;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-public class WhirlpoolUtxo {
+public class WhirlpoolUtxo extends WhirlpoolUtxoConfig {
+  private static final Logger log = LoggerFactory.getLogger(WhirlpoolUtxo.class);
+
   private UnspentOutput utxo;
   private WhirlpoolAccount account;
-  private WhirlpoolUtxoConfig utxoConfig;
   private WhirlpoolUtxoState utxoState;
+
+  private UtxoConfigSupplier utxoConfigSupplier;
 
   public WhirlpoolUtxo(
       UnspentOutput utxo,
       WhirlpoolAccount account,
-      WhirlpoolUtxoConfig utxoConfig,
-      WhirlpoolUtxoStatus status) {
+      WhirlpoolUtxoStatus status,
+      UtxoConfigSupplier utxoConfigSupplier) {
+    super();
     this.utxo = utxo;
     this.account = account;
-    this.utxoConfig = utxoConfig;
     this.utxoState = new WhirlpoolUtxoState(status);
+    this.utxoConfigSupplier = utxoConfigSupplier;
+  }
+
+  @Override
+  protected UtxoConfigPersisted getUtxoConfigPersisted() {
+    // always fetch fresh instance from supplier
+    return utxoConfigSupplier.getUtxoConfigPersisted(this);
+  }
+
+  protected UtxoConfigSupplier getUtxoConfigSupplier() {
+    return utxoConfigSupplier;
   }
 
   public UnspentOutput getUtxo() {
     return utxo;
   }
 
-  public void setUtxo(UnspentOutput utxo) {
+  public void _setUtxo(UnspentOutput utxo) {
     this.utxo = utxo;
   }
 
   public WhirlpoolAccount getAccount() {
     return account;
-  }
-
-  public WhirlpoolUtxoConfig getUtxoConfig() {
-    return utxoConfig;
   }
 
   public WhirlpoolUtxoState getUtxoState() {
@@ -41,6 +55,6 @@ public class WhirlpoolUtxo {
 
   @Override
   public String toString() {
-    return utxo.toString() + ": " + utxoState;
+    return account + ": " + utxo.toString() + ": " + utxoState + " ; " + getUtxoConfigPersisted();
   }
 }

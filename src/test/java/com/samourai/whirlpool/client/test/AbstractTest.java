@@ -1,12 +1,12 @@
 package com.samourai.whirlpool.client.test;
 
+import com.samourai.http.client.HttpUsage;
+import com.samourai.http.client.IHttpClient;
+import com.samourai.http.client.IHttpClientService;
 import com.samourai.wallet.api.backend.beans.UnspentResponse;
 import com.samourai.wallet.hd.java.HD_WalletFactoryJava;
 import com.samourai.wallet.segwit.bech32.Bech32UtilGeneric;
-import com.samourai.whirlpool.client.wallet.beans.WhirlpoolAccount;
-import com.samourai.whirlpool.client.wallet.beans.WhirlpoolUtxo;
-import com.samourai.whirlpool.client.wallet.beans.WhirlpoolUtxoConfig;
-import com.samourai.whirlpool.client.wallet.beans.WhirlpoolUtxoStatus;
+import com.samourai.whirlpool.client.wallet.beans.*;
 import com.samourai.whirlpool.client.whirlpool.beans.Pool;
 import com.samourai.whirlpool.protocol.websocket.notifications.MixStatus;
 import java.util.Collection;
@@ -89,6 +89,16 @@ public class AbstractTest {
     return spendFrom;
   }
 
+  protected IHttpClientService mockHttpClientService() {
+    return new IHttpClientService() {
+      @Override
+      public IHttpClient getHttpClient(HttpUsage httpUsage) {
+        return null;
+      }
+    };
+  }
+
+  /*
   protected WhirlpoolUtxo newUtxo(
       String poolId, WhirlpoolAccount whirlpoolAccount, String hash, int confirms, Long lastError) {
     UnspentResponse.UnspentOutput utxo = newUnspentOutput(hash, 3, 100L);
@@ -100,4 +110,17 @@ public class AbstractTest {
     whirlpoolUtxo.getUtxoState().setLastError(lastError);
     return whirlpoolUtxo;
   }
+
+  protected WhirlpoolWalletConfig computeWhirlpoolWalletConfig() {
+    WhirlpoolWalletConfig config =
+        new WhirlpoolWalletConfig(
+            null,
+            null,
+            null,
+            WhirlpoolServer.LOCAL_TESTNET.getServerUrl(false),
+            WhirlpoolServer.LOCAL_TESTNET.getParams(),
+            false,
+            null);
+    return config;
+  }*/
 }

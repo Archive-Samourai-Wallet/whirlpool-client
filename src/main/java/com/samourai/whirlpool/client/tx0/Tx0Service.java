@@ -1,27 +1,27 @@
 package com.samourai.whirlpool.client.tx0;
 
-import com.samourai.http.client.HttpUsage;
-import com.samourai.http.client.IHttpClient;
 import com.samourai.wallet.api.backend.beans.HttpException;
 import com.samourai.wallet.api.backend.beans.UnspentResponse;
 import com.samourai.wallet.bip69.BIP69OutputComparator;
 import com.samourai.wallet.client.Bip84Wallet;
 import com.samourai.wallet.hd.HD_Address;
+import com.samourai.wallet.segwit.SegwitAddress;
 import com.samourai.wallet.segwit.bech32.Bech32UtilGeneric;
-import com.samourai.wallet.util.FeeUtil;
+import com.samourai.wallet.util.FormatsUtilGeneric;
 import com.samourai.whirlpool.client.exception.NotifiableException;
 import com.samourai.whirlpool.client.utils.BIP69InputComparatorUnspentOutput;
 import com.samourai.whirlpool.client.utils.ClientUtils;
 import com.samourai.whirlpool.client.wallet.WhirlpoolWalletConfig;
-import com.samourai.whirlpool.client.whirlpool.beans.Pool;
 import com.samourai.whirlpool.client.whirlpool.beans.Tx0Data;
 import com.samourai.whirlpool.protocol.WhirlpoolProtocol;
 import com.samourai.whirlpool.protocol.fee.WhirlpoolFee;
 import com.samourai.whirlpool.protocol.rest.Tx0DataResponse;
+import java.math.BigInteger;
 import java.util.*;
 import java8.util.function.ToLongFunction;
 import java8.util.stream.StreamSupport;
 import org.bitcoinj.core.*;
+import org.bitcoinj.crypto.TransactionSignature;
 import org.bitcoinj.script.Script;
 import org.bitcoinj.script.ScriptBuilder;
 import org.bitcoinj.script.ScriptOpCodes;
@@ -34,8 +34,8 @@ public class Tx0Service {
   protected static final int NB_PREMIX_MAX = 600;
 
   private final Bech32UtilGeneric bech32Util = Bech32UtilGeneric.getInstance();
+  private final FormatsUtilGeneric formatsUtilGeneric = FormatsUtilGeneric.getInstance();
   private final WhirlpoolFee whirlpoolFee;
-  private final FeeUtil feeUtil = FeeUtil.getInstance();
 
   private WhirlpoolWalletConfig config;
 
@@ -49,6 +49,7 @@ public class Tx0Service {
       Collection<? extends UnspentResponse.UnspentOutput> spendFrom,
       long feeValueOrFeeChange,
       int feeTx0) {
+    NetworkParameters params = config.getNetworkParameters();
     long spendFromBalance = computeSpendFromBalance(spendFrom);
 
     // compute nbPremix ignoring TX0 fee
@@ -58,9 +59,9 @@ public class Tx0Service {
     int nbPremix = nbPremixInitial;
     while (true) {
       // estimate TX0 fee for nbPremix
-      long tx0MinerFee = computeTx0MinerFee(nbPremix, feeTx0, spendFrom);
+      long tx0MinerFee = ClientUtils.computeTx0MinerFee(nbPremix, feeTx0, spendFrom, params);
       long spendValue =
-          computeTx0SpendValue(premixValue, nbPremix, feeValueOrFeeChange, tx0MinerFee);
+          ClientUtils.computeTx0SpendValue(premixValue, nbPremix, feeValueOrFeeChange, tx0MinerFee);
       if (log.isDebugEnabled()) {
         log.debug(
             "computeNbPremixMax: nbPremix="
@@ -89,52 +90,14 @@ public class Tx0Service {
     return nbPremix;
   }
 
-  protected long computeTx0MinerFee(
-      int nbPremix, long feeTx0, Collection<? extends UnspentResponse.UnspentOutput> spendFroms) {
-    int nbOutputsNonOpReturn = nbPremix + 2; // outputs + change + fee
-
-    // spendFroms can be NULL (for fee simulation)
-    int nbSpendFroms = (spendFroms != null ? spendFroms.size() : 1);
-
-    // spend from N bech32 input
-    long tx0MinerFee =
-        feeUtil.estimatedFeeSegwit(0, 0, nbSpendFroms, nbOutputsNonOpReturn, 1, feeTx0);
-
-    if (log.isTraceEnabled()) {
-      log.trace(
-          "tx0 minerFee: "
-              + tx0MinerFee
-              + "sats, totalBytes="
-              + "b for nbPremix="
-              + nbPremix
-              + ", feeTx0="
-              + feeTx0);
-    }
-    return tx0MinerFee;
-  }
-
   private long computeOutputsSum(Tx0Preview tx0Preview) {
     long tx0SpendValue =
-        computeTx0SpendValue(
+        ClientUtils.computeTx0SpendValue(
             tx0Preview.getPremixValue(),
             tx0Preview.getNbPremix(),
             tx0Preview.computeFeeValueOrFeeChange(),
             tx0Preview.getMinerFee());
     return tx0SpendValue + tx0Preview.getChangeValue();
-  }
-
-  private long computeTx0SpendValue(
-      long premixValue, int nbPremix, long feeValueOrFeeChange, long tx0MinerFee) {
-    long spendValue = (premixValue * nbPremix) + feeValueOrFeeChange + tx0MinerFee;
-    return spendValue;
-  }
-
-  public long computeSpendFromBalanceMin(Tx0Param tx0Param, int nbPremix) {
-    long tx0MinerFee = computeTx0MinerFee(nbPremix, tx0Param.getFeeTx0(), null);
-    long samouraiFee = tx0Param.getPool().getFeeValue();
-    long spendValue =
-        computeTx0SpendValue(tx0Param.getPremixValue(), nbPremix, samouraiFee, tx0MinerFee);
-    return spendValue;
   }
 
   public Tx0Preview tx0Preview(
@@ -153,7 +116,7 @@ public class Tx0Service {
       throws Exception {
 
     // check balance min
-    final long spendFromBalanceMin = computeSpendFromBalanceMin(tx0Param, 1);
+    final long spendFromBalanceMin = tx0Param.getSpendFromBalanceMin();
     long spendFromBalance = computeSpendFromBalance(spendFroms);
     if (spendFromBalance < spendFromBalanceMin) {
       throw new NotifiableException(
@@ -175,12 +138,14 @@ public class Tx0Service {
       throw new NotifiableException("Invalid premixValue for Tx0: " + premixValue);
     }
 
+    NetworkParameters params = config.getNetworkParameters();
     long feeValueOrFeeChange = tx0Data.computeFeeValueOrFeeChange();
     int nbPremix =
         computeNbPremix(
-            spendFroms, tx0Config.getMaxOutputs(), feeTx0, premixValue, feeValueOrFeeChange);
-    long minerFee = computeTx0MinerFee(nbPremix, feeTx0, spendFroms);
-    long spendValue = computeTx0SpendValue(premixValue, nbPremix, feeValueOrFeeChange, minerFee);
+            spendFroms, config.getTx0MaxOutputs(), feeTx0, premixValue, feeValueOrFeeChange);
+    long minerFee = ClientUtils.computeTx0MinerFee(nbPremix, feeTx0, spendFroms, params);
+    long spendValue =
+        ClientUtils.computeTx0SpendValue(premixValue, nbPremix, feeValueOrFeeChange, minerFee);
     long changeValue = spendFromBalance - spendValue;
 
     Tx0Preview tx0Preview = new Tx0Preview(tx0Data, minerFee, premixValue, changeValue, nbPremix);
@@ -217,8 +182,6 @@ public class Tx0Service {
     log.info(
         " • Tx0: spendFrom="
             + spendFroms
-            + ", maxOutputs="
-            + (tx0Config.getMaxOutputs() != null ? tx0Config.getMaxOutputs() : "*")
             + ", tx0Param=["
             + tx0Param
             + "], changeWallet="
@@ -368,7 +331,7 @@ public class Tx0Service {
 
   private int computeNbPremix(
       Collection<UnspentOutputWithKey> sortedSpendFroms,
-      Integer maxOutputs,
+      int maxOutputs,
       int feeTx0,
       long premixValue,
       long feeValueOrFeeChange) {
@@ -378,7 +341,7 @@ public class Tx0Service {
             sortedSpendFroms,
             feeValueOrFeeChange,
             feeTx0); // cap with balance and tx0 minerFee
-    if (maxOutputs != null) {
+    if (maxOutputs > 0) {
       nbPremix = Math.min(maxOutputs, nbPremix); // cap with maxOutputs
     }
     nbPremix = Math.min(NB_PREMIX_MAX, nbPremix); // cap with UTXO NB_PREMIX_MAX
@@ -559,52 +522,76 @@ public class Tx0Service {
       Transaction tx, UnspentOutputWithKey input, NetworkParameters params) {
     ECKey spendFromKey = ECKey.fromPrivate(input.getKey());
     TransactionOutPoint depositSpendFrom = input.computeOutpoint(params);
-    final Script segwitPubkeyScript = ScriptBuilder.createP2WPKHOutputScript(spendFromKey);
-    tx.addSignedInput(depositSpendFrom, segwitPubkeyScript, spendFromKey);
+
+    SegwitAddress segwitAddress = new SegwitAddress(spendFromKey.getPubKey(), params);
+    WpTransactionOutPoint outpoint =
+        new WpTransactionOutPoint(
+            params,
+            depositSpendFrom.getHash(),
+            (int) depositSpendFrom.getIndex(),
+            BigInteger.valueOf(depositSpendFrom.getValue().longValue()),
+            segwitAddress.segWitRedeemScript().getProgram());
+
+    TransactionInput _input = new TransactionInput(params, null, new byte[0], outpoint);
+    tx.addInput(_input);
   }
 
   protected void signTx0(
       Transaction tx, Collection<UnspentOutputWithKey> inputs, NetworkParameters params) {
-    // inputs were already signed
-  }
+    int idx = 0;
+    for (UnspentOutputWithKey input : inputs) {
 
-  public Collection<Pool> findPools(
-      Tx0ParamSimple tx0ParamSimple,
-      int nbOutputsMin,
-      Collection<Pool> poolsByPreference,
-      long utxoValue) {
-    List<Pool> eligiblePools = new LinkedList<Pool>();
-    for (Pool pool : poolsByPreference) {
-      Tx0Param tx0Param = tx0ParamSimple.computeTx0Param(pool);
-      boolean eligible = isTx0Possible(utxoValue, tx0Param, nbOutputsMin);
-      if (eligible) {
-        eligiblePools.add(pool);
+      String address = input.addr;
+      ECKey spendFromKey = ECKey.fromPrivate(input.getKey());
+
+      // sign input
+      boolean isBech32 = formatsUtilGeneric.isValidBech32(address);
+      if (isBech32 || Address.fromBase58(params, address).isP2SHAddress()) {
+
+        SegwitAddress segwitAddress = new SegwitAddress(spendFromKey.getPubKey(), params);
+        final Script redeemScript = segwitAddress.segWitRedeemScript();
+        final Script scriptCode = redeemScript.scriptCode();
+
+        TransactionSignature sig =
+            tx.calculateWitnessSignature(
+                idx,
+                spendFromKey,
+                scriptCode,
+                Coin.valueOf(input.value),
+                Transaction.SigHash.ALL,
+                false);
+        final TransactionWitness witness = new TransactionWitness(2);
+        witness.setPush(0, sig.encodeToBitcoin());
+        witness.setPush(1, spendFromKey.getPubKey());
+        tx.setWitness(idx, witness);
+
+        if (!isBech32) {
+          // P2SH
+          final ScriptBuilder sigScript = new ScriptBuilder();
+          sigScript.data(redeemScript.getProgram());
+          tx.getInput(idx).setScriptSig(sigScript.build());
+          //                    tx.getInput(idx).getScriptSig().correctlySpends(tx, idx, new
+          // Script(Hex.decode(input.script)), Coin.valueOf(input.value), Script.ALL_VERIFY_FLAGS);
+        }
+
+      } else {
+        TransactionSignature sig =
+            tx.calculateSignature(
+                idx,
+                spendFromKey,
+                new Script(Hex.decode(input.script)),
+                Transaction.SigHash.ALL,
+                false);
+        tx.getInput(idx).setScriptSig(ScriptBuilder.createInputScript(sig, spendFromKey));
       }
+
+      idx++;
     }
-    return eligiblePools;
   }
 
-  protected boolean isTx0Possible(long utxoValue, Tx0Param tx0Param, int nbOutputsMin) {
-    long balanceMin = computeSpendFromBalanceMin(tx0Param, nbOutputsMin);
-    if (log.isDebugEnabled()) {
-      log.debug(
-          "isTx0Possible: spendFromBalanceMin="
-              + balanceMin
-              + " for nbOutputsMin="
-              + nbOutputsMin
-              + ", utxoValue="
-              + utxoValue
-              + ", tx0Param="
-              + tx0Param);
-    }
-    return (utxoValue >= balanceMin);
-  }
-
-  protected Tx0Data fetchTx0Data(String poolId) throws HttpException, NotifiableException {
-    String url = WhirlpoolProtocol.getUrlTx0Data(config.getServer(), poolId, config.getScode());
+  protected Tx0Data fetchTx0Data(String poolId) throws Exception {
     try {
-      IHttpClient httpClient = config.getHttpClient(HttpUsage.COORDINATOR_REST);
-      Tx0DataResponse tx0Response = httpClient.getJson(url, Tx0DataResponse.class, null);
+      Tx0DataResponse tx0Response = config.getServerApi().fetchTx0Data(poolId, config.getScode());
       byte[] feePayload = WhirlpoolProtocol.decodeBytes(tx0Response.feePayload64);
       Tx0Data tx0Data =
           new Tx0Data(

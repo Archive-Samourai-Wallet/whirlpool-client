@@ -5,19 +5,9 @@ import com.samourai.whirlpool.client.exception.NotifiableException;
 import com.samourai.whirlpool.client.utils.ClientUtils;
 import com.samourai.whirlpool.client.whirlpool.WhirlpoolClientConfig;
 import com.samourai.whirlpool.protocol.WhirlpoolEndpoint;
-import com.samourai.whirlpool.protocol.WhirlpoolProtocol;
 import com.samourai.whirlpool.protocol.websocket.MixMessage;
-import com.samourai.whirlpool.protocol.websocket.messages.ConfirmInputRequest;
-import com.samourai.whirlpool.protocol.websocket.messages.ConfirmInputResponse;
-import com.samourai.whirlpool.protocol.websocket.messages.ErrorResponse;
-import com.samourai.whirlpool.protocol.websocket.messages.RevealOutputRequest;
-import com.samourai.whirlpool.protocol.websocket.messages.SigningRequest;
-import com.samourai.whirlpool.protocol.websocket.notifications.ConfirmInputMixStatusNotification;
-import com.samourai.whirlpool.protocol.websocket.notifications.MixStatus;
-import com.samourai.whirlpool.protocol.websocket.notifications.MixStatusNotification;
-import com.samourai.whirlpool.protocol.websocket.notifications.RegisterOutputMixStatusNotification;
-import com.samourai.whirlpool.protocol.websocket.notifications.RevealOutputMixStatusNotification;
-import com.samourai.whirlpool.protocol.websocket.notifications.SigningMixStatusNotification;
+import com.samourai.whirlpool.protocol.websocket.messages.*;
+import com.samourai.whirlpool.protocol.websocket.notifications.*;
 import io.reactivex.CompletableObserver;
 import io.reactivex.disposables.Disposable;
 import java.util.HashSet;
@@ -31,7 +21,7 @@ public class MixDialog {
 
   private MixDialogListener listener;
   private MixSession mixSession;
-  private WhirlpoolClientConfig clientConfig;
+  private WhirlpoolClientConfig config;
 
   // mix data
   private String mixId;
@@ -48,11 +38,11 @@ public class MixDialog {
   public MixDialog(
       MixDialogListener listener,
       MixSession mixSession,
-      WhirlpoolClientConfig clientConfig,
+      WhirlpoolClientConfig config,
       String logPrefix) {
     this.log = LoggerFactory.getLogger(MixDialog.class + "[" + logPrefix + "]");
     this.listener = listener;
-    this.clientConfig = clientConfig;
+    this.config = config;
     this.mixSession = mixSession;
   }
 
@@ -225,9 +215,8 @@ public class MixDialog {
   private void doRegisterOutput(
       RegisterOutputMixStatusNotification registerOutputMixStatusNotification) throws Exception {
     try {
-      String registerOutputUrl = WhirlpoolProtocol.getUrlRegisterOutput(clientConfig.getServer());
       listener
-          .postRegisterOutput(registerOutputMixStatusNotification, registerOutputUrl)
+          .postRegisterOutput(registerOutputMixStatusNotification, config.getServerApi())
           .subscribe(
               new CompletableObserver() {
                 @Override
