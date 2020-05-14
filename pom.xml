@@ -14,21 +14,21 @@
         <dependency>
             <groupId>io.samourai.code.whirlpool</groupId>
             <artifactId>whirlpool-protocol</artifactId>
-            <version>0.23.2</version>
+            <version>develop-SNAPSHOT</version>
             <exclusions>
                 <exclusion>
-                    <groupId>io.samourai.code.whirlpool</groupId>
+                    <groupId>io.samourai.code.wallet</groupId>
                     <artifactId>extlibj</artifactId>
                 </exclusion>
             </exclusions>
         </dependency>
         <dependency>
-            <groupId>io.samourai.code.whirlpool</groupId>
+            <groupId>io.samourai.code.wallet</groupId>
             <artifactId>extlibj</artifactId>
-            <version>0.0.11</version>
+            <version>develop-SNAPSHOT</version>
         </dependency>
         <dependency>
-            <groupId>io.samourai.code.whirlpool</groupId>
+            <groupId>io.samourai.code.wallet</groupId>
             <artifactId>xmanager-protocol</artifactId>
             <version>develop-SNAPSHOT</version>
         </dependency>
@@ -51,7 +51,7 @@
         <dependency>
             <groupId>com.github.zeroleak</groupId>
             <artifactId>throwing-supplier</artifactId>
-            <version>1.0.2</version>
+            <version>1.0.3</version>
         </dependency>
         <dependency>
             <groupId>io.reactivex.rxjava2</groupId>
