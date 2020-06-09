@@ -2,6 +2,7 @@ package com.samourai.whirlpool.client.wallet.data;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.common.io.Files;
 import com.samourai.whirlpool.client.utils.ClientUtils;
 import java.io.File;
 import org.slf4j.Logger;
@@ -60,6 +61,15 @@ public abstract class AbstractPersister<D extends PersistableData, P> {
     P persisted = toPersisted(data);
     ClientUtils.safeWriteValue(mapper, persisted, file);
     lastWrite = System.currentTimeMillis();
+  }
+
+  public synchronized void backup() throws Exception {
+    File file = getFile();
+    File fileBackup = new File(fileName + ".bak");
+    if (log.isDebugEnabled()) {
+      log.debug("Backup => " + fileBackup.getAbsolutePath());
+    }
+    Files.copy(file, fileBackup);
   }
 
   private File getFile() throws Exception {

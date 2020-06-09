@@ -33,4 +33,8 @@ public abstract class AbstractPersistableSupplier<D extends PersistableData>
     persister.write(value);
     return true;
   }
+
+  public void backup() throws Exception {
+    persister.backup();
+  }
 }
