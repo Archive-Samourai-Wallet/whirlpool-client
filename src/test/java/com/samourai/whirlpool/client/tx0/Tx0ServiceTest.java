@@ -3,6 +3,7 @@ package com.samourai.whirlpool.client.tx0;
 import com.samourai.wallet.api.backend.beans.UnspentResponse;
 import com.samourai.wallet.client.Bip84Wallet;
 import com.samourai.wallet.client.indexHandler.MemoryIndexHandler;
+import com.samourai.wallet.hd.HD_Address;
 import com.samourai.wallet.hd.HD_Wallet;
 import com.samourai.whirlpool.client.test.AbstractTest;
 import com.samourai.whirlpool.client.wallet.WhirlpoolWalletConfig;
@@ -47,10 +48,14 @@ public class Tx0ServiceTest extends AbstractTest {
     byte[] seed = hdWalletFactory.computeSeedFromWords(seedWords);
     HD_Wallet bip84w = hdWalletFactory.getBIP84(seed, passphrase, params);
 
-    ECKey spendFromKey = bip84w.getAccountAt(0).getChain(0).getAddressAt(61).getECKey();
+    HD_Address address = bip84w.getAccountAt(0).getChain(0).getAddressAt(61);
+    ECKey spendFromKey = address.getECKey();
     UnspentResponse.UnspentOutput spendFrom =
         newUnspentOutput(
-            "cc588cdcb368f894a41c372d1f905770b61ecb3fb8e5e01a97e7cedbf5e324ae", 1, 500000000);
+            "cc588cdcb368f894a41c372d1f905770b61ecb3fb8e5e01a97e7cedbf5e324ae",
+            1,
+            500000000,
+            address);
 
     Tx0Config tx0Config = new Tx0Config();
     int nbOutputsExpected = 10;
@@ -97,10 +102,14 @@ public class Tx0ServiceTest extends AbstractTest {
     byte[] seed = hdWalletFactory.computeSeedFromWords(seedWords);
     HD_Wallet bip84w = hdWalletFactory.getBIP84(seed, passphrase, params);
 
-    ECKey spendFromKey = bip84w.getAccountAt(0).getChain(0).getAddressAt(61).getECKey();
+    HD_Address address = bip84w.getAccountAt(0).getChain(0).getAddressAt(61);
+    ECKey spendFromKey = address.getECKey();
     UnspentResponse.UnspentOutput spendFrom =
         newUnspentOutput(
-            "cc588cdcb368f894a41c372d1f905770b61ecb3fb8e5e01a97e7cedbf5e324ae", 1, 500000000);
+            "cc588cdcb368f894a41c372d1f905770b61ecb3fb8e5e01a97e7cedbf5e324ae",
+            1,
+            500000000,
+            address);
 
     Tx0Config tx0Config = new Tx0Config();
     String feePaymentCode =
@@ -162,10 +171,14 @@ public class Tx0ServiceTest extends AbstractTest {
     byte[] seed = hdWalletFactory.computeSeedFromWords(seedWords);
     HD_Wallet bip84w = hdWalletFactory.getBIP84(seed, passphrase, params);
 
-    ECKey spendFromKey = bip84w.getAccountAt(0).getChain(0).getAddressAt(61).getECKey();
+    HD_Address address = bip84w.getAccountAt(0).getChain(0).getAddressAt(61);
+    ECKey spendFromKey = address.getECKey();
     UnspentResponse.UnspentOutput spendFrom =
         newUnspentOutput(
-            "cc588cdcb368f894a41c372d1f905770b61ecb3fb8e5e01a97e7cedbf5e324ae", 1, 500000000);
+            "cc588cdcb368f894a41c372d1f905770b61ecb3fb8e5e01a97e7cedbf5e324ae",
+            1,
+            500000000,
+            address);
 
     Tx0Config tx0Config = new Tx0Config();
     String feePaymentCode =
@@ -231,10 +244,14 @@ public class Tx0ServiceTest extends AbstractTest {
     byte[] seed = hdWalletFactory.computeSeedFromWords(seedWords);
     HD_Wallet bip84w = hdWalletFactory.getBIP84(seed, passphrase, params);
 
-    ECKey spendFromKey = bip84w.getAccountAt(0).getChain(0).getAddressAt(61).getECKey();
+    HD_Address address = bip84w.getAccountAt(0).getChain(0).getAddressAt(61);
+    ECKey spendFromKey = address.getECKey();
     UnspentResponse.UnspentOutput spendFrom =
         newUnspentOutput(
-            "cc588cdcb368f894a41c372d1f905770b61ecb3fb8e5e01a97e7cedbf5e324ae", 1, 500000000);
+            "cc588cdcb368f894a41c372d1f905770b61ecb3fb8e5e01a97e7cedbf5e324ae",
+            1,
+            500000000,
+            address);
 
     Tx0Config tx0Config = new Tx0Config();
     String feePaymentCode =
@@ -321,10 +338,14 @@ public class Tx0ServiceTest extends AbstractTest {
     byte[] seed = hdWalletFactory.computeSeedFromWords(seedWords);
     HD_Wallet bip84w = hdWalletFactory.getBIP84(seed, passphrase, params);
 
-    ECKey spendFromKey = bip84w.getAccountAt(0).getChain(0).getAddressAt(61).getECKey();
+    HD_Address address = bip84w.getAccountAt(0).getChain(0).getAddressAt(61);
+    ECKey spendFromKey = address.getECKey();
     UnspentResponse.UnspentOutput spendFrom =
         newUnspentOutput(
-            "cc588cdcb368f894a41c372d1f905770b61ecb3fb8e5e01a97e7cedbf5e324ae", 1, 500000000);
+            "cc588cdcb368f894a41c372d1f905770b61ecb3fb8e5e01a97e7cedbf5e324ae",
+            1,
+            500000000,
+            address);
 
     Bip84Wallet depositWallet =
         new Bip84Wallet(
@@ -414,12 +435,14 @@ public class Tx0ServiceTest extends AbstractTest {
     byte[] seed = hdWalletFactory.computeSeedFromWords(seedWords);
     HD_Wallet bip84w = hdWalletFactory.getBIP84(seed, passphrase, params);
 
-    ECKey spendFromKey = bip84w.getAccountAt(0).getChain(0).getAddressAt(61).getECKey();
+    HD_Address address = bip84w.getAccountAt(0).getChain(0).getAddressAt(61);
+    ECKey spendFromKey = address.getECKey();
     UnspentResponse.UnspentOutput spendFrom =
         newUnspentOutput(
             "cc588cdcb368f894a41c372d1f905770b61ecb3fb8e5e01a97e7cedbf5e324ae",
             1,
-            900000000); // large balance
+            900000000,
+                address); // large balance
 
     Bip84Wallet depositWallet =
         new Bip84Wallet(
@@ -563,12 +586,14 @@ public class Tx0ServiceTest extends AbstractTest {
     byte[] seed = hdWalletFactory.computeSeedFromWords(seedWords);
     HD_Wallet bip84w = hdWalletFactory.getBIP84(seed, passphrase, params);
 
-    ECKey spendFromKey = bip84w.getAccountAt(0).getChain(0).getAddressAt(61).getECKey();
+    HD_Address address = bip84w.getAccountAt(0).getChain(0).getAddressAt(61);
+    ECKey spendFromKey = address.getECKey();
     UnspentResponse.UnspentOutput spendFrom =
         newUnspentOutput(
             "cc588cdcb368f894a41c372d1f905770b61ecb3fb8e5e01a97e7cedbf5e324ae",
             1,
-            1021397); // balance with 11000 change
+            1021397,
+            address); // balance with 11000 change
 
     Bip84Wallet depositWallet =
         new Bip84Wallet(
@@ -659,12 +684,14 @@ public class Tx0ServiceTest extends AbstractTest {
     byte[] seed = hdWalletFactory.computeSeedFromWords(seedWords);
     HD_Wallet bip84w = hdWalletFactory.getBIP84(seed, passphrase, params);
 
-    ECKey spendFromKey = bip84w.getAccountAt(0).getChain(0).getAddressAt(61).getECKey();
+    HD_Address address = bip84w.getAccountAt(0).getChain(0).getAddressAt(61);
+    ECKey spendFromKey = address.getECKey();
     UnspentResponse.UnspentOutput spendFrom =
         newUnspentOutput(
             "cc588cdcb368f894a41c372d1f905770b61ecb3fb8e5e01a97e7cedbf5e324ae",
             1,
-            1021397); // balance with 11000 change
+            1021397,
+            address); // balance with 11000 change
 
     Bip84Wallet depositWallet =
         new Bip84Wallet(
@@ -755,12 +782,14 @@ public class Tx0ServiceTest extends AbstractTest {
     byte[] seed = hdWalletFactory.computeSeedFromWords(seedWords);
     HD_Wallet bip84w = hdWalletFactory.getBIP84(seed, passphrase, params);
 
-    ECKey spendFromKey = bip84w.getAccountAt(0).getChain(0).getAddressAt(61).getECKey();
+    HD_Address address = bip84w.getAccountAt(0).getChain(0).getAddressAt(61);
+    ECKey spendFromKey = address.getECKey();
     UnspentResponse.UnspentOutput spendFrom =
         newUnspentOutput(
             "cc588cdcb368f894a41c372d1f905770b61ecb3fb8e5e01a97e7cedbf5e324ae",
             1,
-            1021397); // balance with 11000 change
+            1021397,
+            address); // balance with 11000 change
 
     Bip84Wallet depositWallet =
         new Bip84Wallet(
@@ -850,12 +879,14 @@ public class Tx0ServiceTest extends AbstractTest {
     byte[] seed = hdWalletFactory.computeSeedFromWords(seedWords);
     HD_Wallet bip84w = hdWalletFactory.getBIP84(seed, passphrase, params);
 
-    ECKey spendFromKey = bip84w.getAccountAt(0).getChain(0).getAddressAt(61).getECKey();
+    HD_Address address = bip84w.getAccountAt(0).getChain(0).getAddressAt(61);
+    ECKey spendFromKey = address.getECKey();
     UnspentResponse.UnspentOutput spendFrom =
         newUnspentOutput(
             "cc588cdcb368f894a41c372d1f905770b61ecb3fb8e5e01a97e7cedbf5e324ae",
             1,
-            1021397); // balance with 11000 change
+            1021397,
+            address); // balance with 11000 change
 
     Bip84Wallet depositWallet =
         new Bip84Wallet(

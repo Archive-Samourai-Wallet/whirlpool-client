@@ -4,6 +4,7 @@ import com.samourai.http.client.HttpUsage;
 import com.samourai.http.client.IHttpClient;
 import com.samourai.http.client.IHttpClientService;
 import com.samourai.wallet.api.backend.beans.UnspentResponse;
+import com.samourai.wallet.hd.HD_Address;
 import com.samourai.wallet.hd.java.HD_WalletFactoryJava;
 import com.samourai.wallet.segwit.bech32.Bech32UtilGeneric;
 import com.samourai.whirlpool.client.wallet.beans.*;
@@ -13,6 +14,7 @@ import java.util.Collection;
 import java8.util.Lists;
 import org.bitcoinj.core.NetworkParameters;
 import org.bitcoinj.params.TestNet3Params;
+import org.bouncycastle.util.encoders.Hex;
 
 public class AbstractTest {
   protected NetworkParameters params = TestNet3Params.get();
@@ -76,13 +78,16 @@ public class AbstractTest {
     return Lists.of(pool001btc, pool01btc, pool05btc);
   }
 
-  protected UnspentResponse.UnspentOutput newUnspentOutput(String hash, int index, long value) {
+  protected UnspentResponse.UnspentOutput newUnspentOutput(
+      String hash, int index, long value, HD_Address hdAddress) throws Exception {
+    String bech32Address = bech32Util.toBech32(hdAddress, params);
+    String scriptBytes = Hex.toHexString(Bech32UtilGeneric.getInstance().computeScriptPubKey(bech32Address, params));
     UnspentResponse.UnspentOutput spendFrom = new UnspentResponse.UnspentOutput();
     spendFrom.tx_hash = hash;
     spendFrom.tx_output_n = index;
     spendFrom.value = value;
-    spendFrom.script = "foo";
-    spendFrom.addr = "foo";
+    spendFrom.script = scriptBytes;
+    spendFrom.addr = bech32Address;
     spendFrom.confirmations = 1234;
     spendFrom.xpub = new UnspentResponse.UnspentOutput.Xpub();
     spendFrom.xpub.path = "foo";
