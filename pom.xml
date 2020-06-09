@@ -3,7 +3,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>io.samourai.code.whirlpool</groupId>
     <artifactId>whirlpool-client</artifactId>
-    <version>develop-SNAPSHOT</version>
+    <version>0.23.19</version>
     <name>whirlpool-client</name>
     <properties>
         <maven.compiler.source>1.6</maven.compiler.source>
@@ -14,7 +14,7 @@
         <dependency>
             <groupId>io.samourai.code.whirlpool</groupId>
             <artifactId>whirlpool-protocol</artifactId>
-            <version>develop-SNAPSHOT</version>
+            <version>0.23.3</version>
             <exclusions>
                 <exclusion>
                     <groupId>io.samourai.code.wallet</groupId>
@@ -25,12 +25,12 @@
         <dependency>
             <groupId>io.samourai.code.wallet</groupId>
             <artifactId>extlibj</artifactId>
-            <version>develop-SNAPSHOT</version>
+            <version>0.0.12</version>
         </dependency>
         <dependency>
             <groupId>io.samourai.code.wallet</groupId>
             <artifactId>xmanager-protocol</artifactId>
-            <version>develop-SNAPSHOT</version>
+            <version>1.0.3</version>
         </dependency>
         <dependency>
             <groupId>org.apache.commons</groupId>
