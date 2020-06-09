@@ -158,7 +158,8 @@ public abstract class MixOrchestrator extends AbstractOrchestrator {
   private Optional<Mixing> findMixingToSwap(
       final WhirlpoolUtxo toMix,
       final String mixingHashCriteria,
-      final boolean bestPriorityCriteria) {
+      final boolean bestPriorityCriteria,
+      final String poolIdCriteria) {
     final WhirlpoolUtxoPriorityComparator comparator =
         WhirlpoolUtxoPriorityComparator.getInstance();
     return StreamSupport.stream(data.getMixing())
@@ -172,9 +173,17 @@ public abstract class MixOrchestrator extends AbstractOrchestrator {
                   return false;
                 }
 
+                // hash criteria
                 if (mixingHashCriteria != null) {
                   String mixingHash = mixing.getUtxo().getUtxo().tx_hash;
                   if (!mixingHash.equals(mixingHashCriteria)) {
+                    return false;
+                  }
+                }
+
+                // pool criteria
+                if (poolIdCriteria != null) {
+                  if (!poolIdCriteria.equals(mixing.getUtxo().getPoolId())) {
                     return false;
                   }
                 }
@@ -252,8 +261,8 @@ public abstract class MixOrchestrator extends AbstractOrchestrator {
     String toMixHash = toMix.getUtxo().tx_hash;
     final String mixingHashCriteria = data.isHashMixing(toMixHash) ? toMixHash : null;
     String poolId = toMix.getPoolId();
-    boolean isIdle = hasMoreMixingThreadAvailable(poolId);
-    if (mixingHashCriteria == null && isIdle) {
+    boolean isPoolIdle = hasMoreMixingThreadAvailable(poolId);
+    if (mixingHashCriteria == null && isPoolIdle) {
       // no swap required
       if (log.isTraceEnabled()) {
         log.trace("findSwap(" + toMix + ") => no swap required");
@@ -263,8 +272,9 @@ public abstract class MixOrchestrator extends AbstractOrchestrator {
 
     // a swap is required to mix this utxo
     boolean bestPriorityCriteria = !mixNow;
+    String poolIdCriteria = isPoolIdle ? null : toMix.getPoolId();
     Optional<Mixing> mixingToSwapOpt =
-        findMixingToSwap(toMix, mixingHashCriteria, bestPriorityCriteria);
+        findMixingToSwap(toMix, mixingHashCriteria, bestPriorityCriteria, poolIdCriteria);
     if (mixingToSwapOpt.isPresent()) {
       // found mixing to swap
       if (log.isTraceEnabled()) {
