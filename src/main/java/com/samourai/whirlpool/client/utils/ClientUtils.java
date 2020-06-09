@@ -37,7 +37,7 @@ public class ClientUtils {
   private static final Logger log = LoggerFactory.getLogger(ClientUtils.class);
   private static final SecureRandom secureRandom = new SecureRandom();
 
-  private static final int SLEEP_REFRESH_UTXOS_TESTNET = 10000;
+  private static final int SLEEP_REFRESH_UTXOS_TESTNET = 15000;
   private static final int SLEEP_REFRESH_UTXOS_MAINNET = 5000;
   public static final String USER_AGENT = "whirlpool-client/" + WhirlpoolProtocol.PROTOCOL_VERSION;
 

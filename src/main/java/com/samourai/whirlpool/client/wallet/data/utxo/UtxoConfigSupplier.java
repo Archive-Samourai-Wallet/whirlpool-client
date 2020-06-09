@@ -63,7 +63,7 @@ public class UtxoConfigSupplier extends AbstractPersistableSupplier<UtxoConfigDa
         utxoConfigByHash != null ? utxoConfigByHash.copy() : new UtxoConfigPersisted();
 
     // set mixsDone
-    if (WhirlpoolAccount.POSTMIX.equals(whirlpoolUtxo)) {
+    if (WhirlpoolAccount.POSTMIX.equals(whirlpoolUtxo.getAccount())) {
       utxoConfig.incrementMixsDone();
     }
 

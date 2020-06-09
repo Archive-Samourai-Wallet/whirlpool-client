@@ -12,8 +12,12 @@ import java8.util.function.Predicate;
 import java8.util.stream.Collectors;
 import java8.util.stream.Stream;
 import java8.util.stream.StreamSupport;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class MixOrchestratorData {
+  private final Logger log = LoggerFactory.getLogger(MixOrchestratorData.class);
+
   private ConcurrentHashMap<String, Mixing> mixing;
   private Set<String> mixingHashs;
   private Map<String, Integer> mixingPerPool;
@@ -54,7 +58,7 @@ public class MixOrchestratorData {
     mixing.clear();
     mixingHashs.clear();
     mixingPerPool.clear();
-    this.mixingState.setUtxosMixing(computeUtxosMixing());
+    this.mixingState.setUtxosMixing(new LinkedList<WhirlpoolUtxo>());
   }
 
   public synchronized void removeMixing(WhirlpoolUtxo whirlpoolUtxo) {

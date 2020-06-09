@@ -105,7 +105,7 @@ public class MixOrchestratorImpl extends MixOrchestrator {
 
                 if (reQueue) {
                   try {
-                    mixQueue(mixing.getUtxo());
+                    mixQueue(mixing.getUtxo(), false);
                   } catch (Exception e) {
                     log.error("", e);
                   }

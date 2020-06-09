@@ -24,11 +24,6 @@ public class AutoTx0Orchestrator extends AbstractOrchestrator {
   }
 
   @Override
-  protected void resetOrchestrator() {
-    super.resetOrchestrator();
-  }
-
-  @Override
   protected void runOrchestrator() {
     // try tx0 with automatic selection of best available utxo
     try {

@@ -14,6 +14,7 @@ import io.reactivex.subjects.Subject;
 import java.util.Collections;
 import java.util.List;
 import java8.util.Optional;
+import java8.util.function.Consumer;
 import java8.util.function.Predicate;
 import java8.util.stream.Collectors;
 import java8.util.stream.Stream;
@@ -68,14 +69,6 @@ public abstract class MixOrchestrator extends AbstractOrchestrator {
   }
 
   @Override
-  protected void resetOrchestrator() {
-    super.resetOrchestrator();
-    if (this.data != null) { // skip initial call from super constructor
-      this.data.clear();
-    }
-  }
-
-  @Override
   protected void runOrchestrator() {
     try {
       findAndMix();
@@ -107,14 +100,32 @@ public abstract class MixOrchestrator extends AbstractOrchestrator {
   @Override
   public synchronized void stop() {
     super.stop();
+
+    clearQueue();
     stopMixingClients();
+
+    // clear mixing data *after* stopping clients
+    data.clear();
   }
 
   public synchronized void stopMixingClients() {
+    if (log.isDebugEnabled()) {
+      log.debug("stopMixingClients: " + data.getMixing().size() + " mixing");
+    }
     for (Mixing oneMixing : data.getMixing()) {
       stopWhirlpoolClient(oneMixing, true, false);
     }
-    data.clear();
+  }
+
+  private synchronized void clearQueue() {
+    data.getQueue()
+        .forEach(
+            new Consumer<WhirlpoolUtxo>() {
+              @Override
+              public void accept(WhirlpoolUtxo whirlpoolUtxo) {
+                whirlpoolUtxo.getUtxoState().setStatus(WhirlpoolUtxoStatus.READY, false);
+              }
+            });
   }
 
   private synchronized boolean findAndMix(String poolId) throws Exception {
@@ -244,8 +255,8 @@ public abstract class MixOrchestrator extends AbstractOrchestrator {
     boolean isIdle = hasMoreMixingThreadAvailable(poolId);
     if (mixingHashCriteria == null && isIdle) {
       // no swap required
-      if (log.isDebugEnabled()) {
-        log.debug("findSwap(" + toMix + ") => no swap required");
+      if (log.isTraceEnabled()) {
+        log.trace("findSwap(" + toMix + ") => no swap required");
       }
       return new WhirlpoolUtxo[] {toMix, null};
     }
@@ -256,8 +267,8 @@ public abstract class MixOrchestrator extends AbstractOrchestrator {
         findMixingToSwap(toMix, mixingHashCriteria, bestPriorityCriteria);
     if (mixingToSwapOpt.isPresent()) {
       // found mixing to swap
-      if (log.isDebugEnabled()) {
-        log.debug("findSwap(" + toMix + ") => swap found");
+      if (log.isTraceEnabled()) {
+        log.trace("findSwap(" + toMix + ") => swap found");
       }
       return new WhirlpoolUtxo[] {toMix, mixingToSwapOpt.get().getUtxo()};
     }
@@ -353,7 +364,7 @@ public abstract class MixOrchestrator extends AbstractOrchestrator {
     mixQueue(whirlpoolUtxo, true);
   }
 
-  private void mixQueue(WhirlpoolUtxo whirlpoolUtxo, boolean notify) throws NotifiableException {
+  protected void mixQueue(WhirlpoolUtxo whirlpoolUtxo, boolean notify) throws NotifiableException {
     WhirlpoolUtxoState utxoState = whirlpoolUtxo.getUtxoState();
     WhirlpoolUtxoStatus utxoStatus = utxoState.getStatus();
     if (WhirlpoolUtxoStatus.MIX_QUEUE.equals(utxoStatus)) {
@@ -437,10 +448,6 @@ public abstract class MixOrchestrator extends AbstractOrchestrator {
     if (log.isDebugEnabled()) {
       log.debug(" + Mix(" + (mixingToSwap != null ? "SWAP" : "IDLE") + "): " + whirlpoolUtxo);
     }
-    if (mixingToSwap != null) {
-      // stop mixingToSwap
-      mixStop(mixingToSwap, true, true);
-    }
 
     // mix
     MixProgress mixProgress = new MixProgress(MixStep.CONNECTING);
@@ -452,6 +459,12 @@ public abstract class MixOrchestrator extends AbstractOrchestrator {
     Subject<MixProgress> observable = listener.getObservable();
     Mixing mixing = new Mixing(whirlpoolUtxo, whirlpoolClient, observable);
     data.addMixing(mixing);
+
+    // stop mixingToSwap after adding our mix (to avoid triggering another mix before our mix)
+    if (mixingToSwap != null) {
+      mixStop(mixingToSwap, true, true);
+    }
+
     return observable;
   }
 
