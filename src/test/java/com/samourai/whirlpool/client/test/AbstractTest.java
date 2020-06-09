@@ -81,7 +81,8 @@ public class AbstractTest {
   protected UnspentResponse.UnspentOutput newUnspentOutput(
       String hash, int index, long value, HD_Address hdAddress) throws Exception {
     String bech32Address = bech32Util.toBech32(hdAddress, params);
-    String scriptBytes = Hex.toHexString(Bech32UtilGeneric.getInstance().computeScriptPubKey(bech32Address, params));
+    String scriptBytes =
+        Hex.toHexString(Bech32UtilGeneric.getInstance().computeScriptPubKey(bech32Address, params));
     UnspentResponse.UnspentOutput spendFrom = new UnspentResponse.UnspentOutput();
     spendFrom.tx_hash = hash;
     spendFrom.tx_output_n = index;

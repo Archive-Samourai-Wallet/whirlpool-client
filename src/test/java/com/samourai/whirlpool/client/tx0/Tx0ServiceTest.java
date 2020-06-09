@@ -442,7 +442,7 @@ public class Tx0ServiceTest extends AbstractTest {
             "cc588cdcb368f894a41c372d1f905770b61ecb3fb8e5e01a97e7cedbf5e324ae",
             1,
             900000000,
-                address); // large balance
+            address); // large balance
 
     Bip84Wallet depositWallet =
         new Bip84Wallet(
