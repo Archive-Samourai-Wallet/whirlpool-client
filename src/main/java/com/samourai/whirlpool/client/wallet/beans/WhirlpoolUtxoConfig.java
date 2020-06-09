@@ -30,14 +30,16 @@ public abstract class WhirlpoolUtxoConfig {
   }
 
   public int getMixsTargetOrDefault(int mixsTargetMin) {
+    int minimum = Math.max(mixsTargetMin, getMixsDone());
+
     Integer mixsTarget = getMixsTarget();
     if (mixsTarget == null) {
-      return mixsTargetMin;
+      return minimum;
     }
     if (mixsTarget == WhirlpoolUtxoConfig.MIXS_TARGET_UNLIMITED) {
       return WhirlpoolUtxoConfig.MIXS_TARGET_UNLIMITED;
     }
-    return Math.max(mixsTarget, mixsTargetMin);
+    return Math.max(mixsTarget, minimum);
   }
 
   public boolean isDone(int mixsTargetMin) {
