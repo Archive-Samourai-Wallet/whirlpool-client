@@ -5,10 +5,12 @@ import com.samourai.whirlpool.client.mix.listener.MixStep;
 public class MixProgress {
   private MixStep mixStep;
   private int progressPercent;
+  private long since;
 
   public MixProgress(MixStep mixStep) {
     this.mixStep = mixStep;
     this.progressPercent = mixStep.getProgress();
+    this.since = System.currentTimeMillis();
   }
 
   public MixStep getMixStep() {
@@ -19,8 +21,12 @@ public class MixProgress {
     return progressPercent;
   }
 
+  public long getSince() {
+    return since;
+  }
+
   @Override
   public String toString() {
-    return "(" + progressPercent + "%: " + mixStep;
+    return "(" + progressPercent + "%: " + mixStep + ")";
   }
 }
