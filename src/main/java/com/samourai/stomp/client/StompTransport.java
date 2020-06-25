@@ -109,6 +109,9 @@ public class StompTransport {
           }
         };
 
+    if (done) {
+      return;
+    }
     stompClient.subscribe(subscribeHeaders, onMessageOnErrorListener);
   }
 
@@ -128,6 +131,10 @@ public class StompTransport {
     stompHeaders = completeHeaders(stompHeaders);
     if (log.isDebugEnabled()) {
       log.debug("send: " + destination + ":" + ClientUtils.toJsonString(message));
+    }
+
+    if (done) {
+      return;
     }
     stompClient.send(stompHeaders, message);
   }
