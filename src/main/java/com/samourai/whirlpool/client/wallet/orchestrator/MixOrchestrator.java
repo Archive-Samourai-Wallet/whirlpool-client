@@ -48,7 +48,7 @@ public abstract class MixOrchestrator extends AbstractOrchestrator {
     this.data = data;
 
     this.maxClients = maxClients;
-    this.maxClientsPerPool = maxClientsPerPool;
+    this.maxClientsPerPool = Math.min(maxClientsPerPool, maxClients); // prevent wrong configuration
     this.autoMix = autoMix;
     this.mixsTargetMin = mixsTargetMin;
   }
@@ -205,30 +205,19 @@ public abstract class MixOrchestrator extends AbstractOrchestrator {
   }
 
   public boolean hasMoreMixingThreadAvailable(String poolId) {
-    // check maxClients
+    // check maxClients vs all mixings
     if (data.getMixing().size() >= maxClients) {
       return false;
     }
 
     // check maxClientsPerPool
+    return !isMaxClientsPerPoolReached(poolId);
+  }
+
+  public boolean isMaxClientsPerPoolReached(String poolId) {
+    // check maxClientsPerPool vs pool's mixings
     int nbMixingInPool = data.getNbMixing(poolId);
-    if (nbMixingInPool >= maxClientsPerPool) {
-      return false;
-    }
-    if (log.isDebugEnabled()) {
-      log.debug(
-          "hasMoreMixingThreadAvailable("
-              + poolId
-              + ")=true, clients="
-              + data.getMixing().size()
-              + "/"
-              + maxClients
-              + ", nbMixingInPool="
-              + nbMixingInPool
-              + "/"
-              + maxClientsPerPool);
-    }
-    return true;
+    return (nbMixingInPool >= maxClientsPerPool);
   }
 
   // returns [mixable,mixingToSwapOrNull]
@@ -261,8 +250,8 @@ public abstract class MixOrchestrator extends AbstractOrchestrator {
     String toMixHash = toMix.getUtxo().tx_hash;
     final String mixingHashCriteria = data.isHashMixing(toMixHash) ? toMixHash : null;
     String poolId = toMix.getPoolId();
-    boolean isPoolIdle = hasMoreMixingThreadAvailable(poolId);
-    if (mixingHashCriteria == null && isPoolIdle) {
+    boolean mixingThreadAvailable = hasMoreMixingThreadAvailable(poolId);
+    if (mixingHashCriteria == null && mixingThreadAvailable) {
       // no swap required
       if (log.isTraceEnabled()) {
         log.trace("findSwap(" + toMix + ") => no swap required");
@@ -272,7 +261,8 @@ public abstract class MixOrchestrator extends AbstractOrchestrator {
 
     // a swap is required to mix this utxo
     boolean bestPriorityCriteria = !mixNow;
-    String poolIdCriteria = isPoolIdle ? null : toMix.getPoolId();
+    // swap with mixing from same pool when maxClientsPerPool is reached
+    String poolIdCriteria = isMaxClientsPerPoolReached(poolId) ? toMix.getPoolId() : null;
     Optional<Mixing> mixingToSwapOpt =
         findMixingToSwap(toMix, mixingHashCriteria, bestPriorityCriteria, poolIdCriteria);
     if (mixingToSwapOpt.isPresent()) {
