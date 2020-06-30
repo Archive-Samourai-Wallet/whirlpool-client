@@ -60,9 +60,8 @@ public class UtxoConfigData extends PersistableData {
                       }
                     }));
 
-    this.utxoConfigs = newUtxoConfigs;
-
     int nbCleaned = utxoConfigs.size() - newUtxoConfigs.size();
+    this.utxoConfigs = newUtxoConfigs;
     if (nbCleaned > 0) {
       setLastChange();
     }
