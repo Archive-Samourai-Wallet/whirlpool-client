@@ -16,6 +16,9 @@ import com.samourai.whirlpool.client.wallet.beans.WhirlpoolUtxoConfig;
 import com.samourai.whirlpool.client.wallet.beans.WhirlpoolUtxoState;
 import com.samourai.whirlpool.protocol.WhirlpoolProtocol;
 import com.samourai.whirlpool.protocol.rest.RestErrorResponse;
+import io.reactivex.Observable;
+import io.reactivex.subjects.BehaviorSubject;
+import io.reactivex.subjects.Subject;
 import java.io.*;
 import java.nio.channels.FileChannel;
 import java.nio.channels.FileLock;
@@ -24,6 +27,7 @@ import java.security.SecureRandom;
 import java.security.interfaces.RSAPublicKey;
 import java.security.spec.X509EncodedKeySpec;
 import java.util.*;
+import java8.util.Optional;
 import java8.util.function.ToLongFunction;
 import java8.util.stream.StreamSupport;
 import org.bitcoinj.core.*;
@@ -209,11 +213,13 @@ public class ClientUtils {
     return txHex;
   }
 
-  public static void sleepRefreshUtxos(final NetworkParameters params) {
-    sleepRefreshUtxos(params, null);
+  public static Observable<Optional<Void>> sleepUtxosDelay(final NetworkParameters params) {
+    return sleepUtxosDelay(params, null);
   }
 
-  public static void sleepRefreshUtxos(final NetworkParameters params, final Runnable runnable) {
+  public static Observable<Optional<Void>> sleepUtxosDelay(
+      final NetworkParameters params, final Runnable runnable) {
+    final Subject<Optional<Void>> observable = BehaviorSubject.create();
     // delayed refresh utxos
     new Thread(
             new Runnable() {
@@ -232,10 +238,15 @@ public class ClientUtils {
                 if (runnable != null) {
                   runnable.run();
                 }
+
+                // notify
+                observable.onNext(Optional.<Void>empty());
+                observable.onComplete();
               }
             },
             "refreshUtxos")
         .start();
+    return observable;
   }
 
   public static String sha256Hash(String str) {

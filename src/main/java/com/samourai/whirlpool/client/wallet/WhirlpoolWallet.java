@@ -296,8 +296,8 @@ public class WhirlpoolWallet {
         throw new NotifiableException(e.getMessage());
       }
 
-      // refresh utxos
-      refreshUtxos();
+      // refresh new utxos in background
+      refreshUtxosDelay();
       return tx0;
     } catch (Exception e) {
       // revert index
@@ -452,8 +452,8 @@ public class WhirlpoolWallet {
     utxoConfigSupplier.forwardUtxoConfig(
         whirlpoolUtxo, receiveUtxo.getHash(), (int) receiveUtxo.getIndex());
 
-    // refresh utxos
-    refreshUtxos();
+    // refresh new utxos in background
+    refreshUtxosDelay();
   }
 
   public void onMixFail(WhirlpoolUtxo whirlpoolUtxo, MixFailReason reason, String notifiableError) {
@@ -498,16 +498,29 @@ public class WhirlpoolWallet {
     }
   }
 
-  public void refreshUtxos() {
-    ClientUtils.sleepRefreshUtxos(
+  /** Refresh utxos after utxosDelay (in a new thread). */
+  public Observable<Optional<Void>> refreshUtxosDelay() {
+    return ClientUtils.sleepUtxosDelay(
         config.getNetworkParameters(),
         new Runnable() {
           @Override
           public void run() {
-            utxoSupplier.expire();
-            dataOrchestrator.notifyOrchestrator();
+            refreshUtxos(true);
           }
         });
+  }
+
+  /** Refresh utxos now. */
+  public void refreshUtxos(boolean waitComplete) {
+    utxoSupplier.expire();
+    dataOrchestrator.notifyOrchestrator();
+    if (waitComplete) {
+      // TODO wait for orchestrator to complete
+      try {
+        Thread.sleep(3000);
+      } catch (InterruptedException e) {
+      }
+    }
   }
 
   public MixingState getMixingState() {
