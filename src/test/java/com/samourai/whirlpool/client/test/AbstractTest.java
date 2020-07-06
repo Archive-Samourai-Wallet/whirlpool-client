@@ -7,7 +7,6 @@ import com.samourai.wallet.api.backend.beans.UnspentResponse;
 import com.samourai.wallet.hd.HD_Address;
 import com.samourai.wallet.hd.java.HD_WalletFactoryJava;
 import com.samourai.wallet.segwit.bech32.Bech32UtilGeneric;
-import com.samourai.whirlpool.client.wallet.beans.*;
 import com.samourai.whirlpool.client.whirlpool.beans.Pool;
 import com.samourai.whirlpool.protocol.websocket.notifications.MixStatus;
 import java.util.Collection;
@@ -15,8 +14,12 @@ import java8.util.Lists;
 import org.bitcoinj.core.NetworkParameters;
 import org.bitcoinj.params.TestNet3Params;
 import org.bouncycastle.util.encoders.Hex;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class AbstractTest {
+  protected static final Logger log = LoggerFactory.getLogger(AbstractTest.class);
+
   protected NetworkParameters params = TestNet3Params.get();
   protected HD_WalletFactoryJava hdWalletFactory = HD_WalletFactoryJava.getInstance();
   protected Bech32UtilGeneric bech32Util = Bech32UtilGeneric.getInstance();
