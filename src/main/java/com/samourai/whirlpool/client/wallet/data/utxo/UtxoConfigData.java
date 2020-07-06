@@ -13,7 +13,7 @@ import org.slf4j.LoggerFactory;
 
 public class UtxoConfigData extends PersistableData {
   private static final Logger log = LoggerFactory.getLogger(UtxoConfigData.class);
-  private static final int FORWARDING_EXPIRATION_SECONDS = 3600; // 1h
+  private static final int FORWARDING_EXPIRATION_SECONDS = 86400; // 1d
 
   private Map<String, UtxoConfigPersisted> utxoConfigs;
 
