@@ -58,6 +58,11 @@ public abstract class WhirlpoolUtxoConfig {
     return getUtxoConfigPersisted().getMixsDone();
   }
 
+  public void setMixsDone(int mixsDone) {
+    getUtxoConfigPersisted().setMixsDone(mixsDone);
+    onChange();
+  }
+
   public void incrementMixsDone() {
     getUtxoConfigPersisted().incrementMixsDone();
     onChange();
