@@ -1,5 +1,6 @@
 package com.samourai.whirlpool.client.wallet;
 
+import com.samourai.wallet.api.backend.beans.TxsResponse;
 import com.samourai.wallet.api.backend.beans.UnspentResponse.UnspentOutput;
 import com.samourai.wallet.client.Bip84Wallet;
 import com.samourai.wallet.segwit.bech32.Bech32UtilGeneric;
@@ -23,10 +24,7 @@ import com.samourai.whirlpool.client.wallet.orchestrator.PersistOrchestrator;
 import com.samourai.whirlpool.client.whirlpool.beans.Pool;
 import com.samourai.whirlpool.protocol.beans.Utxo;
 import io.reactivex.Observable;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.LinkedList;
-import java.util.List;
+import java.util.*;
 import java8.util.Lists;
 import java8.util.Optional;
 import org.apache.commons.lang3.math.NumberUtils;
@@ -35,6 +33,7 @@ import org.slf4j.LoggerFactory;
 
 public class WhirlpoolWallet {
   private final Logger log = LoggerFactory.getLogger(WhirlpoolWallet.class);
+  private static final int FETCH_TXS_PER_PAGE = 1000;
 
   private WhirlpoolWalletConfig config;
   private WhirlpoolDataService dataService;
@@ -508,6 +507,65 @@ public class WhirlpoolWallet {
             dataOrchestrator.notifyOrchestrator();
           }
         });
+  }
+
+  public void resync() throws Exception {
+    Collection<WhirlpoolUtxo> whirlpoolUtxos = utxoSupplier.findUtxos(WhirlpoolAccount.POSTMIX);
+
+    log.info("Resynchronizing mix counters...");
+
+    Map<String, TxsResponse.Tx> txs = fetchTxsPostmix();
+
+    int fixedUtxos = 0;
+    for (WhirlpoolUtxo whirlpoolUtxo : whirlpoolUtxos) {
+      int mixsDone = recountMixsDone(whirlpoolUtxo, txs);
+      if (mixsDone != whirlpoolUtxo.getMixsDone()) {
+        log.info(
+            "Fixed "
+                + whirlpoolUtxo.getUtxo().tx_hash
+                + ":"
+                + whirlpoolUtxo.getUtxo().tx_output_n
+                + ": "
+                + whirlpoolUtxo.getMixsDone()
+                + " => "
+                + mixsDone);
+        whirlpoolUtxo.setMixsDone(mixsDone);
+        fixedUtxos++;
+      }
+    }
+    log.info("Resync success: " + fixedUtxos + "/" + whirlpoolUtxos.size() + " utxos updated.");
+  }
+
+  private int recountMixsDone(WhirlpoolUtxo whirlpoolUtxo, Map<String, TxsResponse.Tx> txs) {
+    int mixsDone = 0;
+
+    String txid = whirlpoolUtxo.getUtxo().tx_hash;
+    while (true) {
+      TxsResponse.Tx tx = txs.get(txid);
+      mixsDone++;
+      if (tx == null || tx.inputs == null || tx.inputs.length == 0) {
+        return mixsDone;
+      }
+      txid = tx.inputs[0].prev_out.txid;
+    }
+  }
+
+  private Map<String, TxsResponse.Tx> fetchTxsPostmix() throws Exception {
+    Map<String, TxsResponse.Tx> txs = new LinkedHashMap<String, TxsResponse.Tx>();
+    int page = -1;
+    String[] zpubs = new String[] {getWalletPostmix().getZpub()};
+    TxsResponse txsResponse;
+    do {
+      page++;
+      txsResponse = config.getBackendApi().fetchTxs(zpubs, page, FETCH_TXS_PER_PAGE);
+      if (txsResponse.txs != null) {
+        for (TxsResponse.Tx tx : txsResponse.txs) {
+          txs.put(tx.hash, tx);
+        }
+      }
+      log.info("Resync: fetching postmix history... " + txs.size() + "/" + txsResponse.n_tx);
+    } while ((page * FETCH_TXS_PER_PAGE) < txsResponse.n_tx);
+    return txs;
   }
 
   public MixingState getMixingState() {
