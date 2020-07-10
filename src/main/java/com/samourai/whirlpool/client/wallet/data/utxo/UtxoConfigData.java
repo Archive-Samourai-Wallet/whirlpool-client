@@ -13,6 +13,7 @@ import org.slf4j.LoggerFactory;
 
 public class UtxoConfigData extends PersistableData {
   private static final Logger log = LoggerFactory.getLogger(UtxoConfigData.class);
+  private static final int FORWARDING_EXPIRATION_SECONDS = 86400; // 1d
 
   private Map<String, UtxoConfigPersisted> utxoConfigs;
 
@@ -35,6 +36,8 @@ public class UtxoConfigData extends PersistableData {
   }
 
   protected synchronized int cleanup(final Collection<String> validKeys) {
+    final long MIN_FORWARDING = System.currentTimeMillis() - (FORWARDING_EXPIRATION_SECONDS * 1000);
+
     // remove obsolete utxoConfigs
     Map<String, UtxoConfigPersisted> newUtxoConfigs =
         StreamSupport.stream(utxoConfigs.entrySet())
@@ -42,7 +45,22 @@ public class UtxoConfigData extends PersistableData {
                 new Predicate<Map.Entry<String, UtxoConfigPersisted>>() {
                   @Override
                   public boolean test(Map.Entry<String, UtxoConfigPersisted> e) {
-                    return validKeys.contains(e.getKey());
+                    // keep existing utxos
+                    if (validKeys.contains(e.getKey())) {
+                      return true;
+                    }
+                    // keep recent forwarding utxoConfigs
+                    Long forwarding = e.getValue().getForwarding();
+                    if (forwarding != null) {
+                      if (forwarding >= MIN_FORWARDING) {
+                        return true;
+                      }
+                      // may rarely happen
+                      if (log.isDebugEnabled()) {
+                        log.debug(" - forwarding utxoConfig expired: " + e.getValue());
+                      }
+                    }
+                    return false;
                   }
                 })
             .collect(

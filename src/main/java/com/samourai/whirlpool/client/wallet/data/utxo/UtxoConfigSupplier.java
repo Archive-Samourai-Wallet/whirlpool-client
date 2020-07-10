@@ -120,14 +120,15 @@ public class UtxoConfigSupplier extends AbstractPersistableSupplier<UtxoConfigDa
     forwardUtxoConfig(fromKey, toKey);
   }
 
-  private void forwardUtxoConfig(String fromKey, String toKey) {
+  protected void forwardUtxoConfig(String fromKey, String toKey) {
     UtxoConfigData data = getValue();
     UtxoConfigPersisted fromUtxoConfig = data.getUtxoConfig(fromKey);
     if (fromUtxoConfig != null) {
-      if (log.isDebugEnabled()) {
-        log.debug("forwardUtxoConfig: " + fromKey + " -> " + toKey);
-      }
       UtxoConfigPersisted newUtxoConfig = fromUtxoConfig.copy();
+      newUtxoConfig.setForwarding(System.currentTimeMillis());
+      if (log.isDebugEnabled()) {
+        log.debug("forwardUtxoConfig: " + fromKey + " -> " + toKey + ": " + newUtxoConfig);
+      }
       data.add(toKey, newUtxoConfig);
     } else {
       log.warn("forwardUtxoConfig failed: no utxoConfig found for " + fromKey);
@@ -138,7 +139,7 @@ public class UtxoConfigSupplier extends AbstractPersistableSupplier<UtxoConfigDa
     getValue().setLastChange();
   }
 
-  public String computeUtxoConfigKey(String hash, int index) {
+  protected String computeUtxoConfigKey(String hash, int index) {
     return ClientUtils.sha256Hash(ClientUtils.utxoToKey(hash, index));
   }
 
@@ -153,7 +154,10 @@ public class UtxoConfigSupplier extends AbstractPersistableSupplier<UtxoConfigDa
     int nbCreated = createUtxoConfigPersisted(utxoChanges.getUtxosAdded());
 
     // cleanup utxoConfigs
-    int nbCleaned = cleanup(utxoData);
+    int nbCleaned = 0;
+    if (!utxoData.getUtxos().isEmpty() && utxoData.getUtxoChanges().getUtxosRemoved().size() > 0) {
+      nbCleaned = cleanup(utxoData.getUtxos().values());
+    }
 
     if (log.isDebugEnabled()) {
       log.debug(
@@ -180,29 +184,29 @@ public class UtxoConfigSupplier extends AbstractPersistableSupplier<UtxoConfigDa
         utxoConfigPersisted = newUtxoConfig(whirlpoolUtxo);
         getValue().add(key, utxoConfigPersisted);
         nbCreated++;
+      } else {
+        // clear forwarding status if any
+        if (utxoConfigPersisted.getForwarding() != null) {
+          utxoConfigPersisted.setForwarding(null);
+        }
       }
     }
     return nbCreated;
   }
 
-  private int cleanup(UtxoData utxoData) {
-    int nbCleaned = 0;
-    if (!utxoData.getUtxos().isEmpty()
-        && (utxoData.getUtxoChanges().isFirstFetch()
-            || utxoData.getUtxoChanges().getUtxosRemoved().size() > 0)) {
-      List<String> validKeys =
-          StreamSupport.stream(utxoData.getUtxos().values())
-              .map(
-                  new Function<WhirlpoolUtxo, String>() {
-                    @Override
-                    public String apply(WhirlpoolUtxo whirlpoolUtxo) {
-                      UnspentResponse.UnspentOutput utxo = whirlpoolUtxo.getUtxo();
-                      return computeUtxoConfigKey(utxo.tx_hash, utxo.tx_output_n);
-                    }
-                  })
-              .collect(Collectors.<String>toList());
-      nbCleaned = getValue().cleanup(validKeys);
-    }
+  private int cleanup(Collection<WhirlpoolUtxo> whirlpoolUtxos) {
+    List<String> validKeys =
+        StreamSupport.stream(whirlpoolUtxos)
+            .map(
+                new Function<WhirlpoolUtxo, String>() {
+                  @Override
+                  public String apply(WhirlpoolUtxo whirlpoolUtxo) {
+                    UnspentResponse.UnspentOutput utxo = whirlpoolUtxo.getUtxo();
+                    return computeUtxoConfigKey(utxo.tx_hash, utxo.tx_output_n);
+                  }
+                })
+            .collect(Collectors.<String>toList());
+    int nbCleaned = getValue().cleanup(validKeys);
     return nbCleaned;
   }
 }

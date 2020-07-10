@@ -25,7 +25,7 @@
         <dependency>
             <groupId>io.samourai.code.wallet</groupId>
             <artifactId>extlibj</artifactId>
-            <version>0.0.12</version>
+            <version>0.0.13</version>
         </dependency>
         <dependency>
             <groupId>io.samourai.code.wallet</groupId>
@@ -127,6 +127,6 @@
     </repositories>
     <scm>
         <connection>scm:git:git@code.samourai.io:whirlpool/whirlpool-client.git</connection>
-        <tag>0.23.20</tag>
+        <tag>0.23.22</tag>
     </scm>
 </project>

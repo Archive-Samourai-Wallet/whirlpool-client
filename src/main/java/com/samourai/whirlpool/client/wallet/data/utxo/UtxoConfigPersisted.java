@@ -4,19 +4,22 @@ public class UtxoConfigPersisted {
   private String poolId;
   private Integer mixsTarget;
   private int mixsDone;
+  private Long forwarding;
 
   public UtxoConfigPersisted() {
-    this(null, null, 0);
+    this(null, null, 0, null);
   }
 
-  public UtxoConfigPersisted(String poolId, Integer mixsTarget, int mixsDone) {
+  public UtxoConfigPersisted(String poolId, Integer mixsTarget, int mixsDone, Long forwarding) {
     this.poolId = poolId;
     this.mixsTarget = mixsTarget;
     this.mixsDone = mixsDone;
+    this.forwarding = forwarding;
   }
 
   public UtxoConfigPersisted copy() {
-    UtxoConfigPersisted copy = new UtxoConfigPersisted(this.poolId, this.mixsTarget, this.mixsDone);
+    UtxoConfigPersisted copy =
+        new UtxoConfigPersisted(this.poolId, this.mixsTarget, this.mixsDone, this.forwarding);
     return copy;
   }
 
@@ -48,6 +51,14 @@ public class UtxoConfigPersisted {
     this.mixsDone++;
   }
 
+  public Long getForwarding() {
+    return forwarding;
+  }
+
+  public void setForwarding(Long forwarding) {
+    this.forwarding = forwarding;
+  }
+
   @Override
   public String toString() {
     return "poolId="
@@ -55,6 +66,8 @@ public class UtxoConfigPersisted {
         + ", mixsTarget="
         + (mixsTarget != null ? mixsTarget : "null")
         + ", mixsDone="
-        + mixsDone;
+        + mixsDone
+        + ", forwarding="
+        + (forwarding != null ? forwarding : "null");
   }
 }
