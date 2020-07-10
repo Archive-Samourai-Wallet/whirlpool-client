@@ -45,6 +45,8 @@ public class WhirlpoolWalletConfig extends WhirlpoolClientConfig implements ITx0
   private int feeFallback;
   private MinerFeeTarget feeTargetPremix;
 
+  private boolean resyncOnFirstRun;
+
   private ISecretPointFactory secretPointFactory;
 
   public WhirlpoolWalletConfig(
@@ -80,6 +82,8 @@ public class WhirlpoolWalletConfig extends WhirlpoolClientConfig implements ITx0
     this.feeMax = 510;
     this.feeFallback = 75;
     this.feeTargetPremix = MinerFeeTarget.BLOCKS_12;
+
+    this.resyncOnFirstRun = false;
 
     this.secretPointFactory = SecretPointFactoryJava.getInstance();
   }
@@ -244,6 +248,14 @@ public class WhirlpoolWalletConfig extends WhirlpoolClientConfig implements ITx0
     this.feeTargetPremix = feeTargetPremix;
   }
 
+  public boolean isResyncOnFirstRun() {
+    return resyncOnFirstRun;
+  }
+
+  public void setResyncOnFirstRun(boolean resyncOnFirstRun) {
+    this.resyncOnFirstRun = resyncOnFirstRun;
+  }
+
   public ISecretPointFactory getSecretPointFactory() {
     return secretPointFactory;
   }
@@ -301,6 +313,7 @@ public class WhirlpoolWalletConfig extends WhirlpoolClientConfig implements ITx0
             + getFeeMax()
             + ", targetPremix="
             + getFeeTargetPremix());
+    configInfo.put("resyncOnFirstRun", Boolean.toString(resyncOnFirstRun));
     return configInfo;
   }
 }

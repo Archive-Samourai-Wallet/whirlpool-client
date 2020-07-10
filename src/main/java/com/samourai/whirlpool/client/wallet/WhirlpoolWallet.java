@@ -340,6 +340,19 @@ public class WhirlpoolWallet {
     // keep these orchestrators running (even when mix stopped)
     dataOrchestrator.start(true);
     persistOrchestrator.start(true);
+
+    // resync on first run
+    if (config.isResyncOnFirstRun() && !walletSupplier.isSynced()) {
+      if (log.isDebugEnabled()) {
+        log.debug("First run => resync");
+      }
+      try {
+        resync();
+      } catch (Exception e) {
+        log.error("", e);
+      }
+      walletSupplier.setSynced(true);
+    }
   }
 
   public void close() {

@@ -16,11 +16,13 @@ public abstract class WalletStateSupplier extends AbstractPersistableSupplier<Wa
   private static final int INIT_BIP84_RETRY_TIMEOUT = 3000;
 
   private BackendApi backendApi;
+  private boolean synced; // postmix counters sync
 
   protected WalletStateSupplier(
       int refreshUtxoDelay, WalletStatePersister persister, BackendApi backendApi) {
     super(refreshUtxoDelay, null, persister, log);
     this.backendApi = backendApi;
+    this.synced = true;
   }
 
   protected abstract WalletSupplier getWalletSupplier();
@@ -40,12 +42,17 @@ public abstract class WalletStateSupplier extends AbstractPersistableSupplier<Wa
       // read indexs from file
       newValue = super.fetch();
 
+      boolean isInitialized = newValue.isInitialized();
+
       // initialize wallets
-      if (!newValue.isInitialized()) {
+      if (!isInitialized) {
         for (String zpub : activeZpubs) {
           initBip84(zpub);
         }
         newValue.setInitialized();
+
+        // when wallet is not initialized, counters are not synced
+        this.synced = false;
       }
     } else {
       newValue = currentValue.copy();
@@ -62,6 +69,7 @@ public abstract class WalletStateSupplier extends AbstractPersistableSupplier<Wa
         log.error("No account found for zpub: " + zpub);
       }
     }
+
     return newValue;
   }
 
@@ -100,5 +108,13 @@ public abstract class WalletStateSupplier extends AbstractPersistableSupplier<Wa
     if (log.isDebugEnabled()) {
       log.debug("set: [" + key + "]=" + value);
     }
+  }
+
+  public boolean isSynced() {
+    return synced;
+  }
+
+  public void setSynced(boolean synced) {
+    this.synced = synced;
   }
 }
