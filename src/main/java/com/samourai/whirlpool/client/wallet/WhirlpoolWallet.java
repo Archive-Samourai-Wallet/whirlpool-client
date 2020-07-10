@@ -33,7 +33,7 @@ import org.slf4j.LoggerFactory;
 
 public class WhirlpoolWallet {
   private final Logger log = LoggerFactory.getLogger(WhirlpoolWallet.class);
-  private static final int FETCH_TXS_PER_PAGE = 1000;
+  private static final int FETCH_TXS_PER_PAGE = 750;
 
   private WhirlpoolWalletConfig config;
   private WhirlpoolDataService dataService;
