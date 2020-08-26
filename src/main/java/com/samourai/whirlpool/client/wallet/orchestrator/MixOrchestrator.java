@@ -1,5 +1,6 @@
 package com.samourai.whirlpool.client.wallet.orchestrator;
 
+import com.samourai.wallet.util.AbstractOrchestrator;
 import com.samourai.whirlpool.client.WhirlpoolClient;
 import com.samourai.whirlpool.client.exception.NotifiableException;
 import com.samourai.whirlpool.client.mix.listener.MixFailReason;

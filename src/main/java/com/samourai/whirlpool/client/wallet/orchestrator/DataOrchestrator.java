@@ -1,5 +1,6 @@
 package com.samourai.whirlpool.client.wallet.orchestrator;
 
+import com.samourai.wallet.util.AbstractOrchestrator;
 import com.samourai.whirlpool.client.wallet.data.AbstractSupplier;
 import java.util.Collection;
 import org.slf4j.Logger;
