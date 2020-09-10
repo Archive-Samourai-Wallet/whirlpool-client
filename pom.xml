@@ -25,7 +25,7 @@
         <dependency>
             <groupId>io.samourai.code.wallet</groupId>
             <artifactId>extlibj</artifactId>
-            <version>develop-SNAPSHOT</version>
+            <version>cahoots-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>io.samourai.code.wallet</groupId>

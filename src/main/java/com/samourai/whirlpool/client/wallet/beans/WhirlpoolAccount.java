@@ -1,6 +1,7 @@
 package com.samourai.whirlpool.client.wallet.beans;
 
 import java.util.Arrays;
+import java8.util.Optional;
 import java8.util.function.Predicate;
 import java8.util.stream.Collectors;
 import java8.util.stream.StreamSupport;
@@ -35,6 +36,15 @@ public enum WhirlpoolAccount {
 
   public boolean isActive() {
     return active;
+  }
+
+  public static Optional<WhirlpoolAccount> find(int index) {
+    for (WhirlpoolAccount whirlpoolAccount : values()) {
+      if (whirlpoolAccount.getAccountIndex() == index) {
+        return Optional.of(whirlpoolAccount);
+      }
+    }
+    return Optional.empty();
   }
 
   public static WhirlpoolAccount[] getListByActive(final boolean active) {
