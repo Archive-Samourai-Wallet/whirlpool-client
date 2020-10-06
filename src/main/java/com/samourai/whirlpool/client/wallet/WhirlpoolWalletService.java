@@ -3,15 +3,12 @@ package com.samourai.whirlpool.client.wallet;
 import com.samourai.wallet.client.Bip84Wallet;
 import com.samourai.wallet.hd.HD_Wallet;
 import com.samourai.wallet.segwit.bech32.Bech32UtilGeneric;
-import com.samourai.whirlpool.client.tx0.Tx0ParamService;
 import com.samourai.whirlpool.client.tx0.Tx0Service;
 import com.samourai.whirlpool.client.utils.ClientUtils;
 import com.samourai.whirlpool.client.utils.MessageListener;
 import com.samourai.whirlpool.client.wallet.beans.WhirlpoolUtxoChanges;
+import com.samourai.whirlpool.client.wallet.data.minerFee.WalletDataSupplier;
 import com.samourai.whirlpool.client.wallet.data.minerFee.WalletSupplier;
-import com.samourai.whirlpool.client.wallet.data.utxo.UtxoConfigPersister;
-import com.samourai.whirlpool.client.wallet.data.utxo.UtxoConfigSupplier;
-import com.samourai.whirlpool.client.wallet.data.utxo.UtxoSupplier;
 import com.samourai.whirlpool.client.wallet.data.walletState.WalletStatePersister;
 import java.util.Map;
 import java8.util.Optional;
@@ -45,13 +42,13 @@ public class WhirlpoolWalletService {
   }
 
   public WhirlpoolWallet openWallet(
-      WhirlpoolDataService dataService,
+      WhirlpoolWalletConfig config,
       HD_Wallet bip84w,
       String walletStateFileName,
       String utxoConfigFileName)
       throws Exception {
     WhirlpoolWallet wp =
-        computeWhirlpoolWallet(dataService, bip84w, walletStateFileName, utxoConfigFileName);
+        computeWhirlpoolWallet(config, bip84w, walletStateFileName, utxoConfigFileName);
     return openWallet(wp);
   }
 
@@ -89,16 +86,14 @@ public class WhirlpoolWalletService {
   }
 
   protected WhirlpoolWallet computeWhirlpoolWallet(
-      WhirlpoolDataService dataService,
+      WhirlpoolWalletConfig config,
       HD_Wallet hdWallet,
       String walletStateFileName,
       String utxoConfigFileName) {
-    WhirlpoolWalletConfig config = dataService.getConfig();
-
     // debug whirlpoolWalletConfig
     if (log.isDebugEnabled()) {
       log.debug("openWallet with whirlpoolWalletConfig:");
-      for (Map.Entry<String, String> entry : dataService.getConfig().getConfigInfo().entrySet()) {
+      for (Map.Entry<String, String> entry : config.getConfigInfo().entrySet()) {
         log.debug("[whirlpoolWalletConfig/" + entry.getKey() + "] " + entry.getValue());
       }
       if (log.isDebugEnabled()) {
@@ -107,8 +102,6 @@ public class WhirlpoolWalletService {
       }
     }
 
-    Tx0ParamService tx0ParamService =
-        new Tx0ParamService(dataService.getMinerFeeSupplier(), config);
     Tx0Service tx0Service = new Tx0Service(config);
     Bech32UtilGeneric bech32Util = Bech32UtilGeneric.getInstance();
 
@@ -119,36 +112,24 @@ public class WhirlpoolWalletService {
             config.getBackendApi(),
             hdWallet);
 
-    UtxoConfigSupplier utxoConfigSupplier =
-        new UtxoConfigSupplier(
-            new UtxoConfigPersister(utxoConfigFileName),
-            dataService.getPoolSupplier(),
-            tx0ParamService);
-
-    UtxoSupplier utxoSupplier = computeUtxoSupplier(config, walletSupplier, utxoConfigSupplier);
-
-    return new WhirlpoolWallet(
-        dataService,
-        tx0ParamService,
-        tx0Service,
-        bech32Util,
-        walletSupplier,
-        utxoConfigSupplier,
-        utxoSupplier);
-  }
-
-  protected UtxoSupplier computeUtxoSupplier(
-      WhirlpoolWalletConfig config,
-      WalletSupplier walletSupplier,
-      UtxoConfigSupplier utxoConfigSupplier) {
-    UtxoSupplier utxoSupplier =
-        new UtxoSupplier(
+    WalletDataSupplier walletDataSupplier =
+        new WalletDataSupplier(
             config.getRefreshUtxoDelay(),
             walletSupplier,
-            utxoConfigSupplier,
-            config.getBackendApi(),
-            computeUtxoChangesListener());
-    return utxoSupplier;
+            computeUtxoChangesListener(),
+            utxoConfigFileName,
+            config);
+
+    return new WhirlpoolWallet(
+        config,
+        walletDataSupplier.getTx0ParamService(),
+        tx0Service,
+        bech32Util,
+        walletDataSupplier.getPoolSupplier(),
+        walletDataSupplier.getMinerFeeSupplier(),
+        walletSupplier,
+        walletDataSupplier.getUtxoSupplier(),
+        walletDataSupplier.getUtxoConfigSupplier());
   }
 
   protected MessageListener<WhirlpoolUtxoChanges> computeUtxoChangesListener() {

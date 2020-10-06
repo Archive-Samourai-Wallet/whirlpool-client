@@ -1,6 +1,6 @@
 package com.samourai.whirlpool.client.wallet;
 
-import com.samourai.wallet.api.backend.beans.UnspentResponse;
+import com.samourai.wallet.api.backend.beans.UnspentOutput;
 import com.samourai.wallet.hd.HD_Address;
 import com.samourai.wallet.segwit.bech32.Bech32UtilGeneric;
 import com.samourai.whirlpool.client.WhirlpoolClient;
@@ -11,6 +11,7 @@ import com.samourai.whirlpool.client.mix.listener.MixFailReason;
 import com.samourai.whirlpool.client.mix.listener.MixSuccess;
 import com.samourai.whirlpool.client.utils.ClientUtils;
 import com.samourai.whirlpool.client.wallet.beans.*;
+import com.samourai.whirlpool.client.wallet.data.pool.PoolSupplier;
 import com.samourai.whirlpool.client.wallet.orchestrator.MixOrchestrator;
 import com.samourai.whirlpool.client.whirlpool.WhirlpoolClientConfig;
 import com.samourai.whirlpool.client.whirlpool.WhirlpoolClientImpl;
@@ -24,27 +25,27 @@ import org.slf4j.LoggerFactory;
 public class MixOrchestratorImpl extends MixOrchestrator {
   private final Logger log = LoggerFactory.getLogger(MixOrchestratorImpl.class);
 
-  private WhirlpoolDataService dataService;
-  private WhirlpoolWallet whirlpoolWallet;
-  private WhirlpoolClientConfig config;
+  private final WhirlpoolWallet whirlpoolWallet;
+  private final WhirlpoolClientConfig config;
+  private final PoolSupplier poolSupplier;
 
   public MixOrchestratorImpl(
       MixingStateEditable mixingState,
       int loopDelay,
-      WhirlpoolDataService dataService,
+      WhirlpoolWalletConfig config,
+      PoolSupplier poolSupplier,
       WhirlpoolWallet whirlpoolWallet) {
     super(
         loopDelay,
-        dataService.getConfig().getClientDelay(),
-        new MixOrchestratorData(
-            mixingState, dataService.getPoolSupplier(), whirlpoolWallet.getUtxoSupplier()),
-        dataService.getConfig().getMaxClients(),
-        dataService.getConfig().getMaxClientsPerPool(),
-        dataService.getConfig().isAutoMix(),
-        dataService.getConfig().getMixsTarget());
-    this.dataService = dataService;
+        config.getClientDelay(),
+        new MixOrchestratorData(mixingState, poolSupplier, whirlpoolWallet.getUtxoSupplier()),
+        config.getMaxClients(),
+        config.getMaxClientsPerPool(),
+        config.isAutoMix(),
+        config.getMixsTarget());
     this.whirlpoolWallet = whirlpoolWallet;
-    this.config = dataService.getConfig();
+    this.config = config;
+    this.poolSupplier = poolSupplier;
   }
 
   @Override
@@ -72,7 +73,7 @@ public class MixOrchestratorImpl extends MixOrchestrator {
 
     // find pool
     String poolId = whirlpoolUtxo.getPoolId();
-    Pool pool = dataService.getPoolSupplier().findPoolById(poolId);
+    Pool pool = poolSupplier.findPoolById(poolId);
     if (pool == null) {
       throw new NotifiableException("Pool not found: " + poolId);
     }
@@ -124,7 +125,7 @@ public class MixOrchestratorImpl extends MixOrchestrator {
             .getAddressAt(whirlpoolUtxo.getUtxo());
     ECKey premixKey = premixAddress.getECKey();
 
-    UnspentResponse.UnspentOutput premixOrPostmixUtxo = whirlpoolUtxo.getUtxo();
+    UnspentOutput premixOrPostmixUtxo = whirlpoolUtxo.getUtxo();
     UtxoWithBalance utxoWithBalance =
         new UtxoWithBalance(
             premixOrPostmixUtxo.tx_hash,

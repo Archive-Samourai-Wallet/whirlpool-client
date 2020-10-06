@@ -1,7 +1,7 @@
 package com.samourai.whirlpool.client.tx0;
 
 import com.samourai.wallet.api.backend.beans.HttpException;
-import com.samourai.wallet.api.backend.beans.UnspentResponse;
+import com.samourai.wallet.api.backend.beans.UnspentOutput;
 import com.samourai.wallet.bip69.BIP69OutputComparator;
 import com.samourai.wallet.client.Bip84Wallet;
 import com.samourai.wallet.hd.HD_Address;
@@ -46,7 +46,7 @@ public class Tx0Service {
 
   private int computeNbPremixMax(
       long premixValue,
-      Collection<? extends UnspentResponse.UnspentOutput> spendFrom,
+      Collection<? extends UnspentOutput> spendFrom,
       long feeValueOrFeeChange,
       int feeTx0) {
     NetworkParameters params = config.getNetworkParameters();
@@ -348,14 +348,13 @@ public class Tx0Service {
     return nbPremix;
   }
 
-  protected long computeSpendFromBalance(
-      Collection<? extends UnspentResponse.UnspentOutput> spendFroms) {
+  protected long computeSpendFromBalance(Collection<? extends UnspentOutput> spendFroms) {
     long balance =
         StreamSupport.stream(spendFroms)
             .mapToLong(
-                new ToLongFunction<UnspentResponse.UnspentOutput>() {
+                new ToLongFunction<UnspentOutput>() {
                   @Override
-                  public long applyAsLong(UnspentResponse.UnspentOutput unspentOutput) {
+                  public long applyAsLong(UnspentOutput unspentOutput) {
                     return unspentOutput.value;
                   }
                 })

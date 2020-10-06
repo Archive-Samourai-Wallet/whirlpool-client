@@ -54,7 +54,10 @@ public abstract class AbstractSupplier<D> {
   public synchronized void load() throws Exception {
     try {
       // reload value if expired
-      this.value = supplier.get().getOrThrow();
+      D supplierValue = supplier.get().getOrThrow();
+      if (supplierValue != value) {
+        _setValue(supplierValue);
+      }
     } catch (Exception e) {
       // fallback to last known value
       if (this.value == null) {
@@ -64,6 +67,11 @@ public abstract class AbstractSupplier<D> {
         log.warn("load() failure => last value fallback", e);
       }
     }
+  }
+
+  // for tests
+  public void _setValue(D value) {
+    this.value = value;
   }
 
   protected D getValue() {

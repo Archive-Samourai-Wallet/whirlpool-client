@@ -1,6 +1,6 @@
 package com.samourai.whirlpool.client.wallet.beans;
 
-import com.samourai.wallet.api.backend.beans.UnspentResponse;
+import com.samourai.wallet.api.backend.beans.UnspentOutput;
 import com.samourai.whirlpool.client.utils.ClientUtils;
 import com.samourai.whirlpool.client.wallet.data.pool.PoolSupplier;
 import com.samourai.whirlpool.client.wallet.data.utxo.UtxoSupplier;
@@ -106,7 +106,7 @@ public class MixOrchestratorData {
     return mixing.values();
   }
 
-  public Mixing getMixing(UnspentResponse.UnspentOutput utxo) {
+  public Mixing getMixing(UnspentOutput utxo) {
     final String key = ClientUtils.utxoToKey(utxo);
     return mixing.get(key);
   }

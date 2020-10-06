@@ -3,10 +3,11 @@ package com.samourai.whirlpool.client.test;
 import com.samourai.http.client.HttpUsage;
 import com.samourai.http.client.IHttpClient;
 import com.samourai.http.client.IHttpClientService;
-import com.samourai.wallet.api.backend.beans.UnspentResponse;
+import com.samourai.wallet.api.backend.beans.UnspentOutput;
 import com.samourai.wallet.hd.HD_Address;
 import com.samourai.wallet.hd.java.HD_WalletFactoryJava;
 import com.samourai.wallet.segwit.bech32.Bech32UtilGeneric;
+import com.samourai.whirlpool.client.wallet.WhirlpoolWalletConfig;
 import com.samourai.whirlpool.client.whirlpool.beans.Pool;
 import com.samourai.whirlpool.protocol.websocket.notifications.MixStatus;
 import java.util.Collection;
@@ -81,19 +82,19 @@ public class AbstractTest {
     return Lists.of(pool001btc, pool01btc, pool05btc);
   }
 
-  protected UnspentResponse.UnspentOutput newUnspentOutput(
-      String hash, int index, long value, HD_Address hdAddress) throws Exception {
+  protected UnspentOutput newUnspentOutput(String hash, int index, long value, HD_Address hdAddress)
+      throws Exception {
     String bech32Address = bech32Util.toBech32(hdAddress, params);
     String scriptBytes =
         Hex.toHexString(Bech32UtilGeneric.getInstance().computeScriptPubKey(bech32Address, params));
-    UnspentResponse.UnspentOutput spendFrom = new UnspentResponse.UnspentOutput();
+    UnspentOutput spendFrom = new UnspentOutput();
     spendFrom.tx_hash = hash;
     spendFrom.tx_output_n = index;
     spendFrom.value = value;
     spendFrom.script = scriptBytes;
     spendFrom.addr = bech32Address;
     spendFrom.confirmations = 1234;
-    spendFrom.xpub = new UnspentResponse.UnspentOutput.Xpub();
+    spendFrom.xpub = new UnspentOutput.Xpub();
     spendFrom.xpub.path = "foo";
     return spendFrom;
   }
@@ -108,28 +109,21 @@ public class AbstractTest {
   }
 
   /*
-  protected WhirlpoolUtxo newUtxo(
-      String poolId, WhirlpoolAccount whirlpoolAccount, String hash, int confirms, Long lastError) {
-    UnspentResponse.UnspentOutput utxo = newUnspentOutput(hash, 3, 100L);
-    utxo.confirmations = confirms;
-    WhirlpoolUtxoConfig utxoConfig =
-        new WhirlpoolUtxoConfig(poolId, 5, 0, System.currentTimeMillis());
-    WhirlpoolUtxo whirlpoolUtxo =
-        new WhirlpoolUtxo(utxo, whirlpoolAccount, utxoConfig, WhirlpoolUtxoStatus.READY);
-    whirlpoolUtxo.getUtxoState().setLastError(lastError);
-    return whirlpoolUtxo;
-  }
-
+    protected WhirlpoolUtxo newUtxo(
+        String poolId, WhirlpoolAccount whirlpoolAccount, String hash, int confirms, Long lastError) {
+      UnspentOutput utxo = newUnspentOutput(hash, 3, 100L);
+      utxo.confirmations = confirms;
+      WhirlpoolUtxoConfig utxoConfig =
+          new WhirlpoolUtxoConfig(poolId, 5, 0, System.currentTimeMillis());
+      WhirlpoolUtxo whirlpoolUtxo =
+          new WhirlpoolUtxo(utxo, whirlpoolAccount, utxoConfig, WhirlpoolUtxoStatus.READY);
+      whirlpoolUtxo.getUtxoState().setLastError(lastError);
+      return whirlpoolUtxo;
+    }
+  */
   protected WhirlpoolWalletConfig computeWhirlpoolWalletConfig() {
     WhirlpoolWalletConfig config =
-        new WhirlpoolWalletConfig(
-            null,
-            null,
-            null,
-            WhirlpoolServer.LOCAL_TESTNET.getServerUrl(false),
-            WhirlpoolServer.LOCAL_TESTNET.getParams(),
-            false,
-            null);
+        new WhirlpoolWalletConfig(null, null, null, TestNet3Params.get(), false, null);
     return config;
-  }*/
+  }
 }

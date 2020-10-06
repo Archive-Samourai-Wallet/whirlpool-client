@@ -1,6 +1,6 @@
 package com.samourai.wallet.client;
 
-import com.samourai.wallet.api.backend.beans.UnspentResponse;
+import com.samourai.wallet.api.backend.beans.UnspentOutput;
 import com.samourai.wallet.client.indexHandler.IIndexHandler;
 import com.samourai.wallet.hd.HD_Address;
 import com.samourai.wallet.hd.HD_Wallet;
@@ -51,7 +51,7 @@ public class Bip84Wallet {
     return getAddressBip84(accountIndex, chainIndex, addressIndex);
   }
 
-  public HD_Address getAddressAt(UnspentResponse.UnspentOutput utxo) {
+  public HD_Address getAddressAt(UnspentOutput utxo) {
     return getAddressAt(utxo.computePathChainIndex(), utxo.computePathAddressIndex());
   }
 

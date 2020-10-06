@@ -16,26 +16,31 @@ import org.apache.commons.lang3.ArrayUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class WalletSupplier extends WalletStateSupplier {
+public class WalletSupplier {
   private static final Logger log = LoggerFactory.getLogger(WalletSupplier.class);
 
   private final Map<WhirlpoolAccount, Bip84Wallet> walletsByAccount;
   private final Map<String, WhirlpoolAccount> accountsByZpub;
   private final WhirlpoolAccount[] ignoredAccounts;
 
+  private WalletStateSupplier walletStateSupplier;
+
   public WalletSupplier(
       int refreshUtxoDelay,
       WalletStatePersister persister,
       BackendApi backendApi,
       HD_Wallet hdWallet) {
-    super(refreshUtxoDelay, persister, backendApi);
+
+    this.walletStateSupplier =
+        new WalletStateSupplier(refreshUtxoDelay, persister, backendApi, this);
 
     // instanciate wallets
     this.walletsByAccount = new LinkedHashMap<WhirlpoolAccount, Bip84Wallet>();
     for (WhirlpoolAccount walletAccount : WhirlpoolAccount.values()) {
-      IIndexHandler mainIndexHandler = computeIndexHandler(walletAccount.getPersistKeyMain(), 0);
+      IIndexHandler mainIndexHandler =
+          computeIndexHandler(walletStateSupplier, walletAccount.getPersistKeyMain(), 0);
       IIndexHandler changeIndexHandler =
-          computeIndexHandler(walletAccount.getPersistKeyChange(), 0);
+          computeIndexHandler(walletStateSupplier, walletAccount.getPersistKeyChange(), 0);
 
       Bip84Wallet wallet =
           new Bip84Wallet(
@@ -46,13 +51,9 @@ public class WalletSupplier extends WalletStateSupplier {
     this.accountsByZpub = computeAccountsByZpub(walletsByAccount);
   }
 
-  @Override
-  protected WalletSupplier getWalletSupplier() {
-    return this;
-  }
-
-  private WalletStateIndexHandler computeIndexHandler(String key, int defaultValue) {
-    return new WalletStateIndexHandler(this, key, defaultValue);
+  private static WalletStateIndexHandler computeIndexHandler(
+      WalletStateSupplier walletStateSupplier, String key, int defaultValue) {
+    return new WalletStateIndexHandler(walletStateSupplier, key, defaultValue);
   }
 
   private static Map<String, WhirlpoolAccount> computeAccountsByZpub(
@@ -99,34 +100,7 @@ public class WalletSupplier extends WalletStateSupplier {
     return zpubs.toArray(new String[] {});
   }
 
-  /*public Bip84Wallet getWalletByZpub(String zpub) {
-    Bip84Wallet wallet = null;
-    WhirlpoolAccount account = getAccountByZpub(zpub);
-    if (account != null) {
-      wallet = walletsByAccount.get(account);
-    }
-    if (wallet == null) {
-      log.error("No wallet found for zpub: " + zpub);
-    }
-    return wallet;
-  }*/
-
-  /*
-  public Collection<Bip84Wallet> getWallets(final boolean withIgnoredAccounts) {
-    if (withIgnoredAccounts) {
-      // all wallets
-      return walletsByAccount.values();
-    }
-    // only active wallets
-    return StreamSupport.stream(Arrays.asList(WhirlpoolAccount.getListByActive(true))).map(new Function<WhirlpoolAccount, Bip84Wallet>() {
-      @Override
-      public Bip84Wallet apply(WhirlpoolAccount account) {
-        Bip84Wallet bip84Wallet = walletsByAccount.get(account);
-        if (bip84Wallet == null) {
-          log.error("No wallet found for account: " + account);
-        }
-        return bip84Wallet;
-      }
-    }).collect(Collectors.<Bip84Wallet>toList());
-  }*/
+  public WalletStateSupplier getWalletStateSupplier() {
+    return walletStateSupplier;
+  }
 }

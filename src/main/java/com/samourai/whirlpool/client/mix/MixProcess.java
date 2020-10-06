@@ -24,7 +24,6 @@ import java.util.Set;
 import org.bitcoinj.core.*;
 import org.bouncycastle.crypto.params.RSABlindingParameters;
 import org.bouncycastle.crypto.params.RSAKeyParameters;
-import org.bouncycastle.util.encoders.Hex;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -354,8 +353,7 @@ public class MixProcess {
       }
 
       // check output-address reuse
-      String outputAddressBech32 =
-          bech32Util.getAddressFromScript(new String(Hex.encode(output.getScriptBytes())), params);
+      String outputAddressBech32 = bech32Util.getAddressFromScript(output);
       if (uniqueAdresses.contains(outputAddressBech32)) {
         throw new Exception("Address reuse detected for output: " + outputAddressBech32);
       }

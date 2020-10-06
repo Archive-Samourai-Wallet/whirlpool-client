@@ -1,12 +1,14 @@
 package com.samourai.whirlpool.client.wallet.data.utxo;
 
-import com.samourai.wallet.api.backend.beans.UnspentResponse;
+import com.samourai.wallet.api.backend.beans.UnspentOutput;
 import com.samourai.whirlpool.client.utils.ClientUtils;
-import com.samourai.whirlpool.client.wallet.beans.*;
+import com.samourai.whirlpool.client.wallet.beans.WhirlpoolAccount;
+import com.samourai.whirlpool.client.wallet.beans.WhirlpoolUtxo;
+import com.samourai.whirlpool.client.wallet.beans.WhirlpoolUtxoChanges;
+import com.samourai.whirlpool.client.wallet.beans.WhirlpoolUtxoStatus;
 import com.samourai.whirlpool.client.wallet.data.minerFee.WalletSupplier;
 import java.util.Collection;
 import java.util.LinkedHashMap;
-import java.util.List;
 import java.util.Map;
 import java8.util.function.Predicate;
 import java8.util.stream.Collectors;
@@ -15,7 +17,7 @@ import org.apache.commons.lang3.ArrayUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-/* package */ class UtxoData {
+public class UtxoData {
   private static final Logger log = LoggerFactory.getLogger(UtxoData.class);
 
   private final Map<String, WhirlpoolUtxo> utxos;
@@ -26,12 +28,11 @@ import org.slf4j.LoggerFactory;
   protected UtxoData(
       WalletSupplier walletSupplier,
       UtxoConfigSupplier utxoConfigSupplier,
-      List<UnspentResponse.UnspentOutput> fetchedUtxos,
+      UnspentOutput[] fetchedUtxos,
       Map<String, WhirlpoolUtxo> previousUtxos) {
     // fresh utxos
-    final Map<String, UnspentResponse.UnspentOutput> freshUtxos =
-        new LinkedHashMap<String, UnspentResponse.UnspentOutput>();
-    for (UnspentResponse.UnspentOutput utxo : fetchedUtxos) {
+    final Map<String, UnspentOutput> freshUtxos = new LinkedHashMap<String, UnspentOutput>();
+    for (UnspentOutput utxo : fetchedUtxos) {
       String utxoKey = ClientUtils.utxoToKey(utxo);
       freshUtxos.put(utxoKey, utxo);
     }
@@ -50,9 +51,9 @@ import org.slf4j.LoggerFactory;
     for (WhirlpoolUtxo whirlpoolUtxo : previousUtxos.values()) {
       String key = ClientUtils.utxoToKey(whirlpoolUtxo.getUtxo());
 
-      UnspentResponse.UnspentOutput freshUtxo = freshUtxos.get(key);
+      UnspentOutput freshUtxo = freshUtxos.get(key);
       if (freshUtxo != null) {
-        UnspentResponse.UnspentOutput oldUtxo = whirlpoolUtxo.getUtxo();
+        UnspentOutput oldUtxo = whirlpoolUtxo.getUtxo();
 
         // update utxo if changed
         if (freshUtxo.confirmations != oldUtxo.confirmations) {
@@ -68,10 +69,10 @@ import org.slf4j.LoggerFactory;
     }
 
     // add missing utxos
-    for (Map.Entry<String, UnspentResponse.UnspentOutput> e : freshUtxos.entrySet()) {
+    for (Map.Entry<String, UnspentOutput> e : freshUtxos.entrySet()) {
       String key = e.getKey();
       if (!previousUtxos.containsKey(key)) {
-        UnspentResponse.UnspentOutput utxo = e.getValue();
+        UnspentOutput utxo = e.getValue();
         try {
           // find account
           String zpub = utxo.xpub.m;

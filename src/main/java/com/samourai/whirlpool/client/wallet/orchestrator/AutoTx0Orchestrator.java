@@ -1,6 +1,6 @@
 package com.samourai.whirlpool.client.wallet.orchestrator;
 
-import com.samourai.wallet.api.backend.beans.UnspentResponse.UnspentOutput;
+import com.samourai.wallet.api.backend.beans.UnspentOutput;
 import com.samourai.wallet.util.AbstractOrchestrator;
 import com.samourai.whirlpool.client.exception.EmptyWalletException;
 import com.samourai.whirlpool.client.exception.UnconfirmedUtxoException;

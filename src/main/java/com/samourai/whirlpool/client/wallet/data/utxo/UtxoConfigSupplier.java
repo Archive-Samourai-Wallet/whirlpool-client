@@ -1,6 +1,6 @@
 package com.samourai.whirlpool.client.wallet.data.utxo;
 
-import com.samourai.wallet.api.backend.beans.UnspentResponse;
+import com.samourai.wallet.api.backend.beans.UnspentOutput;
 import com.samourai.whirlpool.client.tx0.Tx0ParamService;
 import com.samourai.whirlpool.client.utils.ClientUtils;
 import com.samourai.whirlpool.client.wallet.beans.WhirlpoolAccount;
@@ -54,7 +54,7 @@ public class UtxoConfigSupplier extends AbstractPersistableSupplier<UtxoConfigDa
   }
 
   private UtxoConfigPersisted newUtxoConfig(WhirlpoolUtxo whirlpoolUtxo) {
-    UnspentResponse.UnspentOutput utxo = whirlpoolUtxo.getUtxo();
+    UnspentOutput utxo = whirlpoolUtxo.getUtxo();
 
     // find by tx hash (new PREMIX from TX0)
     String tx0Key = computeUtxoConfigKey(utxo.tx_hash);
@@ -98,7 +98,7 @@ public class UtxoConfigSupplier extends AbstractPersistableSupplier<UtxoConfigDa
   }
 
   public UtxoConfigPersisted getUtxoConfigPersisted(WhirlpoolUtxo whirlpoolUtxo) {
-    UnspentResponse.UnspentOutput utxo = whirlpoolUtxo.getUtxo();
+    UnspentOutput utxo = whirlpoolUtxo.getUtxo();
     String key = computeUtxoConfigKey(utxo.tx_hash, utxo.tx_output_n);
 
     // get existing utxoConfig
@@ -107,14 +107,14 @@ public class UtxoConfigSupplier extends AbstractPersistableSupplier<UtxoConfigDa
   }
 
   public void forwardUtxoConfig(WhirlpoolUtxo fromUtxo, String hash, int index) {
-    UnspentResponse.UnspentOutput utxo = fromUtxo.getUtxo();
+    UnspentOutput utxo = fromUtxo.getUtxo();
     String fromKey = computeUtxoConfigKey(utxo.tx_hash, utxo.tx_output_n);
     String toKey = computeUtxoConfigKey(hash, index);
     forwardUtxoConfig(fromKey, toKey);
   }
 
   public void forwardUtxoConfig(WhirlpoolUtxo fromUtxo, String txid) {
-    UnspentResponse.UnspentOutput utxo = fromUtxo.getUtxo();
+    UnspentOutput utxo = fromUtxo.getUtxo();
     String fromKey = computeUtxoConfigKey(utxo.tx_hash, utxo.tx_output_n);
     String toKey = computeUtxoConfigKey(txid);
     forwardUtxoConfig(fromKey, toKey);
@@ -175,7 +175,7 @@ public class UtxoConfigSupplier extends AbstractPersistableSupplier<UtxoConfigDa
   private int createUtxoConfigPersisted(List<WhirlpoolUtxo> whirlpoolUtxos) {
     int nbCreated = 0;
     for (WhirlpoolUtxo whirlpoolUtxo : whirlpoolUtxos) {
-      UnspentResponse.UnspentOutput utxo = whirlpoolUtxo.getUtxo();
+      UnspentOutput utxo = whirlpoolUtxo.getUtxo();
       String key = computeUtxoConfigKey(utxo.tx_hash, utxo.tx_output_n);
 
       // create new utxoConfig when missing
@@ -201,7 +201,7 @@ public class UtxoConfigSupplier extends AbstractPersistableSupplier<UtxoConfigDa
                 new Function<WhirlpoolUtxo, String>() {
                   @Override
                   public String apply(WhirlpoolUtxo whirlpoolUtxo) {
-                    UnspentResponse.UnspentOutput utxo = whirlpoolUtxo.getUtxo();
+                    UnspentOutput utxo = whirlpoolUtxo.getUtxo();
                     return computeUtxoConfigKey(utxo.tx_hash, utxo.tx_output_n);
                   }
                 })

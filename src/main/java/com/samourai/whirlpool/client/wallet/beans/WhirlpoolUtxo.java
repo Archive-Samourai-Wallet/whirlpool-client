@@ -1,6 +1,6 @@
 package com.samourai.whirlpool.client.wallet.beans;
 
-import com.samourai.wallet.api.backend.beans.UnspentResponse.UnspentOutput;
+import com.samourai.wallet.api.backend.beans.UnspentOutput;
 import com.samourai.whirlpool.client.wallet.data.utxo.UtxoConfigPersisted;
 import com.samourai.whirlpool.client.wallet.data.utxo.UtxoConfigSupplier;
 import org.slf4j.Logger;

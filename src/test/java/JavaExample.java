@@ -4,7 +4,7 @@ import com.samourai.http.client.IHttpClientService;
 import com.samourai.stomp.client.IStompClientService;
 import com.samourai.wallet.api.backend.BackendApi;
 import com.samourai.wallet.api.backend.BackendServer;
-import com.samourai.wallet.api.backend.beans.UnspentResponse;
+import com.samourai.wallet.api.backend.beans.UnspentOutput;
 import com.samourai.wallet.hd.HD_Wallet;
 import com.samourai.wallet.util.oauth.OAuthManager;
 import com.samourai.whirlpool.client.mix.listener.MixStep;
@@ -12,7 +12,6 @@ import com.samourai.whirlpool.client.tx0.Tx0;
 import com.samourai.whirlpool.client.tx0.Tx0Config;
 import com.samourai.whirlpool.client.tx0.Tx0Preview;
 import com.samourai.whirlpool.client.tx0.UnspentOutputWithKey;
-import com.samourai.whirlpool.client.wallet.WhirlpoolDataService;
 import com.samourai.whirlpool.client.wallet.WhirlpoolWallet;
 import com.samourai.whirlpool.client.wallet.WhirlpoolWalletConfig;
 import com.samourai.whirlpool.client.wallet.WhirlpoolWalletService;
@@ -69,7 +68,6 @@ public class JavaExample {
     // configure whirlpool
     WhirlpoolWalletService whirlpoolWalletService = new WhirlpoolWalletService();
     WhirlpoolWalletConfig config = computeWhirlpoolWalletConfig();
-    WhirlpoolDataService dataService = new WhirlpoolDataService(config);
 
     /*
      * WALLET
@@ -77,7 +75,7 @@ public class JavaExample {
     // open wallet
     HD_Wallet bip84w = null; // provide your wallet here
     WhirlpoolWallet whirlpoolWallet =
-        whirlpoolWalletService.openWallet(dataService, bip84w, "/tmp/state", "/tmp/utxos");
+        whirlpoolWalletService.openWallet(config, bip84w, "/tmp/state", "/tmp/utxos");
 
     // start whirlpool wallet
     whirlpoolWallet.start();
@@ -189,7 +187,7 @@ public class JavaExample {
     // tx0 method 2: spending an external utxo
     {
       // external utxo for tx0
-      UnspentResponse.UnspentOutput spendFrom = null; // provide utxo outpoint
+      UnspentOutput spendFrom = null; // provide utxo outpoint
       byte[] spendFromPrivKey = null; // provide utxo private key
       Collection<UnspentOutputWithKey> utxos =
           Lists.of(new UnspentOutputWithKey(spendFrom, spendFromPrivKey));

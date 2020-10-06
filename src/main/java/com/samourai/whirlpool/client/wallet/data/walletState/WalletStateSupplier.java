@@ -1,7 +1,7 @@
 package com.samourai.whirlpool.client.wallet.data.walletState;
 
 import com.samourai.wallet.api.backend.BackendApi;
-import com.samourai.wallet.api.backend.beans.MultiAddrResponse;
+import com.samourai.wallet.api.backend.beans.WalletResponse;
 import com.samourai.whirlpool.client.exception.NotifiableException;
 import com.samourai.whirlpool.client.wallet.beans.WhirlpoolAccount;
 import com.samourai.whirlpool.client.wallet.data.AbstractPersistableSupplier;
@@ -10,29 +10,32 @@ import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public abstract class WalletStateSupplier extends AbstractPersistableSupplier<WalletStateData> {
+public class WalletStateSupplier extends AbstractPersistableSupplier<WalletStateData> {
   private static final Logger log = LoggerFactory.getLogger(WalletStateSupplier.class);
   private static final int INIT_BIP84_RETRY = 3;
   private static final int INIT_BIP84_RETRY_TIMEOUT = 3000;
 
   private BackendApi backendApi;
+  private WalletSupplier walletSupplier;
   private boolean synced; // postmix counters sync
 
-  protected WalletStateSupplier(
-      int refreshUtxoDelay, WalletStatePersister persister, BackendApi backendApi) {
+  public WalletStateSupplier(
+      int refreshUtxoDelay,
+      WalletStatePersister persister,
+      BackendApi backendApi,
+      WalletSupplier walletSupplier) {
     super(refreshUtxoDelay, null, persister, log);
     this.backendApi = backendApi;
+    this.walletSupplier = walletSupplier;
     this.synced = true;
   }
-
-  protected abstract WalletSupplier getWalletSupplier();
 
   @Override
   protected WalletStateData fetch() throws Exception {
     if (log.isDebugEnabled()) {
       log.debug("fetching...");
     }
-    String[] activeZpubs = getWalletSupplier().getZpubs(false);
+    String[] activeZpubs = walletSupplier.getZpubs(false);
 
     WalletStateData currentValue = getValue();
     WalletStateData newValue;
@@ -58,18 +61,20 @@ public abstract class WalletStateSupplier extends AbstractPersistableSupplier<Wa
       newValue = currentValue.copy();
     }
 
-    // refresh indexs from wallet backend
-    Map<String, MultiAddrResponse.Address> addressesByZpub = backendApi.fetchAddresses(activeZpubs);
-    for (String zpub : addressesByZpub.keySet()) {
-      MultiAddrResponse.Address address = addressesByZpub.get(zpub);
-      WhirlpoolAccount account = getWalletSupplier().getAccountByZpub(zpub);
+    // fetch data from wallet backend
+    WalletResponse walletResponse = backendApi.fetchWallet(activeZpubs);
+
+    // update indexs from wallet backend
+    Map<String, WalletResponse.Address> addressesMap = walletResponse.getAddressesMap();
+    for (String zpub : addressesMap.keySet()) {
+      WalletResponse.Address address = addressesMap.get(zpub);
+      WhirlpoolAccount account = walletSupplier.getAccountByZpub(zpub);
       if (account != null) {
         newValue.updateIndexs(account, address);
       } else {
         log.error("No account found for zpub: " + zpub);
       }
     }
-
     return newValue;
   }
 

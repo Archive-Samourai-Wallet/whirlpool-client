@@ -1,9 +1,7 @@
 package com.samourai.whirlpool.client.wallet.data.utxo;
 
-import com.samourai.wallet.api.backend.beans.UnspentResponse;
+import com.samourai.wallet.api.backend.beans.UnspentOutput;
 import com.samourai.whirlpool.client.wallet.beans.WhirlpoolUtxo;
-import java.util.List;
-import java8.util.Lists;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
@@ -12,18 +10,14 @@ public class UtxoConfigSupplierTest extends UtxoSupplierTest {
   @Test
   public void testValid() throws Exception {
     // mock initial data
-    List<UnspentResponse.UnspentOutput> utxos1 =
-        Lists.of(new UnspentResponse.UnspentOutput[] {UTXO_DEPOSIT1, UTXO_PREMIX1, UTXO_POSTMIX1});
-    mockUtxos = utxos1;
+    UnspentOutput[] utxos1 = new UnspentOutput[] {UTXO_DEPOSIT1, UTXO_PREMIX1, UTXO_POSTMIX1};
+    setMockWalletResponse(utxos1);
 
     // verify
     doTest(utxos1);
-    assertUtxoChanges(
-        utxos1,
-        Lists.of(new UnspentResponse.UnspentOutput[] {}),
-        Lists.of(new UnspentResponse.UnspentOutput[] {}));
+    assertUtxoChanges(utxos1, new UnspentOutput[] {}, new UnspentOutput[] {});
 
-    Assertions.assertEquals(utxos1.size(), utxoSupplier.getUtxos().size());
+    Assertions.assertEquals(utxos1.length, utxoSupplier.getUtxos().size());
 
     // verify mixsTarget
     Assertions.assertEquals(
@@ -61,18 +55,14 @@ public class UtxoConfigSupplierTest extends UtxoSupplierTest {
   @Test
   public void clean() throws Exception {
     // mock initial data
-    List<UnspentResponse.UnspentOutput> utxos1 =
-        Lists.of(new UnspentResponse.UnspentOutput[] {UTXO_DEPOSIT1});
-    mockUtxos = utxos1;
+    UnspentOutput[] utxos1 = new UnspentOutput[] {UTXO_DEPOSIT1};
+    setMockWalletResponse(utxos1);
 
     // verify
     doTest(utxos1);
-    assertUtxoChanges(
-        utxos1,
-        Lists.of(new UnspentResponse.UnspentOutput[] {}),
-        Lists.of(new UnspentResponse.UnspentOutput[] {}));
+    assertUtxoChanges(utxos1, new UnspentOutput[] {}, new UnspentOutput[] {});
 
-    Assertions.assertEquals(utxos1.size(), utxoSupplier.getUtxos().size());
+    Assertions.assertEquals(utxos1.length, utxoSupplier.getUtxos().size());
 
     // setMixsTarget
     utxoSupplier.findUtxo(UTXO_DEPOSIT1.tx_hash, UTXO_DEPOSIT1.tx_output_n).setMixsTarget(123);
@@ -88,8 +78,8 @@ public class UtxoConfigSupplierTest extends UtxoSupplierTest {
     utxoConfigSupplier.forwardUtxoConfig(fromKey, toKey);
 
     // spent utxo disappears
-    List<UnspentResponse.UnspentOutput> utxos2 = Lists.of(new UnspentResponse.UnspentOutput[] {});
-    mockUtxos = utxos2;
+    UnspentOutput[] utxos2 = new UnspentOutput[] {};
+    setMockWalletResponse(utxos2);
 
     // Thread.sleep(UtxoConfigData.FORWARDING_EXPIRATION_SECONDS+1); // test should fail
 
@@ -98,9 +88,8 @@ public class UtxoConfigSupplierTest extends UtxoSupplierTest {
     doTest(utxos2);
 
     // receive utxo appears
-    List<UnspentResponse.UnspentOutput> utxos3 =
-        Lists.of(new UnspentResponse.UnspentOutput[] {UTXO_PREMIX1});
-    mockUtxos = utxos3;
+    UnspentOutput[] utxos3 = new UnspentOutput[] {UTXO_PREMIX1};
+    setMockWalletResponse(utxos3);
 
     // verify => no change
     utxoSupplier.expire();

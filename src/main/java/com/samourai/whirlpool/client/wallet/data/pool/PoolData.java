@@ -11,12 +11,12 @@ import java8.util.stream.StreamSupport;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-/* package */ class PoolData {
+public class PoolData {
   private static final Logger log = LoggerFactory.getLogger(PoolData.class);
 
   private final Map<String, Pool> poolsById;
 
-  protected PoolData(PoolsResponse poolsResponse) {
+  public PoolData(PoolsResponse poolsResponse) {
     this.poolsById = computePools(poolsResponse);
   }
 

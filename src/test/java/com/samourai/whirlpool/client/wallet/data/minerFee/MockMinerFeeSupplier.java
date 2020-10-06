@@ -7,24 +7,30 @@ public class MockMinerFeeSupplier extends MinerFeeSupplier {
   private static int mockFeeValue;
   private static boolean mockException;
 
+  private final BackendApi mockBackendApi;
+
   public MockMinerFeeSupplier() {
     this(1, 999999, 123);
   }
 
   public MockMinerFeeSupplier(int feeMin, int feeMax, int feeFallback) {
-    super(9999999, computeBackendApi(), feeMin, feeMax, feeFallback);
+    super(feeMin, feeMax, feeFallback);
+    this.mockFeeValue = feeFallback;
+    this.mockBackendApi =
+        new BackendApi(null, "http://mock", null) {
+          @Override
+          public MinerFee fetchMinerFee() throws Exception {
+            if (mockException) {
+              throw new Exception("mocked backend failure");
+            }
+            return MinerFeeSupplier.mockMinerFee(mockFeeValue);
+          }
+        };
   }
 
-  private static BackendApi computeBackendApi() {
-    return new BackendApi(null, "http://mock", null) {
-      @Override
-      public MinerFee fetchMinerFee() throws Exception {
-        if (mockException) {
-          throw new Exception("mocked backend failure");
-        }
-        return MinerFeeSupplier.mockMinerFee(mockFeeValue);
-      }
-    };
+  @Override
+  protected MinerFee fetch() throws Exception {
+    return mockBackendApi.fetchMinerFee();
   }
 
   public void setMockFeeValue(int mockFeeValue) {

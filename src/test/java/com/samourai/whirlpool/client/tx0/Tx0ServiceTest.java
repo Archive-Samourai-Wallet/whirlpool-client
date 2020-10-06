@@ -1,6 +1,6 @@
 package com.samourai.whirlpool.client.tx0;
 
-import com.samourai.wallet.api.backend.beans.UnspentResponse;
+import com.samourai.wallet.api.backend.beans.UnspentOutput;
 import com.samourai.wallet.client.Bip84Wallet;
 import com.samourai.wallet.client.indexHandler.MemoryIndexHandler;
 import com.samourai.wallet.hd.HD_Address;
@@ -50,7 +50,7 @@ public class Tx0ServiceTest extends AbstractTest {
 
     HD_Address address = bip84w.getAccountAt(0).getChain(0).getAddressAt(61);
     ECKey spendFromKey = address.getECKey();
-    UnspentResponse.UnspentOutput spendFrom =
+    UnspentOutput spendFrom =
         newUnspentOutput(
             "cc588cdcb368f894a41c372d1f905770b61ecb3fb8e5e01a97e7cedbf5e324ae",
             1,
@@ -104,7 +104,7 @@ public class Tx0ServiceTest extends AbstractTest {
 
     HD_Address address = bip84w.getAccountAt(0).getChain(0).getAddressAt(61);
     ECKey spendFromKey = address.getECKey();
-    UnspentResponse.UnspentOutput spendFrom =
+    UnspentOutput spendFrom =
         newUnspentOutput(
             "cc588cdcb368f894a41c372d1f905770b61ecb3fb8e5e01a97e7cedbf5e324ae",
             1,
@@ -173,7 +173,7 @@ public class Tx0ServiceTest extends AbstractTest {
 
     HD_Address address = bip84w.getAccountAt(0).getChain(0).getAddressAt(61);
     ECKey spendFromKey = address.getECKey();
-    UnspentResponse.UnspentOutput spendFrom =
+    UnspentOutput spendFrom =
         newUnspentOutput(
             "cc588cdcb368f894a41c372d1f905770b61ecb3fb8e5e01a97e7cedbf5e324ae",
             1,
@@ -246,7 +246,7 @@ public class Tx0ServiceTest extends AbstractTest {
 
     HD_Address address = bip84w.getAccountAt(0).getChain(0).getAddressAt(61);
     ECKey spendFromKey = address.getECKey();
-    UnspentResponse.UnspentOutput spendFrom =
+    UnspentOutput spendFrom =
         newUnspentOutput(
             "cc588cdcb368f894a41c372d1f905770b61ecb3fb8e5e01a97e7cedbf5e324ae",
             1,
@@ -340,7 +340,7 @@ public class Tx0ServiceTest extends AbstractTest {
 
     HD_Address address = bip84w.getAccountAt(0).getChain(0).getAddressAt(61);
     ECKey spendFromKey = address.getECKey();
-    UnspentResponse.UnspentOutput spendFrom =
+    UnspentOutput spendFrom =
         newUnspentOutput(
             "cc588cdcb368f894a41c372d1f905770b61ecb3fb8e5e01a97e7cedbf5e324ae",
             1,
@@ -437,7 +437,7 @@ public class Tx0ServiceTest extends AbstractTest {
 
     HD_Address address = bip84w.getAccountAt(0).getChain(0).getAddressAt(61);
     ECKey spendFromKey = address.getECKey();
-    UnspentResponse.UnspentOutput spendFrom =
+    UnspentOutput spendFrom =
         newUnspentOutput(
             "cc588cdcb368f894a41c372d1f905770b61ecb3fb8e5e01a97e7cedbf5e324ae",
             1,
@@ -588,7 +588,7 @@ public class Tx0ServiceTest extends AbstractTest {
 
     HD_Address address = bip84w.getAccountAt(0).getChain(0).getAddressAt(61);
     ECKey spendFromKey = address.getECKey();
-    UnspentResponse.UnspentOutput spendFrom =
+    UnspentOutput spendFrom =
         newUnspentOutput(
             "cc588cdcb368f894a41c372d1f905770b61ecb3fb8e5e01a97e7cedbf5e324ae",
             1,
@@ -686,7 +686,7 @@ public class Tx0ServiceTest extends AbstractTest {
 
     HD_Address address = bip84w.getAccountAt(0).getChain(0).getAddressAt(61);
     ECKey spendFromKey = address.getECKey();
-    UnspentResponse.UnspentOutput spendFrom =
+    UnspentOutput spendFrom =
         newUnspentOutput(
             "cc588cdcb368f894a41c372d1f905770b61ecb3fb8e5e01a97e7cedbf5e324ae",
             1,
@@ -784,7 +784,7 @@ public class Tx0ServiceTest extends AbstractTest {
 
     HD_Address address = bip84w.getAccountAt(0).getChain(0).getAddressAt(61);
     ECKey spendFromKey = address.getECKey();
-    UnspentResponse.UnspentOutput spendFrom =
+    UnspentOutput spendFrom =
         newUnspentOutput(
             "cc588cdcb368f894a41c372d1f905770b61ecb3fb8e5e01a97e7cedbf5e324ae",
             1,
@@ -881,7 +881,7 @@ public class Tx0ServiceTest extends AbstractTest {
 
     HD_Address address = bip84w.getAccountAt(0).getChain(0).getAddressAt(61);
     ECKey spendFromKey = address.getECKey();
-    UnspentResponse.UnspentOutput spendFrom =
+    UnspentOutput spendFrom =
         newUnspentOutput(
             "cc588cdcb368f894a41c372d1f905770b61ecb3fb8e5e01a97e7cedbf5e324ae",
             1,

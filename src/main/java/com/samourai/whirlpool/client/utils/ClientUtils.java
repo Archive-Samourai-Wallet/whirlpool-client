@@ -4,8 +4,7 @@ import ch.qos.logback.classic.Level;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.io.Files;
 import com.samourai.wallet.api.backend.beans.HttpException;
-import com.samourai.wallet.api.backend.beans.UnspentResponse;
-import com.samourai.wallet.api.backend.beans.UnspentResponse.UnspentOutput;
+import com.samourai.wallet.api.backend.beans.UnspentOutput;
 import com.samourai.wallet.segwit.bech32.Bech32UtilGeneric;
 import com.samourai.wallet.util.CallbackWithArg;
 import com.samourai.wallet.util.FeeUtil;
@@ -129,7 +128,7 @@ public class ClientUtils {
     StringBuilder sb = new StringBuilder();
     sb.append(String.format(lineFormat, "BALANCE", "CONFIRMS", "UTXO", "ADDRESS", "PATH"));
     sb.append(String.format(lineFormat, "(btc)", "", "", "", ""));
-    for (UnspentResponse.UnspentOutput o : utxos) {
+    for (UnspentOutput o : utxos) {
       String utxo = o.tx_hash + ":" + o.tx_output_n;
       sb.append(
           String.format(lineFormat, satToBtc(o.value), o.confirmations, utxo, o.addr, o.getPath()));
@@ -361,7 +360,7 @@ public class ClientUtils {
   public static long computeTx0MinerFee(
       int nbPremix,
       long feeTx0,
-      Collection<? extends UnspentResponse.UnspentOutput> spendFroms,
+      Collection<? extends UnspentOutput> spendFroms,
       NetworkParameters params) {
     int nbOutputsNonOpReturn = nbPremix + 2; // outputs + change + fee
 
@@ -369,7 +368,7 @@ public class ClientUtils {
     int nbP2SH = 0;
     int nbP2WPKH = 0;
     if (spendFroms != null) { // spendFroms can be NULL (for fee simulation)
-      for (UnspentResponse.UnspentOutput uo : spendFroms) {
+      for (UnspentOutput uo : spendFroms) {
 
         if (bech32Util.isP2WPKHScript(uo.script)) {
           nbP2WPKH++;

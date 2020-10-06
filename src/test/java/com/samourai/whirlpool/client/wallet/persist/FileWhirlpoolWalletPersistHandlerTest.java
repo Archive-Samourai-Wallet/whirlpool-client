@@ -53,7 +53,7 @@ public class FileWhirlpoolWalletPersistHandlerTest extends AbstractTest {
     utxoFoo.value = 1234;
     utxoFoo.confirmations = 9999;
     utxoFoo.addr = "foo";
-    utxoFoo.xpub = new UnspentResponse.UnspentOutput.Xpub();
+    utxoFoo.xpub = new UnspentOutput.Xpub();
     utxoFoo.xpub.path = "foo";
     WhirlpoolUtxo foo = computeUtxo(utxoFoo);
     foo.setMixsTarget(1);
@@ -64,7 +64,7 @@ public class FileWhirlpoolWalletPersistHandlerTest extends AbstractTest {
     utxoBar.value = 5678;
     utxoBar.confirmations = 8888;
     utxoBar.addr = "bar";
-    utxoBar.xpub = new UnspentResponse.UnspentOutput.Xpub();
+    utxoBar.xpub = new UnspentOutput.Xpub();
     utxoBar.xpub.path = "bar";
     WhirlpoolUtxo bar = computeUtxo(utxoBar);
     bar.setMixsTarget(2);

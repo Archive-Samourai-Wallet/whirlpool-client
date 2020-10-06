@@ -1,18 +1,12 @@
 package com.samourai.whirlpool.client.tx0;
 
-import com.samourai.wallet.api.backend.beans.UnspentResponse;
+import com.samourai.wallet.api.backend.beans.UnspentOutput;
 
-public class UnspentOutputWithKey extends UnspentResponse.UnspentOutput {
+public class UnspentOutputWithKey extends UnspentOutput {
   private byte[] key;
 
-  public UnspentOutputWithKey(UnspentResponse.UnspentOutput uo, byte[] key) {
-    this.tx_hash = uo.tx_hash;
-    this.tx_output_n = uo.tx_output_n;
-    this.value = uo.value;
-    this.script = uo.script;
-    this.addr = uo.addr;
-    this.confirmations = uo.confirmations;
-    this.xpub = uo.xpub;
+  public UnspentOutputWithKey(UnspentOutput uo, byte[] key) {
+    super(uo);
     this.key = key;
   }
 

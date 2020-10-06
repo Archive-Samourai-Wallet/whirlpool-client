@@ -1,7 +1,6 @@
 package com.samourai.whirlpool.client.wallet.data.utxo;
 
-import com.samourai.wallet.api.backend.BackendApi;
-import com.samourai.wallet.api.backend.beans.UnspentResponse;
+import com.samourai.wallet.api.backend.beans.WalletResponse;
 import com.samourai.whirlpool.client.utils.MessageListener;
 import com.samourai.whirlpool.client.wallet.beans.WhirlpoolAccount;
 import com.samourai.whirlpool.client.wallet.beans.WhirlpoolUtxo;
@@ -10,51 +9,32 @@ import com.samourai.whirlpool.client.wallet.data.AbstractSupplier;
 import com.samourai.whirlpool.client.wallet.data.minerFee.WalletSupplier;
 import java.util.Collection;
 import java.util.LinkedHashMap;
-import java.util.List;
 import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class UtxoSupplier extends AbstractSupplier<UtxoData> {
+public abstract class UtxoSupplier extends AbstractSupplier<UtxoData> {
   private static final Logger log = LoggerFactory.getLogger(UtxoSupplier.class);
 
   private final WalletSupplier walletSupplier;
   private final UtxoConfigSupplier utxoConfigSupplier;
-  private final BackendApi backendApi;
   private final MessageListener<WhirlpoolUtxoChanges> utxoChangesListener;
 
   private Map<String, WhirlpoolUtxo> previousUtxos;
 
   public UtxoSupplier(
-      int refreshUtxoDelay,
       WalletSupplier walletSupplier,
       UtxoConfigSupplier utxoConfigSupplier,
-      BackendApi backendApi,
       MessageListener<WhirlpoolUtxoChanges> utxoChangesListener) {
-    super(refreshUtxoDelay, null, log);
+    super(null, null, log);
+    this.previousUtxos = null;
     this.walletSupplier = walletSupplier;
     this.utxoConfigSupplier = utxoConfigSupplier;
-    this.backendApi = backendApi;
-    this.previousUtxos = null;
     this.utxoChangesListener = utxoChangesListener;
   }
 
-  protected List<UnspentResponse.UnspentOutput> fetchUtxos() throws Exception {
-    String[] utxoZpubs = walletSupplier.getZpubs(false);
-    List<UnspentResponse.UnspentOutput> utxos = backendApi.fetchUtxos(utxoZpubs);
-    return utxos;
-  }
-
   @Override
-  protected UtxoData fetch() throws Exception {
-    if (log.isDebugEnabled()) {
-      log.debug("fetching...");
-    }
-
-    // fetch utxos
-    List<UnspentResponse.UnspentOutput> utxos = fetchUtxos();
-    UtxoData utxoData = new UtxoData(walletSupplier, utxoConfigSupplier, utxos, previousUtxos);
-
+  public void _setValue(UtxoData utxoData) {
     // notify changes
     final WhirlpoolUtxoChanges utxoChanges = utxoData.getUtxoChanges();
     if (!utxoChanges.isEmpty()) {
@@ -69,7 +49,20 @@ public class UtxoSupplier extends AbstractSupplier<UtxoData> {
     Map<String, WhirlpoolUtxo> newPreviousUtxos = new LinkedHashMap<String, WhirlpoolUtxo>();
     newPreviousUtxos.putAll(utxoData.getUtxos());
     previousUtxos = newPreviousUtxos;
-    return utxoData;
+
+    // set new value
+    super._setValue(utxoData);
+  }
+
+  public void _setValue(WalletResponse walletResponse) {
+    if (log.isDebugEnabled()) {
+      log.debug("_setValue");
+    }
+
+    UtxoData utxoData =
+        new UtxoData(
+            walletSupplier, utxoConfigSupplier, walletResponse.unspent_outputs, previousUtxos);
+    _setValue(utxoData);
   }
 
   public Collection<WhirlpoolUtxo> getUtxos() {

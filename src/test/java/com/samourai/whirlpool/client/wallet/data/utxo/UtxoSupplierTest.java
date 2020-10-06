@@ -1,35 +1,32 @@
 package com.samourai.whirlpool.client.wallet.data.utxo;
 
 import com.samourai.wallet.api.backend.BackendApi;
-import com.samourai.wallet.api.backend.MinerFeeTarget;
-import com.samourai.wallet.api.backend.beans.UnspentResponse;
+import com.samourai.wallet.api.backend.beans.UnspentOutput;
+import com.samourai.wallet.api.backend.beans.WalletResponse;
 import com.samourai.wallet.hd.HD_Wallet;
 import com.samourai.whirlpool.client.test.AbstractTest;
-import com.samourai.whirlpool.client.tx0.ITx0ParamServiceConfig;
-import com.samourai.whirlpool.client.tx0.Tx0ParamService;
 import com.samourai.whirlpool.client.utils.MessageListener;
+import com.samourai.whirlpool.client.wallet.WhirlpoolWalletConfig;
 import com.samourai.whirlpool.client.wallet.beans.WhirlpoolUtxo;
 import com.samourai.whirlpool.client.wallet.beans.WhirlpoolUtxoChanges;
-import com.samourai.whirlpool.client.wallet.data.minerFee.MinerFeeSupplier;
+import com.samourai.whirlpool.client.wallet.data.minerFee.WalletDataSupplier;
 import com.samourai.whirlpool.client.wallet.data.minerFee.WalletSupplier;
-import com.samourai.whirlpool.client.wallet.data.pool.MockPoolSupplier;
-import com.samourai.whirlpool.client.wallet.data.pool.PoolSupplier;
+import com.samourai.whirlpool.client.wallet.data.pool.PoolData;
+import com.samourai.whirlpool.protocol.rest.PoolInfo;
+import com.samourai.whirlpool.protocol.rest.PoolsResponse;
 import java.io.File;
-import java.util.ArrayList;
 import java.util.Collection;
-import java.util.List;
-import java8.util.Lists;
-import org.bitcoinj.core.NetworkParameters;
+import org.apache.commons.lang3.ArrayUtils;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.function.Executable;
 
 public class UtxoSupplierTest extends AbstractTest {
-  private BackendApi backendApi;
+  protected WalletDataSupplier walletDataSupplier;
   protected UtxoSupplier utxoSupplier;
   protected UtxoConfigSupplier utxoConfigSupplier;
-  protected List<UnspentResponse.UnspentOutput> mockUtxos;
+  protected WalletResponse mockWalletResponse;
   protected boolean mockException;
 
   private static final String SEED_WORDS = "all all all all all all all all all all all all";
@@ -42,11 +39,11 @@ public class UtxoSupplierTest extends AbstractTest {
   private static final String ZPUB_POSTMIX =
       "vpub5YEQpEDXWE3TawqjQNFt5o4sBM1RP1B1mtVZr8ysEA9hFLsZZ4RB8oxE4Sfkumc47jnVPUgRL9hJf3sWpTYBKtdkP3UK6J8p1n2ykmjHnrW";
 
-  protected UnspentResponse.UnspentOutput UTXO_DEPOSIT1;
-  protected UnspentResponse.UnspentOutput UTXO_DEPOSIT1_UPDATED;
-  protected UnspentResponse.UnspentOutput UTXO_PREMIX1;
-  protected UnspentResponse.UnspentOutput UTXO_PREMIX2;
-  protected UnspentResponse.UnspentOutput UTXO_POSTMIX1;
+  protected UnspentOutput UTXO_DEPOSIT1;
+  protected UnspentOutput UTXO_DEPOSIT1_UPDATED;
+  protected UnspentOutput UTXO_PREMIX1;
+  protected UnspentOutput UTXO_PREMIX2;
+  protected UnspentOutput UTXO_POSTMIX1;
 
   protected WhirlpoolUtxoChanges lastUtxoChanges;
 
@@ -54,58 +51,14 @@ public class UtxoSupplierTest extends AbstractTest {
     byte[] seed = hdWalletFactory.computeSeedFromWords(SEED_WORDS);
     HD_Wallet hdWallet = hdWalletFactory.getBIP84(seed, SEED_PASSPHRASE, params);
 
+    BackendApi backendApi = new BackendApi(null, "http://testbackend", null);
     return new WalletSupplier(999999, null, backendApi, hdWallet);
   }
 
   @BeforeEach
   public void setup() throws Exception {
-    backendApi =
-        new BackendApi(null, "http://testbackend", null) {
-          @Override
-          public List<UnspentResponse.UnspentOutput> fetchUtxos(String[] zpubs) throws Exception {
-            if (mockException) {
-              throw new Exception("utxos not available");
-            }
-            return mockUtxos;
-          }
-        };
-
     WalletSupplier walletSupplier = computeWalletSupplier();
 
-    MinerFeeSupplier minerFeeSupplier = new MinerFeeSupplier(9999999, backendApi, 10, 10000, 123);
-    // minerFeeSupplier.load();
-
-    PoolSupplier poolSupplier = new MockPoolSupplier();
-    poolSupplier.load();
-
-    String fileName = "/tmp/utxoConfig";
-    File f = new File(fileName);
-    if (f.exists()) {
-      f.delete();
-    }
-    f.createNewFile();
-    UtxoConfigPersister persister = new UtxoConfigPersister(fileName);
-    Tx0ParamService tx0ParamService =
-        new Tx0ParamService(
-            minerFeeSupplier,
-            new ITx0ParamServiceConfig() {
-              @Override
-              public NetworkParameters getNetworkParameters() {
-                return params;
-              }
-
-              @Override
-              public Long getOverspend(String poolId) {
-                return null;
-              }
-
-              @Override
-              public MinerFeeTarget getFeeTargetPremix() {
-                return MinerFeeTarget.BLOCKS_4;
-              }
-            });
-    utxoConfigSupplier = new UtxoConfigSupplier(persister, poolSupplier, tx0ParamService);
-    utxoConfigSupplier.load();
     MessageListener<WhirlpoolUtxoChanges> changeListener =
         new MessageListener<WhirlpoolUtxoChanges>() {
           @Override
@@ -113,8 +66,29 @@ public class UtxoSupplierTest extends AbstractTest {
             lastUtxoChanges = message;
           }
         };
-    utxoSupplier =
-        new UtxoSupplier(9999999, walletSupplier, utxoConfigSupplier, backendApi, changeListener);
+    String fileName = "/tmp/utxoConfig";
+    File f = new File(fileName);
+    if (f.exists()) {
+      f.delete();
+    }
+    f.createNewFile();
+    WhirlpoolWalletConfig config = computeWhirlpoolWalletConfig();
+    walletDataSupplier =
+        new WalletDataSupplier(999999, walletSupplier, changeListener, fileName, config) {
+          @Override
+          protected WalletResponse fetchWalletResponse() throws Exception {
+            if (mockException) {
+              throw new Exception("utxos not available");
+            }
+            return mockWalletResponse;
+          }
+        };
+
+    walletDataSupplier.getPoolSupplier()._setValue(computePoolData());
+    utxoSupplier = walletDataSupplier.getUtxoSupplier();
+    utxoConfigSupplier = walletDataSupplier.getUtxoConfigSupplier();
+    utxoConfigSupplier.load();
+
     mockException = false;
 
     UTXO_DEPOSIT1 = computeUtxo("deposit1", 1, ZPUB_DEPOSIT, 1);
@@ -127,21 +101,16 @@ public class UtxoSupplierTest extends AbstractTest {
   @Test
   public void testValid() throws Exception {
     // mock initial data
-    List<UnspentResponse.UnspentOutput> utxos1 =
-        Lists.of(new UnspentResponse.UnspentOutput[] {UTXO_DEPOSIT1, UTXO_PREMIX1, UTXO_POSTMIX1});
-    mockUtxos = utxos1;
+    UnspentOutput[] utxos1 = new UnspentOutput[] {UTXO_DEPOSIT1, UTXO_PREMIX1, UTXO_POSTMIX1};
+    setMockWalletResponse(utxos1);
 
     // verify
     doTest(utxos1);
-    assertUtxoChanges(
-        utxos1,
-        Lists.of(new UnspentResponse.UnspentOutput[] {}),
-        Lists.of(new UnspentResponse.UnspentOutput[] {}));
+    assertUtxoChanges(utxos1, new UnspentOutput[] {}, new UnspentOutput[] {});
 
     // mock new data
-    List<UnspentResponse.UnspentOutput> utxos2 =
-        Lists.of(new UnspentResponse.UnspentOutput[] {UTXO_DEPOSIT1_UPDATED, UTXO_PREMIX2});
-    mockUtxos = utxos2;
+    UnspentOutput[] utxos2 = new UnspentOutput[] {UTXO_DEPOSIT1_UPDATED, UTXO_PREMIX2};
+    setMockWalletResponse(utxos2);
     lastUtxoChanges = null;
 
     // should use cached data
@@ -154,9 +123,9 @@ public class UtxoSupplierTest extends AbstractTest {
     // should use fresh data
     doTest(utxos2);
     assertUtxoChanges(
-        Lists.of(new UnspentResponse.UnspentOutput[] {UTXO_PREMIX2}),
-        Lists.of(new UnspentResponse.UnspentOutput[] {UTXO_DEPOSIT1_UPDATED}),
-        Lists.of(new UnspentResponse.UnspentOutput[] {UTXO_PREMIX1, UTXO_POSTMIX1}));
+        new UnspentOutput[] {UTXO_PREMIX2},
+        new UnspentOutput[] {UTXO_DEPOSIT1_UPDATED},
+        new UnspentOutput[] {UTXO_PREMIX1, UTXO_POSTMIX1});
   }
 
   @Test
@@ -171,7 +140,7 @@ public class UtxoSupplierTest extends AbstractTest {
             new Executable() {
               @Override
               public void execute() throws Throwable {
-                doTest(new ArrayList<UnspentResponse.UnspentOutput>());
+                doTest(new UnspentOutput[] {});
               }
             });
 
@@ -181,16 +150,12 @@ public class UtxoSupplierTest extends AbstractTest {
   @Test
   public void testSuccessFailureSuccess() throws Exception {
     // mock initial data
-    List<UnspentResponse.UnspentOutput> utxos1 =
-        Lists.of(new UnspentResponse.UnspentOutput[] {UTXO_DEPOSIT1, UTXO_PREMIX1, UTXO_POSTMIX1});
-    mockUtxos = utxos1;
+    UnspentOutput[] utxos1 = new UnspentOutput[] {UTXO_DEPOSIT1, UTXO_PREMIX1, UTXO_POSTMIX1};
+    setMockWalletResponse(utxos1);
 
     // verify
     doTest(utxos1);
-    assertUtxoChanges(
-        utxos1,
-        Lists.of(new UnspentResponse.UnspentOutput[] {}),
-        Lists.of(new UnspentResponse.UnspentOutput[] {}));
+    assertUtxoChanges(utxos1, new UnspentOutput[] {}, new UnspentOutput[] {});
 
     // expire data
     utxoSupplier.expire();
@@ -204,35 +169,45 @@ public class UtxoSupplierTest extends AbstractTest {
     Assertions.assertEquals(null, lastUtxoChanges);
   }
 
-  protected void doTest(List<UnspentResponse.UnspentOutput> expected) throws Exception {
-    utxoSupplier.load();
+  private PoolData computePoolData() {
+    PoolsResponse poolsResponse = new PoolsResponse();
+    poolsResponse.pools = new PoolInfo[] {};
+    PoolData poolData = new PoolData(poolsResponse);
+    return poolData;
+  }
+
+  protected void setMockWalletResponse(UnspentOutput[] unspentOutputs) {
+    mockWalletResponse = new WalletResponse();
+    mockWalletResponse.info = new WalletResponse.Info();
+    mockWalletResponse.unspent_outputs = unspentOutputs;
+  }
+
+  protected void doTest(UnspentOutput[] expected) throws Exception {
+    walletDataSupplier.load();
 
     // getUtxos()
     assertUtxoEquals(expected, utxoSupplier.getUtxos());
   }
 
-  private UnspentResponse.UnspentOutput computeUtxo(String hash, int n, String xpub, int confirms) {
-    UnspentResponse.UnspentOutput utxo = new UnspentResponse.UnspentOutput();
+  private UnspentOutput computeUtxo(String hash, int n, String xpub, int confirms) {
+    UnspentOutput utxo = new UnspentOutput();
     utxo.tx_hash = hash;
     utxo.tx_output_n = n;
-    utxo.xpub = new UnspentResponse.UnspentOutput.Xpub();
+    utxo.xpub = new UnspentOutput.Xpub();
     utxo.xpub.m = xpub;
     utxo.confirmations = confirms;
     return utxo;
   }
 
-  private void assertUtxoEquals(
-      Collection<UnspentResponse.UnspentOutput> utxos1, Collection<WhirlpoolUtxo> utxos2) {
-    Assertions.assertEquals(utxos1.size(), utxos2.size());
+  private void assertUtxoEquals(UnspentOutput[] utxos1, Collection<WhirlpoolUtxo> utxos2) {
+    Assertions.assertEquals(utxos1.length, utxos2.size());
     for (WhirlpoolUtxo whirlpoolUtxo : utxos2) {
-      Assertions.assertTrue(utxos1.contains(whirlpoolUtxo.getUtxo()));
+      Assertions.assertTrue(ArrayUtils.contains(utxos1, whirlpoolUtxo.getUtxo()));
     }
   }
 
   protected void assertUtxoChanges(
-      Collection<UnspentResponse.UnspentOutput> added,
-      Collection<UnspentResponse.UnspentOutput> updated,
-      Collection<UnspentResponse.UnspentOutput> removed) {
+      UnspentOutput[] added, UnspentOutput[] updated, UnspentOutput[] removed) {
     assertUtxoEquals(added, lastUtxoChanges.getUtxosAdded());
     assertUtxoEquals(updated, lastUtxoChanges.getUtxosUpdated());
     assertUtxoEquals(removed, lastUtxoChanges.getUtxosRemoved());
