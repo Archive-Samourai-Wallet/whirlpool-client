@@ -163,9 +163,9 @@ public class MixClient {
       }
 
       @Override
-      public void exitOnDisconnected() {
+      public void exitOnDisconnected(String error) {
         // failed to connect or connexion lost
-        log.error("ERROR: Disconnected");
+        log.error("ERROR: Disconnected: " + error);
         failAndExit(MixFailReason.DISCONNECTED, null);
       }
 

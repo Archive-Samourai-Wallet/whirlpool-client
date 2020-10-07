@@ -45,5 +45,5 @@ public interface MixDialogListener {
 
   void exitOnInputRejected(String notifiableError);
 
-  void exitOnDisconnected();
+  void exitOnDisconnected(String error);
 }

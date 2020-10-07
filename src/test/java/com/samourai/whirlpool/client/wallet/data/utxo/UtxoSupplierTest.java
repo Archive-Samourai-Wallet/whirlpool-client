@@ -90,6 +90,7 @@ public class UtxoSupplierTest extends AbstractTest {
             return mockWalletResponse;
           }
         };
+    walletSupplier.getWalletStateSupplier().load();
 
     utxoSupplier = walletDataSupplier.getUtxoSupplier();
     utxoConfigSupplier = walletDataSupplier.getUtxoConfigSupplier();

@@ -254,9 +254,9 @@ public class MixSession {
           if (elapsedTime > config.getReconnectUntil() * 1000) {
             // retry time exceeded, aborting
             log.info(
-                " ! Failed to connect to server. Please check your connectivity or retry later.");
+                " ! Failed to connect to coordinator. Please check your connectivity or retry later.");
             connectBeginTime = null;
-            listener.exitOnDisconnected();
+            listener.exitOnDisconnected("Failed to connect to coordinator.");
             return;
           }
 

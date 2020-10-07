@@ -109,6 +109,11 @@ public class MixDialog {
     done = true;
   }
 
+  private void exitOnDisconnected(String error) {
+    listener.exitOnDisconnected(error);
+    done = true;
+  }
+
   public void stop() {
     this.done = true;
   }
@@ -237,6 +242,7 @@ public class MixDialog {
                       String restErrorResponseMessage =
                           ClientUtils.parseRestErrorMessage((HttpException) throwable);
                       if (restErrorResponseMessage != null) {
+                        // input rejected
                         throw new NotifiableException(restErrorResponseMessage);
                       }
                     }
@@ -244,6 +250,9 @@ public class MixDialog {
                   } catch (NotifiableException e) {
                     log.error("onPrivateReceived NotifiableException: " + e.getMessage());
                     exitOnResponseError(e.getMessage());
+                  } catch (HttpException e) {
+                    log.error("onPrivateReceived HttpException: " + e.getMessage());
+                    exitOnDisconnected(e.getMessage());
                   } catch (Throwable e) {
                     log.error("onPrivateReceived Exception", e);
                     exitOnPrivateReceivedException(e);
