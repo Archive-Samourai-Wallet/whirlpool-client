@@ -36,7 +36,6 @@ public class WhirlpoolWalletConfig extends WhirlpoolClientConfig implements ITx0
   private int tx0Delay;
   private int tx0MinConfirmations;
   private int refreshUtxoDelay;
-  private int refreshFeeDelay;
   private int refreshPoolsDelay;
   private int mixsTarget;
 
@@ -74,7 +73,6 @@ public class WhirlpoolWalletConfig extends WhirlpoolClientConfig implements ITx0
     this.tx0Delay = 30;
     this.tx0MinConfirmations = 0;
     this.refreshUtxoDelay = 60; // 1min
-    this.refreshFeeDelay = 300; // 5min
     this.refreshPoolsDelay = 600; // 10min
     this.mixsTarget = 1;
 
@@ -192,14 +190,6 @@ public class WhirlpoolWalletConfig extends WhirlpoolClientConfig implements ITx0
     this.refreshUtxoDelay = refreshUtxoDelay;
   }
 
-  public int getRefreshFeeDelay() {
-    return refreshFeeDelay;
-  }
-
-  public void setRefreshFeeDelay(int refreshFeeDelay) {
-    this.refreshFeeDelay = refreshFeeDelay;
-  }
-
   public int getRefreshPoolsDelay() {
     return refreshPoolsDelay;
   }
@@ -271,12 +261,7 @@ public class WhirlpoolWalletConfig extends WhirlpoolClientConfig implements ITx0
         "server", getServerApi() + ", network=" + getNetworkParameters().getPaymentProtocolId());
     configInfo.put(
         "refreshDelay",
-        "refreshUtxoDelay="
-            + refreshUtxoDelay
-            + ", refreshFeeDelay"
-            + refreshFeeDelay
-            + ", refreshPoolsDelay="
-            + refreshPoolsDelay);
+        "refreshUtxoDelay=" + refreshUtxoDelay + ", refreshPoolsDelay=" + refreshPoolsDelay);
     configInfo.put(
         "mix",
         "mobile="

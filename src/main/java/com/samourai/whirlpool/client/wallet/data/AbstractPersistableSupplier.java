@@ -3,23 +3,25 @@ package com.samourai.whirlpool.client.wallet.data;
 import org.slf4j.Logger;
 
 public abstract class AbstractPersistableSupplier<D extends PersistableData>
-    extends AbstractSupplier<D> {
+    extends BasicSupplier<D> implements LoadableSupplier {
 
   private AbstractPersister<D, ?> persister;
 
   public AbstractPersistableSupplier(
-      Integer refreshDelaySeconds,
-      final D fallbackValue,
-      AbstractPersister<D, ?> persister,
-      Logger log) {
-    super(refreshDelaySeconds, fallbackValue, log);
+      final D fallbackValue, AbstractPersister<D, ?> persister, Logger log) {
+    super(log, fallbackValue);
     this.persister = persister;
   }
 
-  @Override
-  protected D fetch() throws Exception {
-    D data = persister.load();
-    return data;
+  public void load() throws Exception {
+    if (log.isDebugEnabled()) {
+      log.debug("load()");
+    }
+    setValue(getPersistedValue());
+  }
+
+  protected D getPersistedValue() throws Exception {
+    return persister.load();
   }
 
   public boolean persist(boolean force) throws Exception {

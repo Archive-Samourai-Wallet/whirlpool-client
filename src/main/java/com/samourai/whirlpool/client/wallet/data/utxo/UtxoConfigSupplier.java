@@ -25,7 +25,7 @@ public class UtxoConfigSupplier extends AbstractPersistableSupplier<UtxoConfigDa
 
   public UtxoConfigSupplier(
       UtxoConfigPersister persister, PoolSupplier poolSupplier, Tx0ParamService tx0ParamService) {
-    super(null, null, persister, log);
+    super(null, persister, log);
     this.poolSupplier = poolSupplier;
     this.tx0ParamService = tx0ParamService;
   }

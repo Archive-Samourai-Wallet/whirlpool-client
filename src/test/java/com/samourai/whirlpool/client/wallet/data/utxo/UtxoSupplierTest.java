@@ -11,10 +11,9 @@ import com.samourai.whirlpool.client.wallet.beans.WhirlpoolUtxo;
 import com.samourai.whirlpool.client.wallet.beans.WhirlpoolUtxoChanges;
 import com.samourai.whirlpool.client.wallet.data.minerFee.WalletDataSupplier;
 import com.samourai.whirlpool.client.wallet.data.minerFee.WalletSupplier;
-import com.samourai.whirlpool.client.wallet.data.pool.PoolData;
+import com.samourai.whirlpool.client.wallet.data.pool.MockPoolSupplier;
+import com.samourai.whirlpool.client.wallet.data.walletState.WalletStatePersister;
 import com.samourai.whirlpool.protocol.rest.PoolInfo;
-import com.samourai.whirlpool.protocol.rest.PoolsResponse;
-import java.io.File;
 import java.util.Collection;
 import org.apache.commons.lang3.ArrayUtils;
 import org.junit.jupiter.api.Assertions;
@@ -51,8 +50,17 @@ public class UtxoSupplierTest extends AbstractTest {
     byte[] seed = hdWalletFactory.computeSeedFromWords(SEED_WORDS);
     HD_Wallet hdWallet = hdWalletFactory.getBIP84(seed, SEED_PASSPHRASE, params);
 
-    BackendApi backendApi = new BackendApi(null, "http://testbackend", null);
-    return new WalletSupplier(999999, null, backendApi, hdWallet);
+    BackendApi backendApi =
+        new BackendApi(null, "http://testbackend", null) {
+          @Override
+          public void initBip84(String zpub) throws Exception {
+            // mock
+          }
+        };
+    String fileName = "/tmp/walletState";
+    resetFile(fileName);
+    WalletStatePersister persister = new WalletStatePersister(fileName);
+    return new WalletSupplier(persister, backendApi, hdWallet);
   }
 
   @BeforeEach
@@ -67,14 +75,13 @@ public class UtxoSupplierTest extends AbstractTest {
           }
         };
     String fileName = "/tmp/utxoConfig";
-    File f = new File(fileName);
-    if (f.exists()) {
-      f.delete();
-    }
-    f.createNewFile();
+    resetFile(fileName);
     WhirlpoolWalletConfig config = computeWhirlpoolWalletConfig();
+    MockPoolSupplier poolSupplier = new MockPoolSupplier(new PoolInfo[] {});
+    poolSupplier.load();
     walletDataSupplier =
-        new WalletDataSupplier(999999, walletSupplier, changeListener, fileName, config) {
+        new WalletDataSupplier(
+            999999, walletSupplier, poolSupplier, changeListener, fileName, config) {
           @Override
           protected WalletResponse fetchWalletResponse() throws Exception {
             if (mockException) {
@@ -84,7 +91,6 @@ public class UtxoSupplierTest extends AbstractTest {
           }
         };
 
-    walletDataSupplier.getPoolSupplier()._setValue(computePoolData());
     utxoSupplier = walletDataSupplier.getUtxoSupplier();
     utxoConfigSupplier = walletDataSupplier.getUtxoConfigSupplier();
     utxoConfigSupplier.load();
@@ -167,13 +173,6 @@ public class UtxoSupplierTest extends AbstractTest {
     // should use initial data
     doTest(utxos1);
     Assertions.assertEquals(null, lastUtxoChanges);
-  }
-
-  private PoolData computePoolData() {
-    PoolsResponse poolsResponse = new PoolsResponse();
-    poolsResponse.pools = new PoolInfo[] {};
-    PoolData poolData = new PoolData(poolsResponse);
-    return poolData;
   }
 
   protected void setMockWalletResponse(UnspentOutput[] unspentOutputs) {

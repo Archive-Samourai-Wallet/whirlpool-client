@@ -4,20 +4,20 @@ import com.samourai.wallet.api.backend.MinerFee;
 import com.samourai.wallet.api.backend.MinerFeeTarget;
 import com.samourai.wallet.api.backend.beans.WalletResponse;
 import com.samourai.whirlpool.client.wallet.beans.Tx0FeeTarget;
-import com.samourai.whirlpool.client.wallet.data.AbstractSupplier;
+import com.samourai.whirlpool.client.wallet.data.BasicSupplier;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public abstract class MinerFeeSupplier extends AbstractSupplier<MinerFee> {
+public class MinerFeeSupplier extends BasicSupplier<MinerFee> {
   private static final Logger log = LoggerFactory.getLogger(MinerFeeSupplier.class);
 
   protected int feeMin;
   protected int feeMax;
 
   public MinerFeeSupplier(int feeMin, int feeMax, int feeFallback) {
-    super(null, mockMinerFee(feeFallback), log);
+    super(log, mockMinerFee(feeFallback));
     this.feeMin = feeMin;
     this.feeMax = feeMax;
   }
@@ -27,7 +27,7 @@ public abstract class MinerFeeSupplier extends AbstractSupplier<MinerFee> {
       log.debug("_setValue");
     }
     MinerFee minerFee = new MinerFee(walletResponse.info.fees);
-    super._setValue(minerFee);
+    super.setValue(minerFee);
   }
 
   protected static MinerFee mockMinerFee(int feeValue) {

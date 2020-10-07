@@ -2,6 +2,8 @@ package com.samourai.whirlpool.client.wallet.orchestrator;
 
 import com.samourai.wallet.util.AbstractOrchestrator;
 import com.samourai.whirlpool.client.wallet.data.AbstractSupplier;
+import com.samourai.whirlpool.client.wallet.data.ExpirableSupplier;
+import com.samourai.whirlpool.client.wallet.data.LoadableSupplier;
 import java.util.Collection;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -22,11 +24,13 @@ public class DataOrchestrator extends AbstractOrchestrator {
       log.debug("Refreshing data...");
     }
     for (AbstractSupplier supplier : suppliers) {
-      // refresh data when expired or ignoring errors
-      try {
-        supplier.load();
-      } catch (Exception e) {
-        log.error("supplier.load failed", e);
+      if (supplier instanceof ExpirableSupplier) {
+        // refresh data when expired or ignoring errors
+        try {
+          ((ExpirableSupplier) supplier).load();
+        } catch (Exception e) {
+          log.error("supplier.load failed", e);
+        }
       }
     }
   }
@@ -38,7 +42,9 @@ public class DataOrchestrator extends AbstractOrchestrator {
 
     // load initial data or fail
     for (AbstractSupplier supplier : suppliers) {
-      supplier.load();
+      if (supplier instanceof LoadableSupplier) {
+        ((LoadableSupplier) supplier).load();
+      }
     }
   }
 

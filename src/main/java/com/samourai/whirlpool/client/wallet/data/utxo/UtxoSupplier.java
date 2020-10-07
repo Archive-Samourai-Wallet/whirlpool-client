@@ -5,7 +5,8 @@ import com.samourai.whirlpool.client.utils.MessageListener;
 import com.samourai.whirlpool.client.wallet.beans.WhirlpoolAccount;
 import com.samourai.whirlpool.client.wallet.beans.WhirlpoolUtxo;
 import com.samourai.whirlpool.client.wallet.beans.WhirlpoolUtxoChanges;
-import com.samourai.whirlpool.client.wallet.data.AbstractSupplier;
+import com.samourai.whirlpool.client.wallet.data.BasicSupplier;
+import com.samourai.whirlpool.client.wallet.data.minerFee.WalletDataSupplier;
 import com.samourai.whirlpool.client.wallet.data.minerFee.WalletSupplier;
 import java.util.Collection;
 import java.util.LinkedHashMap;
@@ -13,11 +14,12 @@ import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public abstract class UtxoSupplier extends AbstractSupplier<UtxoData> {
+public class UtxoSupplier extends BasicSupplier<UtxoData> {
   private static final Logger log = LoggerFactory.getLogger(UtxoSupplier.class);
 
   private final WalletSupplier walletSupplier;
   private final UtxoConfigSupplier utxoConfigSupplier;
+  private WalletDataSupplier walletDataSupplier;
   private final MessageListener<WhirlpoolUtxoChanges> utxoChangesListener;
 
   private Map<String, WhirlpoolUtxo> previousUtxos;
@@ -25,16 +27,29 @@ public abstract class UtxoSupplier extends AbstractSupplier<UtxoData> {
   public UtxoSupplier(
       WalletSupplier walletSupplier,
       UtxoConfigSupplier utxoConfigSupplier,
+      WalletDataSupplier walletDataSupplier,
       MessageListener<WhirlpoolUtxoChanges> utxoChangesListener) {
-    super(null, null, log);
+    super(log, null);
     this.previousUtxos = null;
     this.walletSupplier = walletSupplier;
     this.utxoConfigSupplier = utxoConfigSupplier;
+    this.walletDataSupplier = walletDataSupplier;
     this.utxoChangesListener = utxoChangesListener;
   }
 
+  public void _setValue(WalletResponse walletResponse) {
+    if (log.isDebugEnabled()) {
+      log.debug("_setValue");
+    }
+
+    UtxoData utxoData =
+        new UtxoData(
+            walletSupplier, utxoConfigSupplier, walletResponse.unspent_outputs, previousUtxos);
+    setValue(utxoData);
+  }
+
   @Override
-  public void _setValue(UtxoData utxoData) {
+  protected void setValue(UtxoData utxoData) {
     // notify changes
     final WhirlpoolUtxoChanges utxoChanges = utxoData.getUtxoChanges();
     if (!utxoChanges.isEmpty()) {
@@ -51,18 +66,11 @@ public abstract class UtxoSupplier extends AbstractSupplier<UtxoData> {
     previousUtxos = newPreviousUtxos;
 
     // set new value
-    super._setValue(utxoData);
+    super.setValue(utxoData);
   }
 
-  public void _setValue(WalletResponse walletResponse) {
-    if (log.isDebugEnabled()) {
-      log.debug("_setValue");
-    }
-
-    UtxoData utxoData =
-        new UtxoData(
-            walletSupplier, utxoConfigSupplier, walletResponse.unspent_outputs, previousUtxos);
-    _setValue(utxoData);
+  public void expire() {
+    walletDataSupplier.expire();
   }
 
   public Collection<WhirlpoolUtxo> getUtxos() {

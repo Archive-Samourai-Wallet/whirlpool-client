@@ -10,6 +10,7 @@ import com.samourai.wallet.segwit.bech32.Bech32UtilGeneric;
 import com.samourai.whirlpool.client.wallet.WhirlpoolWalletConfig;
 import com.samourai.whirlpool.client.whirlpool.beans.Pool;
 import com.samourai.whirlpool.protocol.websocket.notifications.MixStatus;
+import java.io.File;
 import java.util.Collection;
 import java8.util.Lists;
 import org.bitcoinj.core.NetworkParameters;
@@ -125,5 +126,14 @@ public class AbstractTest {
     WhirlpoolWalletConfig config =
         new WhirlpoolWalletConfig(null, null, null, TestNet3Params.get(), false, null);
     return config;
+  }
+
+  protected File resetFile(String fileName) throws Exception {
+    File f = new File(fileName);
+    if (f.exists()) {
+      f.delete();
+    }
+    f.createNewFile();
+    return f;
   }
 }

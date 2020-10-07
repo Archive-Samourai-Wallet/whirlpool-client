@@ -25,14 +25,9 @@ public class WalletSupplier {
 
   private WalletStateSupplier walletStateSupplier;
 
-  public WalletSupplier(
-      int refreshUtxoDelay,
-      WalletStatePersister persister,
-      BackendApi backendApi,
-      HD_Wallet hdWallet) {
+  public WalletSupplier(WalletStatePersister persister, BackendApi backendApi, HD_Wallet hdWallet) {
 
-    this.walletStateSupplier =
-        new WalletStateSupplier(refreshUtxoDelay, persister, backendApi, this);
+    this.walletStateSupplier = new WalletStateSupplier(persister, backendApi, this);
 
     // instanciate wallets
     this.walletsByAccount = new LinkedHashMap<WhirlpoolAccount, Bip84Wallet>();

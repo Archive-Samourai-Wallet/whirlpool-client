@@ -14,6 +14,7 @@ import com.samourai.whirlpool.client.utils.ClientUtils;
 import com.samourai.whirlpool.client.wallet.beans.*;
 import com.samourai.whirlpool.client.wallet.data.AbstractSupplier;
 import com.samourai.whirlpool.client.wallet.data.minerFee.MinerFeeSupplier;
+import com.samourai.whirlpool.client.wallet.data.minerFee.WalletDataSupplier;
 import com.samourai.whirlpool.client.wallet.data.minerFee.WalletSupplier;
 import com.samourai.whirlpool.client.wallet.data.pool.PoolSupplier;
 import com.samourai.whirlpool.client.wallet.data.utxo.UtxoConfigSupplier;
@@ -42,11 +43,9 @@ public class WhirlpoolWallet {
 
   private Bech32UtilGeneric bech32Util;
 
-  private final PoolSupplier poolSupplier;
-  private final MinerFeeSupplier minerFeeSupplier;
   private final WalletSupplier walletSupplier;
-  private final UtxoSupplier utxoSupplier;
-  private final UtxoConfigSupplier utxoConfigSupplier;
+  private final PoolSupplier poolSupplier;
+  private final WalletDataSupplier walletDataSupplier;
 
   private DataOrchestrator dataOrchestrator;
   private PersistOrchestrator persistOrchestrator;
@@ -61,11 +60,9 @@ public class WhirlpoolWallet {
         whirlpoolWallet.tx0ParamService,
         whirlpoolWallet.tx0Service,
         whirlpoolWallet.bech32Util,
-        whirlpoolWallet.poolSupplier,
-        whirlpoolWallet.minerFeeSupplier,
         whirlpoolWallet.walletSupplier,
-        whirlpoolWallet.utxoSupplier,
-        whirlpoolWallet.utxoConfigSupplier);
+        whirlpoolWallet.poolSupplier,
+        whirlpoolWallet.walletDataSupplier);
   }
 
   public WhirlpoolWallet(
@@ -73,35 +70,29 @@ public class WhirlpoolWallet {
       Tx0ParamService tx0ParamService,
       Tx0Service tx0Service,
       Bech32UtilGeneric bech32Util,
-      PoolSupplier poolSupplier,
-      MinerFeeSupplier minerFeeSupplier,
       WalletSupplier walletSupplier,
-      UtxoSupplier utxoSupplier,
-      UtxoConfigSupplier utxoConfigSupplier) {
+      PoolSupplier poolSupplier,
+      WalletDataSupplier walletDataSupplier) {
     this.config = config;
     this.tx0ParamService = tx0ParamService;
     this.tx0Service = tx0Service;
 
     this.bech32Util = bech32Util;
 
-    this.poolSupplier = poolSupplier;
-    this.minerFeeSupplier = minerFeeSupplier;
     this.walletSupplier = walletSupplier;
-    this.utxoSupplier = utxoSupplier;
-    this.utxoConfigSupplier = utxoConfigSupplier;
+    this.poolSupplier = poolSupplier;
+    this.walletDataSupplier = walletDataSupplier;
 
     this.mixingState = new MixingStateEditable(false);
 
     List<AbstractSupplier> suppliers = new LinkedList<AbstractSupplier>();
     suppliers.add(poolSupplier);
     suppliers.add(walletSupplier.getWalletStateSupplier());
-    suppliers.add(utxoConfigSupplier);
+    suppliers.add(getUtxoConfigSupplier());
+    suppliers.add(walletDataSupplier);
 
     int dataOrchestratorDelay =
-        NumberUtils.min(
-            config.getRefreshUtxoDelay(),
-            config.getRefreshFeeDelay(),
-            config.getRefreshPoolsDelay());
+        NumberUtils.min(config.getRefreshUtxoDelay(), config.getRefreshPoolsDelay());
     this.dataOrchestrator = new DataOrchestrator(dataOrchestratorDelay * 1000, suppliers);
 
     int persistLoopDelay = 10; // persist check each 10s
@@ -109,7 +100,7 @@ public class WhirlpoolWallet {
 
     int loopDelay = config.getRefreshUtxoDelay() * 1000;
     this.mixOrchestrator =
-        new MixOrchestratorImpl(mixingState, loopDelay, config, poolSupplier, this);
+        new MixOrchestratorImpl(mixingState, loopDelay, config, getPoolSupplier(), this);
 
     if (config.isAutoTx0()) {
       this.autoTx0Orchestrator = Optional.of(new AutoTx0Orchestrator(this, config));
@@ -122,7 +113,7 @@ public class WhirlpoolWallet {
       throws Exception { // throws EmptyWalletException, UnconfirmedUtxoException
     // random utxo
     List<WhirlpoolUtxo> depositUtxosByPriority =
-        new LinkedList<WhirlpoolUtxo>(utxoSupplier.findUtxos(WhirlpoolAccount.DEPOSIT));
+        new LinkedList<WhirlpoolUtxo>(getUtxoSupplier().findUtxos(WhirlpoolAccount.DEPOSIT));
     Collections.shuffle(depositUtxosByPriority);
 
     // find tx0 candidate
@@ -241,7 +232,7 @@ public class WhirlpoolWallet {
       // preserve utxo config
       String tx0Txid = tx0.getTx().getHashAsString();
       WhirlpoolUtxo whirlpoolUtxoSource = whirlpoolUtxos.iterator().next();
-      utxoConfigSupplier.forwardUtxoConfig(whirlpoolUtxoSource, tx0Txid);
+      getUtxoConfigSupplier().forwardUtxoConfig(whirlpoolUtxoSource, tx0Txid);
 
       return tx0;
     } catch (Exception e) {
@@ -383,7 +374,7 @@ public class WhirlpoolWallet {
 
     // load initial utxos
     WhirlpoolUtxoChanges utxoChanges = new WhirlpoolUtxoChanges(true);
-    utxoChanges.getUtxosAdded().addAll(utxoSupplier.getUtxos());
+    utxoChanges.getUtxosAdded().addAll(getUtxoSupplier().getUtxos());
     this._onUtxoChanges(utxoChanges);
   }
 
@@ -459,15 +450,19 @@ public class WhirlpoolWallet {
   }
 
   public UtxoSupplier getUtxoSupplier() {
-    return utxoSupplier;
+    return walletDataSupplier.getUtxoSupplier();
   }
 
   public MinerFeeSupplier getMinerFeeSupplier() {
-    return minerFeeSupplier;
+    return walletDataSupplier.getMinerFeeSupplier();
   }
 
   public PoolSupplier getPoolSupplier() {
     return poolSupplier;
+  }
+
+  protected UtxoConfigSupplier getUtxoConfigSupplier() {
+    return walletDataSupplier.getUtxoConfigSupplier();
   }
 
   public Observable<MixProgress> mix(WhirlpoolUtxo whirlpoolUtxo) throws NotifiableException {
@@ -477,8 +472,8 @@ public class WhirlpoolWallet {
   public void onMixSuccess(WhirlpoolUtxo whirlpoolUtxo, MixSuccess mixSuccess) {
     // preserve utxo config
     Utxo receiveUtxo = mixSuccess.getReceiveUtxo();
-    utxoConfigSupplier.forwardUtxoConfig(
-        whirlpoolUtxo, receiveUtxo.getHash(), (int) receiveUtxo.getIndex());
+    getUtxoConfigSupplier()
+        .forwardUtxoConfig(whirlpoolUtxo, receiveUtxo.getHash(), (int) receiveUtxo.getIndex());
 
     // refresh new utxos in background
     refreshUtxosDelay();
@@ -540,7 +535,7 @@ public class WhirlpoolWallet {
 
   /** Refresh utxos now. */
   public void refreshUtxos(boolean waitComplete) {
-    utxoSupplier.expire();
+    getUtxoSupplier().expire();
     dataOrchestrator.notifyOrchestrator();
     if (waitComplete) {
       // TODO wait for orchestrator to complete
@@ -552,7 +547,8 @@ public class WhirlpoolWallet {
   }
 
   public void resync() throws Exception {
-    Collection<WhirlpoolUtxo> whirlpoolUtxos = utxoSupplier.findUtxos(WhirlpoolAccount.POSTMIX);
+    Collection<WhirlpoolUtxo> whirlpoolUtxos =
+        getUtxoSupplier().findUtxos(WhirlpoolAccount.POSTMIX);
 
     log.info("Resynchronizing mix counters...");
 

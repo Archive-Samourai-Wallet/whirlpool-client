@@ -3,7 +3,8 @@ package com.samourai.whirlpool.client.wallet.data.pool;
 import com.samourai.wallet.api.backend.beans.HttpException;
 import com.samourai.whirlpool.client.exception.NotifiableException;
 import com.samourai.whirlpool.client.utils.ClientUtils;
-import com.samourai.whirlpool.client.wallet.data.AbstractSupplier;
+import com.samourai.whirlpool.client.wallet.data.ExpirableSupplier;
+import com.samourai.whirlpool.client.wallet.data.LoadableSupplier;
 import com.samourai.whirlpool.client.whirlpool.ServerApi;
 import com.samourai.whirlpool.client.whirlpool.beans.Pool;
 import com.samourai.whirlpool.protocol.rest.PoolsResponse;
@@ -13,7 +14,7 @@ import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class PoolSupplier extends AbstractSupplier<PoolData> {
+public class PoolSupplier extends ExpirableSupplier<PoolData> implements LoadableSupplier {
   private static final Logger log = LoggerFactory.getLogger(PoolSupplier.class);
 
   private final ServerApi serverApi;

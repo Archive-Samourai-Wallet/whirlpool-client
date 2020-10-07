@@ -20,51 +20,26 @@ public class WalletStateSupplier extends AbstractPersistableSupplier<WalletState
   private boolean synced; // postmix counters sync
 
   public WalletStateSupplier(
-      int refreshUtxoDelay,
-      WalletStatePersister persister,
-      BackendApi backendApi,
-      WalletSupplier walletSupplier) {
-    super(refreshUtxoDelay, null, persister, log);
+      WalletStatePersister persister, BackendApi backendApi, WalletSupplier walletSupplier) {
+    super(null, persister, log);
     this.backendApi = backendApi;
     this.walletSupplier = walletSupplier;
     this.synced = true;
   }
 
-  @Override
-  protected WalletStateData fetch() throws Exception {
+  public void _setValue(WalletResponse walletResponse) throws Exception {
     if (log.isDebugEnabled()) {
-      log.debug("fetching...");
+      log.debug("_setValue");
     }
-    String[] activeZpubs = walletSupplier.getZpubs(false);
 
     WalletStateData currentValue = getValue();
-    WalletStateData newValue;
     if (currentValue == null) {
-      // FIRST LOAD
-
-      // read indexs from file
-      newValue = super.fetch();
-
-      boolean isInitialized = newValue.isInitialized();
-
-      // initialize wallets
-      if (!isInitialized) {
-        for (String zpub : activeZpubs) {
-          initBip84(zpub);
-        }
-        newValue.setInitialized();
-
-        // when wallet is not initialized, counters are not synced
-        this.synced = false;
-      }
-    } else {
-      newValue = currentValue.copy();
+      // should never happen
+      throw new Exception("Cannot _setValue(), no value loaded yet!");
     }
 
-    // fetch data from wallet backend
-    WalletResponse walletResponse = backendApi.fetchWallet(activeZpubs);
-
     // update indexs from wallet backend
+    WalletStateData newValue = currentValue.copy();
     Map<String, WalletResponse.Address> addressesMap = walletResponse.getAddressesMap();
     for (String zpub : addressesMap.keySet()) {
       WalletResponse.Address address = addressesMap.get(zpub);
@@ -75,7 +50,38 @@ public class WalletStateSupplier extends AbstractPersistableSupplier<WalletState
         log.error("No account found for zpub: " + zpub);
       }
     }
-    return newValue;
+    setValue(newValue);
+  }
+
+  @Override
+  public void load() throws Exception {
+    if (log.isDebugEnabled()) {
+      log.debug("load()");
+    }
+    WalletStateData currentValue = getValue();
+    WalletStateData newValue;
+    if (currentValue != null) {
+      throw new Exception("Cannot load(), value already loaded!");
+    }
+
+    // FIRST LOAD
+    // read indexs from file
+    newValue = super.getPersistedValue();
+
+    boolean isInitialized = newValue.isInitialized();
+
+    // initialize wallets
+    if (!isInitialized) {
+      String[] activeZpubs = walletSupplier.getZpubs(false);
+      for (String zpub : activeZpubs) {
+        initBip84(zpub);
+      }
+      newValue.setInitialized();
+
+      // when wallet is not initialized, counters are not synced
+      this.synced = false;
+    }
+    setValue(newValue);
   }
 
   private void initBip84(String zpub) throws Exception {

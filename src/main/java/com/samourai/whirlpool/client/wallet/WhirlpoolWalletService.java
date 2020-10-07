@@ -9,6 +9,7 @@ import com.samourai.whirlpool.client.utils.MessageListener;
 import com.samourai.whirlpool.client.wallet.beans.WhirlpoolUtxoChanges;
 import com.samourai.whirlpool.client.wallet.data.minerFee.WalletDataSupplier;
 import com.samourai.whirlpool.client.wallet.data.minerFee.WalletSupplier;
+import com.samourai.whirlpool.client.wallet.data.pool.PoolSupplier;
 import com.samourai.whirlpool.client.wallet.data.walletState.WalletStatePersister;
 import java.util.Map;
 import java8.util.Optional;
@@ -107,15 +108,16 @@ public class WhirlpoolWalletService {
 
     WalletSupplier walletSupplier =
         new WalletSupplier(
-            config.getRefreshUtxoDelay(),
-            new WalletStatePersister(walletStateFileName),
-            config.getBackendApi(),
-            hdWallet);
+            new WalletStatePersister(walletStateFileName), config.getBackendApi(), hdWallet);
+
+    PoolSupplier poolSupplier =
+        new PoolSupplier(config.getRefreshPoolsDelay(), config.getServerApi());
 
     WalletDataSupplier walletDataSupplier =
         new WalletDataSupplier(
             config.getRefreshUtxoDelay(),
             walletSupplier,
+            poolSupplier,
             computeUtxoChangesListener(),
             utxoConfigFileName,
             config);
@@ -125,11 +127,9 @@ public class WhirlpoolWalletService {
         walletDataSupplier.getTx0ParamService(),
         tx0Service,
         bech32Util,
-        walletDataSupplier.getPoolSupplier(),
-        walletDataSupplier.getMinerFeeSupplier(),
         walletSupplier,
-        walletDataSupplier.getUtxoSupplier(),
-        walletDataSupplier.getUtxoConfigSupplier());
+        poolSupplier,
+        walletDataSupplier);
   }
 
   protected MessageListener<WhirlpoolUtxoChanges> computeUtxoChangesListener() {
