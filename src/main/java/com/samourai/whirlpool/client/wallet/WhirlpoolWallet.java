@@ -637,8 +637,8 @@ public class WhirlpoolWallet {
     return mixOrchestrator.hasMoreMixableOrUnconfirmed();
   }
 
-  public boolean hasMoreMixingThreadAvailable(String poolId) {
-    return mixOrchestrator.hasMoreMixingThreadAvailable(poolId);
+  public boolean hasMoreMixingThreadAvailable(String poolId, boolean liquidity) {
+    return mixOrchestrator.hasMoreMixingThreadAvailable(poolId, liquidity);
   }
 
   public String getZpubDeposit() {

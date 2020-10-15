@@ -1,7 +1,6 @@
 package com.samourai.whirlpool.client.tx0;
 
 import com.samourai.whirlpool.client.wallet.beans.Tx0FeeTarget;
-import com.samourai.whirlpool.client.wallet.beans.WhirlpoolAccount;
 import com.samourai.whirlpool.client.wallet.beans.WhirlpoolUtxo;
 import com.samourai.whirlpool.client.wallet.data.minerFee.MinerFeeSupplier;
 import com.samourai.whirlpool.client.whirlpool.beans.Pool;
@@ -53,13 +52,13 @@ public class Tx0ParamService {
 
   public boolean isPoolApplicable(Pool pool, WhirlpoolUtxo whirlpoolUtxo) {
     long utxoValue = whirlpoolUtxo.getUtxo().value;
-    if (WhirlpoolAccount.DEPOSIT.equals(whirlpoolUtxo.getAccount())) {
+    if (whirlpoolUtxo.isAccountDeposit()) {
       return isTx0Possible(pool, Tx0FeeTarget.MIN, utxoValue);
     }
-    if (WhirlpoolAccount.PREMIX.equals(whirlpoolUtxo.getAccount())) {
+    if (whirlpoolUtxo.isAccountPremix()) {
       return pool.checkInputBalance(utxoValue, false);
     }
-    if (WhirlpoolAccount.POSTMIX.equals(whirlpoolUtxo.getAccount())) {
+    if (whirlpoolUtxo.isAccountPostmix()) {
       return utxoValue == pool.getDenomination();
     }
     log.error("Unknown account for whirlpoolUtxo:" + whirlpoolUtxo);

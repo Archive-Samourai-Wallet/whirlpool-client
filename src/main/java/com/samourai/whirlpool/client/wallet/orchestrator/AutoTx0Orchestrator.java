@@ -50,7 +50,7 @@ public class AutoTx0Orchestrator extends AbstractOrchestrator {
     } catch (EmptyWalletException e) {
       // make sure that mixOrchestrator has no more to mix
       boolean hasMoreThreadForTx0 =
-          whirlpoolWallet.hasMoreMixingThreadAvailable(config.getAutoTx0PoolId());
+          whirlpoolWallet.hasMoreMixingThreadAvailable(config.getAutoTx0PoolId(), false);
       boolean hasMorMixableOrUnconfirmed = whirlpoolWallet.hasMoreMixableOrUnconfirmed();
       if (hasMoreThreadForTx0 && !hasMorMixableOrUnconfirmed) {
         // wallet is empty

@@ -18,12 +18,10 @@ public class WhirlpoolUtxoPriorityComparator implements Comparator<WhirlpoolUtxo
   @Override
   public int compare(WhirlpoolUtxo o1, WhirlpoolUtxo o2) {
     // premix before postmix
-    if (WhirlpoolAccount.PREMIX.equals(o1.getAccount())
-        && WhirlpoolAccount.POSTMIX.equals(o2.getAccount())) {
+    if (o1.isAccountPremix() && o2.isAccountPostmix()) {
       return -1;
     }
-    if (WhirlpoolAccount.POSTMIX.equals(o1.getAccount())
-        && WhirlpoolAccount.PREMIX.equals(o2.getAccount())) {
+    if (o1.isAccountPostmix() && o2.isAccountPremix()) {
       return 1;
     }
 
