@@ -24,6 +24,7 @@ public class WhirlpoolWalletConfig extends WhirlpoolClientConfig implements ITx0
 
   private int maxClients;
   private int maxClientsPerPool;
+  private boolean liquidityClient;
   private int clientDelay;
   private String autoTx0PoolId;
   private Tx0FeeTarget autoTx0FeeTarget;
@@ -60,6 +61,7 @@ public class WhirlpoolWalletConfig extends WhirlpoolClientConfig implements ITx0
     // default settings
     this.maxClients = 5;
     this.maxClientsPerPool = 1;
+    this.liquidityClient = true;
     this.clientDelay = 30;
     this.autoTx0PoolId = null;
     this.autoTx0FeeTarget = Tx0FeeTarget.BLOCKS_4;
@@ -100,6 +102,14 @@ public class WhirlpoolWalletConfig extends WhirlpoolClientConfig implements ITx0
 
   public void setMaxClientsPerPool(int maxClientsPerPool) {
     this.maxClientsPerPool = maxClientsPerPool;
+  }
+
+  public boolean isLiquidityClient() {
+    return liquidityClient;
+  }
+
+  public void setLiquidityClient(boolean liquidityClient) {
+    this.liquidityClient = liquidityClient;
   }
 
   public int getClientDelay() {
@@ -270,6 +280,8 @@ public class WhirlpoolWalletConfig extends WhirlpoolClientConfig implements ITx0
             + getMaxClients()
             + ", maxClientsPerPool="
             + getMaxClientsPerPool()
+            + ", liquidityClient="
+            + isLiquidityClient()
             + ", clientDelay="
             + getClientDelay()
             + ", tx0Delay="

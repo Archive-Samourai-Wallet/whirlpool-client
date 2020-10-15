@@ -49,8 +49,8 @@ public class WalletStateData extends PersistableData {
       set(key, apiIndex);
     } else {
       // index unchanged
-      if (log.isDebugEnabled()) {
-        log.debug(
+      if (log.isTraceEnabled()) {
+        log.trace(
             key
                 + ": apiIndex="
                 + apiIndex

@@ -263,7 +263,8 @@ public class MixSession {
           // wait delay before retrying
           log.info(" ! connexion failed, retrying in " + config.getReconnectDelay() + "s");
           listener.onConnectionFailWillRetry(config.getReconnectDelay());
-          reconnectDelay = config.getReconnectDelay() * 1000L;
+          int randomDelaySeconds = config.getReconnectDelay() + ClientUtils.random(0, 10);
+          reconnectDelay = randomDelaySeconds * 1000L;
         } else {
           // we just got disconnected
           log.error(" ! connexion lost, reconnecting for a new mix...");

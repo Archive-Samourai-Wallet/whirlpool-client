@@ -45,7 +45,7 @@ public class MixingState {
                     new Predicate<WhirlpoolUtxo>() {
                       @Override
                       public boolean test(WhirlpoolUtxo whirlpoolUtxo) {
-                        return WhirlpoolAccount.POSTMIX.equals(whirlpoolUtxo.getAccount());
+                        return whirlpoolUtxo.isAccountPostmix();
                       }
                     })
                 .count();
@@ -61,7 +61,7 @@ public class MixingState {
                     new Predicate<WhirlpoolUtxo>() {
                       @Override
                       public boolean test(WhirlpoolUtxo whirlpoolUtxo) {
-                        return WhirlpoolAccount.POSTMIX.equals(whirlpoolUtxo.getAccount());
+                        return whirlpoolUtxo.isAccountPostmix();
                       }
                     })
                 .count();
@@ -69,7 +69,7 @@ public class MixingState {
   }
 
   protected void incrementUtxoQueued(WhirlpoolUtxo utxoQueued) {
-    if (WhirlpoolAccount.POSTMIX.equals(utxoQueued.getAccount())) {
+    if (utxoQueued.isAccountPostmix()) {
       nbQueuedLiquidity++;
     } else {
       nbQueuedMustMix++;

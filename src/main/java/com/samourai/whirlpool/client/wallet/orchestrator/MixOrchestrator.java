@@ -34,6 +34,7 @@ public abstract class MixOrchestrator extends AbstractOrchestrator {
 
   private int maxClients;
   private int maxClientsPerPool;
+  private boolean liquidityClient;
   private boolean autoMix;
   private int mixsTargetMin;
 
@@ -43,6 +44,7 @@ public abstract class MixOrchestrator extends AbstractOrchestrator {
       MixOrchestratorData data,
       int maxClients,
       int maxClientsPerPool,
+      boolean liquidityClient,
       boolean autoMix,
       int mixsTargetMin) {
     super(loopDelay, START_DELAY, clientDelay);
@@ -50,6 +52,7 @@ public abstract class MixOrchestrator extends AbstractOrchestrator {
 
     this.maxClients = maxClients;
     this.maxClientsPerPool = Math.min(maxClientsPerPool, maxClients); // prevent wrong configuration
+    this.liquidityClient = liquidityClient;
     this.autoMix = autoMix;
     this.mixsTargetMin = mixsTargetMin;
   }
@@ -137,14 +140,6 @@ public abstract class MixOrchestrator extends AbstractOrchestrator {
     // find mixable for pool
     WhirlpoolUtxo[] mixableUtxos = findMixable(poolId);
     if (mixableUtxos == null) {
-      if (log.isDebugEnabled()) {
-        log.debug(
-            "["
-                + poolId
-                + "] "
-                + data.getNbMixing(poolId)
-                + " mixing, no additional queued utxo mixable now");
-      }
       return false;
     }
 
@@ -163,11 +158,14 @@ public abstract class MixOrchestrator extends AbstractOrchestrator {
       final String poolIdCriteria) {
     final WhirlpoolUtxoPriorityComparator comparator =
         WhirlpoolUtxoPriorityComparator.getInstance();
+
     return StreamSupport.stream(data.getMixing())
         .filter(
             new Predicate<Mixing>() {
               @Override
               public boolean test(Mixing mixing) {
+                String poolId = mixing.getUtxo().getPoolId();
+
                 // should not interrupt a mix
                 MixProgress mixProgress = mixing.getUtxo().getUtxoState().getMixProgress();
                 if (mixProgress != null && !mixProgress.getMixStep().isInterruptable()) {
@@ -184,7 +182,22 @@ public abstract class MixOrchestrator extends AbstractOrchestrator {
 
                 // pool criteria
                 if (poolIdCriteria != null) {
-                  if (!poolIdCriteria.equals(mixing.getUtxo().getPoolId())) {
+                  if (!poolIdCriteria.equals(poolId)) {
+                    return false;
+                  }
+                }
+
+                // don't swap liquidity-dedicated thread for a mustMix
+                if (liquidityClient
+                    && toMix.isAccountPremix()
+                    && mixing.getUtxo().isAccountPostmix()) {
+                  boolean isLiquidityThread =
+                      data.getNbMixing(poolId) > maxClientsPerPool
+                          && data.getNbMixing(poolId, true) == 1;
+                  if (isLiquidityThread) {
+                    if (log.isTraceEnabled()) {
+                      log.trace("not swapping liquidity thread: " + mixing);
+                    }
                     return false;
                   }
                 }
@@ -205,20 +218,26 @@ public abstract class MixOrchestrator extends AbstractOrchestrator {
     return !unconfirmedUtxos.isEmpty();
   }
 
-  public boolean hasMoreMixingThreadAvailable(String poolId) {
+  public boolean hasMoreMixingThreadAvailable(String poolId, boolean liquidity) {
     // check maxClients vs all mixings
     if (data.getMixing().size() >= maxClients) {
       return false;
     }
 
     // check maxClientsPerPool
-    return !isMaxClientsPerPoolReached(poolId);
+    return !isMaxClientsPerPoolReached(poolId, liquidity);
   }
 
-  public boolean isMaxClientsPerPoolReached(String poolId) {
+  public boolean isMaxClientsPerPoolReached(String poolId, boolean liquidity) {
     // check maxClientsPerPool vs pool's mixings
     int nbMixingInPool = data.getNbMixing(poolId);
-    return (nbMixingInPool >= maxClientsPerPool);
+
+    int maxMixingPerPool = maxClientsPerPool;
+    if (liquidity && liquidityClient) {
+      // allow additional thread for concurrent liquidity remixing
+      maxMixingPerPool++;
+    }
+    return (nbMixingInPool >= maxMixingPerPool);
   }
 
   // returns [mixable,mixingToSwapOrNull]
@@ -237,12 +256,25 @@ public abstract class MixOrchestrator extends AbstractOrchestrator {
     List<WhirlpoolUtxo> mixableUtxos = getQueueByMixableStatus(true, filter, MixableStatus.MIXABLE);
 
     // find first mixable utxo, eventually by swapping a lower priority mixing utxo
-    for (WhirlpoolUtxo toMix : mixableUtxos) {
-      WhirlpoolUtxo[] swap = findSwap(toMix, false);
-      if (swap != null) {
-        return swap;
+    if (!mixableUtxos.isEmpty()) {
+      for (WhirlpoolUtxo toMix : mixableUtxos) {
+        WhirlpoolUtxo[] swap = findSwap(toMix, false);
+        if (swap != null) {
+          return swap;
+        }
+      }
+      if (log.isDebugEnabled()) {
+        log.debug(
+            "["
+                + poolId
+                + "] "
+                + data.getNbMixing(poolId)
+                + " mixing, "
+                + mixableUtxos.size()
+                + " mixables, no additional mixing thread available");
       }
     }
+
     // no mixable found
     return null;
   }
@@ -251,7 +283,8 @@ public abstract class MixOrchestrator extends AbstractOrchestrator {
     String toMixHash = toMix.getUtxo().tx_hash;
     final String mixingHashCriteria = data.isHashMixing(toMixHash) ? toMixHash : null;
     String poolId = toMix.getPoolId();
-    boolean mixingThreadAvailable = hasMoreMixingThreadAvailable(poolId);
+    boolean liquidity = toMix.isAccountPostmix();
+    boolean mixingThreadAvailable = hasMoreMixingThreadAvailable(poolId, liquidity);
     if (mixingHashCriteria == null && mixingThreadAvailable) {
       // no swap required
       if (log.isTraceEnabled()) {
@@ -263,7 +296,8 @@ public abstract class MixOrchestrator extends AbstractOrchestrator {
     // a swap is required to mix this utxo
     boolean bestPriorityCriteria = !mixNow;
     // swap with mixing from same pool when maxClientsPerPool is reached
-    String poolIdCriteria = isMaxClientsPerPoolReached(poolId) ? toMix.getPoolId() : null;
+    String poolIdCriteria =
+        isMaxClientsPerPoolReached(poolId, liquidity) ? toMix.getPoolId() : null;
     Optional<Mixing> mixingToSwapOpt =
         findMixingToSwap(toMix, mixingHashCriteria, bestPriorityCriteria, poolIdCriteria);
     if (mixingToSwapOpt.isPresent()) {
@@ -607,13 +641,13 @@ public abstract class MixOrchestrator extends AbstractOrchestrator {
         && whirlpoolUtxo.getPoolId() != null) {
 
       // automix : queue new PREMIX
-      if (autoMix && WhirlpoolAccount.PREMIX.equals(whirlpoolUtxo.getAccount())) {
+      if (autoMix && whirlpoolUtxo.isAccountPremix()) {
         return true;
       }
 
       // queue unfinished POSTMIX utxos
       if ((!isFirstFetch || autoMix)
-          && WhirlpoolAccount.POSTMIX.equals(whirlpoolUtxo.getAccount())
+          && whirlpoolUtxo.isAccountPostmix()
           && !whirlpoolUtxo.isDone(mixsTargetMin)) {
         return true;
       }

@@ -53,6 +53,18 @@ public class WhirlpoolUtxo extends WhirlpoolUtxoConfig {
     return utxoState;
   }
 
+  public boolean isAccountDeposit() {
+    return WhirlpoolAccount.DEPOSIT.equals(account);
+  }
+
+  public boolean isAccountPremix() {
+    return WhirlpoolAccount.PREMIX.equals(account);
+  }
+
+  public boolean isAccountPostmix() {
+    return WhirlpoolAccount.POSTMIX.equals(account);
+  }
+
   @Override
   public String toString() {
     return account + ": " + utxo.toString() + ": " + utxoState + " ; " + getUtxoConfigPersisted();

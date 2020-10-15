@@ -27,6 +27,6 @@ public class MixProgress {
 
   @Override
   public String toString() {
-    return "(" + progressPercent + "%: " + mixStep + ")";
+    return progressPercent + "%: " + mixStep;
   }
 }

@@ -3,7 +3,6 @@ package com.samourai.whirlpool.client.wallet.data.utxo;
 import com.samourai.wallet.api.backend.beans.UnspentOutput;
 import com.samourai.whirlpool.client.tx0.Tx0ParamService;
 import com.samourai.whirlpool.client.utils.ClientUtils;
-import com.samourai.whirlpool.client.wallet.beans.WhirlpoolAccount;
 import com.samourai.whirlpool.client.wallet.beans.WhirlpoolUtxo;
 import com.samourai.whirlpool.client.wallet.beans.WhirlpoolUtxoChanges;
 import com.samourai.whirlpool.client.wallet.data.AbstractPersistableSupplier;
@@ -34,15 +33,14 @@ public class UtxoConfigSupplier extends AbstractPersistableSupplier<UtxoConfigDa
     Collection<Pool> eligiblePools = null;
 
     // find eligible pools for tx0
-    if (WhirlpoolAccount.DEPOSIT.equals(whirlpoolUtxo.getAccount())) {
+    if (whirlpoolUtxo.isAccountDeposit()) {
       Collection<Pool> pools = poolSupplier.getPools();
       eligiblePools = tx0ParamService.findPools(pools, whirlpoolUtxo.getUtxo().value);
     }
 
     // find eligible pools for mix
-    else if (WhirlpoolAccount.PREMIX.equals(whirlpoolUtxo.getAccount())
-        || WhirlpoolAccount.POSTMIX.equals(whirlpoolUtxo.getAccount())) {
-      boolean liquidity = WhirlpoolAccount.POSTMIX.equals(whirlpoolUtxo.getAccount());
+    else if (whirlpoolUtxo.isAccountPremix() || whirlpoolUtxo.isAccountPostmix()) {
+      boolean liquidity = whirlpoolUtxo.isAccountPostmix();
       eligiblePools = poolSupplier.findPoolsForPremix(whirlpoolUtxo.getUtxo().value, liquidity);
     }
 
@@ -63,7 +61,7 @@ public class UtxoConfigSupplier extends AbstractPersistableSupplier<UtxoConfigDa
         utxoConfigByHash != null ? utxoConfigByHash.copy() : new UtxoConfigPersisted();
 
     // set mixsDone
-    if (WhirlpoolAccount.POSTMIX.equals(whirlpoolUtxo.getAccount())) {
+    if (whirlpoolUtxo.isAccountPostmix()) {
       utxoConfig.incrementMixsDone();
     }
 

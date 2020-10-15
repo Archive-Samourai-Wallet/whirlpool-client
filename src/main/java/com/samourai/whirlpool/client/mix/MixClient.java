@@ -24,6 +24,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class MixClient {
+  // server health-check response
+  private static final String HEALTH_CHECK_SUCCESS = "HEALTH_CHECK_SUCCESS";
+
   // non-static logger to prefix it with stomp sessionId
   private Logger log;
 
@@ -158,7 +161,9 @@ public class MixClient {
 
       @Override
       public void exitOnInputRejected(String notifiableError) {
-        log.error("ERROR: " + notifiableError);
+        if (!HEALTH_CHECK_SUCCESS.equals(notifiableError)) {
+          log.error("ERROR: " + notifiableError);
+        }
         failAndExit(MixFailReason.INPUT_REJECTED, notifiableError);
       }
 
