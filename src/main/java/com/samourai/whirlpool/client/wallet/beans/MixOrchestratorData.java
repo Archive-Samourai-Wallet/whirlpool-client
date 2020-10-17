@@ -120,20 +120,6 @@ public class MixOrchestratorData {
     return (nbMixingInPool != null ? nbMixingInPool : 0);
   }
 
-  public int getNbMixing(final String poolId, final boolean liquidity) {
-    return StreamSupport.stream(mixing.values())
-        .filter(
-            new Predicate<Mixing>() {
-              @Override
-              public boolean test(Mixing mixing) {
-                return mixing.getUtxo().getPoolId().equals(poolId)
-                    && mixing.getUtxo().isAccountPostmix() == liquidity;
-              }
-            })
-        .collect(Collectors.<Mixing>toList())
-        .size();
-  }
-
   public MixingStateEditable getMixingState() {
     return mixingState;
   }
