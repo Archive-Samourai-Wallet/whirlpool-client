@@ -51,6 +51,9 @@ public class MixDialog {
       log.info("Ignoring mixMessage (done): " + ClientUtils.toJsonString(mixMessage));
       return;
     }
+    if (log.isTraceEnabled()) {
+      log.trace("onPrivateReceived: " + mixMessage);
+    }
     try {
       Class payloadClass = mixMessage.getClass();
       if (ErrorResponse.class.isAssignableFrom(payloadClass)) {

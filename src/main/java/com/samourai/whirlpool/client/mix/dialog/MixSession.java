@@ -247,7 +247,7 @@ public class MixSession {
         if (log.isDebugEnabled()) {
           log.debug("onTransportDisconnected", exception);
         }
-        long reconnectDelay = 0;
+        int reconnectDelay = 0;
         if (connectBeginTime != null) {
           // we were trying connect
           long elapsedTime = System.currentTimeMillis() - connectBeginTime;
@@ -261,10 +261,10 @@ public class MixSession {
           }
 
           // wait delay before retrying
-          log.info(" ! connexion failed, retrying in " + config.getReconnectDelay() + "s");
-          listener.onConnectionFailWillRetry(config.getReconnectDelay());
           int randomDelaySeconds = config.getReconnectDelay() + ClientUtils.random(0, 10);
-          reconnectDelay = randomDelaySeconds * 1000L;
+          reconnectDelay = randomDelaySeconds * 1000;
+          log.info(" ! connexion failed, retrying in " + reconnectDelay + "s");
+          listener.onConnectionFailWillRetry(reconnectDelay);
         } else {
           // we just got disconnected
           log.error(" ! connexion lost, reconnecting for a new mix...");

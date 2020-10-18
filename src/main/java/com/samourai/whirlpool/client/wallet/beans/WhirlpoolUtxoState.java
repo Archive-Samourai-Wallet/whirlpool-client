@@ -129,7 +129,7 @@ public class WhirlpoolUtxoState {
   public String toString() {
     return "status="
         + status
-        + (mixProgress != null ? mixProgress : "")
+        + (mixProgress != null ? "(" + mixProgress + ")" : "")
         + ", mixableStatus="
         + (mixableStatus != null ? mixableStatus : "null")
         + (hasMessage() ? ", message=" + message : "")
