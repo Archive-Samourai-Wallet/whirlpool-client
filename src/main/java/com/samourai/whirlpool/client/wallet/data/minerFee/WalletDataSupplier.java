@@ -67,7 +67,11 @@ public class WalletDataSupplier extends ExpirableSupplier<WalletResponse>
     WalletResponse walletResponse = fetchWalletResponse();
 
     // update minerFeeSupplier
-    minerFeeSupplier._setValue(walletResponse);
+    try {
+      minerFeeSupplier._setValue(walletResponse);
+    } catch (Exception e) {
+      log.error("minerFeeSupplier._setValue failed => using fallback value", e);
+    }
 
     // update utxoSupplier
     utxoSupplier._setValue(walletResponse);

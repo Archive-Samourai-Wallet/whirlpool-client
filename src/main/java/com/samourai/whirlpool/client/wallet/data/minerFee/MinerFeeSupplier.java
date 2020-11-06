@@ -22,10 +22,21 @@ public class MinerFeeSupplier extends BasicSupplier<MinerFee> {
     this.feeMax = feeMax;
   }
 
-  protected void _setValue(WalletResponse walletResponse) {
+  protected void _setValue(WalletResponse walletResponse) throws Exception {
     if (log.isDebugEnabled()) {
       log.debug("_setValue");
     }
+
+    // check each fee value
+    if (walletResponse == null || walletResponse.info == null || walletResponse.info.fees == null) {
+      throw new Exception("Invalid walletResponse.info.fees");
+    }
+    for (MinerFeeTarget minerFeeTarget : MinerFeeTarget.values()) {
+      if (walletResponse.info.fees.get(minerFeeTarget.getValue()) == null) {
+        throw new Exception("Invalid walletResponse.info.fees[" + minerFeeTarget.getValue() + "]");
+      }
+    }
+
     MinerFee minerFee = new MinerFee(walletResponse.info.fees);
     super.setValue(minerFee);
   }
