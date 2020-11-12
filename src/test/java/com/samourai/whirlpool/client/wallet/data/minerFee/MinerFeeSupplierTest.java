@@ -44,7 +44,7 @@ public class MinerFeeSupplierTest extends AbstractTest {
     doTest(FEE_MAX);
   }
 
-  private void setMockFeeValue(int feeValue) {
+  private void setMockFeeValue(int feeValue) throws Exception {
     WalletResponse walletResponse = new WalletResponse();
     walletResponse.info = new WalletResponse.Info();
     walletResponse.info.fees = new LinkedHashMap<String, Integer>();

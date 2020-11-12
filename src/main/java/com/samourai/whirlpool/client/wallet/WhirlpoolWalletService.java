@@ -114,13 +114,8 @@ public class WhirlpoolWalletService {
         new PoolSupplier(config.getRefreshPoolsDelay(), config.getServerApi());
 
     WalletDataSupplier walletDataSupplier =
-        new WalletDataSupplier(
-            config.getRefreshUtxoDelay(),
-            walletSupplier,
-            poolSupplier,
-            computeUtxoChangesListener(),
-            utxoConfigFileName,
-            config);
+        computeWalletDataSupplier(
+            walletSupplier, poolSupplier, computeUtxoChangesListener(), utxoConfigFileName, config);
 
     return new WhirlpoolWallet(
         config,
@@ -130,6 +125,22 @@ public class WhirlpoolWalletService {
         walletSupplier,
         poolSupplier,
         walletDataSupplier);
+  }
+
+  // overridable for android
+  protected WalletDataSupplier computeWalletDataSupplier(
+      WalletSupplier walletSupplier,
+      PoolSupplier poolSupplier,
+      MessageListener<WhirlpoolUtxoChanges> utxoChangesListener,
+      String utxoConfigFileName,
+      WhirlpoolWalletConfig config) {
+    return new WalletDataSupplier(
+        config.getRefreshUtxoDelay(),
+        walletSupplier,
+        poolSupplier,
+        utxoChangesListener,
+        utxoConfigFileName,
+        config);
   }
 
   protected MessageListener<WhirlpoolUtxoChanges> computeUtxoChangesListener() {
