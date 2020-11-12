@@ -31,7 +31,7 @@ import org.slf4j.LoggerFactory;
 
 public class Tx0Service {
   private Logger log = LoggerFactory.getLogger(Tx0Service.class);
-  protected static final int NB_PREMIX_MAX = 600;
+  protected static final int NB_PREMIX_MAX = 70;
 
   private final Bech32UtilGeneric bech32Util = Bech32UtilGeneric.getInstance();
   private final FormatsUtilGeneric formatsUtilGeneric = FormatsUtilGeneric.getInstance();
@@ -87,6 +87,7 @@ public class Tx0Service {
     if (nbPremix < 0) {
       nbPremix = 0;
     }
+    nbPremix = capNbPremix(nbPremix);
     return nbPremix;
   }
 
@@ -140,9 +141,7 @@ public class Tx0Service {
 
     NetworkParameters params = config.getNetworkParameters();
     long feeValueOrFeeChange = tx0Data.computeFeeValueOrFeeChange();
-    int nbPremix =
-        computeNbPremix(
-            spendFroms, config.getTx0MaxOutputs(), feeTx0, premixValue, feeValueOrFeeChange);
+    int nbPremix = computeNbPremixMax(premixValue, spendFroms, feeValueOrFeeChange, feeTx0);
     long minerFee = ClientUtils.computeTx0MinerFee(nbPremix, feeTx0, spendFroms, params);
     long spendValue =
         ClientUtils.computeTx0SpendValue(premixValue, nbPremix, feeValueOrFeeChange, minerFee);
@@ -329,18 +328,8 @@ public class Tx0Service {
     return tx0;
   }
 
-  private int computeNbPremix(
-      Collection<UnspentOutputWithKey> sortedSpendFroms,
-      int maxOutputs,
-      int feeTx0,
-      long premixValue,
-      long feeValueOrFeeChange) {
-    int nbPremix =
-        computeNbPremixMax(
-            premixValue,
-            sortedSpendFroms,
-            feeValueOrFeeChange,
-            feeTx0); // cap with balance and tx0 minerFee
+  private int capNbPremix(int nbPremix) {
+    int maxOutputs = config.getTx0MaxOutputs();
     if (maxOutputs > 0) {
       nbPremix = Math.min(maxOutputs, nbPremix); // cap with maxOutputs
     }
@@ -374,7 +363,7 @@ public class Tx0Service {
 
     long premixValue = tx0Preview.getPremixValue();
     long feeValueOrFeeChange = tx0Preview.computeFeeValueOrFeeChange();
-    int nbPremix = tx0Preview.getNbPremix();
+    int nbPremix = capNbPremix(tx0Preview.getNbPremix());
     long changeValue = tx0Preview.getChangeValue();
 
     // verify
