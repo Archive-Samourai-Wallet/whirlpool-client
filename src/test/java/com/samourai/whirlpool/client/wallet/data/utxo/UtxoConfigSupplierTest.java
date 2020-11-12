@@ -19,17 +19,6 @@ public class UtxoConfigSupplierTest extends UtxoSupplierTest {
 
     Assertions.assertEquals(utxos1.length, utxoSupplier.getUtxos().size());
 
-    // verify mixsTarget
-    Assertions.assertEquals(
-        null,
-        utxoSupplier.findUtxo(UTXO_DEPOSIT1.tx_hash, UTXO_DEPOSIT1.tx_output_n).getMixsTarget());
-    Assertions.assertEquals(
-        null,
-        utxoSupplier.findUtxo(UTXO_PREMIX1.tx_hash, UTXO_PREMIX1.tx_output_n).getMixsTarget());
-    Assertions.assertEquals(
-        null,
-        utxoSupplier.findUtxo(UTXO_POSTMIX1.tx_hash, UTXO_POSTMIX1.tx_output_n).getMixsTarget());
-
     // verify mixsDone
     Assertions.assertEquals(
         0, utxoSupplier.findUtxo(UTXO_DEPOSIT1.tx_hash, UTXO_DEPOSIT1.tx_output_n).getMixsDone());
@@ -45,11 +34,6 @@ public class UtxoConfigSupplierTest extends UtxoSupplierTest {
     Assertions.assertEquals(
         "test",
         utxoSupplier.findUtxo(UTXO_DEPOSIT1.tx_hash, UTXO_DEPOSIT1.tx_output_n).getPoolId());
-
-    // setMixsTarget
-    utxoSupplier.findUtxo(UTXO_DEPOSIT1.tx_hash, UTXO_DEPOSIT1.tx_output_n).setMixsTarget(5);
-    Assertions.assertEquals(
-        5, utxoSupplier.findUtxo(UTXO_DEPOSIT1.tx_hash, UTXO_DEPOSIT1.tx_output_n).getMixsTarget());
   }
 
   @Test
@@ -63,12 +47,6 @@ public class UtxoConfigSupplierTest extends UtxoSupplierTest {
     assertUtxoChanges(utxos1, new UnspentOutput[] {}, new UnspentOutput[] {});
 
     Assertions.assertEquals(utxos1.length, utxoSupplier.getUtxos().size());
-
-    // setMixsTarget
-    utxoSupplier.findUtxo(UTXO_DEPOSIT1.tx_hash, UTXO_DEPOSIT1.tx_output_n).setMixsTarget(123);
-    Assertions.assertEquals(
-        123,
-        utxoSupplier.findUtxo(UTXO_DEPOSIT1.tx_hash, UTXO_DEPOSIT1.tx_output_n).getMixsTarget());
 
     // forward
     String fromKey =
@@ -98,7 +76,6 @@ public class UtxoConfigSupplierTest extends UtxoSupplierTest {
     // verify config preserved
     WhirlpoolUtxo utxoPremix1 =
         utxoSupplier.findUtxo(UTXO_PREMIX1.tx_hash, UTXO_PREMIX1.tx_output_n);
-    Assertions.assertEquals(123, utxoPremix1.getMixsTarget());
     // verify forwarding null
     Assertions.assertNull(utxoConfigSupplier.getUtxoConfigPersisted(utxoPremix1).getForwarding());
   }

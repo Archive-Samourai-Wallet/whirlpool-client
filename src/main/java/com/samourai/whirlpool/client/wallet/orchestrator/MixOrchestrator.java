@@ -36,7 +36,6 @@ public abstract class MixOrchestrator extends AbstractOrchestrator {
   private int maxClientsPerPool;
   private boolean liquidityClient;
   private boolean autoMix;
-  private int mixsTargetMin;
 
   public MixOrchestrator(
       int loopDelay,
@@ -45,8 +44,7 @@ public abstract class MixOrchestrator extends AbstractOrchestrator {
       int maxClients,
       int maxClientsPerPool,
       boolean liquidityClient,
-      boolean autoMix,
-      int mixsTargetMin) {
+      boolean autoMix) {
     super(loopDelay, START_DELAY, clientDelay);
     this.data = data;
 
@@ -54,7 +52,6 @@ public abstract class MixOrchestrator extends AbstractOrchestrator {
     this.maxClientsPerPool = Math.min(maxClientsPerPool, maxClients); // prevent wrong configuration
     this.liquidityClient = liquidityClient;
     this.autoMix = autoMix;
-    this.mixsTargetMin = mixsTargetMin;
   }
 
   protected abstract WhirlpoolClient runWhirlpoolClient(
@@ -646,9 +643,7 @@ public abstract class MixOrchestrator extends AbstractOrchestrator {
       }
 
       // queue unfinished POSTMIX utxos
-      if ((!isFirstFetch || autoMix)
-          && whirlpoolUtxo.isAccountPostmix()
-          && !whirlpoolUtxo.isDone(mixsTargetMin)) {
+      if ((!isFirstFetch || autoMix) && whirlpoolUtxo.isAccountPostmix()) {
         return true;
       }
     }

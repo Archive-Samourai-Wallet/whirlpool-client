@@ -413,14 +413,6 @@ public class WhirlpoolWallet {
     whirlpoolUtxo.setPoolId(poolId);
   }
 
-  public void setMixsTarget(WhirlpoolUtxo whirlpoolUtxo, Integer mixsTarget)
-      throws NotifiableException {
-    if (mixsTarget != null && mixsTarget < 0) {
-      throw new NotifiableException("Invalid mixsTarget: " + mixsTarget);
-    }
-    whirlpoolUtxo.setMixsTarget(mixsTarget);
-  }
-
   public void mixQueue(WhirlpoolUtxo whirlpoolUtxo) throws NotifiableException {
     this.mixOrchestrator.mixQueue(whirlpoolUtxo);
   }

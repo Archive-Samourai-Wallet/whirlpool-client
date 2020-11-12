@@ -2,24 +2,21 @@ package com.samourai.whirlpool.client.wallet.data.utxo;
 
 public class UtxoConfigPersisted {
   private String poolId;
-  private Integer mixsTarget;
   private int mixsDone;
   private Long forwarding;
 
   public UtxoConfigPersisted() {
-    this(null, null, 0, null);
+    this(null, 0, null);
   }
 
-  public UtxoConfigPersisted(String poolId, Integer mixsTarget, int mixsDone, Long forwarding) {
+  public UtxoConfigPersisted(String poolId, int mixsDone, Long forwarding) {
     this.poolId = poolId;
-    this.mixsTarget = mixsTarget;
     this.mixsDone = mixsDone;
     this.forwarding = forwarding;
   }
 
   public UtxoConfigPersisted copy() {
-    UtxoConfigPersisted copy =
-        new UtxoConfigPersisted(this.poolId, this.mixsTarget, this.mixsDone, this.forwarding);
+    UtxoConfigPersisted copy = new UtxoConfigPersisted(this.poolId, this.mixsDone, this.forwarding);
     return copy;
   }
 
@@ -29,14 +26,6 @@ public class UtxoConfigPersisted {
 
   public void setPoolId(String poolId) {
     this.poolId = poolId;
-  }
-
-  public Integer getMixsTarget() {
-    return mixsTarget;
-  }
-
-  public void setMixsTarget(Integer mixsTarget) {
-    this.mixsTarget = mixsTarget;
   }
 
   public int getMixsDone() {
@@ -63,8 +52,6 @@ public class UtxoConfigPersisted {
   public String toString() {
     return "poolId="
         + (poolId != null ? poolId : "null")
-        + ", mixsTarget="
-        + (mixsTarget != null ? mixsTarget : "null")
         + ", mixsDone="
         + mixsDone
         + ", forwarding="

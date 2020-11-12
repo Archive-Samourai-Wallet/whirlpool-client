@@ -38,7 +38,6 @@ public class WhirlpoolWalletConfig extends WhirlpoolClientConfig implements ITx0
   private int tx0MinConfirmations;
   private int refreshUtxoDelay;
   private int refreshPoolsDelay;
-  private int mixsTarget;
 
   private int feeMin;
   private int feeMax;
@@ -76,7 +75,6 @@ public class WhirlpoolWalletConfig extends WhirlpoolClientConfig implements ITx0
     this.tx0MinConfirmations = 0;
     this.refreshUtxoDelay = 60; // 1min
     this.refreshPoolsDelay = 600; // 10min
-    this.mixsTarget = 1;
 
     this.feeMin = 1;
     this.feeMax = 510;
@@ -208,14 +206,6 @@ public class WhirlpoolWalletConfig extends WhirlpoolClientConfig implements ITx0
     this.refreshPoolsDelay = refreshPoolsDelay;
   }
 
-  public int getMixsTarget() {
-    return mixsTarget;
-  }
-
-  public void setMixsTarget(int mixsTarget) {
-    this.mixsTarget = mixsTarget;
-  }
-
   public int getFeeMin() {
     return feeMin;
   }
@@ -296,8 +286,6 @@ public class WhirlpoolWalletConfig extends WhirlpoolClientConfig implements ITx0
             + (scode != null ? ClientUtils.maskString(scode) : "null")
             + ", tx0MaxOutputs="
             + tx0MaxOutputs
-            + ", mixsTarget="
-            + getMixsTarget()
             + ", overspend="
             + (overspend != null ? overspend.toString() : "null"));
     configInfo.put(

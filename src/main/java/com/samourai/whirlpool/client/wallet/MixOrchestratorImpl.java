@@ -42,8 +42,7 @@ public class MixOrchestratorImpl extends MixOrchestrator {
         config.getMaxClients(),
         config.getMaxClientsPerPool(),
         config.isLiquidityClient(),
-        config.isAutoMix(),
-        config.getMixsTarget());
+        config.isAutoMix());
     this.whirlpoolWallet = whirlpoolWallet;
     this.config = config;
     this.poolSupplier = poolSupplier;

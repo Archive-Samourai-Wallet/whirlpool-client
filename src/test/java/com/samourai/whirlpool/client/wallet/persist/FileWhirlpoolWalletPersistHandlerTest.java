@@ -56,7 +56,6 @@ public class FileWhirlpoolWalletPersistHandlerTest extends AbstractTest {
     utxoFoo.xpub = new UnspentOutput.Xpub();
     utxoFoo.xpub.path = "foo";
     WhirlpoolUtxo foo = computeUtxo(utxoFoo);
-    foo.setMixsTarget(1);
 
     UnspentOutput utxoBar = new UnspentOutput();
     utxoBar.tx_output_n = 2;
@@ -67,13 +66,10 @@ public class FileWhirlpoolWalletPersistHandlerTest extends AbstractTest {
     utxoBar.xpub = new UnspentOutput.Xpub();
     utxoBar.xpub.path = "bar";
     WhirlpoolUtxo bar = computeUtxo(utxoBar);
-    bar.setMixsTarget(2);
 
     // verify
     Assertions.assertNull(persistHandler.getUtxoConfig("foo"));
     Assertions.assertNull(persistHandler.getUtxoConfig("foo", 2));
-    Assertions.assertEquals(1, persistHandler.getUtxoConfig("foo", 1).getMixsTarget());
-    Assertions.assertEquals(2, persistHandler.getUtxoConfig("bar", 2).getMixsTarget());
     Assertions.assertNull(persistHandler.getUtxoConfig("bar", 1));
 
     persistHandler.save();
@@ -84,8 +80,6 @@ public class FileWhirlpoolWalletPersistHandlerTest extends AbstractTest {
     // verify
     Assertions.assertNull(persistHandler.getUtxoConfig("foo"));
     Assertions.assertNull(persistHandler.getUtxoConfig("foo", 2));
-    Assertions.assertEquals(1, persistHandler.getUtxoConfig("foo", 1).getMixsTarget());
-    Assertions.assertEquals(2, persistHandler.getUtxoConfig("bar", 2).getMixsTarget());
     Assertions.assertNull(persistHandler.getUtxoConfig("bar", 1));
 
     // first clean => unchanged
@@ -95,8 +89,6 @@ public class FileWhirlpoolWalletPersistHandlerTest extends AbstractTest {
     // verify
     Assertions.assertNull(persistHandler.getUtxoConfig("foo"));
     Assertions.assertNull(persistHandler.getUtxoConfig("foo", 2));
-    Assertions.assertEquals(1, persistHandler.getUtxoConfig("foo", 1).getMixsTarget());
-    Assertions.assertEquals(2, persistHandler.getUtxoConfig("bar", 2).getMixsTarget());
     Assertions.assertNull(persistHandler.getUtxoConfig("bar", 1));
 
     // second clean => "bar" removed
@@ -105,21 +97,11 @@ public class FileWhirlpoolWalletPersistHandlerTest extends AbstractTest {
     // verify
     Assertions.assertNull(persistHandler.getUtxoConfig("foo"));
     Assertions.assertNull(persistHandler.getUtxoConfig("foo", 2));
-    Assertions.assertEquals(1, persistHandler.getUtxoConfig("foo", 1).getMixsTarget());
     Assertions.assertNull(persistHandler.getUtxoConfig("bar", 2));
     Assertions.assertNull(persistHandler.getUtxoConfig("bar", 1));
 
-    // modify foo
-    persistHandler.getUtxoConfig("foo", 1).setMixsTarget(5);
-    Assertions.assertEquals(5, persistHandler.getUtxoConfig("foo", 1).getMixsTarget());
-    persistHandler.save();
-
-    // verify
-    Assertions.assertEquals(5, persistHandler.getUtxoConfig("foo", 1).getMixsTarget());
-
     // re-read
     reload();
-    Assertions.assertEquals(5, persistHandler.getUtxoConfig("foo", 1).getMixsTarget());
   }
 
   private WhirlpoolWallet computeWallet() throws Exception {

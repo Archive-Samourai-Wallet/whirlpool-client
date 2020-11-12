@@ -11,7 +11,6 @@ import com.samourai.wallet.util.FeeUtil;
 import com.samourai.wallet.util.FormatsUtilGeneric;
 import com.samourai.whirlpool.client.exception.NotifiableException;
 import com.samourai.whirlpool.client.wallet.beans.WhirlpoolUtxo;
-import com.samourai.whirlpool.client.wallet.beans.WhirlpoolUtxoConfig;
 import com.samourai.whirlpool.client.wallet.beans.WhirlpoolUtxoState;
 import com.samourai.whirlpool.protocol.WhirlpoolProtocol;
 import com.samourai.whirlpool.protocol.rest.RestErrorResponse;
@@ -136,8 +135,8 @@ public class ClientUtils {
     log.info("\n" + sb.toString());
   }
 
-  public static void logWhirlpoolUtxos(Collection<WhirlpoolUtxo> utxos, int mixsTargetMin) {
-    String lineFormat = "| %10s | %8s | %68s | %14s | %12s | %14s | %8s | %8s |\n";
+  public static void logWhirlpoolUtxos(Collection<WhirlpoolUtxo> utxos) {
+    String lineFormat = "| %10s | %8s | %68s | %14s | %12s | %14s | %8s | %6s |\n";
     StringBuilder sb = new StringBuilder();
     sb.append(
         String.format(
@@ -160,7 +159,6 @@ public class ClientUtils {
       String utxo = o.tx_hash + ":" + o.tx_output_n;
       String mixableStatusName =
           utxoState.getMixableStatus() != null ? utxoState.getMixableStatus().name() : "-";
-      int mixsTargetOrDefault = whirlpoolUtxo.getMixsTargetOrDefault(mixsTargetMin);
       sb.append(
           String.format(
               lineFormat,
@@ -171,11 +169,7 @@ public class ClientUtils {
               utxoState.getStatus().name(),
               mixableStatusName,
               whirlpoolUtxo.getPoolId() != null ? whirlpoolUtxo.getPoolId() : "-",
-              whirlpoolUtxo.getMixsDone()
-                  + "/"
-                  + (mixsTargetOrDefault == WhirlpoolUtxoConfig.MIXS_TARGET_UNLIMITED
-                      ? "∞"
-                      : mixsTargetOrDefault)));
+              whirlpoolUtxo.getMixsDone()));
     }
 
     log.info("\n" + sb.toString());

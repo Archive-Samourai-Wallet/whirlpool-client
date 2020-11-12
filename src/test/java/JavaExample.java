@@ -135,7 +135,6 @@ public class JavaExample {
             "040df121854c7db49e38b6fcb61c2b0953c8b234ce53c1b2a2fb122a4e1c3d2e", 1);
 
     // configure utxo
-    whirlpoolUtxo.setMixsTarget(5);
     whirlpoolUtxo.setPoolId("0.01btc");
 
     // get utxo state (status, mixStep, mixableStatus, progressPercent, message, error...)
