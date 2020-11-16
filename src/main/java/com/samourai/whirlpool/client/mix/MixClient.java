@@ -99,7 +99,7 @@ public class MixClient {
   }
 
   private void failAndExit(MixFailReason reason, String notifiableError) {
-    mixParams.getPostmixHandler().cancelReceiveAddress();
+    mixParams.getPostmixHandler().onMixFail();
     this.listener.fail(reason, notifiableError);
     disconnect();
   }
@@ -209,9 +209,7 @@ public class MixClient {
         RegisterOutputRequest registerOutputRequest =
             mixProcess.registerOutput(registerOutputMixStatusNotification);
 
-        // confirm receive address even when REGISTER_OUTPUT fails, to avoid 'ouput already
-        // registered'
-        mixParams.getPostmixHandler().confirmReceiveAddress();
+        mixParams.getPostmixHandler().onRegisterOutput();
 
         // send request
         Observable<Optional<String>> observable = serverApi.registerOutput(registerOutputRequest);
@@ -229,8 +227,9 @@ public class MixClient {
 
       @Override
       public void onMixSuccess() {
-        disconnect(); // disconnect before notifying listener to avoid reconnecting before
-        // disconnect
+        // disconnect before notifying listener to avoid reconnecting before disconnect
+        disconnect();
+        // notify
         listener.progress(MixStep.SUCCESS);
         listener.success(mixProcess.computeMixSuccess());
       }
@@ -258,7 +257,6 @@ public class MixClient {
         if (log.isDebugEnabled()) {
           log.debug("reset mixProcess");
         }
-        mixParams.getPostmixHandler().cancelReceiveAddress();
         mixProcess = computeMixProcess();
       }
     };

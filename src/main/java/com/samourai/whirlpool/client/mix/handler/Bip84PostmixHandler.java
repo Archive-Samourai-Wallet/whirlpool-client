@@ -7,41 +7,20 @@ import org.bitcoinj.core.NetworkParameters;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class Bip84PostmixHandler implements IPostmixHandler {
+public class Bip84PostmixHandler extends AbstractPostmixHandler {
   private static final Logger log = LoggerFactory.getLogger(Bip84PostmixHandler.class);
+
   private Bech32UtilGeneric bech32Util = Bech32UtilGeneric.getInstance();
   private Bip84Wallet postmixWallet;
   private boolean mobile;
-  private HD_Address receiveAddress;
-  private Integer receiveAddressIndex;
 
   public Bip84PostmixHandler(Bip84Wallet postmixWallet, boolean mobile) {
+    super(postmixWallet.getIndexHandler());
     this.postmixWallet = postmixWallet;
     this.mobile = mobile;
-    this.receiveAddress = null;
-    this.receiveAddressIndex = null;
   }
 
   @Override
-  public synchronized String computeReceiveAddress(NetworkParameters params) throws Exception {
-    // use "unconfirmed" index to avoid huge index gaps on multiple mix failures
-    this.receiveAddressIndex = computeNextReceiveAddressIndex();
-    this.receiveAddress =
-        postmixWallet.getAddressAt(Bip84Wallet.CHAIN_RECEIVE, this.receiveAddressIndex);
-
-    String bech32Address = bech32Util.toBech32(receiveAddress, params);
-    if (log.isDebugEnabled()) {
-      log.debug(
-          "receiveAddressIndex="
-              + receiveAddressIndex
-              + ", receiveAddress="
-              + bech32Address
-              + ", path="
-              + receiveAddress.toJSON().get("path"));
-    }
-    return bech32Address;
-  }
-
   protected int computeNextReceiveAddressIndex() {
     // Android => odd indexs, CLI => even indexs
     int modulo = this.mobile ? 1 : 0;
@@ -53,14 +32,15 @@ public class Bip84PostmixHandler implements IPostmixHandler {
   }
 
   @Override
-  public void confirmReceiveAddress() {
-    postmixWallet.getIndexHandler().confirmUnconfirmed(receiveAddressIndex);
-  }
+  protected String getAddressAt(int receiveAddressIndex, NetworkParameters params) {
+    HD_Address receiveAddress =
+        postmixWallet.getAddressAt(Bip84Wallet.CHAIN_RECEIVE, receiveAddressIndex);
 
-  @Override
-  public void cancelReceiveAddress() {
-    if (receiveAddressIndex != null) {
-      postmixWallet.getIndexHandler().cancelUnconfirmed(receiveAddressIndex);
+    String bech32Address = bech32Util.toBech32(receiveAddress, params);
+    if (log.isDebugEnabled()) {
+      log.debug(
+          "receiveAddress=" + bech32Address + ", path=" + receiveAddress.toJSON().get("path"));
     }
+    return bech32Address;
   }
 }

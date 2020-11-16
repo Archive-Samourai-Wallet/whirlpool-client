@@ -1,5 +1,7 @@
 package com.samourai.whirlpool.client.wallet.data.utxo;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+
 public class UtxoConfigPersisted {
   private String poolId;
   private int mixsDone;
@@ -46,6 +48,11 @@ public class UtxoConfigPersisted {
 
   public void setForwarding(Long forwarding) {
     this.forwarding = forwarding;
+  }
+
+  @JsonIgnore
+  public void setMixsTarget(Integer mixsTarget) {
+    // keep this for backward-compatibility
   }
 
   @Override

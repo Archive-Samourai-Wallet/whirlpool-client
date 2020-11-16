@@ -18,14 +18,19 @@ import org.slf4j.LoggerFactory;
 
 public class WalletSupplier {
   private static final Logger log = LoggerFactory.getLogger(WalletSupplier.class);
+  private static final String EXTERNAL_INDEX_HANDLER = "external";
 
+  private final WalletStateSupplier walletStateSupplier;
   private final Map<WhirlpoolAccount, Bip84Wallet> walletsByAccount;
   private final Map<String, WhirlpoolAccount> accountsByZpub;
   private final WhirlpoolAccount[] ignoredAccounts;
+  private final IIndexHandler externalIndexHandler;
 
-  private WalletStateSupplier walletStateSupplier;
-
-  public WalletSupplier(WalletStatePersister persister, BackendApi backendApi, HD_Wallet hdWallet) {
+  public WalletSupplier(
+      WalletStatePersister persister,
+      BackendApi backendApi,
+      HD_Wallet hdWallet,
+      int externalIndexDefault) {
 
     this.walletStateSupplier = new WalletStateSupplier(persister, backendApi, this);
 
@@ -33,9 +38,9 @@ public class WalletSupplier {
     this.walletsByAccount = new LinkedHashMap<WhirlpoolAccount, Bip84Wallet>();
     for (WhirlpoolAccount walletAccount : WhirlpoolAccount.values()) {
       IIndexHandler mainIndexHandler =
-          computeIndexHandler(walletStateSupplier, walletAccount.getPersistKeyMain(), 0);
+          new WalletStateIndexHandler(walletStateSupplier, walletAccount.getPersistKeyMain(), 0);
       IIndexHandler changeIndexHandler =
-          computeIndexHandler(walletStateSupplier, walletAccount.getPersistKeyChange(), 0);
+          new WalletStateIndexHandler(walletStateSupplier, walletAccount.getPersistKeyChange(), 0);
 
       Bip84Wallet wallet =
           new Bip84Wallet(
@@ -44,11 +49,9 @@ public class WalletSupplier {
     }
     this.ignoredAccounts = WhirlpoolAccount.getListByActive(false);
     this.accountsByZpub = computeAccountsByZpub(walletsByAccount);
-  }
-
-  private static WalletStateIndexHandler computeIndexHandler(
-      WalletStateSupplier walletStateSupplier, String key, int defaultValue) {
-    return new WalletStateIndexHandler(walletStateSupplier, key, defaultValue);
+    this.externalIndexHandler =
+        new WalletStateIndexHandler(
+            walletStateSupplier, EXTERNAL_INDEX_HANDLER, externalIndexDefault);
   }
 
   private static Map<String, WhirlpoolAccount> computeAccountsByZpub(
@@ -97,5 +100,9 @@ public class WalletSupplier {
 
   public WalletStateSupplier getWalletStateSupplier() {
     return walletStateSupplier;
+  }
+
+  public IIndexHandler getExternalIndexHandler() {
+    return externalIndexHandler;
   }
 }

@@ -55,7 +55,7 @@ public class WhirlpoolWalletConfig extends WhirlpoolClientConfig implements ITx0
       NetworkParameters params,
       boolean mobile,
       BackendApi backendApi) {
-    super(httpClientService, stompClientService, serverApi, params, mobile);
+    super(httpClientService, stompClientService, serverApi, null, params, mobile);
 
     // default settings
     this.maxClients = 5;
@@ -259,6 +259,9 @@ public class WhirlpoolWalletConfig extends WhirlpoolClientConfig implements ITx0
     configInfo.put("protocolVersion", WhirlpoolProtocol.PROTOCOL_VERSION);
     configInfo.put(
         "server", getServerApi() + ", network=" + getNetworkParameters().getPaymentProtocolId());
+    configInfo.put(
+        "externalDestination",
+        (getExternalDestination() != null ? getExternalDestination().toString() : "null"));
     configInfo.put(
         "refreshDelay",
         "refreshUtxoDelay=" + refreshUtxoDelay + ", refreshPoolsDelay=" + refreshPoolsDelay);

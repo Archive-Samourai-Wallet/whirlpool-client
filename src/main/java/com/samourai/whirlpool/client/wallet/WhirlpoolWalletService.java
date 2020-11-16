@@ -106,9 +106,16 @@ public class WhirlpoolWalletService {
     Tx0Service tx0Service = new Tx0Service(config);
     Bech32UtilGeneric bech32Util = Bech32UtilGeneric.getInstance();
 
+    int externalIndexDefault =
+        config.getExternalDestination() != null
+            ? config.getExternalDestination().getStartIndex()
+            : 0;
     WalletSupplier walletSupplier =
         new WalletSupplier(
-            new WalletStatePersister(walletStateFileName), config.getBackendApi(), hdWallet);
+            new WalletStatePersister(walletStateFileName),
+            config.getBackendApi(),
+            hdWallet,
+            externalIndexDefault);
 
     PoolSupplier poolSupplier =
         new PoolSupplier(config.getRefreshPoolsDelay(), config.getServerApi());

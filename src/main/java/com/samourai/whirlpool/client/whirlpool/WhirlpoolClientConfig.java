@@ -4,12 +4,14 @@ import com.samourai.http.client.HttpUsage;
 import com.samourai.http.client.IHttpClient;
 import com.samourai.http.client.IHttpClientService;
 import com.samourai.stomp.client.IStompClientService;
+import com.samourai.whirlpool.client.wallet.beans.ExternalDestination;
 import org.bitcoinj.core.NetworkParameters;
 
 public class WhirlpoolClientConfig {
   private IHttpClientService httpClientService;
   private IStompClientService stompClientService;
   private ServerApi serverApi;
+  private ExternalDestination externalDestination;
   private NetworkParameters networkParameters;
   private boolean mobile;
   private int reconnectDelay;
@@ -19,15 +21,25 @@ public class WhirlpoolClientConfig {
       IHttpClientService httpClientService,
       IStompClientService stompClientService,
       ServerApi serverApi,
+      ExternalDestination externalDestination,
       NetworkParameters networkParameters,
       boolean mobile) {
-    this(httpClientService, stompClientService, serverApi, networkParameters, mobile, 5, 500);
+    this(
+        httpClientService,
+        stompClientService,
+        serverApi,
+        externalDestination,
+        networkParameters,
+        mobile,
+        5,
+        500);
   }
 
   public WhirlpoolClientConfig(
       IHttpClientService httpClientService,
       IStompClientService stompClientService,
       ServerApi serverApi,
+      ExternalDestination externalDestination,
       NetworkParameters networkParameters,
       boolean mobile,
       int reconnectDelay,
@@ -35,6 +47,7 @@ public class WhirlpoolClientConfig {
     this.httpClientService = httpClientService;
     this.stompClientService = stompClientService;
     this.serverApi = serverApi;
+    this.externalDestination = externalDestination;
     this.networkParameters = networkParameters;
     this.mobile = mobile;
     this.reconnectDelay = reconnectDelay;
@@ -55,6 +68,14 @@ public class WhirlpoolClientConfig {
 
   public void setServerApi(ServerApi serverApi) {
     this.serverApi = serverApi;
+  }
+
+  public ExternalDestination getExternalDestination() {
+    return externalDestination;
+  }
+
+  public void setExternalDestination(ExternalDestination externalDestination) {
+    this.externalDestination = externalDestination;
   }
 
   public NetworkParameters getNetworkParameters() {

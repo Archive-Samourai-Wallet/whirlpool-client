@@ -88,7 +88,7 @@ public class MixOrchestratorImpl extends MixOrchestrator {
 
   private MixParams computeMixParams(WhirlpoolUtxo whirlpoolUtxo, Pool pool) {
     IPremixHandler premixHandler = computePremixHandler(whirlpoolUtxo);
-    IPostmixHandler postmixHandler = computePostmixHandler();
+    IPostmixHandler postmixHandler = computePostmixHandler(whirlpoolUtxo);
     return new MixParams(pool.getPoolId(), pool.getDenomination(), premixHandler, postmixHandler);
   }
 
@@ -142,7 +142,42 @@ public class MixOrchestratorImpl extends MixOrchestrator {
     return new PremixHandler(utxoWithBalance, premixKey, userPreHash);
   }
 
-  private IPostmixHandler computePostmixHandler() {
+  private IPostmixHandler computePostmixHandler(WhirlpoolUtxo whirlpoolUtxo) {
+    ExternalDestination externalDestination = config.getExternalDestination();
+    if (externalDestination != null) {
+      int nextMixsDone = whirlpoolUtxo.getMixsDone() + 1;
+      if (nextMixsDone >= externalDestination.getMixs()) {
+        // random factor for privacy
+        if (ClientUtils.random(0, externalDestination.getMixsRandomFactor()) != 0) {
+          if (log.isDebugEnabled()) {
+            log.debug("Mixing to EXTERNAL (" + whirlpoolUtxo + ")");
+          }
+          return new XPubPostmixHandler(
+              externalDestination.getXpub(),
+              externalDestination.getChain(),
+              externalDestination.getStartIndex(),
+              whirlpoolWallet.getWalletSupplier().getExternalIndexHandler());
+        } else {
+          if (log.isDebugEnabled()) {
+            log.debug(
+                "Mixing to POSTMIX, external destination randomly delayed for privacy ("
+                    + whirlpoolUtxo
+                    + ")");
+          }
+        }
+      } else {
+        if (log.isDebugEnabled()) {
+          log.debug(
+              "Mixing to POSTMIX, mix "
+                  + nextMixsDone
+                  + "/"
+                  + externalDestination.getMixs()
+                  + " ("
+                  + whirlpoolUtxo
+                  + ")");
+        }
+      }
+    }
     return new Bip84PostmixHandler(whirlpoolWallet.getWalletPostmix(), config.isMobile());
   }
 }

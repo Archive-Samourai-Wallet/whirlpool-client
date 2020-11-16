@@ -6,7 +6,7 @@ public interface IPostmixHandler {
 
   String computeReceiveAddress(NetworkParameters params) throws Exception;
 
-  void confirmReceiveAddress();
+  void onRegisterOutput();
 
-  void cancelReceiveAddress();
+  void onMixFail();
 }
