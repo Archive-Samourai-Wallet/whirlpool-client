@@ -225,16 +225,15 @@ public abstract class MixOrchestrator extends AbstractOrchestrator {
     return !isMaxClientsPerPoolReached(poolId, liquidity);
   }
 
-  public boolean isMaxClientsPerPoolReached(String poolId, boolean liquidity) {
+  private boolean isMaxClientsPerPoolReached(String poolId, boolean liquidity) {
+    // allow additional thread for concurrent liquidity remixing
+    if (liquidity && liquidityClient && data.getNbMixing(poolId, true) == 0) {
+      return false;
+    }
+
     // check maxClientsPerPool vs pool's mixings
     int nbMixingInPool = data.getNbMixing(poolId);
-
-    int maxMixingPerPool = maxClientsPerPool;
-    if (liquidity && liquidityClient) {
-      // allow additional thread for concurrent liquidity remixing
-      maxMixingPerPool++;
-    }
-    return (nbMixingInPool >= maxMixingPerPool);
+    return (nbMixingInPool >= maxClientsPerPool);
   }
 
   // returns [mixable,mixingToSwapOrNull]
