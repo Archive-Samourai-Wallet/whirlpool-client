@@ -60,7 +60,7 @@ public class UtxoSupplierTest extends AbstractTest {
     String fileName = "/tmp/walletState";
     resetFile(fileName);
     WalletStatePersister persister = new WalletStatePersister(fileName);
-    return new WalletSupplier(persister, backendApi, hdWallet);
+    return new WalletSupplier(persister, backendApi, hdWallet, 0);
   }
 
   @BeforeEach
