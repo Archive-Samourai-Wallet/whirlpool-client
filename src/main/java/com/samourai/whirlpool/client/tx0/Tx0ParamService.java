@@ -20,9 +20,9 @@ public class Tx0ParamService {
     this.config = config;
   }
 
-  public Tx0Param getTx0Param(Pool pool, Tx0FeeTarget tx0FeeTarget) {
+  public Tx0Param getTx0Param(Pool pool, Tx0FeeTarget tx0FeeTarget, Tx0FeeTarget mixFeeTarget) {
     int feeTx0 = minerFeeSupplier.getFee(tx0FeeTarget);
-    int feePremix = getFeePremix();
+    int feePremix = minerFeeSupplier.getFee(mixFeeTarget);
     Long overspendOrNull = config.getOverspend(pool.getPoolId());
     Tx0Param tx0Param =
         new Tx0Param(config.getNetworkParameters(), feeTx0, feePremix, pool, overspendOrNull);
@@ -32,7 +32,7 @@ public class Tx0ParamService {
   public Collection<Pool> findPools(Collection<Pool> poolsByPreference, long utxoValue) {
     List<Pool> eligiblePools = new LinkedList<Pool>();
     for (Pool pool : poolsByPreference) {
-      Tx0Param tx0Param = getTx0Param(pool, Tx0FeeTarget.MIN);
+      Tx0Param tx0Param = getTx0Param(pool, Tx0FeeTarget.MIN, Tx0FeeTarget.MIN);
       boolean eligible = tx0Param.isTx0Possible(utxoValue);
       if (eligible) {
         eligiblePools.add(pool);
@@ -41,19 +41,16 @@ public class Tx0ParamService {
     return eligiblePools;
   }
 
-  private int getFeePremix() {
-    return minerFeeSupplier.getFee(config.getFeeTargetPremix());
-  }
-
-  public boolean isTx0Possible(Pool pool, Tx0FeeTarget tx0FeeTarget, long utxoValue) {
-    Tx0Param tx0Param = getTx0Param(pool, tx0FeeTarget);
+  public boolean isTx0Possible(
+      Pool pool, Tx0FeeTarget tx0FeeTarget, Tx0FeeTarget mixFeeTarget, long utxoValue) {
+    Tx0Param tx0Param = getTx0Param(pool, tx0FeeTarget, mixFeeTarget);
     return tx0Param.isTx0Possible(utxoValue);
   }
 
   public boolean isPoolApplicable(Pool pool, WhirlpoolUtxo whirlpoolUtxo) {
     long utxoValue = whirlpoolUtxo.getUtxo().value;
     if (whirlpoolUtxo.isAccountDeposit()) {
-      return isTx0Possible(pool, Tx0FeeTarget.MIN, utxoValue);
+      return isTx0Possible(pool, Tx0FeeTarget.MIN, Tx0FeeTarget.MIN, utxoValue);
     }
     if (whirlpoolUtxo.isAccountPremix()) {
       return pool.checkInputBalance(utxoValue, false);

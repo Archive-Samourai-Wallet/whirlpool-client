@@ -2,9 +2,7 @@ package com.samourai.whirlpool.client.wallet.data.utxo;
 
 import com.samourai.wallet.api.backend.beans.WalletResponse;
 import com.samourai.whirlpool.client.utils.MessageListener;
-import com.samourai.whirlpool.client.wallet.beans.WhirlpoolAccount;
-import com.samourai.whirlpool.client.wallet.beans.WhirlpoolUtxo;
-import com.samourai.whirlpool.client.wallet.beans.WhirlpoolUtxoChanges;
+import com.samourai.whirlpool.client.wallet.beans.*;
 import com.samourai.whirlpool.client.wallet.data.BasicSupplier;
 import com.samourai.whirlpool.client.wallet.data.minerFee.WalletDataSupplier;
 import com.samourai.whirlpool.client.wallet.data.minerFee.WalletSupplier;
@@ -78,7 +76,12 @@ public class UtxoSupplier extends BasicSupplier<UtxoData> {
   }
 
   public Collection<WhirlpoolUtxo> findUtxos(final WhirlpoolAccount... whirlpoolAccounts) {
-    return getValue().findUtxos(whirlpoolAccounts);
+    return getValue().findUtxos(false, whirlpoolAccounts);
+  }
+
+  public Collection<WhirlpoolUtxo> findUtxos(
+      final boolean excludeNoPool, final WhirlpoolAccount... whirlpoolAccounts) {
+    return getValue().findUtxos(excludeNoPool, whirlpoolAccounts);
   }
 
   public long getBalance(WhirlpoolAccount whirlpoolAccount) {

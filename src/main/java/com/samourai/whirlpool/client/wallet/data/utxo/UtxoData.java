@@ -2,10 +2,7 @@ package com.samourai.whirlpool.client.wallet.data.utxo;
 
 import com.samourai.wallet.api.backend.beans.UnspentOutput;
 import com.samourai.whirlpool.client.utils.ClientUtils;
-import com.samourai.whirlpool.client.wallet.beans.WhirlpoolAccount;
-import com.samourai.whirlpool.client.wallet.beans.WhirlpoolUtxo;
-import com.samourai.whirlpool.client.wallet.beans.WhirlpoolUtxoChanges;
-import com.samourai.whirlpool.client.wallet.beans.WhirlpoolUtxoStatus;
+import com.samourai.whirlpool.client.wallet.beans.*;
 import com.samourai.whirlpool.client.wallet.data.minerFee.WalletSupplier;
 import java.util.Collection;
 import java.util.LinkedHashMap;
@@ -103,7 +100,7 @@ public class UtxoData {
     this.balanceByAccount = new LinkedHashMap<WhirlpoolAccount, Long>();
     long total = 0;
     for (WhirlpoolAccount account : WhirlpoolAccount.getListByActive(true)) {
-      Collection<WhirlpoolUtxo> utxosForAccount = findUtxos(account);
+      Collection<WhirlpoolUtxo> utxosForAccount = findUtxos(false, account);
       long balance = ClientUtils.computeUtxosBalance(utxosForAccount);
       balanceByAccount.put(account, balance);
       total += balance;
@@ -130,13 +127,24 @@ public class UtxoData {
     return utxos.get(utxoKey);
   }
 
-  public Collection<WhirlpoolUtxo> findUtxos(final WhirlpoolAccount... whirlpoolAccounts) {
+  public Collection<WhirlpoolUtxo> findUtxos(
+      final boolean excludeNoPool, final WhirlpoolAccount... whirlpoolAccounts) {
     return StreamSupport.stream(utxos.values())
         .filter(
             new Predicate<WhirlpoolUtxo>() {
               @Override
               public boolean test(WhirlpoolUtxo whirlpoolUtxo) {
-                return ArrayUtils.contains(whirlpoolAccounts, whirlpoolUtxo.getAccount());
+                if (!ArrayUtils.contains(whirlpoolAccounts, whirlpoolUtxo.getAccount())) {
+                  return false;
+                }
+                if (excludeNoPool) {
+                  if (whirlpoolUtxo.getUtxoState() != null
+                      && MixableStatus.NO_POOL.equals(
+                          whirlpoolUtxo.getUtxoState().getMixableStatus())) {
+                    return false;
+                  }
+                }
+                return true;
               }
             })
         .collect(Collectors.<WhirlpoolUtxo>toList());

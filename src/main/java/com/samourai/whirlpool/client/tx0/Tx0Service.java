@@ -97,7 +97,7 @@ public class Tx0Service {
             tx0Preview.getPremixValue(),
             tx0Preview.getNbPremix(),
             tx0Preview.computeFeeValueOrFeeChange(),
-            tx0Preview.getMinerFee());
+            tx0Preview.getTx0MinerFee());
     return tx0SpendValue + tx0Preview.getChangeValue();
   }
 
@@ -142,12 +142,16 @@ public class Tx0Service {
     NetworkParameters params = config.getNetworkParameters();
     long feeValueOrFeeChange = tx0Data.computeFeeValueOrFeeChange();
     int nbPremix = computeNbPremixMax(premixValue, spendFroms, feeValueOrFeeChange, feeTx0);
-    long minerFee = ClientUtils.computeTx0MinerFee(nbPremix, feeTx0, spendFroms, params);
+    long tx0MinerFee = ClientUtils.computeTx0MinerFee(nbPremix, feeTx0, spendFroms, params);
+    long premixMinerFee = tx0Param.getPremixValue() - tx0Param.getPool().getDenomination();
+    long mixMinerFee = nbPremix * premixMinerFee;
     long spendValue =
-        ClientUtils.computeTx0SpendValue(premixValue, nbPremix, feeValueOrFeeChange, minerFee);
+        ClientUtils.computeTx0SpendValue(premixValue, nbPremix, feeValueOrFeeChange, tx0MinerFee);
     long changeValue = spendFromBalance - spendValue;
 
-    Tx0Preview tx0Preview = new Tx0Preview(tx0Data, minerFee, premixValue, changeValue, nbPremix);
+    Tx0Preview tx0Preview =
+        new Tx0Preview(
+            tx0Data, tx0MinerFee, mixMinerFee, premixMinerFee, premixValue, changeValue, nbPremix);
 
     // verify outputsSum
     long outputsSum = computeOutputsSum(tx0Preview);
@@ -322,7 +326,7 @@ public class Tx0Service {
     if (log.isDebugEnabled()) {
       log.debug("Tx0 hash: " + strTxHash);
       log.debug("Tx0 hex: " + hexTx);
-      long feePrice = tx0Preview.getMinerFee() / tx.getVirtualTransactionSize();
+      long feePrice = tx0Preview.getTx0MinerFee() / tx.getVirtualTransactionSize();
       log.debug("Tx0 size: " + tx.getVirtualTransactionSize() + "b, feePrice=" + feePrice + "s/b");
     }
     return tx0;

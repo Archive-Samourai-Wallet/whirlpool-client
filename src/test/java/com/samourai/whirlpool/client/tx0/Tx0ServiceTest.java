@@ -86,7 +86,7 @@ public class Tx0ServiceTest extends AbstractTest {
             tx0Config,
             tx0Param,
             tx0Data);
-    Assertions.assertEquals(572, tx0Preview.getMinerFee());
+    Assertions.assertEquals(572, tx0Preview.getTx0MinerFee());
     Assertions.assertEquals(feeValue, tx0Preview.getFeeValue());
     Assertions.assertEquals(feeChange, tx0Preview.getFeeChange());
     Assertions.assertEquals(feeDiscountPercent, tx0Preview.getFeeDiscountPercent());
@@ -212,7 +212,7 @@ public class Tx0ServiceTest extends AbstractTest {
             tx0Config,
             tx0Param,
             tx0Data);
-    Assertions.assertEquals(TX0_SIZE * feeTx0, tx0Preview.getMinerFee());
+    Assertions.assertEquals(TX0_SIZE * feeTx0, tx0Preview.getTx0MinerFee());
 
     // feeTx0
     feeTx0 = 5;
@@ -223,7 +223,7 @@ public class Tx0ServiceTest extends AbstractTest {
             tx0Config,
             tx0Param,
             tx0Data);
-    Assertions.assertEquals(TX0_SIZE * feeTx0, tx0Preview.getMinerFee());
+    Assertions.assertEquals(TX0_SIZE * feeTx0, tx0Preview.getTx0MinerFee());
 
     // feeTx0
     feeTx0 = 50;
@@ -234,7 +234,7 @@ public class Tx0ServiceTest extends AbstractTest {
             tx0Config,
             tx0Param,
             tx0Data);
-    Assertions.assertEquals(TX0_SIZE * feeTx0, tx0Preview.getMinerFee());
+    Assertions.assertEquals(TX0_SIZE * feeTx0, tx0Preview.getTx0MinerFee());
   }
 
   @Test
@@ -322,7 +322,7 @@ public class Tx0ServiceTest extends AbstractTest {
   }
 
   private void assertEquals(Tx0Preview tp, Tx0Preview tp2) {
-    Assertions.assertEquals(tp.getMinerFee(), tp2.getMinerFee());
+    Assertions.assertEquals(tp.getTx0MinerFee(), tp2.getTx0MinerFee());
     Assertions.assertEquals(tp.getFeeValue(), tp2.getFeeValue());
     Assertions.assertEquals(tp.getFeeChange(), tp2.getFeeChange());
     Assertions.assertEquals(tp.getFeeDiscountPercent(), tp2.getFeeDiscountPercent());
@@ -376,7 +376,9 @@ public class Tx0ServiceTest extends AbstractTest {
     long premixValue = 1000150;
     String feePaymentCode =
         "PM8TJXp19gCE6hQzqRi719FGJzF6AreRwvoQKLRnQ7dpgaakakFns22jHUqhtPQWmfevPQRCyfFbdDrKvrfw9oZv5PjaCerQMa3BKkPyUf9yN1CDR3w6";
-    int feeSatPerByte = 1;
+    long tx0MinerFee = 1;
+    long premixMinerFee = 150;
+    long mixMinerFee = premixMinerFee * nbOutputsExpected;
     byte[] feePayload = new byte[] {1, 2};
     long feeValue = 0;
     long feeChange = FEE_VALUE;
@@ -393,7 +395,14 @@ public class Tx0ServiceTest extends AbstractTest {
             0);
 
     Tx0Preview tx0Preview =
-        new Tx0Preview(tx0Data, feeSatPerByte, premixValue, changeValue, nbOutputsExpected);
+        new Tx0Preview(
+            tx0Data,
+            tx0MinerFee,
+            mixMinerFee,
+            premixMinerFee,
+            premixValue,
+            changeValue,
+            nbOutputsExpected);
 
     Tx0 tx0 =
         tx0Service.tx0(
@@ -406,7 +415,9 @@ public class Tx0ServiceTest extends AbstractTest {
             tx0Preview);
 
     assertEquals(tx0Preview, tx0);
-    Assertions.assertEquals(feeSatPerByte, tx0Preview.getMinerFee());
+    Assertions.assertEquals(tx0MinerFee, tx0Preview.getTx0MinerFee());
+    Assertions.assertEquals(premixMinerFee, tx0Preview.getPremixMinerFee());
+    Assertions.assertEquals(mixMinerFee, tx0Preview.getMixMinerFee());
     Assertions.assertEquals(feeValue, tx0Preview.getFeeValue());
     Assertions.assertEquals(feeChange, tx0Preview.getFeeChange());
     Assertions.assertEquals(feeDiscountPercent, tx0Preview.getFeeDiscountPercent());
@@ -503,7 +514,7 @@ public class Tx0ServiceTest extends AbstractTest {
             tx0Preview);
 
     assertEquals(tx0Preview, tx0);
-    Assertions.assertEquals(feeSatPerByte, tx0Preview.getMinerFee());
+    Assertions.assertEquals(feeSatPerByte, tx0Preview.getTx0MinerFee());
     Assertions.assertEquals(feeValue, tx0Preview.getFeeValue());
     Assertions.assertEquals(feeChange, tx0Preview.getFeeChange());
     Assertions.assertEquals(feeDiscountPercent, tx0Preview.getFeeDiscountPercent());
@@ -625,7 +636,9 @@ public class Tx0ServiceTest extends AbstractTest {
     long premixValue = 1000150;
     String feePaymentCode =
         "PM8TJXp19gCE6hQzqRi719FGJzF6AreRwvoQKLRnQ7dpgaakakFns22jHUqhtPQWmfevPQRCyfFbdDrKvrfw9oZv5PjaCerQMa3BKkPyUf9yN1CDR3w6";
-    int feeSatPerByte = 1;
+    long tx0MinerFee = 1;
+    long premixMinerFee = 150;
+    long mixMinerFee = premixMinerFee * nbOutputsExpected;
     byte[] feePayload = new byte[] {1, 2};
     long feeValue = 0;
     long feeChange = FEE_VALUE;
@@ -644,7 +657,14 @@ public class Tx0ServiceTest extends AbstractTest {
             0);
 
     Tx0Preview tx0Preview =
-        new Tx0Preview(tx0Data, feeSatPerByte, premixValue, changeValue, nbOutputsExpected);
+        new Tx0Preview(
+            tx0Data,
+            tx0MinerFee,
+            premixMinerFee,
+            mixMinerFee,
+            premixValue,
+            changeValue,
+            nbOutputsExpected);
     Tx0 tx0 =
         tx0Service.tx0(
             Lists.of(new UnspentOutputWithKey(spendFrom, spendFromKey.getPrivKeyBytes())),
@@ -656,7 +676,9 @@ public class Tx0ServiceTest extends AbstractTest {
             tx0Preview);
 
     assertEquals(tx0Preview, tx0);
-    Assertions.assertEquals(feeSatPerByte, tx0Preview.getMinerFee());
+    Assertions.assertEquals(tx0MinerFee, tx0Preview.getTx0MinerFee());
+    Assertions.assertEquals(premixMinerFee, tx0Preview.getPremixMinerFee());
+    Assertions.assertEquals(mixMinerFee, tx0Preview.getMixMinerFee());
     Assertions.assertEquals(feeValue, tx0Preview.getFeeValue());
     Assertions.assertEquals(feeChange, tx0Preview.getFeeChange());
     Assertions.assertEquals(feeDiscountPercent, tx0Preview.getFeeDiscountPercent());
@@ -723,7 +745,9 @@ public class Tx0ServiceTest extends AbstractTest {
     long premixValue = 1000150;
     String feePaymentCode =
         "PM8TJXp19gCE6hQzqRi719FGJzF6AreRwvoQKLRnQ7dpgaakakFns22jHUqhtPQWmfevPQRCyfFbdDrKvrfw9oZv5PjaCerQMa3BKkPyUf9yN1CDR3w6";
-    int feeSatPerByte = 1;
+    long tx0MinerFee = 1;
+    long premixMinerFee = 150;
+    long mixMinerFee = premixMinerFee * nbOutputsExpected;
     byte[] feePayload = new byte[] {1, 2};
     long feeValue = FEE_VALUE / 2;
     long feeChange = 0;
@@ -742,7 +766,14 @@ public class Tx0ServiceTest extends AbstractTest {
             0);
 
     Tx0Preview tx0Preview =
-        new Tx0Preview(tx0Data, feeSatPerByte, premixValue, changeValue, nbOutputsExpected);
+        new Tx0Preview(
+            tx0Data,
+            tx0MinerFee,
+            mixMinerFee,
+            premixMinerFee,
+            premixValue,
+            changeValue,
+            nbOutputsExpected);
     Tx0 tx0 =
         tx0Service.tx0(
             Lists.of(new UnspentOutputWithKey(spendFrom, spendFromKey.getPrivKeyBytes())),
@@ -754,7 +785,9 @@ public class Tx0ServiceTest extends AbstractTest {
             tx0Preview);
 
     assertEquals(tx0Preview, tx0);
-    Assertions.assertEquals(feeSatPerByte, tx0Preview.getMinerFee());
+    Assertions.assertEquals(tx0MinerFee, tx0Preview.getTx0MinerFee());
+    Assertions.assertEquals(premixMinerFee, tx0Preview.getPremixMinerFee());
+    Assertions.assertEquals(mixMinerFee, tx0Preview.getMixMinerFee());
     Assertions.assertEquals(feeValue, tx0Preview.getFeeValue());
     Assertions.assertEquals(feeChange, tx0Preview.getFeeChange());
     Assertions.assertEquals(feeDiscountPercent, tx0Preview.getFeeDiscountPercent());
@@ -821,7 +854,9 @@ public class Tx0ServiceTest extends AbstractTest {
     long premixValue = 1000150;
     String feePaymentCode =
         "PM8TJXp19gCE6hQzqRi719FGJzF6AreRwvoQKLRnQ7dpgaakakFns22jHUqhtPQWmfevPQRCyfFbdDrKvrfw9oZv5PjaCerQMa3BKkPyUf9yN1CDR3w6";
-    int feeSatPerByte = 1;
+    long tx0MinerFee = 1;
+    long premixMinerFee = 150;
+    long mixMinerFee = premixMinerFee * nbOutputsExpected;
     long feeValue = 0;
     long feeChange = FEE_VALUE;
     int feeDiscountPercent = 100;
@@ -839,7 +874,14 @@ public class Tx0ServiceTest extends AbstractTest {
             0);
 
     Tx0Preview tx0Preview =
-        new Tx0Preview(tx0Data, feeSatPerByte, premixValue, changeValue, nbOutputsExpected);
+        new Tx0Preview(
+            tx0Data,
+            tx0MinerFee,
+            mixMinerFee,
+            premixMinerFee,
+            premixValue,
+            changeValue,
+            nbOutputsExpected);
     Tx0 tx0 =
         tx0Service.tx0(
             Lists.of(new UnspentOutputWithKey(spendFrom, spendFromKey.getPrivKeyBytes())),
@@ -851,7 +893,9 @@ public class Tx0ServiceTest extends AbstractTest {
             tx0Preview);
 
     assertEquals(tx0Preview, tx0);
-    Assertions.assertEquals(feeSatPerByte, tx0Preview.getMinerFee());
+    Assertions.assertEquals(tx0MinerFee, tx0Preview.getTx0MinerFee());
+    Assertions.assertEquals(premixMinerFee, tx0Preview.getPremixMinerFee());
+    Assertions.assertEquals(mixMinerFee, tx0Preview.getMixMinerFee());
     Assertions.assertEquals(feeValue, tx0Preview.getFeeValue());
     Assertions.assertEquals(feeChange, tx0Preview.getFeeChange());
     Assertions.assertEquals(feeDiscountPercent, tx0Preview.getFeeDiscountPercent());
@@ -918,7 +962,9 @@ public class Tx0ServiceTest extends AbstractTest {
     long premixValue = 1000150;
     String feePaymentCode =
         "PM8TJXp19gCE6hQzqRi719FGJzF6AreRwvoQKLRnQ7dpgaakakFns22jHUqhtPQWmfevPQRCyfFbdDrKvrfw9oZv5PjaCerQMa3BKkPyUf9yN1CDR3w6";
-    int feeSatPerByte = 1;
+    long tx0MinerFee = 1;
+    long premixMinerFee = 150;
+    long mixMinerFee = premixMinerFee * nbOutputsExpected;
     long feeValue = 0;
     long feeChange = FEE_VALUE;
     int feeDiscountPercent = 100;
@@ -936,7 +982,14 @@ public class Tx0ServiceTest extends AbstractTest {
             0);
 
     Tx0Preview tx0Preview =
-        new Tx0Preview(tx0Data, feeSatPerByte, premixValue, changeValue, nbOutputsExpected);
+        new Tx0Preview(
+            tx0Data,
+            tx0MinerFee,
+            mixMinerFee,
+            premixMinerFee,
+            premixValue,
+            changeValue,
+            nbOutputsExpected);
     Tx0 tx0 =
         tx0Service.tx0(
             Lists.of(new UnspentOutputWithKey(spendFrom, spendFromKey.getPrivKeyBytes())),
@@ -948,7 +1001,9 @@ public class Tx0ServiceTest extends AbstractTest {
             tx0Preview);
 
     assertEquals(tx0Preview, tx0);
-    Assertions.assertEquals(feeSatPerByte, tx0Preview.getMinerFee());
+    Assertions.assertEquals(tx0MinerFee, tx0Preview.getTx0MinerFee());
+    Assertions.assertEquals(premixMinerFee, tx0Preview.getPremixMinerFee());
+    Assertions.assertEquals(mixMinerFee, tx0Preview.getMixMinerFee());
     Assertions.assertEquals(feeValue, tx0Preview.getFeeValue());
     Assertions.assertEquals(feeChange, tx0Preview.getFeeChange());
     Assertions.assertEquals(feeDiscountPercent, tx0Preview.getFeeDiscountPercent());

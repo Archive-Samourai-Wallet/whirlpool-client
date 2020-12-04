@@ -3,7 +3,6 @@ package com.samourai.whirlpool.client.wallet;
 import com.samourai.http.client.IHttpClientService;
 import com.samourai.stomp.client.IStompClientService;
 import com.samourai.wallet.api.backend.BackendApi;
-import com.samourai.wallet.api.backend.MinerFeeTarget;
 import com.samourai.wallet.bip47.rpc.java.SecretPointFactoryJava;
 import com.samourai.wallet.bip47.rpc.secretPoint.ISecretPointFactory;
 import com.samourai.whirlpool.client.tx0.ITx0ParamServiceConfig;
@@ -42,7 +41,6 @@ public class WhirlpoolWalletConfig extends WhirlpoolClientConfig implements ITx0
   private int feeMin;
   private int feeMax;
   private int feeFallback;
-  private MinerFeeTarget feeTargetPremix;
 
   private boolean resyncOnFirstRun;
 
@@ -79,7 +77,6 @@ public class WhirlpoolWalletConfig extends WhirlpoolClientConfig implements ITx0
     this.feeMin = 1;
     this.feeMax = 510;
     this.feeFallback = 75;
-    this.feeTargetPremix = MinerFeeTarget.BLOCKS_12;
 
     this.resyncOnFirstRun = false;
 
@@ -230,14 +227,6 @@ public class WhirlpoolWalletConfig extends WhirlpoolClientConfig implements ITx0
     this.feeFallback = feeFallback;
   }
 
-  public MinerFeeTarget getFeeTargetPremix() {
-    return feeTargetPremix;
-  }
-
-  public void setFeeTargetPremix(MinerFeeTarget feeTargetPremix) {
-    this.feeTargetPremix = feeTargetPremix;
-  }
-
   public boolean isResyncOnFirstRun() {
     return resyncOnFirstRun;
   }
@@ -292,15 +281,7 @@ public class WhirlpoolWalletConfig extends WhirlpoolClientConfig implements ITx0
             + ", overspend="
             + (overspend != null ? overspend.toString() : "null"));
     configInfo.put(
-        "fee",
-        "fallback="
-            + getFeeFallback()
-            + ", min="
-            + getFeeMin()
-            + ", max="
-            + getFeeMax()
-            + ", targetPremix="
-            + getFeeTargetPremix());
+        "fee", "fallback=" + getFeeFallback() + ", min=" + getFeeMin() + ", max=" + getFeeMax());
     configInfo.put("resyncOnFirstRun", Boolean.toString(resyncOnFirstRun));
     return configInfo;
   }
