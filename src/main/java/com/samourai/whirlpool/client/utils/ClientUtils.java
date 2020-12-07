@@ -10,6 +10,7 @@ import com.samourai.wallet.util.CallbackWithArg;
 import com.samourai.wallet.util.FeeUtil;
 import com.samourai.wallet.util.FormatsUtilGeneric;
 import com.samourai.whirlpool.client.exception.NotifiableException;
+import com.samourai.whirlpool.client.tx0.UnspentOutputWithKey;
 import com.samourai.whirlpool.client.wallet.beans.WhirlpoolUtxo;
 import com.samourai.whirlpool.client.wallet.beans.WhirlpoolUtxoState;
 import com.samourai.whirlpool.protocol.WhirlpoolProtocol;
@@ -26,6 +27,7 @@ import java.security.interfaces.RSAPublicKey;
 import java.security.spec.X509EncodedKeySpec;
 import java.util.*;
 import java8.util.Optional;
+import java8.util.concurrent.ThreadLocalRandom;
 import java8.util.function.ToLongFunction;
 import java8.util.stream.StreamSupport;
 import org.bitcoinj.core.*;
@@ -267,7 +269,11 @@ public class ClientUtils {
   }
 
   public static int random(int minInclusive, int maxInclusive) {
-    return secureRandom.nextInt(maxInclusive + 1 - minInclusive) + minInclusive;
+    return ThreadLocalRandom.current().nextInt(minInclusive, maxInclusive + 1);
+  }
+
+  public static long random(long minInclusive, long maxInclusive) {
+    return ThreadLocalRandom.current().nextLong(minInclusive, maxInclusive + 1);
   }
 
   public static void safeWrite(File file, CallbackWithArg<File> callback) throws Exception {
@@ -396,5 +402,13 @@ public class ClientUtils {
       long premixValue, int nbPremix, long feeValueOrFeeChange, long tx0MinerFee) {
     long spendValue = (premixValue * nbPremix) + feeValueOrFeeChange + tx0MinerFee;
     return spendValue;
+  }
+
+  public static int countPrevTxs(Collection<UnspentOutputWithKey> spendFroms) {
+    Map<String, Boolean> mapByPrevTx = new LinkedHashMap<String, Boolean>();
+    for (UnspentOutputWithKey spendFrom : spendFroms) {
+      mapByPrevTx.put(spendFrom.tx_hash, true);
+    }
+    return mapByPrevTx.size();
   }
 }

@@ -7,17 +7,17 @@ import org.bitcoinj.core.TransactionOutput;
 public class Tx0 extends Tx0Preview {
   private Transaction tx;
   private List<TransactionOutput> premixOutputs;
-  private TransactionOutput changeOutput;
+  private List<TransactionOutput> changeOutputs;
 
   public Tx0(
       Tx0Preview tx0Preview,
       Transaction tx,
       List<TransactionOutput> premixOutputs,
-      TransactionOutput changeOutput) {
+      List<TransactionOutput> changeOutputs) {
     super(tx0Preview);
     this.tx = tx;
     this.premixOutputs = premixOutputs;
-    this.changeOutput = changeOutput;
+    this.changeOutputs = changeOutputs;
   }
 
   public Transaction getTx() {
@@ -28,7 +28,7 @@ public class Tx0 extends Tx0Preview {
     return premixOutputs;
   }
 
-  public TransactionOutput getChangeOutput() {
-    return changeOutput;
+  public List<TransactionOutput> getChangeOutputs() {
+    return changeOutputs;
   }
 }

@@ -31,7 +31,7 @@ import org.slf4j.LoggerFactory;
 
 public class Tx0Service {
   private Logger log = LoggerFactory.getLogger(Tx0Service.class);
-  protected static final int NB_PREMIX_MAX = 70;
+  private static final int NB_PREMIX_MAX = 70;
 
   private final Bech32UtilGeneric bech32Util = Bech32UtilGeneric.getInstance();
   private final FormatsUtilGeneric formatsUtilGeneric = FormatsUtilGeneric.getInstance();
@@ -368,7 +368,7 @@ public class Tx0Service {
     long premixValue = tx0Preview.getPremixValue();
     long feeValueOrFeeChange = tx0Preview.computeFeeValueOrFeeChange();
     int nbPremix = capNbPremix(tx0Preview.getNbPremix());
-    long changeValue = tx0Preview.getChangeValue();
+    long changeValueTotal = tx0Preview.getChangeValue();
 
     // verify
 
@@ -430,30 +430,45 @@ public class Tx0Service {
       premixOutputs.add(txOutSpend);
     }
 
-    TransactionOutput changeOutput = null;
-    if (changeValue > 0) {
-      //
-      // 1 change output
-      //
-      HD_Address changeAddress = changeWallet.getNextChangeAddress();
-      String changeAddressBech32 = bech32Util.toBech32(changeAddress, params);
-      changeOutput = bech32Util.getTransactionOutput(changeAddressBech32, changeValue, params);
-      outputs.add(changeOutput);
-      if (log.isDebugEnabled()) {
-        log.debug(
-            "Tx0 out (change): address="
-                + changeAddressBech32
-                + ", path="
-                + changeAddress.toJSON().get("path")
-                + " ("
-                + changeValue
-                + " sats)");
+    //
+    // 1 or 2 change output(s)
+    //
+    List<TransactionOutput> changeOutputs = new LinkedList<TransactionOutput>();
+    if (changeValueTotal > 0) {
+      boolean useFakeOutputs = useFakeOutput(sortedSpendFroms);
+      long[] changeValues = computeChangeValues(changeValueTotal, useFakeOutputs);
+      for (long changeValue : changeValues) {
+        if (changeValue < config.getTx0FakeOutputMinValue()) {
+          throw new Exception(
+              "Invalid fake change detected, please report this bug. changeValueTotal="
+                  + changeValueTotal
+                  + ", changeValues="
+                  + changeValues
+                  + ", tx0FakeOutputMinValue="
+                  + config.getTx0FakeOutputMinValue());
+        }
+        HD_Address changeAddress = changeWallet.getNextChangeAddress();
+        String changeAddressBech32 = bech32Util.toBech32(changeAddress, params);
+        TransactionOutput changeOutput =
+            bech32Util.getTransactionOutput(changeAddressBech32, changeValue, params);
+        outputs.add(changeOutput);
+        changeOutputs.add(changeOutput);
+        if (log.isDebugEnabled()) {
+          log.debug(
+              "Tx0 out (change): address="
+                  + changeAddressBech32
+                  + ", path="
+                  + changeAddress.toJSON().get("path")
+                  + " ("
+                  + changeValue
+                  + " sats)");
+        }
       }
     } else {
       if (log.isDebugEnabled()) {
         log.debug("Tx0: spending whole utx0, no change");
       }
-      if (changeValue < 0) {
+      if (changeValueTotal < 0) {
         throw new Exception(
             "Negative change detected, please report this bug. tx0Preview=" + tx0Preview);
       }
@@ -506,8 +521,58 @@ public class Tx0Service {
     signTx0(tx, sortedSpendFroms, params);
     tx.verify();
 
-    Tx0 tx0 = new Tx0(tx0Preview, tx, premixOutputs, changeOutput);
+    Tx0 tx0 = new Tx0(tx0Preview, tx, premixOutputs, changeOutputs);
     return tx0;
+  }
+
+  private boolean useFakeOutput(Collection<UnspentOutputWithKey> spendFroms) {
+    // single prev-tx => never
+    int nbPrevTxs = ClientUtils.countPrevTxs(spendFroms);
+    if (nbPrevTxs == 1) {
+      if (log.isDebugEnabled()) {
+        log.debug("useFakeOutput => false (nbPrevTxs=" + nbPrevTxs + ")");
+      }
+      return false;
+    }
+
+    int randomFactor = config.getTx0FakeOutputRandomFactor();
+    // 0 => never
+    if (randomFactor == 0) {
+      if (log.isDebugEnabled()) {
+        log.debug("useFakeOutput => false (randomFactor=" + randomFactor + ")");
+      }
+      return false;
+    }
+    // 1 => always
+    if (randomFactor == 1) {
+      if (log.isDebugEnabled()) {
+        log.debug("useFakeOutput => true (randomFactor=" + randomFactor + ")");
+      }
+      return true;
+    }
+    // random
+    boolean result = ClientUtils.random(1, randomFactor) == 1;
+    if (log.isDebugEnabled()) {
+      log.debug("useFakeOutput => " + result + " (randomFactor=" + randomFactor + ")");
+    }
+    return result;
+  }
+
+  protected long[] computeChangeValues(long changeValueTotal, boolean useFakeOutput) {
+    final int VALUE_MIN = config.getTx0FakeOutputMinValue();
+    if (changeValueTotal < (2 * VALUE_MIN + 1)) {
+      // changeValueTotal too low for fake output
+      useFakeOutput = false;
+    }
+    if (useFakeOutput) {
+      // 2 change outputs
+      long changeValue1 = ClientUtils.random(VALUE_MIN, changeValueTotal - VALUE_MIN);
+      long changeValue2 = changeValueTotal - changeValue1;
+      return new long[] {changeValue1, changeValue2};
+    } else {
+      // 1 change output
+      return new long[] {changeValueTotal};
+    }
   }
 
   protected void buildTx0Input(

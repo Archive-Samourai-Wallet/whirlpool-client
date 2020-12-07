@@ -10,6 +10,7 @@ import com.samourai.whirlpool.client.wallet.WhirlpoolWalletConfig;
 import com.samourai.whirlpool.client.wallet.beans.WhirlpoolAccount;
 import com.samourai.whirlpool.client.wallet.beans.WhirlpoolServer;
 import com.samourai.whirlpool.client.whirlpool.beans.Tx0Data;
+import java.util.Arrays;
 import java8.util.Lists;
 import org.bitcoinj.core.ECKey;
 import org.bitcoinj.core.Transaction;
@@ -1023,5 +1024,40 @@ public class Tx0ServiceTest extends AbstractTest {
     Assertions.assertEquals(
         "01000000000101ae24e3f5dbcee7971ae0e5b83fcb1eb67057901f2d371ca494f868b3dc8c58cc0100000000ffffffff040000000000000000426a409ae6649a7b1fc9ab17f408cbf7b41e27f3a5484650aafdf5167852bd348afa8aa8213dda856188683ab187a902923e7ec3b672a6fbb637a4063c71879f6859171027000000000000160014f6a884f18f4d7e78a4167c3e56773c3ae58e0164ee2b000000000000160014d49377882fdc939d951aa51a3c0ad6dd4a152e26d6420f00000000001600141dffe6e395c95927e4a16e8e6bd6d05604447e4d0247304402204e37d89e31eb2242049605dabc803579c717f41eea9e53e7a460e8ac7a3806800220460816a471b9dd9cae5b937368da68166d7b2d28a946a01bc1d6317018e3063801210349baf197181fe53937d225d0e7bd14d8b5f921813c038a95d7c2648500c119b000000000",
         tx0Hex);
+  }
+
+  @Test
+  public void computeChangeValues() {
+    final int MIN_VALUE = config.getTx0FakeOutputMinValue();
+    // FAKE_OUTPUT_VALUE_MIN => 1 output
+    doComputeChangeValues(MIN_VALUE, 1);
+
+    // FAKE_OUTPUT_VALUE_MIN*2 => 1 output
+    doComputeChangeValues(MIN_VALUE * 2, 1);
+
+    // FAKE_OUTPUT_VALUE_MIN*2+1 => 2 outputs
+    doComputeChangeValues(MIN_VALUE * 2 + 1, 2);
+
+    // more => 2 outputs
+    doComputeChangeValues(MIN_VALUE * 2 + 10000, 2);
+    doComputeChangeValues(MIN_VALUE * 2 + 123456789, 2);
+  }
+
+  private void doComputeChangeValues(long changeValueTotal, int nbOutputsExpected) {
+    final int ITERS = 50;
+    for (int i = 0; i < ITERS; i++) {
+      // verify nb outputs
+      long[] changeValues = tx0Service.computeChangeValues(changeValueTotal, true);
+      Assertions.assertEquals(nbOutputsExpected, changeValues.length);
+
+      // verify sum
+      long sum = 0;
+      for (long value : changeValues) {
+        Assertions.assertTrue(value >= config.getTx0FakeOutputMinValue());
+        sum += value;
+      }
+      log.debug("changeValues: " + changeValueTotal + " => " + Arrays.toString(changeValues));
+      Assertions.assertEquals(sum, changeValueTotal);
+    }
   }
 }

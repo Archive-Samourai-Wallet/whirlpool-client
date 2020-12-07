@@ -148,7 +148,14 @@ public class MixOrchestratorImpl extends MixOrchestrator {
       int nextMixsDone = whirlpoolUtxo.getMixsDone() + 1;
       if (nextMixsDone >= externalDestination.getMixs()) {
         // random factor for privacy
-        if (ClientUtils.random(0, externalDestination.getMixsRandomFactor()) != 0) {
+        if (externalDestination.useRandomFactor()) {
+          if (log.isDebugEnabled()) {
+            log.debug(
+                "Mixing to POSTMIX, external destination randomly delayed for better privacy ("
+                    + whirlpoolUtxo
+                    + ")");
+          }
+        } else {
           if (log.isDebugEnabled()) {
             log.debug("Mixing to EXTERNAL (" + whirlpoolUtxo + ")");
           }
@@ -157,13 +164,6 @@ public class MixOrchestratorImpl extends MixOrchestrator {
               externalDestination.getChain(),
               externalDestination.getStartIndex(),
               whirlpoolWallet.getWalletSupplier().getExternalIndexHandler());
-        } else {
-          if (log.isDebugEnabled()) {
-            log.debug(
-                "Mixing to POSTMIX, external destination randomly delayed for privacy ("
-                    + whirlpoolUtxo
-                    + ")");
-          }
         }
       } else {
         if (log.isDebugEnabled()) {

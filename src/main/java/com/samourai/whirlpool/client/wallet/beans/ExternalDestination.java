@@ -38,6 +38,19 @@ public class ExternalDestination {
     return mixsRandomFactor;
   }
 
+  public boolean useRandomFactor() {
+    // 0 => never
+    if (mixsRandomFactor == 0) {
+      return false;
+    }
+    // 1 => always
+    if (mixsRandomFactor == 1) {
+      return true;
+    }
+    // random
+    return ClientUtils.random(1, mixsRandomFactor) == 1;
+  }
+
   @Override
   public String toString() {
     return "xpub="
