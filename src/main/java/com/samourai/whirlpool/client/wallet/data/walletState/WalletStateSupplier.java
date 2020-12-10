@@ -39,18 +39,18 @@ public class WalletStateSupplier extends AbstractPersistableSupplier<WalletState
     }
 
     // update indexs from wallet backend
-    WalletStateData newValue = currentValue.copy();
     Map<String, WalletResponse.Address> addressesMap = walletResponse.getAddressesMap();
     for (String zpub : addressesMap.keySet()) {
       WalletResponse.Address address = addressesMap.get(zpub);
       WhirlpoolAccount account = walletSupplier.getAccountByZpub(zpub);
       if (account != null) {
-        newValue.updateIndexs(account, address);
+        // important: udpate indexs directly on currentValue to prevent index reuse (on concurrent
+        // index update)
+        currentValue.updateIndexs(account, address);
       } else {
         log.error("No account found for zpub: " + zpub);
       }
     }
-    setValue(newValue);
   }
 
   @Override
