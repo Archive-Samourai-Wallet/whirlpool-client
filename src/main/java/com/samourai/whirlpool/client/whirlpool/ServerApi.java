@@ -6,10 +6,7 @@ import com.samourai.http.client.IHttpClientService;
 import com.samourai.wallet.api.backend.BackendApi;
 import com.samourai.whirlpool.client.utils.ClientUtils;
 import com.samourai.whirlpool.protocol.WhirlpoolProtocol;
-import com.samourai.whirlpool.protocol.rest.CheckOutputRequest;
-import com.samourai.whirlpool.protocol.rest.PoolsResponse;
-import com.samourai.whirlpool.protocol.rest.RegisterOutputRequest;
-import com.samourai.whirlpool.protocol.rest.Tx0DataResponse;
+import com.samourai.whirlpool.protocol.rest.*;
 import io.reactivex.Observable;
 import java8.util.Optional;
 import org.slf4j.Logger;
@@ -82,6 +79,19 @@ public class ServerApi {
     }
     Observable<Optional<String>> observable =
         httpClientRegOutput.postJson(registerOutputUrl, String.class, null, registerOutputRequest);
+    return observable;
+  }
+
+  public Observable<Optional<String>> tx0Notify(Tx0NotifyRequest tx0NotifyRequest)
+      throws Exception {
+    httpClientRest.connect();
+
+    String url = WhirlpoolProtocol.getUrlTx0Notify(urlServer);
+    if (log.isDebugEnabled()) {
+      log.debug("POST " + url + ": " + ClientUtils.toJsonString(tx0NotifyRequest));
+    }
+    Observable<Optional<String>> observable =
+        httpClientRest.postJson(url, String.class, null, tx0NotifyRequest);
     return observable;
   }
 

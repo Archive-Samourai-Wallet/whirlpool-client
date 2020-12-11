@@ -28,6 +28,7 @@ import com.samourai.whirlpool.client.wallet.orchestrator.PersistOrchestrator;
 import com.samourai.whirlpool.client.whirlpool.beans.Pool;
 import com.samourai.whirlpool.protocol.beans.Utxo;
 import com.samourai.whirlpool.protocol.rest.CheckOutputRequest;
+import com.samourai.whirlpool.protocol.rest.Tx0NotifyRequest;
 import io.reactivex.Observable;
 import java.util.*;
 import java8.util.Lists;
@@ -307,6 +308,9 @@ public class WhirlpoolWallet {
         throw new NotifiableException(e.getMessage());
       }
 
+      // notify coordinator (not mandatory)
+      notifyTx0(tx0.getTx().getHashAsString());
+
       // refresh new utxos in background
       refreshUtxosDelay();
       return tx0;
@@ -315,6 +319,23 @@ public class WhirlpoolWallet {
       getWalletPremix().getIndexHandler().set(initialPremixIndex);
       throw e;
     }
+  }
+
+  private void notifyTx0(final String txid) {
+    new Thread(
+            new Runnable() {
+              @Override
+              public void run() {
+                try {
+                  Tx0NotifyRequest tx0NotifyRequest = new Tx0NotifyRequest(txid);
+                  config.getServerApi().tx0Notify(tx0NotifyRequest).blockingSingle().get();
+                } catch (Exception e) {
+                  log.warn("notifyTx0 failed", e);
+                }
+              }
+            },
+            "notifyTx0")
+        .start();
   }
 
   private Collection<UnspentOutputWithKey> toUnspentOutputWithKeys(
