@@ -662,11 +662,7 @@ public class Tx0Service {
               tx0Response.feeIndice);
       return tx0Data;
     } catch (HttpException e) {
-      String restErrorResponseMessage = ClientUtils.parseRestErrorMessage(e);
-      if (restErrorResponseMessage != null) {
-        throw new NotifiableException(restErrorResponseMessage);
-      }
-      throw e;
+      throw ClientUtils.wrapRestError(e);
     }
   }
 }

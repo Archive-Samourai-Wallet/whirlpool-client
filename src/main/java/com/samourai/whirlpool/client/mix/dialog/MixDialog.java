@@ -241,15 +241,7 @@ public class MixDialog {
                 public void onError(Throwable throwable) {
                   // registerOutput failed
                   try {
-                    if (throwable instanceof HttpException) {
-                      String restErrorResponseMessage =
-                          ClientUtils.parseRestErrorMessage((HttpException) throwable);
-                      if (restErrorResponseMessage != null) {
-                        // input rejected
-                        throw new NotifiableException(restErrorResponseMessage);
-                      }
-                    }
-                    throw throwable;
+                    throw ClientUtils.wrapRestError(throwable);
                   } catch (NotifiableException e) {
                     log.error("onPrivateReceived NotifiableException: " + e.getMessage());
                     exitOnResponseError(e.getMessage());
@@ -263,11 +255,7 @@ public class MixDialog {
                 }
               });
     } catch (HttpException e) {
-      String restErrorResponseMessage = ClientUtils.parseRestErrorMessage(e);
-      if (restErrorResponseMessage != null) {
-        throw new NotifiableException(restErrorResponseMessage);
-      }
-      throw e;
+      throw ClientUtils.wrapRestError(e);
     }
   }
 

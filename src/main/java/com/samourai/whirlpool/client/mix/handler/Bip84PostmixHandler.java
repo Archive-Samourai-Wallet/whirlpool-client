@@ -3,6 +3,7 @@ package com.samourai.whirlpool.client.mix.handler;
 import com.samourai.wallet.client.Bip84Wallet;
 import com.samourai.wallet.hd.HD_Address;
 import com.samourai.wallet.segwit.bech32.Bech32UtilGeneric;
+import com.samourai.whirlpool.client.utils.ClientUtils;
 import org.bitcoinj.core.NetworkParameters;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -22,13 +23,7 @@ public class Bip84PostmixHandler extends AbstractPostmixHandler {
 
   @Override
   protected int computeNextReceiveAddressIndex() {
-    // Android => odd indexs, CLI => even indexs
-    int modulo = this.mobile ? 1 : 0;
-    int index;
-    do {
-      index = postmixWallet.getIndexHandler().getAndIncrementUnconfirmed();
-    } while (index % 2 != modulo);
-    return index;
+    return ClientUtils.computeNextReceiveAddressIndex(postmixWallet.getIndexHandler(), this.mobile);
   }
 
   @Override

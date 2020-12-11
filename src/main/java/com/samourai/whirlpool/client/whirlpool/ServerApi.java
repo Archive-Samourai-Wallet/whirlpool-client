@@ -6,6 +6,7 @@ import com.samourai.http.client.IHttpClientService;
 import com.samourai.wallet.api.backend.BackendApi;
 import com.samourai.whirlpool.client.utils.ClientUtils;
 import com.samourai.whirlpool.protocol.WhirlpoolProtocol;
+import com.samourai.whirlpool.protocol.rest.CheckOutputRequest;
 import com.samourai.whirlpool.protocol.rest.PoolsResponse;
 import com.samourai.whirlpool.protocol.rest.RegisterOutputRequest;
 import com.samourai.whirlpool.protocol.rest.Tx0DataResponse;
@@ -53,6 +54,20 @@ public class ServerApi {
 
   public String getWsUrlConnect() {
     return WhirlpoolProtocol.getUrlConnect(urlServer);
+  }
+
+  public Observable<Optional<String>> checkOutput(CheckOutputRequest checkOutputRequest)
+      throws Exception {
+    // POST request through a different identity for mix privacy
+    httpClientRegOutput.connect();
+
+    String checkOutputUrl = WhirlpoolProtocol.getUrlCheckOutput(urlServer);
+    if (log.isDebugEnabled()) {
+      log.debug("POST " + checkOutputUrl + ": " + ClientUtils.toJsonString(checkOutputRequest));
+    }
+    Observable<Optional<String>> observable =
+        httpClientRegOutput.postJson(checkOutputUrl, String.class, null, checkOutputRequest);
+    return observable;
   }
 
   public Observable<Optional<String>> registerOutput(RegisterOutputRequest registerOutputRequest)

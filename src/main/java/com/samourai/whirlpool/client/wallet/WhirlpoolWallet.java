@@ -3,6 +3,8 @@ package com.samourai.whirlpool.client.wallet;
 import com.samourai.wallet.api.backend.beans.TxsResponse;
 import com.samourai.wallet.api.backend.beans.UnspentOutput;
 import com.samourai.wallet.client.Bip84Wallet;
+import com.samourai.wallet.client.indexHandler.IIndexHandler;
+import com.samourai.wallet.hd.HD_Address;
 import com.samourai.wallet.segwit.bech32.Bech32UtilGeneric;
 import com.samourai.whirlpool.client.exception.EmptyWalletException;
 import com.samourai.whirlpool.client.exception.NotifiableException;
@@ -25,6 +27,7 @@ import com.samourai.whirlpool.client.wallet.orchestrator.DataOrchestrator;
 import com.samourai.whirlpool.client.wallet.orchestrator.PersistOrchestrator;
 import com.samourai.whirlpool.client.whirlpool.beans.Pool;
 import com.samourai.whirlpool.protocol.beans.Utxo;
+import com.samourai.whirlpool.protocol.rest.CheckOutputRequest;
 import io.reactivex.Observable;
 import java.util.*;
 import java8.util.Lists;
@@ -36,6 +39,7 @@ import org.slf4j.LoggerFactory;
 public class WhirlpoolWallet {
   private final Logger log = LoggerFactory.getLogger(WhirlpoolWallet.class);
   private static final int FETCH_TXS_PER_PAGE = 300;
+  private static final int CHECK_POSTMIX_INDEX_MAX = 30;
 
   private WhirlpoolWalletConfig config;
   private Tx0ParamService tx0ParamService;
@@ -365,6 +369,9 @@ public class WhirlpoolWallet {
       }
       walletStateSupplier.setSynced(true);
     }
+
+    // check postmix index against coordinator
+    checkPostmixIndex();
   }
 
   public void close() {
@@ -609,6 +616,56 @@ public class WhirlpoolWallet {
       log.info("Resync: fetching postmix history... " + txs.size() + "/" + txsResponse.n_tx);
     } while ((page * FETCH_TXS_PER_PAGE) < txsResponse.n_tx);
     return txs;
+  }
+
+  private void checkPostmixIndex() throws Exception {
+    if (log.isDebugEnabled()) {
+      log.debug("checking postmixIndex...");
+    }
+    IIndexHandler postmixIndexHandler = getWalletPostmix().getIndexHandler();
+    int initialPostmixIndex =
+        ClientUtils.computeNextReceiveAddressIndex(postmixIndexHandler, config.isMobile());
+    int postmixIndex = initialPostmixIndex;
+    while (true) {
+      try {
+        // check next output
+        checkPostmixIndex(postmixIndex).blockingSingle().get();
+
+        // success!
+        if (postmixIndex != initialPostmixIndex) {
+          if (log.isDebugEnabled()) {
+            log.debug("fixing postmixIndex: " + initialPostmixIndex + " -> " + postmixIndex);
+          }
+          postmixIndexHandler.confirmUnconfirmed(postmixIndex);
+        }
+        return;
+      } catch (RuntimeException runtimeException) { // blockingGet wraps errors in RuntimeException
+        Throwable e = runtimeException.getCause();
+        String restErrorMessage = ClientUtils.parseRestErrorMessage(e);
+        if (restErrorMessage != null && "Output already registered".equals(restErrorMessage)) {
+          log.warn("postmixIndex already used: " + postmixIndex);
+
+          // try next index
+          postmixIndex =
+              ClientUtils.computeNextReceiveAddressIndex(postmixIndexHandler, config.isMobile());
+        } else {
+          throw new Exception(
+              "checkPostmixIndex failed when checking postmixIndex=" + postmixIndex, e);
+        }
+        if ((postmixIndex - initialPostmixIndex) > CHECK_POSTMIX_INDEX_MAX) {
+          throw new NotifiableException(
+              "PostmixIndex error - please resync your wallet or contact support");
+        }
+      }
+    }
+  }
+
+  private Observable<Optional<String>> checkPostmixIndex(int postmixIndex) throws Exception {
+    HD_Address hdAddress = getWalletPostmix().getAddressAt(Bip84Wallet.CHAIN_RECEIVE, postmixIndex);
+    String outputAddress = bech32Util.toBech32(hdAddress, config.getNetworkParameters());
+    String signature = hdAddress.getECKey().signMessage(outputAddress);
+    CheckOutputRequest checkOutputRequest = new CheckOutputRequest(outputAddress, signature);
+    return config.getServerApi().checkOutput(checkOutputRequest);
   }
 
   public MixingState getMixingState() {

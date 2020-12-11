@@ -43,6 +43,9 @@ public class DataOrchestrator extends AbstractOrchestrator {
     // load initial data or fail
     for (AbstractSupplier supplier : suppliers) {
       if (supplier instanceof LoadableSupplier) {
+        if (log.isDebugEnabled()) {
+          log.debug("Loading: " + supplier.getClass().getName());
+        }
         ((LoadableSupplier) supplier).load();
       }
     }

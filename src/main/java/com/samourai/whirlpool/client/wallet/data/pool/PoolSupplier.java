@@ -1,7 +1,6 @@
 package com.samourai.whirlpool.client.wallet.data.pool;
 
 import com.samourai.wallet.api.backend.beans.HttpException;
-import com.samourai.whirlpool.client.exception.NotifiableException;
 import com.samourai.whirlpool.client.utils.ClientUtils;
 import com.samourai.whirlpool.client.wallet.data.ExpirableSupplier;
 import com.samourai.whirlpool.client.wallet.data.LoadableSupplier;
@@ -33,11 +32,7 @@ public class PoolSupplier extends ExpirableSupplier<PoolData> implements Loadabl
       PoolsResponse poolsResponse = serverApi.fetchPools();
       return new PoolData(poolsResponse);
     } catch (HttpException e) {
-      String restErrorResponseMessage = ClientUtils.parseRestErrorMessage(e);
-      if (restErrorResponseMessage != null) {
-        throw new NotifiableException(restErrorResponseMessage);
-      }
-      throw e;
+      throw ClientUtils.wrapRestError(e);
     }
   }
 

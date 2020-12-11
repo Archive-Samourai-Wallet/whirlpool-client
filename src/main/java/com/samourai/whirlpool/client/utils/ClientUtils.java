@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.io.Files;
 import com.samourai.wallet.api.backend.beans.HttpException;
 import com.samourai.wallet.api.backend.beans.UnspentOutput;
+import com.samourai.wallet.client.indexHandler.IIndexHandler;
 import com.samourai.wallet.segwit.bech32.Bech32UtilGeneric;
 import com.samourai.wallet.util.CallbackWithArg;
 import com.samourai.wallet.util.FeeUtil;
@@ -112,16 +113,49 @@ public class ClientUtils {
           ClientUtils.fromJson(responseBody, RestErrorResponse.class);
       return restErrorResponse.message;
     } catch (Exception e) {
+      log.error(
+          "parseRestErrorMessage failed: responseBody="
+              + (responseBody != null ? responseBody : "null"));
       return null;
     }
   }
 
-  public static String parseRestErrorMessage(HttpException e) {
-    String responseBody = e.getResponseBody();
-    if (responseBody == null) {
-      return null;
+  public static String parseRestErrorMessage(Throwable e) {
+    if (e instanceof HttpException) {
+      String responseBody = ((HttpException) e).getResponseBody();
+      if (responseBody == null) {
+        return null;
+      }
+      return parseRestErrorMessage(responseBody);
     }
-    return parseRestErrorMessage(responseBody);
+    return null;
+  }
+
+  public static Exception wrapRestError(Exception e) {
+    String restErrorResponseMessage = ClientUtils.parseRestErrorMessage(e);
+    if (restErrorResponseMessage != null) {
+      return new NotifiableException(restErrorResponseMessage);
+    }
+    return e;
+  }
+
+  public static Throwable wrapRestError(Throwable e) {
+    String restErrorResponseMessage = ClientUtils.parseRestErrorMessage(e);
+    if (restErrorResponseMessage != null) {
+      return new NotifiableException(restErrorResponseMessage);
+    }
+    return e;
+  }
+
+  public static int computeNextReceiveAddressIndex(
+      IIndexHandler postmixIndexHandler, boolean mobile) {
+    // Android => odd indexs, CLI => even indexs
+    int modulo = mobile ? 1 : 0;
+    int index;
+    do {
+      index = postmixIndexHandler.getAndIncrementUnconfirmed();
+    } while (index % 2 != modulo);
+    return index;
   }
 
   public static void logUtxos(Collection<UnspentOutput> utxos) {
