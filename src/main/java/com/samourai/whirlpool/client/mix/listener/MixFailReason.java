@@ -6,7 +6,7 @@ public enum MixFailReason {
   DISCONNECTED("Disconnected"),
   INPUT_REJECTED("Input rejected"),
   INTERNAL_ERROR("Internal error"),
-  CANCEL("Canceled"), // silent stop
+  CANCEL("Cancelled"), // silent stop
   STOP("Stopped");
 
   private String message;
