@@ -120,15 +120,19 @@ public class ClientUtils {
     }
   }
 
-  public static String parseRestErrorMessage(Throwable e) {
+  public static String getHttpResponseBody(Throwable e) {
     if (e instanceof HttpException) {
-      String responseBody = ((HttpException) e).getResponseBody();
-      if (responseBody == null) {
-        return null;
-      }
-      return parseRestErrorMessage(responseBody);
+      return ((HttpException) e).getResponseBody();
     }
     return null;
+  }
+
+  public static String parseRestErrorMessage(Throwable e) {
+    String responseBody = getHttpResponseBody(e);
+    if (responseBody == null) {
+      return null;
+    }
+    return parseRestErrorMessage(responseBody);
   }
 
   public static Exception wrapRestError(Exception e) {

@@ -102,7 +102,11 @@ public class MixDialog {
 
   private void exitOnPrivateReceivedException(Throwable e) {
     log.error("Protocol error", e);
-    String notifiableError = "onPrivate: " + e.getClass().getName();
+    String message = ClientUtils.getHttpResponseBody(e);
+    if (message == null) {
+      message = e.getClass().getName();
+    }
+    String notifiableError = "onPrivate: " + message;
     listener.exitOnProtocolError(notifiableError);
     done = true;
   }
