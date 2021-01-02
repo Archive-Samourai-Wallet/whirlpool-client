@@ -434,26 +434,6 @@ public class WhirlpoolWallet {
     mixingState.setStarted(false);
   }
 
-  public void setPool(WhirlpoolUtxo whirlpoolUtxo, String poolId) throws Exception {
-    // check pool
-    Pool pool = null;
-    if (poolId != null) {
-      // check pool exists
-      pool = poolSupplier.findPoolById(poolId);
-      if (pool == null) {
-        throw new NotifiableException("Pool not found: " + poolId);
-      }
-
-      // check pool applicable
-      if (!tx0ParamService.isPoolApplicable(pool, whirlpoolUtxo)) {
-        throw new NotifiableException("Pool not applicable for utxo: " + poolId);
-      }
-      poolId = pool.getPoolId();
-    }
-    // set pool
-    whirlpoolUtxo.setPoolId(poolId);
-  }
-
   public void mixQueue(WhirlpoolUtxo whirlpoolUtxo) throws NotifiableException {
     this.mixOrchestrator.mixQueue(whirlpoolUtxo);
   }

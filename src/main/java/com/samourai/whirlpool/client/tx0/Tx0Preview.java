@@ -7,6 +7,8 @@ public class Tx0Preview {
   private long tx0MinerFee;
   private long mixMinerFee;
   private long premixMinerFee;
+  private int tx0MinerFeePrice;
+  private int mixMinerFeePrice;
   private long feeValue;
   private long feeChange;
   private int feeDiscountPercent;
@@ -20,6 +22,8 @@ public class Tx0Preview {
         tx0Preview.tx0MinerFee,
         tx0Preview.mixMinerFee,
         tx0Preview.premixMinerFee,
+        tx0Preview.tx0MinerFeePrice,
+        tx0Preview.mixMinerFeePrice,
         tx0Preview.premixValue,
         tx0Preview.changeValue,
         tx0Preview.nbPremix);
@@ -30,6 +34,8 @@ public class Tx0Preview {
       long tx0MinerFee,
       long mixMinerFee,
       long premixMinerFee,
+      int tx0MinerFeePrice,
+      int mixMinerFeePrice,
       long premixValue,
       long changeValue,
       int nbPremix) {
@@ -37,6 +43,8 @@ public class Tx0Preview {
     this.tx0MinerFee = tx0MinerFee;
     this.mixMinerFee = mixMinerFee;
     this.premixMinerFee = premixMinerFee;
+    this.tx0MinerFeePrice = tx0MinerFeePrice;
+    this.mixMinerFeePrice = mixMinerFeePrice;
     this.feeValue = tx0Data.getFeeValue();
     this.feeChange = tx0Data.getFeeChange();
     this.feeDiscountPercent = tx0Data.getFeeDiscountPercent();
@@ -63,6 +71,14 @@ public class Tx0Preview {
 
   public long getPremixMinerFee() {
     return premixMinerFee;
+  }
+
+  public int getTx0MinerFeePrice() {
+    return tx0MinerFeePrice;
+  }
+
+  public int getMixMinerFeePrice() {
+    return mixMinerFeePrice;
   }
 
   public long getFeeValue() {

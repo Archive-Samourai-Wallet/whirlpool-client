@@ -151,7 +151,15 @@ public class Tx0Service {
 
     Tx0Preview tx0Preview =
         new Tx0Preview(
-            tx0Data, tx0MinerFee, mixMinerFee, premixMinerFee, premixValue, changeValue, nbPremix);
+            tx0Data,
+            tx0MinerFee,
+            mixMinerFee,
+            premixMinerFee,
+            tx0Param.getFeeTx0(),
+            tx0Param.getFeePremix(),
+            premixValue,
+            changeValue,
+            nbPremix);
 
     // verify outputsSum
     long outputsSum = computeOutputsSum(tx0Preview);

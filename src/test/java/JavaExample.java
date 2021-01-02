@@ -161,9 +161,6 @@ public class JavaExample {
       Tx0FeeTarget tx0FeeTarget = Tx0FeeTarget.BLOCKS_4;
       Tx0FeeTarget mixFeeTarget = Tx0FeeTarget.BLOCKS_4;
 
-      // choose pool
-      whirlpoolWallet.setPool(whirlpoolUtxo, pool05btc.getPoolId());
-
       // preview tx0
       try {
         Tx0Preview tx0Preview =
