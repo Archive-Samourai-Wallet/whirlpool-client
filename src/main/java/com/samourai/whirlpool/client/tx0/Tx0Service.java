@@ -534,6 +534,11 @@ public class Tx0Service {
   }
 
   private boolean useFakeOutput(Collection<UnspentOutputWithKey> spendFroms) {
+    // experimental feature reserved for testnet
+    if (!FormatsUtilGeneric.getInstance().isTestNet(config.getNetworkParameters())) {
+      return false;
+    }
+
     // single prev-tx => never
     int nbPrevTxs = ClientUtils.countPrevTxs(spendFroms);
     if (nbPrevTxs == 1) {

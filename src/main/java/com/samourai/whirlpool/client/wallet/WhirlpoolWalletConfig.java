@@ -67,7 +67,7 @@ public class WhirlpoolWalletConfig extends WhirlpoolClientConfig implements ITx0
     this.autoMix = false;
     this.scode = null;
     this.tx0MaxOutputs = 0;
-    this.tx0FakeOutputRandomFactor = 4;
+    this.tx0FakeOutputRandomFactor = 0;
     this.tx0FakeOutputMinValue = 10000;
     this.overspend = new LinkedHashMap<String, Long>();
 
