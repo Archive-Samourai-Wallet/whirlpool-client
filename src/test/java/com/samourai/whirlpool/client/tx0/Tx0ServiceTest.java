@@ -397,10 +397,13 @@ public class Tx0ServiceTest extends AbstractTest {
 
     Tx0Preview tx0Preview =
         new Tx0Preview(
+            pool01btc,
             tx0Data,
             tx0MinerFee,
             mixMinerFee,
             premixMinerFee,
+            1,
+            1,
             premixValue,
             changeValue,
             nbOutputsExpected);
@@ -659,10 +662,13 @@ public class Tx0ServiceTest extends AbstractTest {
 
     Tx0Preview tx0Preview =
         new Tx0Preview(
+            pool01btc,
             tx0Data,
             tx0MinerFee,
             premixMinerFee,
             mixMinerFee,
+            1,
+            1,
             premixValue,
             changeValue,
             nbOutputsExpected);
@@ -768,10 +774,13 @@ public class Tx0ServiceTest extends AbstractTest {
 
     Tx0Preview tx0Preview =
         new Tx0Preview(
+            pool01btc,
             tx0Data,
             tx0MinerFee,
             mixMinerFee,
             premixMinerFee,
+            1,
+            1,
             premixValue,
             changeValue,
             nbOutputsExpected);
@@ -876,10 +885,13 @@ public class Tx0ServiceTest extends AbstractTest {
 
     Tx0Preview tx0Preview =
         new Tx0Preview(
+            pool01btc,
             tx0Data,
             tx0MinerFee,
             mixMinerFee,
             premixMinerFee,
+            1,
+            1,
             premixValue,
             changeValue,
             nbOutputsExpected);
@@ -984,10 +996,13 @@ public class Tx0ServiceTest extends AbstractTest {
 
     Tx0Preview tx0Preview =
         new Tx0Preview(
+            pool01btc,
             tx0Data,
             tx0MinerFee,
             mixMinerFee,
             premixMinerFee,
+            1,
+            1,
             premixValue,
             changeValue,
             nbOutputsExpected);

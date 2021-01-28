@@ -37,6 +37,7 @@ public class PoolData {
                     pool.setMustMixBalanceMax(poolInfo.mustMixBalanceMax);
                     pool.setMinAnonymitySet(poolInfo.minAnonymitySet);
                     pool.setMinMustMix(poolInfo.minMustMix);
+                    pool.setTx0MaxOutputs(poolInfo.tx0MaxOutputs);
                     pool.setNbRegistered(poolInfo.nbRegistered);
 
                     pool.setMixAnonymitySet(poolInfo.mixAnonymitySet);

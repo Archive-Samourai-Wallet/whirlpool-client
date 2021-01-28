@@ -12,6 +12,7 @@ public class Pool {
   private long mustMixBalanceMax;
   private int minAnonymitySet;
   private int minMustMix;
+  private int tx0MaxOutputs;
   private int nbRegistered;
 
   private int mixAnonymitySet;
@@ -101,6 +102,14 @@ public class Pool {
 
   public void setMinMustMix(int minMustMix) {
     this.minMustMix = minMustMix;
+  }
+
+  public int getTx0MaxOutputs() {
+    return tx0MaxOutputs;
+  }
+
+  public void setTx0MaxOutputs(int tx0MaxOutputs) {
+    this.tx0MaxOutputs = tx0MaxOutputs;
   }
 
   public int getNbRegistered() {

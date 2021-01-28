@@ -1,8 +1,10 @@
 package com.samourai.whirlpool.client.tx0;
 
+import com.samourai.whirlpool.client.whirlpool.beans.Pool;
 import com.samourai.whirlpool.client.whirlpool.beans.Tx0Data;
 
 public class Tx0Preview {
+  private Pool pool;
   private Tx0Data tx0Data;
   private long tx0MinerFee;
   private long mixMinerFee;
@@ -18,6 +20,7 @@ public class Tx0Preview {
 
   public Tx0Preview(Tx0Preview tx0Preview) {
     this(
+        tx0Preview.pool,
         tx0Preview.tx0Data,
         tx0Preview.tx0MinerFee,
         tx0Preview.mixMinerFee,
@@ -30,6 +33,7 @@ public class Tx0Preview {
   }
 
   public Tx0Preview(
+      Pool pool,
       Tx0Data tx0Data,
       long tx0MinerFee,
       long mixMinerFee,
@@ -39,6 +43,7 @@ public class Tx0Preview {
       long premixValue,
       long changeValue,
       int nbPremix) {
+    this.pool = pool;
     this.tx0Data = tx0Data;
     this.tx0MinerFee = tx0MinerFee;
     this.mixMinerFee = mixMinerFee;
@@ -55,6 +60,14 @@ public class Tx0Preview {
 
   public long computeFeeValueOrFeeChange() {
     return tx0Data.computeFeeValueOrFeeChange();
+  }
+
+  public Pool getPool() {
+    return pool;
+  }
+
+  public void setPool(Pool pool) {
+    this.pool = pool;
   }
 
   protected Tx0Data getTx0Data() {
@@ -107,7 +120,9 @@ public class Tx0Preview {
 
   @Override
   public String toString() {
-    return "tx0MinerFee="
+    return "poolId="
+        + pool.getPoolId()
+        + ", tx0MinerFee="
         + tx0MinerFee
         + ", mixMinerFee="
         + mixMinerFee

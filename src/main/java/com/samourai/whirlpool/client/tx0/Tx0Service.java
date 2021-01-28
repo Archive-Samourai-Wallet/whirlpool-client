@@ -12,6 +12,7 @@ import com.samourai.whirlpool.client.exception.NotifiableException;
 import com.samourai.whirlpool.client.utils.BIP69InputComparatorUnspentOutput;
 import com.samourai.whirlpool.client.utils.ClientUtils;
 import com.samourai.whirlpool.client.wallet.WhirlpoolWalletConfig;
+import com.samourai.whirlpool.client.whirlpool.beans.Pool;
 import com.samourai.whirlpool.client.whirlpool.beans.Tx0Data;
 import com.samourai.whirlpool.protocol.WhirlpoolProtocol;
 import com.samourai.whirlpool.protocol.fee.WhirlpoolFee;
@@ -31,7 +32,6 @@ import org.slf4j.LoggerFactory;
 
 public class Tx0Service {
   private Logger log = LoggerFactory.getLogger(Tx0Service.class);
-  private static final int NB_PREMIX_MAX = 70;
 
   private final Bech32UtilGeneric bech32Util = Bech32UtilGeneric.getInstance();
   private final FormatsUtilGeneric formatsUtilGeneric = FormatsUtilGeneric.getInstance();
@@ -48,7 +48,8 @@ public class Tx0Service {
       long premixValue,
       Collection<? extends UnspentOutput> spendFrom,
       long feeValueOrFeeChange,
-      int feeTx0) {
+      int feeTx0,
+      Pool pool) {
     NetworkParameters params = config.getNetworkParameters();
     long spendFromBalance = computeSpendFromBalance(spendFrom);
 
@@ -87,7 +88,7 @@ public class Tx0Service {
     if (nbPremix < 0) {
       nbPremix = 0;
     }
-    nbPremix = capNbPremix(nbPremix);
+    nbPremix = capNbPremix(nbPremix, pool);
     return nbPremix;
   }
 
@@ -141,7 +142,8 @@ public class Tx0Service {
 
     NetworkParameters params = config.getNetworkParameters();
     long feeValueOrFeeChange = tx0Data.computeFeeValueOrFeeChange();
-    int nbPremix = computeNbPremixMax(premixValue, spendFroms, feeValueOrFeeChange, feeTx0);
+    Pool pool = tx0Param.getPool();
+    int nbPremix = computeNbPremixMax(premixValue, spendFroms, feeValueOrFeeChange, feeTx0, pool);
     long tx0MinerFee = ClientUtils.computeTx0MinerFee(nbPremix, feeTx0, spendFroms, params);
     long premixMinerFee = tx0Param.getPremixValue() - tx0Param.getPool().getDenomination();
     long mixMinerFee = nbPremix * premixMinerFee;
@@ -151,6 +153,7 @@ public class Tx0Service {
 
     Tx0Preview tx0Preview =
         new Tx0Preview(
+            pool,
             tx0Data,
             tx0MinerFee,
             mixMinerFee,
@@ -340,12 +343,12 @@ public class Tx0Service {
     return tx0;
   }
 
-  private int capNbPremix(int nbPremix) {
+  private int capNbPremix(int nbPremix, Pool pool) {
     int maxOutputs = config.getTx0MaxOutputs();
     if (maxOutputs > 0) {
       nbPremix = Math.min(maxOutputs, nbPremix); // cap with maxOutputs
     }
-    nbPremix = Math.min(NB_PREMIX_MAX, nbPremix); // cap with UTXO NB_PREMIX_MAX
+    nbPremix = Math.min(pool.getTx0MaxOutputs(), nbPremix); // cap with pool.tx0MaxOutputs
     return nbPremix;
   }
 
@@ -375,7 +378,7 @@ public class Tx0Service {
 
     long premixValue = tx0Preview.getPremixValue();
     long feeValueOrFeeChange = tx0Preview.computeFeeValueOrFeeChange();
-    int nbPremix = capNbPremix(tx0Preview.getNbPremix());
+    int nbPremix = capNbPremix(tx0Preview.getNbPremix(), tx0Preview.getPool());
     long changeValueTotal = tx0Preview.getChangeValue();
 
     // verify
