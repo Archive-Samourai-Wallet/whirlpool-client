@@ -3,7 +3,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>io.samourai.code.whirlpool</groupId>
     <artifactId>whirlpool-client</artifactId>
-    <version>develop-SNAPSHOT</version>
+    <version>0.23.26-SNAPSHOT</version>
     <name>whirlpool-client</name>
     <properties>
         <maven.compiler.source>1.6</maven.compiler.source>
@@ -14,7 +14,7 @@
         <dependency>
             <groupId>io.samourai.code.whirlpool</groupId>
             <artifactId>whirlpool-protocol</artifactId>
-            <version>0.23.4</version>
+            <version>0.23.5-SNAPSHOT</version>
             <exclusions>
                 <exclusion>
                     <groupId>io.samourai.code.wallet</groupId>

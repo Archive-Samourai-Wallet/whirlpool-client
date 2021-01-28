@@ -309,7 +309,7 @@ public class WhirlpoolWallet {
       }
 
       // notify coordinator (not mandatory)
-      notifyTx0(tx0.getTx().getHashAsString());
+      notifyTx0(tx0.getTx().getHashAsString(), pool.getPoolId());
 
       // refresh new utxos in background
       refreshUtxosDelay();
@@ -321,13 +321,13 @@ public class WhirlpoolWallet {
     }
   }
 
-  private void notifyTx0(final String txid) {
+  private void notifyTx0(final String txid, final String poolId) {
     new Thread(
             new Runnable() {
               @Override
               public void run() {
                 try {
-                  Tx0NotifyRequest tx0NotifyRequest = new Tx0NotifyRequest(txid);
+                  Tx0NotifyRequest tx0NotifyRequest = new Tx0NotifyRequest(txid, poolId);
                   config.getServerApi().tx0Notify(tx0NotifyRequest).blockingSingle().get();
                 } catch (Exception e) {
                   log.warn("notifyTx0 failed", e);
