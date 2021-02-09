@@ -646,9 +646,16 @@ public class WhirlpoolWallet {
         if (restErrorMessage != null && "Output already registered".equals(restErrorMessage)) {
           log.warn("postmixIndex already used: " + postmixIndex);
 
-          // try next index
+          // try second next index
+          ClientUtils.computeNextReceiveAddressIndex(postmixIndexHandler, config.isMobile());
           postmixIndex =
               ClientUtils.computeNextReceiveAddressIndex(postmixIndexHandler, config.isMobile());
+
+          // avoid flooding
+          try {
+            Thread.sleep(500);
+          } catch (InterruptedException ee) {
+          }
         } else {
           throw new Exception(
               "checkPostmixIndex failed when checking postmixIndex=" + postmixIndex, e);
