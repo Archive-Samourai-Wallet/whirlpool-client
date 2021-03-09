@@ -59,6 +59,10 @@ public class Bip84Wallet {
     return bip84w.getAccountAt(accountIndex).zpubstr();
   }
 
+  public String getXpub() {
+    return bip84w.getAccountAt(accountIndex).xpubstr();
+  }
+
   private HD_Address getAddressBip84(int account, int chain, int index) {
     return bip84w.getAccountAt(account).getChain(chain).getAddressAt(index);
   }

@@ -93,6 +93,7 @@ public class WalletStateData extends PersistableData {
 
   @Override
   public String toString() {
-    return items.size() + " indexs";
+    // used by android whirlpool debug screen
+    return "items="+items.toString();
   }
 }

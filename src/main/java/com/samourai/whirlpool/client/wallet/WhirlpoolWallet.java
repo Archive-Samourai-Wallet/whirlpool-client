@@ -402,7 +402,9 @@ public class WhirlpoolWallet {
 
   public synchronized void start() {
     if (isStarted()) {
-      log.warn("NOT starting WhirlpoolWallet: already started");
+      if (log.isDebugEnabled()) {
+        log.debug("NOT starting WhirlpoolWallet: already started");
+      }
       return;
     }
     log.info(" • Starting WhirlpoolWallet");
@@ -421,7 +423,9 @@ public class WhirlpoolWallet {
 
   public synchronized void stop() {
     if (!isStarted()) {
-      log.warn("NOT stopping WhirlpoolWallet: not started");
+      if (log.isDebugEnabled()) {
+        log.debug("NOT stopping WhirlpoolWallet: not started");
+      }
       return;
     }
     log.info(" • Stopping WhirlpoolWallet");

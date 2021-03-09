@@ -23,6 +23,7 @@ public class WalletSupplier {
   private final WalletStateSupplier walletStateSupplier;
   private final Map<WhirlpoolAccount, Bip84Wallet> walletsByAccount;
   private final Map<String, WhirlpoolAccount> accountsByZpub;
+  private final Map<String, WhirlpoolAccount> accountsByXpub;
   private final WhirlpoolAccount[] ignoredAccounts;
   private final IIndexHandler externalIndexHandler;
 
@@ -49,6 +50,7 @@ public class WalletSupplier {
     }
     this.ignoredAccounts = WhirlpoolAccount.getListByActive(false);
     this.accountsByZpub = computeAccountsByZpub(walletsByAccount);
+    this.accountsByXpub = computeAccountsByXpub(walletsByAccount);
     this.externalIndexHandler =
         new WalletStateIndexHandler(
             walletStateSupplier, EXTERNAL_INDEX_HANDLER, externalIndexDefault);
@@ -65,6 +67,17 @@ public class WalletSupplier {
     return accountsByZpub;
   }
 
+  private static Map<String, WhirlpoolAccount> computeAccountsByXpub(
+      Map<WhirlpoolAccount, Bip84Wallet> walletsByAccount) {
+    Map<String, WhirlpoolAccount> accountsByXpub = new LinkedHashMap<String, WhirlpoolAccount>();
+    for (WhirlpoolAccount account : walletsByAccount.keySet()) {
+      Bip84Wallet wallet = walletsByAccount.get(account);
+      String xpub = wallet.getXpub();
+      accountsByXpub.put(xpub, account);
+    }
+    return accountsByXpub;
+  }
+
   public Bip84Wallet getWallet(WhirlpoolAccount account) {
     Bip84Wallet wallet = walletsByAccount.get(account);
     if (wallet == null) {
@@ -76,6 +89,10 @@ public class WalletSupplier {
 
   public WhirlpoolAccount getAccountByZpub(String zpub) {
     WhirlpoolAccount account = accountsByZpub.get(zpub);
+    if (account == null) {
+      // android specific: allow finding utxos by xpub
+      account = accountsByXpub.get(zpub);
+    }
     if (account == null) {
       log.error("No account found for zpub: " + zpub);
       return null;

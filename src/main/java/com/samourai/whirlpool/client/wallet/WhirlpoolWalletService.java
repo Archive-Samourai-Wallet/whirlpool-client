@@ -156,7 +156,9 @@ public class WhirlpoolWalletService {
       public void onMessage(WhirlpoolUtxoChanges message) {
         if (!whirlpoolWallet.isPresent()) {
           // this happens on first data load
-          log.warn("ignoring onUtxoChanges: no wallet opened");
+          if (log.isDebugEnabled()) {
+            log.debug("ignoring onUtxoChanges: no wallet opened");
+          }
           return;
         }
         whirlpoolWallet.get()._onUtxoChanges(message);
