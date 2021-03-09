@@ -94,6 +94,6 @@ public class WalletStateData extends PersistableData {
   @Override
   public String toString() {
     // used by android whirlpool debug screen
-    return "items="+items.toString();
+    return "items=" + items.toString();
   }
 }
