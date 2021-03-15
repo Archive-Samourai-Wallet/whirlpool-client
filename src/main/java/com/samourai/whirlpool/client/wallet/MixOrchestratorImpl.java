@@ -148,7 +148,7 @@ public class MixOrchestratorImpl extends MixOrchestrator {
       int nextMixsDone = whirlpoolUtxo.getMixsDone() + 1;
       if (nextMixsDone >= externalDestination.getMixs()) {
         // random factor for privacy
-        if (externalDestination.useRandomFactor()) {
+        if (externalDestination.useRandomDelay()) {
           if (log.isDebugEnabled()) {
             log.debug(
                 "Mixing to POSTMIX, external destination randomly delayed for better privacy ("

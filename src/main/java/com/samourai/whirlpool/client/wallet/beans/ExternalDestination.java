@@ -34,18 +34,10 @@ public class ExternalDestination {
     return mixs;
   }
 
-  public int getMixsRandomFactor() {
-    return mixsRandomFactor;
-  }
-
-  public boolean useRandomFactor() {
+  public boolean useRandomDelay() {
     // 0 => never
     if (mixsRandomFactor == 0) {
       return false;
-    }
-    // 1 => always
-    if (mixsRandomFactor == 1) {
-      return true;
     }
     // random
     return ClientUtils.random(1, mixsRandomFactor) == 1;
