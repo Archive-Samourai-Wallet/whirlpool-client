@@ -96,8 +96,10 @@ public class MixSession {
               }
               return;
             }
+            boolean isSubscribePoolResponse =
+                SubscribePoolResponse.class.isAssignableFrom(payload.getClass());
             if (subscribePoolResponse == null) {
-              if (SubscribePoolResponse.class.isAssignableFrom(payload.getClass())) {
+              if (isSubscribePoolResponse) {
                 // 1) input not registered yet => should be a SubscribePoolResponse
                 subscribePoolResponse = (SubscribePoolResponse) payload;
 
@@ -116,14 +118,21 @@ public class MixSession {
                 listener.exitOnProtocolError(notifiableError);
               }
             } else {
-              // 2) input already registered => should be a MixMessage
-              MixMessage mixMessage = checkMixMessage(payload);
-              if (mixMessage != null) {
-                dialog.onPrivateReceived(mixMessage);
+              if (!isSubscribePoolResponse) {
+                // 2) input already registered => should be a MixMessage
+                MixMessage mixMessage = checkMixMessage(payload);
+                if (mixMessage != null) {
+                  dialog.onPrivateReceived(mixMessage);
+                } else {
+                  String notifiableError = "not a MixMessage: " + ClientUtils.toJsonString(payload);
+                  log.error("--> " + privateQueue + ": " + notifiableError);
+                  listener.exitOnProtocolError(notifiableError);
+                }
               } else {
-                String notifiableError = "not a MixMessage: " + ClientUtils.toJsonString(payload);
-                log.error("--> " + privateQueue + ": " + notifiableError);
-                listener.exitOnProtocolError(notifiableError);
+                // ignore duplicate SubscribePoolResponse
+                log.warn(
+                    "Ignoring duplicate SubscribePoolResponse: "
+                        + ClientUtils.toJsonString(payload));
               }
             }
           }
