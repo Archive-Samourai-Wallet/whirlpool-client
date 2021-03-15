@@ -2,6 +2,7 @@ import com.samourai.http.client.HttpUsage;
 import com.samourai.http.client.IHttpClient;
 import com.samourai.http.client.IHttpClientService;
 import com.samourai.stomp.client.IStompClientService;
+import com.samourai.tor.client.TorClientService;
 import com.samourai.wallet.api.backend.BackendApi;
 import com.samourai.wallet.api.backend.BackendServer;
 import com.samourai.wallet.api.backend.beans.UnspentOutput;
@@ -42,6 +43,7 @@ public class JavaExample {
 
     ServerApi serverApi = new ServerApi(serverUrl, httpClientService);
     IHttpClient httpClientBackend = httpClientService.getHttpClient(HttpUsage.BACKEND);
+    TorClientService torClientService = null; // provide impl here
     BackendApi backendApi =
         new BackendApi(httpClientBackend, backendUrl, Optional.<OAuthManager>empty());
 
@@ -49,7 +51,13 @@ public class JavaExample {
     boolean isAndroid = false;
     WhirlpoolWalletConfig whirlpoolWalletConfig =
         new WhirlpoolWalletConfig(
-            httpClientService, stompClientService, serverApi, params, isAndroid, backendApi);
+            httpClientService,
+            stompClientService,
+            torClientService,
+            serverApi,
+            params,
+            isAndroid,
+            backendApi);
 
     whirlpoolWalletConfig.setAutoTx0PoolId(null); // disable auto-tx0
     whirlpoolWalletConfig.setAutoMix(false); // disable auto-mix
