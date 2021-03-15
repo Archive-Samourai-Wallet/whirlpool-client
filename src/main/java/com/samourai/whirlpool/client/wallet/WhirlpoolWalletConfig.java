@@ -2,6 +2,7 @@ package com.samourai.whirlpool.client.wallet;
 
 import com.samourai.http.client.IHttpClientService;
 import com.samourai.stomp.client.IStompClientService;
+import com.samourai.tor.client.TorClientService;
 import com.samourai.wallet.api.backend.BackendApi;
 import com.samourai.wallet.bip47.rpc.java.SecretPointFactoryJava;
 import com.samourai.wallet.bip47.rpc.secretPoint.ISecretPointFactory;
@@ -51,11 +52,12 @@ public class WhirlpoolWalletConfig extends WhirlpoolClientConfig implements ITx0
   public WhirlpoolWalletConfig(
       IHttpClientService httpClientService,
       IStompClientService stompClientService,
+      TorClientService torClientService,
       ServerApi serverApi,
       NetworkParameters params,
       boolean mobile,
       BackendApi backendApi) {
-    super(httpClientService, stompClientService, serverApi, null, params, mobile);
+    super(httpClientService, stompClientService, torClientService, serverApi, null, params, mobile);
 
     // default settings
     this.maxClients = 5;

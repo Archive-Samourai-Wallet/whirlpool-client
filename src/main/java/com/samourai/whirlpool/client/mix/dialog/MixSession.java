@@ -250,20 +250,20 @@ public class MixSession {
         int reconnectDelay = 0;
         if (connectBeginTime != null) {
           // we were trying connect
-          long elapsedTime = System.currentTimeMillis() - connectBeginTime;
-          if (elapsedTime > config.getReconnectUntil() * 1000) {
-            // retry time exceeded, aborting
-            log.info(
-                " ! Failed to connect to coordinator. Please check your connectivity or retry later.");
-            connectBeginTime = null;
-            listener.exitOnDisconnected("Failed to connect to coordinator.");
-            return;
-          }
+          long elapsedTime = (System.currentTimeMillis() - connectBeginTime) / 1000;
+
+          // change Tor circuit
+          config.getTorClientService().changeIdentity();
 
           // wait delay before retrying
-          int randomDelaySeconds = config.getReconnectDelay() + ClientUtils.random(0, 10);
+          int randomDelaySeconds = ClientUtils.random(5, 120);
           reconnectDelay = randomDelaySeconds * 1000;
-          log.info(" ! connexion failed, retrying in " + reconnectDelay + "s");
+          log.info(
+              " ! connexion failed since "
+                  + elapsedTime
+                  + "s, retrying in "
+                  + reconnectDelay
+                  + "s");
           listener.onConnectionFailWillRetry(reconnectDelay);
         } else {
           // we just got disconnected

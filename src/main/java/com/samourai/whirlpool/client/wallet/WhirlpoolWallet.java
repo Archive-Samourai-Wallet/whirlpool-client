@@ -492,6 +492,9 @@ public class WhirlpoolWallet {
     getUtxoConfigSupplier()
         .forwardUtxoConfig(whirlpoolUtxo, receiveUtxo.getHash(), (int) receiveUtxo.getIndex());
 
+    // change Tor identity
+    config.getTorClientService().changeIdentity();
+
     // refresh new utxos in background
     refreshUtxosDelay();
   }
