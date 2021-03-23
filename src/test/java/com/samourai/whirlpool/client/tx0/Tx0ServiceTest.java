@@ -1044,6 +1044,9 @@ public class Tx0ServiceTest extends AbstractTest {
   @Test
   public void computeChangeValues() {
     final int MIN_VALUE = config.getTx0FakeOutputMinValue();
+    // FAKE_OUTPUT_VALUE_MIN - 10 => 1 output
+    doComputeChangeValues(MIN_VALUE - 10, 1);
+
     // FAKE_OUTPUT_VALUE_MIN => 1 output
     doComputeChangeValues(MIN_VALUE, 1);
 
@@ -1068,7 +1071,9 @@ public class Tx0ServiceTest extends AbstractTest {
       // verify sum
       long sum = 0;
       for (long value : changeValues) {
-        Assertions.assertTrue(value >= config.getTx0FakeOutputMinValue());
+        if (changeValues.length > 1) {
+          Assertions.assertTrue(value >= config.getTx0FakeOutputMinValue());
+        }
         sum += value;
       }
       log.debug("changeValues: " + changeValueTotal + " => " + Arrays.toString(changeValues));

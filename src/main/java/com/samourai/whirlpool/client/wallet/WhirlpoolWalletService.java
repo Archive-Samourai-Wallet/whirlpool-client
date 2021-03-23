@@ -38,7 +38,9 @@ public class WhirlpoolWalletService {
       wp.close();
       whirlpoolWallet = Optional.empty();
     } else {
-      log.warn("closeWallet skipped: no wallet opened");
+      if (log.isDebugEnabled()) {
+        log.debug("closeWallet skipped: no wallet opened");
+      }
     }
   }
 

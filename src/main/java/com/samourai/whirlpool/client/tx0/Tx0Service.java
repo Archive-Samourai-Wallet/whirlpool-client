@@ -449,15 +449,6 @@ public class Tx0Service {
       boolean useFakeOutputs = useFakeOutput(sortedSpendFroms);
       long[] changeValues = computeChangeValues(changeValueTotal, useFakeOutputs);
       for (long changeValue : changeValues) {
-        if (changeValue < config.getTx0FakeOutputMinValue()) {
-          throw new Exception(
-              "Invalid fake change detected, please report this bug. changeValueTotal="
-                  + changeValueTotal
-                  + ", changeValues="
-                  + changeValues
-                  + ", tx0FakeOutputMinValue="
-                  + config.getTx0FakeOutputMinValue());
-        }
         HD_Address changeAddress = changeWallet.getNextChangeAddress();
         String changeAddressBech32 = bech32Util.toBech32(changeAddress, params);
         TransactionOutput changeOutput =
