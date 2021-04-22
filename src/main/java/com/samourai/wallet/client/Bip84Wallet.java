@@ -48,7 +48,7 @@ public class Bip84Wallet {
   }
 
   public HD_Address getAddressAt(int chainIndex, int addressIndex) {
-    return getAddressBip84(accountIndex, chainIndex, addressIndex);
+    return bip84w.getAddressAt(accountIndex, chainIndex, addressIndex);
   }
 
   public HD_Address getAddressAt(UnspentOutput utxo) {
@@ -61,10 +61,6 @@ public class Bip84Wallet {
 
   public String getXpub() {
     return bip84w.getAccountAt(accountIndex).xpubstr();
-  }
-
-  private HD_Address getAddressBip84(int account, int chain, int index) {
-    return bip84w.getAccountAt(account).getChain(chain).getAddressAt(index);
   }
 
   public IIndexHandler getIndexHandler() {
