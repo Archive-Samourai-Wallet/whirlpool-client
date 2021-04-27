@@ -4,20 +4,21 @@ import com.samourai.wallet.api.backend.MinerFeeTarget;
 import com.samourai.wallet.api.backend.beans.WalletResponse;
 import com.samourai.whirlpool.client.test.AbstractTest;
 import com.samourai.whirlpool.client.wallet.beans.Tx0FeeTarget;
-import java.util.LinkedHashMap;
-import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Disabled;
-import org.junit.jupiter.api.Test;
+import org.junit.Assert;
+import org.junit.Before;
+import org.junit.Ignore;
+import org.junit.Test;
 
-@Disabled // WalletResponse refactoring
+import java.util.LinkedHashMap;
+
+@Ignore // WalletResponse refactoring
 public class MinerFeeSupplierTest extends AbstractTest {
   private MinerFeeSupplier supplier;
   private final int FEE_MIN = 50;
   private final int FEE_MAX = 500;
   private final int FEE_FALLBACK = 123;
 
-  @BeforeEach
+  @Before
   public void setup() throws Exception {
     this.supplier = new MinerFeeSupplier(FEE_MIN, FEE_MAX, FEE_FALLBACK);
   }
@@ -57,12 +58,12 @@ public class MinerFeeSupplierTest extends AbstractTest {
   private void doTest(int expected) throws Exception {
     // getFee(MinerFeeTarget)
     for (MinerFeeTarget minerFeeTarget : MinerFeeTarget.values()) {
-      Assertions.assertEquals(expected, supplier.getFee(minerFeeTarget));
+      Assert.assertEquals(expected, supplier.getFee(minerFeeTarget));
     }
 
     // getFee(Tx0FeeTarget)
     for (Tx0FeeTarget tx0FeeTarget : Tx0FeeTarget.values()) {
-      Assertions.assertEquals(expected, supplier.getFee(tx0FeeTarget));
+      Assert.assertEquals(expected, supplier.getFee(tx0FeeTarget));
     }
   }
 }

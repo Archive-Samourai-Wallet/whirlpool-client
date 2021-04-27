@@ -1,10 +1,13 @@
 package com.samourai.wallet.beans;
 
 import com.samourai.whirlpool.client.test.AbstractTest;
-import com.samourai.whirlpool.client.wallet.beans.*;
-import java.util.*;
+import com.samourai.whirlpool.client.wallet.beans.WhirlpoolUtxo;
+import com.samourai.whirlpool.client.wallet.beans.WhirlpoolUtxoPriorityComparator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.util.LinkedList;
+import java.util.List;
 
 public class WhirlpoolUtxoPriorityComparatorTest extends AbstractTest {
   private static final Logger log =
@@ -41,7 +44,7 @@ public class WhirlpoolUtxoPriorityComparatorTest extends AbstractTest {
           "0.01btcPostmix1conf:3",
           "0.01btcPostmix5confError:3"
         };
-    Assertions.assertArrayEquals(expected, utxoStrings);
+    Assert.assertArrayEquals(expected, utxoStrings);
   }
 
   private String[] toUtxoStrings(Collection<WhirlpoolUtxo> utxos) {

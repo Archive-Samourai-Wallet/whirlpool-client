@@ -3,10 +3,11 @@ package com.samourai.whirlpool.client.wallet.data.pool;
 import com.samourai.whirlpool.client.test.AbstractTest;
 import com.samourai.whirlpool.client.whirlpool.beans.Pool;
 import com.samourai.whirlpool.protocol.rest.PoolInfo;
+import org.junit.Assert;
+import org.junit.Before;
+import org.junit.Test;
+
 import java.util.Collection;
-import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
 
 public class PoolSupplierTest extends AbstractTest {
   private MockPoolSupplier supplier;
@@ -15,7 +16,7 @@ public class PoolSupplierTest extends AbstractTest {
   private PoolInfo POOL_2;
   private PoolInfo POOL_3;
 
-  @BeforeEach
+  @Before
   public void setup() {
     this.supplier = new MockPoolSupplier();
     POOL_1 = new PoolInfo();
@@ -35,7 +36,7 @@ public class PoolSupplierTest extends AbstractTest {
     doTest(POOL_1, POOL_2, POOL_3);
 
     // non-existing pool
-    Assertions.assertNull(supplier.findPoolById("foo"));
+    Assert.assertNull(supplier.findPoolById("foo"));
   }
 
   private void doTest(PoolInfo... pools) throws Exception {
@@ -43,7 +44,7 @@ public class PoolSupplierTest extends AbstractTest {
 
     // verify getPools
     Collection<Pool> getPools = supplier.getPools();
-    Assertions.assertEquals(pools.length, getPools.size());
+    Assert.assertEquals(pools.length, getPools.size());
     for (PoolInfo poolInfo : pools) {
       boolean found = false;
       for (Pool p : getPools) {
@@ -59,7 +60,7 @@ public class PoolSupplierTest extends AbstractTest {
 
     // verify findPoolById
     for (PoolInfo poolInfo : pools) {
-      Assertions.assertEquals(supplier.findPoolById(poolInfo.poolId).getPoolId(), poolInfo.poolId);
+      Assert.assertEquals(supplier.findPoolById(poolInfo.poolId).getPoolId(), poolInfo.poolId);
     }
   }
 }

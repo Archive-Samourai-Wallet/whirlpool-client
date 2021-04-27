@@ -3,7 +3,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>io.samourai.code.whirlpool</groupId>
     <artifactId>whirlpool-client</artifactId>
-    <version>0.23.30-SNAPSHOT</version>
+    <version>0.23.30-dsk-SNAPSHOT</version>
     <name>whirlpool-client</name>
     <properties>
         <maven.compiler.source>1.6</maven.compiler.source>
@@ -25,7 +25,7 @@
         <dependency>
             <groupId>io.samourai.code.wallet</groupId>
             <artifactId>extlibj</artifactId>
-            <version>0.0.19-fetchWallet-SNAPSHOT</version>
+            <version>0.0.19-dsk-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>io.samourai.code.wallet</groupId>
@@ -59,16 +59,11 @@
             <version>2.27.0</version>
             <scope>test</scope>
         </dependency>
+        <!-- last available for jdk 1.6 -->
         <dependency>
-            <groupId>org.junit.platform</groupId>
-            <artifactId>junit-platform-launcher</artifactId>
-            <version>1.4.2</version>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.junit.jupiter</groupId>
-            <artifactId>junit-jupiter-engine</artifactId>
-            <version>5.4.2</version>
+            <groupId>junit</groupId>
+            <artifactId>junit</artifactId>
+            <version>4.13.2</version>
             <scope>test</scope>
         </dependency>
     </dependencies>

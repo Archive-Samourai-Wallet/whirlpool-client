@@ -1,7 +1,6 @@
 package com.samourai.whirlpool.client.wallet.persist;
 
 import com.samourai.whirlpool.client.test.AbstractTest;
-import com.samourai.whirlpool.client.wallet.beans.*;
 
 public class FileWhirlpoolWalletPersistHandlerTest extends AbstractTest {
   /*
@@ -68,9 +67,9 @@ public class FileWhirlpoolWalletPersistHandlerTest extends AbstractTest {
     WhirlpoolUtxo bar = computeUtxo(utxoBar);
 
     // verify
-    Assertions.assertNull(persistHandler.getUtxoConfig("foo"));
-    Assertions.assertNull(persistHandler.getUtxoConfig("foo", 2));
-    Assertions.assertNull(persistHandler.getUtxoConfig("bar", 1));
+    Assert.assertNull(persistHandler.getUtxoConfig("foo"));
+    Assert.assertNull(persistHandler.getUtxoConfig("foo", 2));
+    Assert.assertNull(persistHandler.getUtxoConfig("bar", 1));
 
     persistHandler.save();
 
@@ -78,27 +77,27 @@ public class FileWhirlpoolWalletPersistHandlerTest extends AbstractTest {
     reload();
 
     // verify
-    Assertions.assertNull(persistHandler.getUtxoConfig("foo"));
-    Assertions.assertNull(persistHandler.getUtxoConfig("foo", 2));
-    Assertions.assertNull(persistHandler.getUtxoConfig("bar", 1));
+    Assert.assertNull(persistHandler.getUtxoConfig("foo"));
+    Assert.assertNull(persistHandler.getUtxoConfig("foo", 2));
+    Assert.assertNull(persistHandler.getUtxoConfig("bar", 1));
 
     // first clean => unchanged
     List<WhirlpoolUtxo> knownUtxos = Lists.of(foo);
     persistHandler.cleanUtxoConfig(knownUtxos);
 
     // verify
-    Assertions.assertNull(persistHandler.getUtxoConfig("foo"));
-    Assertions.assertNull(persistHandler.getUtxoConfig("foo", 2));
-    Assertions.assertNull(persistHandler.getUtxoConfig("bar", 1));
+    Assert.assertNull(persistHandler.getUtxoConfig("foo"));
+    Assert.assertNull(persistHandler.getUtxoConfig("foo", 2));
+    Assert.assertNull(persistHandler.getUtxoConfig("bar", 1));
 
     // second clean => "bar" removed
     persistHandler.cleanUtxoConfig(knownUtxos);
 
     // verify
-    Assertions.assertNull(persistHandler.getUtxoConfig("foo"));
-    Assertions.assertNull(persistHandler.getUtxoConfig("foo", 2));
-    Assertions.assertNull(persistHandler.getUtxoConfig("bar", 2));
-    Assertions.assertNull(persistHandler.getUtxoConfig("bar", 1));
+    Assert.assertNull(persistHandler.getUtxoConfig("foo"));
+    Assert.assertNull(persistHandler.getUtxoConfig("foo", 2));
+    Assert.assertNull(persistHandler.getUtxoConfig("bar", 2));
+    Assert.assertNull(persistHandler.getUtxoConfig("bar", 1));
 
     // re-read
     reload();

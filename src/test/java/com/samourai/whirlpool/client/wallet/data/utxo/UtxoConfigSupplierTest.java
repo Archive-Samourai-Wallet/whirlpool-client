@@ -2,8 +2,8 @@ package com.samourai.whirlpool.client.wallet.data.utxo;
 
 import com.samourai.wallet.api.backend.beans.UnspentOutput;
 import com.samourai.whirlpool.client.wallet.beans.WhirlpoolUtxo;
-import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.Test;
+import org.junit.Assert;
+import org.junit.Test;
 
 public class UtxoConfigSupplierTest extends UtxoSupplierTest {
 
@@ -17,21 +17,21 @@ public class UtxoConfigSupplierTest extends UtxoSupplierTest {
     doTest(utxos1);
     assertUtxoChanges(utxos1, new UnspentOutput[] {}, new UnspentOutput[] {});
 
-    Assertions.assertEquals(utxos1.length, utxoSupplier.getUtxos().size());
+    Assert.assertEquals(utxos1.length, utxoSupplier.getUtxos().size());
 
     // verify mixsDone
-    Assertions.assertEquals(
+    Assert.assertEquals(
         0, utxoSupplier.findUtxo(UTXO_DEPOSIT1.tx_hash, UTXO_DEPOSIT1.tx_output_n).getMixsDone());
-    Assertions.assertEquals(
+    Assert.assertEquals(
         0, utxoSupplier.findUtxo(UTXO_PREMIX1.tx_hash, UTXO_PREMIX1.tx_output_n).getMixsDone());
-    Assertions.assertEquals(
+    Assert.assertEquals(
         1, utxoSupplier.findUtxo(UTXO_POSTMIX1.tx_hash, UTXO_POSTMIX1.tx_output_n).getMixsDone());
 
-    Assertions.assertNull(utxoSupplier.findUtxo(UTXO_DEPOSIT1.tx_hash, 99));
+    Assert.assertNull(utxoSupplier.findUtxo(UTXO_DEPOSIT1.tx_hash, 99));
 
     // setPoolId
     utxoSupplier.findUtxo(UTXO_DEPOSIT1.tx_hash, UTXO_DEPOSIT1.tx_output_n).setPoolId("test");
-    Assertions.assertEquals(
+    Assert.assertEquals(
         "test",
         utxoSupplier.findUtxo(UTXO_DEPOSIT1.tx_hash, UTXO_DEPOSIT1.tx_output_n).getPoolId());
   }
@@ -46,7 +46,7 @@ public class UtxoConfigSupplierTest extends UtxoSupplierTest {
     doTest(utxos1);
     assertUtxoChanges(utxos1, new UnspentOutput[] {}, new UnspentOutput[] {});
 
-    Assertions.assertEquals(utxos1.length, utxoSupplier.getUtxos().size());
+    Assert.assertEquals(utxos1.length, utxoSupplier.getUtxos().size());
 
     // forward
     String fromKey =
@@ -77,6 +77,6 @@ public class UtxoConfigSupplierTest extends UtxoSupplierTest {
     WhirlpoolUtxo utxoPremix1 =
         utxoSupplier.findUtxo(UTXO_PREMIX1.tx_hash, UTXO_PREMIX1.tx_output_n);
     // verify forwarding null
-    Assertions.assertNull(utxoConfigSupplier.getUtxoConfigPersisted(utxoPremix1).getForwarding());
+    Assert.assertNull(utxoConfigSupplier.getUtxoConfigPersisted(utxoPremix1).getForwarding());
   }
 }
