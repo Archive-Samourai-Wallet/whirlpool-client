@@ -3,9 +3,7 @@ package com.samourai.whirlpool.client.wallet.data.minerFee;
 import com.samourai.wallet.api.backend.BackendApi;
 import com.samourai.wallet.api.backend.beans.WalletResponse;
 import com.samourai.whirlpool.client.tx0.Tx0ParamService;
-import com.samourai.whirlpool.client.utils.MessageListener;
 import com.samourai.whirlpool.client.wallet.WhirlpoolWalletConfig;
-import com.samourai.whirlpool.client.wallet.beans.WhirlpoolUtxoChanges;
 import com.samourai.whirlpool.client.wallet.data.ExpirableSupplier;
 import com.samourai.whirlpool.client.wallet.data.LoadableSupplier;
 import com.samourai.whirlpool.client.wallet.data.pool.PoolSupplier;
@@ -33,7 +31,6 @@ public class WalletDataSupplier extends ExpirableSupplier<WalletResponse>
       int refreshUtxoDelay,
       WalletSupplier walletSupplier,
       PoolSupplier poolSupplier,
-      MessageListener<WhirlpoolUtxoChanges> utxoChangesListener,
       String utxoConfigFileName,
       WhirlpoolWalletConfig config) {
     super(refreshUtxoDelay, null, log);
@@ -50,8 +47,7 @@ public class WalletDataSupplier extends ExpirableSupplier<WalletResponse>
         new UtxoConfigSupplier(
             new UtxoConfigPersister(utxoConfigFileName), poolSupplier, tx0ParamService);
 
-    this.utxoSupplier =
-        new UtxoSupplier(walletSupplier, utxoConfigSupplier, this, utxoChangesListener);
+    this.utxoSupplier = new UtxoSupplier(walletSupplier, utxoConfigSupplier, this);
   }
 
   protected WalletResponse fetchWalletResponse() throws Exception {

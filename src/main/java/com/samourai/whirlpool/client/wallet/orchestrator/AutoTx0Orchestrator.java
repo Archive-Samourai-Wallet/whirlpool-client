@@ -1,9 +1,14 @@
 package com.samourai.whirlpool.client.wallet.orchestrator;
 
+import com.google.common.eventbus.Subscribe;
 import com.samourai.wallet.api.backend.beans.UnspentOutput;
 import com.samourai.wallet.util.AbstractOrchestrator;
+import com.samourai.whirlpool.client.event.UtxosChangeEvent;
+import com.samourai.whirlpool.client.event.WalletStartEvent;
+import com.samourai.whirlpool.client.event.WalletStopEvent;
 import com.samourai.whirlpool.client.exception.EmptyWalletException;
 import com.samourai.whirlpool.client.exception.UnconfirmedUtxoException;
+import com.samourai.whirlpool.client.wallet.WhirlpoolEventService;
 import com.samourai.whirlpool.client.wallet.WhirlpoolWallet;
 import com.samourai.whirlpool.client.wallet.WhirlpoolWalletConfig;
 import com.samourai.whirlpool.client.wallet.beans.WhirlpoolUtxo;
@@ -22,6 +27,8 @@ public class AutoTx0Orchestrator extends AbstractOrchestrator {
     super(config.getTx0Delay(), START_DELAY, config.getTx0Delay());
     this.whirlpoolWallet = whirlpoolWallet;
     this.config = config;
+
+    WhirlpoolEventService.getInstance().register(this);
   }
 
   @Override
@@ -87,7 +94,24 @@ public class AutoTx0Orchestrator extends AbstractOrchestrator {
     // no tx0 can be made now, check back later...
   }
 
-  public void onUtxoChanges(WhirlpoolUtxoChanges whirlpoolUtxoChanges) {
+  @Subscribe
+  public void onWalletStart(WalletStartEvent walletStartEvent) {
+    // start orchestrator
+    start(true);
+
+    // handle initial utxos
+    onUtxosChange(new UtxosChangeEvent(walletStartEvent.getUtxoData()));
+  }
+
+  @Subscribe
+  public void onWalletStop(WalletStopEvent walletStopEvent) {
+    // stop orchestrator
+    stop();
+  }
+
+  @Subscribe
+  public void onUtxosChange(UtxosChangeEvent utxosChangeEvent) {
+    WhirlpoolUtxoChanges whirlpoolUtxoChanges = utxosChangeEvent.getUtxoData().getUtxoChanges();
     boolean notify = false;
 
     // DETECTED

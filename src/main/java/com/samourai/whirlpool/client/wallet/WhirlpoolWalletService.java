@@ -5,8 +5,6 @@ import com.samourai.wallet.hd.HD_Wallet;
 import com.samourai.wallet.segwit.bech32.Bech32UtilGeneric;
 import com.samourai.whirlpool.client.tx0.Tx0Service;
 import com.samourai.whirlpool.client.utils.ClientUtils;
-import com.samourai.whirlpool.client.utils.MessageListener;
-import com.samourai.whirlpool.client.wallet.beans.WhirlpoolUtxoChanges;
 import com.samourai.whirlpool.client.wallet.data.minerFee.WalletDataSupplier;
 import com.samourai.whirlpool.client.wallet.data.minerFee.WalletSupplier;
 import com.samourai.whirlpool.client.wallet.data.pool.PoolSupplier;
@@ -123,8 +121,7 @@ public class WhirlpoolWalletService {
         new PoolSupplier(config.getRefreshPoolsDelay(), config.getServerApi());
 
     WalletDataSupplier walletDataSupplier =
-        computeWalletDataSupplier(
-            walletSupplier, poolSupplier, computeUtxoChangesListener(), utxoConfigFileName, config);
+        computeWalletDataSupplier(walletSupplier, poolSupplier, utxoConfigFileName, config);
 
     return new WhirlpoolWallet(
         config,
@@ -140,32 +137,10 @@ public class WhirlpoolWalletService {
   protected WalletDataSupplier computeWalletDataSupplier(
       WalletSupplier walletSupplier,
       PoolSupplier poolSupplier,
-      MessageListener<WhirlpoolUtxoChanges> utxoChangesListener,
       String utxoConfigFileName,
       WhirlpoolWalletConfig config) {
     return new WalletDataSupplier(
-        config.getRefreshUtxoDelay(),
-        walletSupplier,
-        poolSupplier,
-        utxoChangesListener,
-        utxoConfigFileName,
-        config);
-  }
-
-  protected MessageListener<WhirlpoolUtxoChanges> computeUtxoChangesListener() {
-    return new MessageListener<WhirlpoolUtxoChanges>() {
-      @Override
-      public void onMessage(WhirlpoolUtxoChanges message) {
-        if (!whirlpoolWallet.isPresent()) {
-          // this happens on first data load
-          if (log.isDebugEnabled()) {
-            log.debug("ignoring onUtxoChanges: no wallet opened");
-          }
-          return;
-        }
-        whirlpoolWallet.get()._onUtxoChanges(message);
-      }
-    };
+        config.getRefreshUtxoDelay(), walletSupplier, poolSupplier, utxoConfigFileName, config);
   }
 
   public Optional<WhirlpoolWallet> getWhirlpoolWallet() {

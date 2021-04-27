@@ -1,11 +1,16 @@
 package com.samourai.whirlpool.client.wallet.orchestrator;
 
+import com.google.common.eventbus.Subscribe;
 import com.samourai.wallet.util.AbstractOrchestrator;
 import com.samourai.whirlpool.client.WhirlpoolClient;
+import com.samourai.whirlpool.client.event.UtxosChangeEvent;
+import com.samourai.whirlpool.client.event.WalletStartEvent;
+import com.samourai.whirlpool.client.event.WalletStopEvent;
 import com.samourai.whirlpool.client.exception.NotifiableException;
 import com.samourai.whirlpool.client.mix.listener.MixFailReason;
 import com.samourai.whirlpool.client.mix.listener.MixStep;
 import com.samourai.whirlpool.client.mix.listener.MixSuccess;
+import com.samourai.whirlpool.client.wallet.WhirlpoolEventService;
 import com.samourai.whirlpool.client.wallet.beans.*;
 import com.samourai.whirlpool.client.whirlpool.beans.Pool;
 import com.samourai.whirlpool.client.whirlpool.listener.LoggingWhirlpoolClientListener;
@@ -52,6 +57,19 @@ public abstract class MixOrchestrator extends AbstractOrchestrator {
     this.maxClientsPerPool = Math.min(maxClientsPerPool, maxClients); // prevent wrong configuration
     this.liquidityClient = liquidityClient;
     this.autoMix = autoMix;
+
+    WhirlpoolEventService.getInstance().register(this);
+  }
+
+  @Override
+  public synchronized void stop() {
+    super.stop();
+
+    clearQueue();
+    stopMixingClients();
+
+    // clear mixing data *after* stopping clients
+    data.clear();
   }
 
   protected abstract WhirlpoolClient runWhirlpoolClient(
@@ -96,17 +114,6 @@ public abstract class MixOrchestrator extends AbstractOrchestrator {
       }
     }
     return found;
-  }
-
-  @Override
-  public synchronized void stop() {
-    super.stop();
-
-    clearQueue();
-    stopMixingClients();
-
-    // clear mixing data *after* stopping clients
-    data.clear();
   }
 
   public synchronized void stopMixingClients() {
@@ -580,7 +587,24 @@ public abstract class MixOrchestrator extends AbstractOrchestrator {
     // override here
   }
 
-  public void onUtxoChanges(WhirlpoolUtxoChanges whirlpoolUtxoChanges) {
+  @Subscribe
+  public void onWalletStart(WalletStartEvent walletStartEvent) {
+    // start orchestrator
+    start(true);
+
+    // handle initial utxos
+    onUtxosChange(new UtxosChangeEvent(walletStartEvent.getUtxoData()));
+  }
+
+  @Subscribe
+  public void onWalletStop(WalletStopEvent walletStopEvent) {
+    // stop orchestrator
+    stop();
+  }
+
+  @Subscribe
+  public void onUtxosChange(UtxosChangeEvent utxosChangeEvent) {
+    WhirlpoolUtxoChanges whirlpoolUtxoChanges = utxosChangeEvent.getUtxoData().getUtxoChanges();
     boolean notify = false;
 
     // DETECTED

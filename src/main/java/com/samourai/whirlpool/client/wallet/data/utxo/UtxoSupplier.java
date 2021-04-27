@@ -1,7 +1,8 @@
 package com.samourai.whirlpool.client.wallet.data.utxo;
 
 import com.samourai.wallet.api.backend.beans.WalletResponse;
-import com.samourai.whirlpool.client.utils.MessageListener;
+import com.samourai.whirlpool.client.event.UtxosChangeEvent;
+import com.samourai.whirlpool.client.wallet.WhirlpoolEventService;
 import com.samourai.whirlpool.client.wallet.beans.*;
 import com.samourai.whirlpool.client.wallet.data.BasicSupplier;
 import com.samourai.whirlpool.client.wallet.data.minerFee.WalletDataSupplier;
@@ -15,24 +16,22 @@ import org.slf4j.LoggerFactory;
 public class UtxoSupplier extends BasicSupplier<UtxoData> {
   private static final Logger log = LoggerFactory.getLogger(UtxoSupplier.class);
 
+  private final WhirlpoolEventService eventService = WhirlpoolEventService.getInstance();
   private final WalletSupplier walletSupplier;
   private final UtxoConfigSupplier utxoConfigSupplier;
   private WalletDataSupplier walletDataSupplier;
-  private final MessageListener<WhirlpoolUtxoChanges> utxoChangesListener;
 
   private Map<String, WhirlpoolUtxo> previousUtxos;
 
   public UtxoSupplier(
       WalletSupplier walletSupplier,
       UtxoConfigSupplier utxoConfigSupplier,
-      WalletDataSupplier walletDataSupplier,
-      MessageListener<WhirlpoolUtxoChanges> utxoChangesListener) {
+      WalletDataSupplier walletDataSupplier) {
     super(log, null);
     this.previousUtxos = null;
     this.walletSupplier = walletSupplier;
     this.utxoConfigSupplier = utxoConfigSupplier;
     this.walletDataSupplier = walletDataSupplier;
-    this.utxoChangesListener = utxoChangesListener;
   }
 
   public void _setValue(WalletResponse walletResponse) {
@@ -53,9 +52,6 @@ public class UtxoSupplier extends BasicSupplier<UtxoData> {
     if (!utxoChanges.isEmpty()) {
       // notify utxoConfigSupplier
       utxoConfigSupplier.onUtxoChanges(utxoData);
-
-      // notify wallet
-      utxoChangesListener.onMessage(utxoChanges);
     }
 
     // update previousUtxos
@@ -65,6 +61,11 @@ public class UtxoSupplier extends BasicSupplier<UtxoData> {
 
     // set new value
     super.setValue(utxoData);
+
+    // notify
+    if (!utxoChanges.isEmpty()) {
+      eventService.post(new UtxosChangeEvent(utxoData));
+    }
   }
 
   public void expire() {

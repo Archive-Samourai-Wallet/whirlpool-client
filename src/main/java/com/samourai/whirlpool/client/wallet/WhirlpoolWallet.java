@@ -6,6 +6,8 @@ import com.samourai.wallet.client.Bip84Wallet;
 import com.samourai.wallet.client.indexHandler.IIndexHandler;
 import com.samourai.wallet.hd.HD_Address;
 import com.samourai.wallet.segwit.bech32.Bech32UtilGeneric;
+import com.samourai.whirlpool.client.event.WalletStartEvent;
+import com.samourai.whirlpool.client.event.WalletStopEvent;
 import com.samourai.whirlpool.client.exception.EmptyWalletException;
 import com.samourai.whirlpool.client.exception.NotifiableException;
 import com.samourai.whirlpool.client.exception.UnconfirmedUtxoException;
@@ -20,6 +22,7 @@ import com.samourai.whirlpool.client.wallet.data.minerFee.WalletDataSupplier;
 import com.samourai.whirlpool.client.wallet.data.minerFee.WalletSupplier;
 import com.samourai.whirlpool.client.wallet.data.pool.PoolSupplier;
 import com.samourai.whirlpool.client.wallet.data.utxo.UtxoConfigSupplier;
+import com.samourai.whirlpool.client.wallet.data.utxo.UtxoData;
 import com.samourai.whirlpool.client.wallet.data.utxo.UtxoSupplier;
 import com.samourai.whirlpool.client.wallet.data.walletState.WalletStateSupplier;
 import com.samourai.whirlpool.client.wallet.orchestrator.AutoTx0Orchestrator;
@@ -408,17 +411,11 @@ public class WhirlpoolWallet {
       return;
     }
     log.info(" • Starting WhirlpoolWallet");
-
-    this.mixOrchestrator.start(true);
-    if (this.autoTx0Orchestrator.isPresent()) {
-      this.autoTx0Orchestrator.get().start(true);
-    }
     mixingState.setStarted(true);
 
-    // load initial utxos
-    WhirlpoolUtxoChanges utxoChanges = new WhirlpoolUtxoChanges(true);
-    utxoChanges.getUtxosAdded().addAll(getUtxoSupplier().getUtxos());
-    this._onUtxoChanges(utxoChanges);
+    // notify startup
+    UtxoData utxoData = getUtxoSupplier().getValue();
+    WhirlpoolEventService.getInstance().post(new WalletStartEvent(utxoData));
   }
 
   public synchronized void stop() {
@@ -429,13 +426,11 @@ public class WhirlpoolWallet {
       return;
     }
     log.info(" • Stopping WhirlpoolWallet");
-    this.mixOrchestrator.stop();
-    if (this.autoTx0Orchestrator.isPresent()) {
-      this.autoTx0Orchestrator.get().stop();
-    }
-    // keep other orchestrators running
 
     mixingState.setStarted(false);
+
+    // notify stop
+    WhirlpoolEventService.getInstance().post(new WalletStopEvent());
   }
 
   public void mixQueue(WhirlpoolUtxo whirlpoolUtxo) throws NotifiableException {
@@ -690,14 +685,6 @@ public class WhirlpoolWallet {
   public String getDepositAddress(boolean increment) {
     return bech32Util.toBech32(
         getWalletDeposit().getNextAddress(increment), config.getNetworkParameters());
-  }
-
-  public void _onUtxoChanges(WhirlpoolUtxoChanges whirlpoolUtxoChanges) {
-    // notify
-    mixOrchestrator.onUtxoChanges(whirlpoolUtxoChanges);
-    if (autoTx0Orchestrator.isPresent()) {
-      autoTx0Orchestrator.get().onUtxoChanges(whirlpoolUtxoChanges);
-    }
   }
 
   public void onEmptyWalletException(EmptyWalletException e) {

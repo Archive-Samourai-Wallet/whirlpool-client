@@ -145,7 +145,7 @@ public class UtxoConfigSupplier extends AbstractPersistableSupplier<UtxoConfigDa
     return ClientUtils.sha256Hash(utxoHash);
   }
 
-  protected synchronized void onUtxoChanges(UtxoData utxoData) {
+  public synchronized void onUtxoChanges(UtxoData utxoData) {
     WhirlpoolUtxoChanges utxoChanges = utxoData.getUtxoChanges();
 
     // create new utxoConfigs
