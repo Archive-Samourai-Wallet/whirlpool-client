@@ -10,6 +10,7 @@ import com.samourai.whirlpool.client.wallet.WhirlpoolWalletConfig;
 import com.samourai.whirlpool.client.wallet.beans.WhirlpoolAccount;
 import com.samourai.whirlpool.client.wallet.beans.WhirlpoolServer;
 import com.samourai.whirlpool.client.whirlpool.beans.Tx0Data;
+import java.util.Arrays;
 import java8.util.Lists;
 import org.bitcoinj.core.ECKey;
 import org.bitcoinj.core.Transaction;
@@ -19,8 +20,6 @@ import org.junit.Before;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.util.Arrays;
 
 public class Tx0ServiceTest extends AbstractTest {
   private Logger log = LoggerFactory.getLogger(Tx0ServiceTest.class);
@@ -431,8 +430,7 @@ public class Tx0ServiceTest extends AbstractTest {
     Assert.assertEquals(nbOutputsExpected, tx0Preview.getNbPremix());
 
     Transaction tx = tx0.getTx();
-    Assert.assertEquals(
-        nbOutputsExpected + 3, tx.getOutputs().size()); // opReturn + fee + change
+    Assert.assertEquals(nbOutputsExpected + 3, tx.getOutputs().size()); // opReturn + fee + change
 
     String tx0Hash = tx.getHashAsString();
     String tx0Hex = new String(Hex.encode(tx.bitcoinSerialize()));

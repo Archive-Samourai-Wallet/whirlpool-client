@@ -4,6 +4,7 @@ import com.google.common.eventbus.Subscribe;
 import com.samourai.wallet.api.backend.beans.UnspentOutput;
 import com.samourai.wallet.util.AbstractOrchestrator;
 import com.samourai.whirlpool.client.event.UtxosChangeEvent;
+import com.samourai.whirlpool.client.event.WalletCloseEvent;
 import com.samourai.whirlpool.client.event.WalletStartEvent;
 import com.samourai.whirlpool.client.event.WalletStopEvent;
 import com.samourai.whirlpool.client.exception.EmptyWalletException;
@@ -29,6 +30,11 @@ public class AutoTx0Orchestrator extends AbstractOrchestrator {
     this.config = config;
 
     WhirlpoolEventService.getInstance().register(this);
+  }
+
+  @Subscribe
+  public void onWalletClose(WalletCloseEvent walletCloseEvent) {
+    WhirlpoolEventService.getInstance().unregister(this);
   }
 
   @Override

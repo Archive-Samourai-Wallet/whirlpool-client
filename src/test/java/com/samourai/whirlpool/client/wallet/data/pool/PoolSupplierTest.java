@@ -3,11 +3,10 @@ package com.samourai.whirlpool.client.wallet.data.pool;
 import com.samourai.whirlpool.client.test.AbstractTest;
 import com.samourai.whirlpool.client.whirlpool.beans.Pool;
 import com.samourai.whirlpool.protocol.rest.PoolInfo;
+import java.util.Collection;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
-
-import java.util.Collection;
 
 public class PoolSupplierTest extends AbstractTest {
   private MockPoolSupplier supplier;

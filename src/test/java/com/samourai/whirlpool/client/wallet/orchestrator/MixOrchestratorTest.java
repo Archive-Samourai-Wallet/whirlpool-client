@@ -4,11 +4,10 @@ import com.samourai.whirlpool.client.test.AbstractTest;
 import com.samourai.whirlpool.client.wallet.beans.MixOrchestratorData;
 import com.samourai.whirlpool.client.wallet.beans.MixingStateEditable;
 import com.samourai.whirlpool.client.wallet.beans.WhirlpoolUtxo;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.util.LinkedList;
 import java.util.List;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class MixOrchestratorTest extends AbstractTest {
   private static final Logger log = LoggerFactory.getLogger(MixOrchestratorTest.class);

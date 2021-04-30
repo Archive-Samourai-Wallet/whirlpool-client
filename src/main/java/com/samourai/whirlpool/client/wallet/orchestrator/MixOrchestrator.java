@@ -4,6 +4,7 @@ import com.google.common.eventbus.Subscribe;
 import com.samourai.wallet.util.AbstractOrchestrator;
 import com.samourai.whirlpool.client.WhirlpoolClient;
 import com.samourai.whirlpool.client.event.UtxosChangeEvent;
+import com.samourai.whirlpool.client.event.WalletCloseEvent;
 import com.samourai.whirlpool.client.event.WalletStartEvent;
 import com.samourai.whirlpool.client.event.WalletStopEvent;
 import com.samourai.whirlpool.client.exception.NotifiableException;
@@ -59,6 +60,11 @@ public abstract class MixOrchestrator extends AbstractOrchestrator {
     this.autoMix = autoMix;
 
     WhirlpoolEventService.getInstance().register(this);
+  }
+
+  @Subscribe
+  public void onWalletClose(WalletCloseEvent walletCloseEvent) {
+    WhirlpoolEventService.getInstance().unregister(this);
   }
 
   @Override

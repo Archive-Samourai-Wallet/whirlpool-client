@@ -18,13 +18,12 @@ import com.samourai.whirlpool.client.wallet.data.minerFee.WalletSupplier;
 import com.samourai.whirlpool.client.wallet.data.pool.MockPoolSupplier;
 import com.samourai.whirlpool.client.wallet.data.walletState.WalletStatePersister;
 import com.samourai.whirlpool.protocol.rest.PoolInfo;
+import java.util.Collection;
+import java.util.LinkedHashMap;
 import org.apache.commons.lang3.ArrayUtils;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
-
-import java.util.Collection;
-import java.util.LinkedHashMap;
 
 public class UtxoSupplierTest extends AbstractTest {
   protected WalletDataSupplier walletDataSupplier;

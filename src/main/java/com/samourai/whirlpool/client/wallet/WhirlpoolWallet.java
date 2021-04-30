@@ -6,6 +6,8 @@ import com.samourai.wallet.client.Bip84Wallet;
 import com.samourai.wallet.client.indexHandler.IIndexHandler;
 import com.samourai.wallet.hd.HD_Address;
 import com.samourai.wallet.segwit.bech32.Bech32UtilGeneric;
+import com.samourai.whirlpool.client.event.WalletCloseEvent;
+import com.samourai.whirlpool.client.event.WalletOpenEvent;
 import com.samourai.whirlpool.client.event.WalletStartEvent;
 import com.samourai.whirlpool.client.event.WalletStopEvent;
 import com.samourai.whirlpool.client.exception.EmptyWalletException;
@@ -396,11 +398,17 @@ public class WhirlpoolWallet {
 
     // check postmix index against coordinator
     checkPostmixIndex();
+
+    // notify open
+    WhirlpoolEventService.getInstance().post(new WalletOpenEvent());
   }
 
   public void close() {
     persistOrchestrator.stop();
     dataOrchestrator.stop();
+
+    // notify close
+    WhirlpoolEventService.getInstance().post(new WalletCloseEvent());
   }
 
   public synchronized void start() {
