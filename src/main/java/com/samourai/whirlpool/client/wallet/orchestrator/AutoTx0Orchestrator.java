@@ -104,9 +104,6 @@ public class AutoTx0Orchestrator extends AbstractOrchestrator {
   public void onWalletStart(WalletStartEvent walletStartEvent) {
     // start orchestrator
     start(true);
-
-    // handle initial utxos
-    onUtxosChange(new UtxosChangeEvent(walletStartEvent.getUtxoData()));
   }
 
   @Subscribe

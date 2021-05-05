@@ -3,6 +3,8 @@ package com.samourai.whirlpool.client.wallet;
 import com.samourai.wallet.client.Bip84Wallet;
 import com.samourai.wallet.hd.HD_Wallet;
 import com.samourai.wallet.segwit.bech32.Bech32UtilGeneric;
+import com.samourai.whirlpool.client.event.WalletCloseEvent;
+import com.samourai.whirlpool.client.event.WalletOpenEvent;
 import com.samourai.whirlpool.client.tx0.Tx0Service;
 import com.samourai.whirlpool.client.utils.ClientUtils;
 import com.samourai.whirlpool.client.wallet.data.minerFee.WalletDataSupplier;
@@ -35,6 +37,9 @@ public class WhirlpoolWalletService {
       wp.stop();
       wp.close();
       whirlpoolWallet = Optional.empty();
+
+      // notify close
+      WhirlpoolEventService.getInstance().post(new WalletCloseEvent());
     } else {
       if (log.isDebugEnabled()) {
         log.debug("closeWallet skipped: no wallet opened");
@@ -83,6 +88,9 @@ public class WhirlpoolWalletService {
               + ", zpub="
               + ClientUtils.maskString(postmixWallet.getZpub()));
     }
+
+    // notify open
+    WhirlpoolEventService.getInstance().post(new WalletOpenEvent());
     return wp;
   }
 
