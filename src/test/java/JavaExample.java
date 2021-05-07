@@ -91,33 +91,6 @@ public class JavaExample {
     // get mixing state (started, utxosMixing, nbMixing, nbQueued...)
     MixingState mixingState = whirlpoolWallet.getMixingState();
 
-    // observe mixing state
-    mixingState
-        .getObservable()
-        .subscribe(
-            new Consumer<MixingState>() {
-              @Override
-              public void accept(MixingState mixingState) throws Exception {
-                // get whirlpool status
-                boolean whirlpoolStarted = mixingState.isStarted();
-
-                // get mixing utxos
-                Collection<WhirlpoolUtxo> mixingUtxos = mixingState.getUtxosMixing();
-                if (mixingUtxos.isEmpty()) {
-                  // no utxo mixing currently
-                  return;
-                }
-
-                // one utxo (at least) is mixing currently
-                WhirlpoolUtxo mixingUtxo = mixingUtxos.iterator().next();
-
-                // get mixing progress for this utxo
-                MixProgress mixProgress = mixingUtxo.getUtxoState().getMixProgress();
-                MixStep mixStep = mixProgress.getMixStep(); // CONNECTING, CONNECTED...
-                int progressPercent = mixProgress.getProgressPercent();
-              }
-            });
-
     /*
      * POOLS
      */
