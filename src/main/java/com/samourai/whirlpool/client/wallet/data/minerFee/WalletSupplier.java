@@ -115,6 +115,15 @@ public class WalletSupplier {
     return zpubs.toArray(new String[] {});
   }
 
+  public String[] getZpubs(WhirlpoolAccount... accounts) {
+    List<String> zpubs = new LinkedList<String>();
+    for (WhirlpoolAccount account : accounts) {
+      String zpub = getWallet(account).getZpub();
+      zpubs.add(zpub);
+    }
+    return zpubs.toArray(new String[] {});
+  }
+
   public WalletStateSupplier getWalletStateSupplier() {
     return walletStateSupplier;
   }

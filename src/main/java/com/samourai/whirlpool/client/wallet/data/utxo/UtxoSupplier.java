@@ -40,8 +40,7 @@ public class UtxoSupplier extends BasicSupplier<UtxoData> {
     }
 
     UtxoData utxoData =
-        new UtxoData(
-            walletSupplier, utxoConfigSupplier, walletResponse.unspent_outputs, previousUtxos);
+        new UtxoData(walletSupplier, utxoConfigSupplier, walletResponse, previousUtxos);
     setValue(utxoData);
   }
 
@@ -83,6 +82,10 @@ public class UtxoSupplier extends BasicSupplier<UtxoData> {
   public Collection<WhirlpoolUtxo> findUtxos(
       final boolean excludeNoPool, final WhirlpoolAccount... whirlpoolAccounts) {
     return getValue().findUtxos(excludeNoPool, whirlpoolAccounts);
+  }
+
+  public Collection<WalletResponse.Tx> findTxs(WhirlpoolAccount whirlpoolAccount) {
+    return getValue().findTxs(whirlpoolAccount);
   }
 
   public long getBalance(WhirlpoolAccount whirlpoolAccount) {
