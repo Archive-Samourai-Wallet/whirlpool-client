@@ -2,6 +2,7 @@ package com.samourai.whirlpool.client.wallet.data.utxo;
 
 import com.samourai.wallet.api.backend.beans.WalletResponse;
 import com.samourai.whirlpool.client.event.UtxosChangeEvent;
+import com.samourai.whirlpool.client.event.UtxosResponseEvent;
 import com.samourai.whirlpool.client.wallet.WhirlpoolEventService;
 import com.samourai.whirlpool.client.wallet.beans.*;
 import com.samourai.whirlpool.client.wallet.data.BasicSupplier;
@@ -62,6 +63,7 @@ public class UtxoSupplier extends BasicSupplier<UtxoData> {
     super.setValue(utxoData);
 
     // notify
+    eventService.post(new UtxosResponseEvent());
     if (!utxoChanges.isEmpty()) {
       eventService.post(new UtxosChangeEvent(utxoData));
     }

@@ -7,6 +7,7 @@ import com.samourai.wallet.client.indexHandler.IIndexHandler;
 import com.samourai.wallet.hd.HD_Address;
 import com.samourai.wallet.segwit.bech32.Bech32UtilGeneric;
 import com.samourai.whirlpool.client.event.UtxosChangeEvent;
+import com.samourai.whirlpool.client.event.UtxosRequestEvent;
 import com.samourai.whirlpool.client.event.WalletStartEvent;
 import com.samourai.whirlpool.client.event.WalletStopEvent;
 import com.samourai.whirlpool.client.exception.EmptyWalletException;
@@ -552,6 +553,7 @@ public class WhirlpoolWallet {
 
   /** Refresh utxos now. */
   public void refreshUtxos(boolean waitComplete) {
+    WhirlpoolEventService.getInstance().post(new UtxosRequestEvent());
     getUtxoSupplier().expire();
     dataOrchestrator.notifyOrchestrator();
     if (waitComplete) {
