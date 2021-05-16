@@ -103,7 +103,7 @@ public class Tx0Service {
   }
 
   public Tx0Preview tx0Preview(
-      Collection<UnspentOutputWithKey> spendFroms, Tx0Config tx0Config, Tx0Param tx0Param)
+      Collection<WhirlpoolUtxoWithKey> spendFroms, Tx0Config tx0Config, Tx0Param tx0Param)
       throws Exception {
     // fetch fresh Tx0Data
     Tx0Data tx0Data = fetchTx0Data(tx0Param.getPool().getPoolId());
@@ -111,7 +111,7 @@ public class Tx0Service {
   }
 
   protected Tx0Preview tx0Preview(
-      Collection<UnspentOutputWithKey> spendFroms,
+      Collection<WhirlpoolUtxoWithKey> spendFroms,
       Tx0Config tx0Config,
       Tx0Param tx0Param,
       Tx0Data tx0Data)
@@ -181,7 +181,7 @@ public class Tx0Service {
 
   /** Generate maxOutputs premixes outputs max. */
   public Tx0 tx0(
-      Collection<UnspentOutputWithKey> spendFroms,
+      Collection<WhirlpoolUtxoWithKey> spendFroms,
       Bip84Wallet depositWallet,
       Bip84Wallet premixWallet,
       Bip84Wallet postmixWallet,
@@ -215,7 +215,7 @@ public class Tx0Service {
   }
 
   public Tx0 tx0(
-      Collection<UnspentOutputWithKey> spendFroms,
+      Collection<WhirlpoolUtxoWithKey> spendFroms,
       Bip84Wallet depositWallet,
       Bip84Wallet premixWallet,
       Bip84Wallet postmixWallet,
@@ -252,11 +252,11 @@ public class Tx0Service {
     }
 
     // sort inputs now, we need to know the first input for OP_RETURN encode
-    List<UnspentOutputWithKey> sortedSpendFroms = new LinkedList<UnspentOutputWithKey>();
+    List<WhirlpoolUtxoWithKey> sortedSpendFroms = new LinkedList<WhirlpoolUtxoWithKey>();
     sortedSpendFroms.addAll(spendFroms);
     Collections.sort(sortedSpendFroms, new BIP69InputComparatorUnspentOutput());
 
-    UnspentOutputWithKey firstInput = sortedSpendFroms.get(0);
+    WhirlpoolUtxoWithKey firstInput = sortedSpendFroms.get(0);
     String feePaymentCode = tx0Data.getFeePaymentCode();
     byte[] opReturnValue =
         whirlpoolFee.encode(
@@ -286,7 +286,7 @@ public class Tx0Service {
   }
 
   protected Tx0 tx0(
-      List<UnspentOutputWithKey> sortedSpendFroms,
+      List<WhirlpoolUtxoWithKey> sortedSpendFroms,
       Bip84Wallet depositWallet,
       Bip84Wallet premixWallet,
       Bip84Wallet postmixWallet,
@@ -367,7 +367,7 @@ public class Tx0Service {
   }
 
   protected Tx0 buildTx0(
-      Collection<UnspentOutputWithKey> sortedSpendFroms,
+      Collection<WhirlpoolUtxoWithKey> sortedSpendFroms,
       Bip84Wallet premixWallet,
       Tx0Preview tx0Preview,
       byte[] opReturnValue,
@@ -513,7 +513,7 @@ public class Tx0Service {
     }
 
     // all inputs
-    for (UnspentOutputWithKey spendFrom : sortedSpendFroms) {
+    for (WhirlpoolUtxoWithKey spendFrom : sortedSpendFroms) {
       buildTx0Input(tx, spendFrom, params);
       if (log.isDebugEnabled()) {
         log.debug("Tx0 in: utxo=" + spendFrom);
@@ -527,7 +527,7 @@ public class Tx0Service {
     return tx0;
   }
 
-  private boolean useFakeOutput(Collection<UnspentOutputWithKey> spendFroms) {
+  private boolean useFakeOutput(Collection<WhirlpoolUtxoWithKey> spendFroms) {
     // experimental feature reserved for testnet
     if (!FormatsUtilGeneric.getInstance().isTestNet(config.getNetworkParameters())) {
       return false;
@@ -583,7 +583,7 @@ public class Tx0Service {
   }
 
   protected void buildTx0Input(
-      Transaction tx, UnspentOutputWithKey input, NetworkParameters params) {
+      Transaction tx, WhirlpoolUtxoWithKey input, NetworkParameters params) {
     ECKey spendFromKey = ECKey.fromPrivate(input.getKey());
     TransactionOutPoint depositSpendFrom = input.computeOutpoint(params);
 
@@ -601,9 +601,9 @@ public class Tx0Service {
   }
 
   protected void signTx0(
-      Transaction tx, Collection<UnspentOutputWithKey> inputs, NetworkParameters params) {
+      Transaction tx, Collection<WhirlpoolUtxoWithKey> inputs, NetworkParameters params) {
     int idx = 0;
-    for (UnspentOutputWithKey input : inputs) {
+    for (WhirlpoolUtxoWithKey input : inputs) {
 
       String address = input.addr;
       ECKey spendFromKey = ECKey.fromPrivate(input.getKey());

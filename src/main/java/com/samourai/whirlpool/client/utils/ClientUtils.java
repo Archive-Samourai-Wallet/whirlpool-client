@@ -11,7 +11,7 @@ import com.samourai.wallet.util.CallbackWithArg;
 import com.samourai.wallet.util.FeeUtil;
 import com.samourai.wallet.util.FormatsUtilGeneric;
 import com.samourai.whirlpool.client.exception.NotifiableException;
-import com.samourai.whirlpool.client.tx0.UnspentOutputWithKey;
+import com.samourai.whirlpool.client.tx0.WhirlpoolUtxoWithKey;
 import com.samourai.whirlpool.client.wallet.beans.WhirlpoolUtxo;
 import com.samourai.whirlpool.client.wallet.beans.WhirlpoolUtxoState;
 import com.samourai.whirlpool.protocol.WhirlpoolProtocol;
@@ -175,7 +175,7 @@ public class ClientUtils {
     log.info("\n" + sb.toString());
   }
 
-  public static void logWhirlpoolUtxos(Collection<WhirlpoolUtxo> utxos) {
+  public static void logWhirlpoolUtxos(Collection<WhirlpoolUtxo> utxos, int latestBlockHeight) {
     String lineFormat = "| %10s | %8s | %68s | %14s | %12s | %14s | %8s | %6s |\n";
     StringBuilder sb = new StringBuilder();
     sb.append(
@@ -203,7 +203,7 @@ public class ClientUtils {
           String.format(
               lineFormat,
               ClientUtils.satToBtc(o.value),
-              o.confirmations,
+              whirlpoolUtxo.computeConfirmations(latestBlockHeight),
               utxo,
               o.getPath(),
               utxoState.getStatus().name(),
@@ -442,9 +442,9 @@ public class ClientUtils {
     return spendValue;
   }
 
-  public static int countPrevTxs(Collection<UnspentOutputWithKey> spendFroms) {
+  public static int countPrevTxs(Collection<WhirlpoolUtxoWithKey> spendFroms) {
     Map<String, Boolean> mapByPrevTx = new LinkedHashMap<String, Boolean>();
-    for (UnspentOutputWithKey spendFrom : spendFroms) {
+    for (WhirlpoolUtxoWithKey spendFrom : spendFroms) {
       mapByPrevTx.put(spendFrom.tx_hash, true);
     }
     return mapByPrevTx.size();

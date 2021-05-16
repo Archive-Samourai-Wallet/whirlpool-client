@@ -18,8 +18,12 @@ import com.samourai.whirlpool.client.wallet.data.minerFee.WalletSupplier;
 import com.samourai.whirlpool.client.wallet.data.pool.MockPoolSupplier;
 import com.samourai.whirlpool.client.wallet.data.walletState.WalletStatePersister;
 import com.samourai.whirlpool.protocol.rest.PoolInfo;
-import java.util.Collection;
-import java.util.LinkedHashMap;
+
+import java.util.*;
+
+import java8.util.function.Function;
+import java8.util.stream.Collectors;
+import java8.util.stream.StreamSupport;
 import org.apache.commons.lang3.ArrayUtils;
 import org.junit.Assert;
 import org.junit.Before;
@@ -104,7 +108,7 @@ public class UtxoSupplierTest extends AbstractTest {
 
     mockException = false;
 
-    UTXO_DEPOSIT1 = computeUtxo("deposit1", 1, ZPUB_DEPOSIT, 1);
+    UTXO_DEPOSIT1 = computeUtxo("deposit1", 1, ZPUB_DEPOSIT, 0);
     UTXO_DEPOSIT1_UPDATED = computeUtxo("deposit1", 1, ZPUB_DEPOSIT, 2);
     UTXO_PREMIX1 = computeUtxo("premix1", 1, ZPUB_PREMIX, 0);
     UTXO_PREMIX2 = computeUtxo("premix2", 2, ZPUB_PREMIX, 100);
@@ -181,6 +185,13 @@ public class UtxoSupplierTest extends AbstractTest {
     mockWalletResponse = new WalletResponse();
     mockWalletResponse.info = new WalletResponse.Info();
     mockWalletResponse.unspent_outputs = unspentOutputs;
+    mockWalletResponse.txs = new WalletResponse.Tx[]{};
+
+    mockWalletResponse.info.latest_block = new WalletResponse.InfoBlock();
+    mockWalletResponse.info.latest_block.height = 12345678;
+    mockWalletResponse.info.latest_block.time = System.currentTimeMillis();
+    mockWalletResponse.info.latest_block.hash = "testblock";
+
     mockWalletResponse.info.fees = new LinkedHashMap<String, Integer>();
     for (MinerFeeTarget minerFeeTarget : MinerFeeTarget.values()) {
       mockWalletResponse.info.fees.put(minerFeeTarget.getValue(), 1);
@@ -206,15 +217,27 @@ public class UtxoSupplierTest extends AbstractTest {
 
   private void assertUtxoEquals(UnspentOutput[] utxos1, Collection<WhirlpoolUtxo> utxos2) {
     Assert.assertEquals(utxos1.length, utxos2.size());
+
+    List<String> utxos1Ids = StreamSupport.stream(Arrays.asList(utxos1)).map(new Function<UnspentOutput, String>() {
+      @Override
+      public String apply(UnspentOutput utxo) {
+        return computeUtxoId(utxo);
+      }
+    }).collect(Collectors.<String>toList());
     for (WhirlpoolUtxo whirlpoolUtxo : utxos2) {
-      Assert.assertTrue(ArrayUtils.contains(utxos1, whirlpoolUtxo.getUtxo()));
+      // search utxo by id
+      Assert.assertTrue(utxos1Ids.contains(computeUtxoId(whirlpoolUtxo.getUtxo())));
     }
   }
 
+  private String computeUtxoId(UnspentOutput utxo) {
+    return utxo.tx_hash+':'+utxo.tx_output_n;
+  }
+
   protected void assertUtxoChanges(
-      UnspentOutput[] added, UnspentOutput[] updated, UnspentOutput[] removed) {
+      UnspentOutput[] added, UnspentOutput[] confirmed, UnspentOutput[] removed) {
     assertUtxoEquals(added, lastUtxoChanges.getUtxosAdded());
-    assertUtxoEquals(updated, lastUtxoChanges.getUtxosUpdated());
+    assertUtxoEquals(confirmed, lastUtxoChanges.getUtxosConfirmed());
     assertUtxoEquals(removed, lastUtxoChanges.getUtxosRemoved());
   }
 }

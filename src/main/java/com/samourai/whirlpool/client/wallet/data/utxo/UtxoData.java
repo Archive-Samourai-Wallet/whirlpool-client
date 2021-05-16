@@ -64,12 +64,11 @@ public class UtxoData {
 
       UnspentOutput freshUtxo = freshUtxos.get(key);
       if (freshUtxo != null) {
-        UnspentOutput oldUtxo = whirlpoolUtxo.getUtxo();
-
-        // update utxo if changed
-        if (freshUtxo.confirmations != oldUtxo.confirmations) {
-          whirlpoolUtxo._setUtxo(freshUtxo);
-          utxoChanges.getUtxosUpdated().add(whirlpoolUtxo);
+        // update utxo if confirmed
+        if (whirlpoolUtxo.getBlockHeight() == null && freshUtxo.confirmations > 0) {
+          Integer blockHeight = computeBlockHeight(freshUtxo, walletResponse);
+          whirlpoolUtxo._setUtxoConfirmed(freshUtxo, blockHeight);
+          utxoChanges.getUtxosConfirmed().add(whirlpoolUtxo);
         }
         // add
         utxos.put(key, whirlpoolUtxo);
@@ -93,8 +92,10 @@ public class UtxoData {
           }
 
           // add missing
+          Integer blockHeight = computeBlockHeight(utxo, walletResponse);
           WhirlpoolUtxo whirlpoolUtxo =
-              new WhirlpoolUtxo(utxo, account, WhirlpoolUtxoStatus.READY, utxoConfigSupplier);
+              new WhirlpoolUtxo(
+                  utxo, blockHeight, account, WhirlpoolUtxoStatus.READY, utxoConfigSupplier);
           if (!isFirstFetch) {
             // set lastActivity when utxo is detected but ignore on first fetch
             whirlpoolUtxo.getUtxoState().setLastActivity();
@@ -124,6 +125,13 @@ public class UtxoData {
     if (log.isDebugEnabled()) {
       log.debug("utxos: " + previousUtxos.size() + " => " + utxos.size() + ", " + utxoChanges);
     }
+  }
+
+  private Integer computeBlockHeight(UnspentOutput utxo, WalletResponse walletResponse) {
+    if (utxo.confirmations <= 0) {
+      return null;
+    }
+    return walletResponse.info.latest_block.height - utxo.confirmations;
   }
 
   private Collection<WhirlpoolAccount> findTxAccounts(

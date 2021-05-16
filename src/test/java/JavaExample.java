@@ -5,13 +5,12 @@ import com.samourai.stomp.client.IStompClientService;
 import com.samourai.tor.client.TorClientService;
 import com.samourai.wallet.api.backend.BackendApi;
 import com.samourai.wallet.api.backend.BackendServer;
-import com.samourai.wallet.api.backend.beans.UnspentOutput;
 import com.samourai.wallet.hd.HD_Wallet;
 import com.samourai.wallet.util.oauth.OAuthManager;
 import com.samourai.whirlpool.client.tx0.Tx0;
 import com.samourai.whirlpool.client.tx0.Tx0Config;
 import com.samourai.whirlpool.client.tx0.Tx0Preview;
-import com.samourai.whirlpool.client.tx0.UnspentOutputWithKey;
+import com.samourai.whirlpool.client.tx0.WhirlpoolUtxoWithKey;
 import com.samourai.whirlpool.client.wallet.WhirlpoolWallet;
 import com.samourai.whirlpool.client.wallet.WhirlpoolWalletConfig;
 import com.samourai.whirlpool.client.wallet.WhirlpoolWalletService;
@@ -163,10 +162,10 @@ public class JavaExample {
     // tx0 method 2: spending an external utxo
     {
       // external utxo for tx0
-      UnspentOutput spendFrom = null; // provide utxo outpoint
+      WhirlpoolUtxo spendFrom = null; // provide utxo outpoint
       byte[] spendFromPrivKey = null; // provide utxo private key
-      Collection<UnspentOutputWithKey> utxos =
-          Lists.of(new UnspentOutputWithKey(spendFrom, spendFromPrivKey));
+      Collection<WhirlpoolUtxoWithKey> utxos =
+          Lists.of(new WhirlpoolUtxoWithKey(spendFrom, spendFromPrivKey));
 
       // configure tx0
       Tx0Config tx0Config =

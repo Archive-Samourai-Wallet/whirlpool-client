@@ -109,19 +109,6 @@ public class AbstractTest {
     };
   }
 
-  /*
-    protected WhirlpoolUtxo newUtxo(
-        String poolId, WhirlpoolAccount whirlpoolAccount, String hash, int confirms, Long lastError) {
-      UnspentOutput utxo = newUnspentOutput(hash, 3, 100L);
-      utxo.confirmations = confirms;
-      WhirlpoolUtxoConfig utxoConfig =
-          new WhirlpoolUtxoConfig(poolId, 5, 0, System.currentTimeMillis());
-      WhirlpoolUtxo whirlpoolUtxo =
-          new WhirlpoolUtxo(utxo, whirlpoolAccount, utxoConfig, WhirlpoolUtxoStatus.READY);
-      whirlpoolUtxo.getUtxoState().setLastError(lastError);
-      return whirlpoolUtxo;
-    }
-  */
   protected WhirlpoolWalletConfig computeWhirlpoolWalletConfig() {
     WhirlpoolWalletConfig config =
         new WhirlpoolWalletConfig(null, null, null, null, TestNet3Params.get(), false, null);

@@ -2,7 +2,9 @@ package com.samourai.whirlpool.client.wallet.data.minerFee;
 
 import com.samourai.wallet.api.backend.BackendApi;
 import com.samourai.wallet.api.backend.beans.WalletResponse;
+import com.samourai.whirlpool.client.event.UtxosRequestEvent;
 import com.samourai.whirlpool.client.tx0.Tx0ParamService;
+import com.samourai.whirlpool.client.wallet.WhirlpoolEventService;
 import com.samourai.whirlpool.client.wallet.WhirlpoolWalletConfig;
 import com.samourai.whirlpool.client.wallet.data.ExpirableSupplier;
 import com.samourai.whirlpool.client.wallet.data.LoadableSupplier;
@@ -23,6 +25,7 @@ public class WalletDataSupplier extends ExpirableSupplier<WalletResponse>
   private final WalletStateSupplier walletStateSupplier;
 
   private final MinerFeeSupplier minerFeeSupplier;
+  private final ChainSupplier chainSupplier;
   private final UtxoSupplier utxoSupplier;
   private final UtxoConfigSupplier utxoConfigSupplier;
   private final Tx0ParamService tx0ParamService;
@@ -40,6 +43,8 @@ public class WalletDataSupplier extends ExpirableSupplier<WalletResponse>
 
     this.minerFeeSupplier =
         new MinerFeeSupplier(config.getFeeMin(), config.getFeeMax(), config.getFeeFallback());
+
+    this.chainSupplier = new ChainSupplier();
 
     this.tx0ParamService = new Tx0ParamService(minerFeeSupplier, config);
 
@@ -60,6 +65,7 @@ public class WalletDataSupplier extends ExpirableSupplier<WalletResponse>
     if (log.isDebugEnabled()) {
       log.debug("fetching...");
     }
+    WhirlpoolEventService.getInstance().post(new UtxosRequestEvent());
     WalletResponse walletResponse = fetchWalletResponse();
 
     // update minerFeeSupplier
@@ -68,6 +74,9 @@ public class WalletDataSupplier extends ExpirableSupplier<WalletResponse>
     } catch (Exception e) {
       log.error("minerFeeSupplier._setValue failed => using fallback value", e);
     }
+
+    // update chainSupplier
+    chainSupplier._setValue(walletResponse);
 
     // update utxoSupplier
     utxoSupplier._setValue(walletResponse);
@@ -78,14 +87,12 @@ public class WalletDataSupplier extends ExpirableSupplier<WalletResponse>
     return walletResponse;
   }
 
-  // accessed by sub-suppliers
-  @Override
-  public WalletResponse getValue() {
-    return super.getValue();
-  }
-
   public MinerFeeSupplier getMinerFeeSupplier() {
     return minerFeeSupplier;
+  }
+
+  public ChainSupplier getChainSupplier() {
+    return chainSupplier;
   }
 
   public UtxoSupplier getUtxoSupplier() {

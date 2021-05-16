@@ -38,7 +38,11 @@ public class MixOrchestratorImpl extends MixOrchestrator {
     super(
         loopDelay,
         config.getClientDelay(),
-        new MixOrchestratorData(mixingState, poolSupplier, whirlpoolWallet.getUtxoSupplier()),
+        new MixOrchestratorData(
+            mixingState,
+            poolSupplier,
+            whirlpoolWallet.getUtxoSupplier(),
+            whirlpoolWallet.getChainSupplier()),
         config.getMaxClients(),
         config.getMaxClientsPerPool(),
         config.isLiquidityClient(),

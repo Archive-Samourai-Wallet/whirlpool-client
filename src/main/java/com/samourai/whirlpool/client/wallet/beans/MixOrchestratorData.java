@@ -2,6 +2,7 @@ package com.samourai.whirlpool.client.wallet.beans;
 
 import com.samourai.wallet.api.backend.beans.UnspentOutput;
 import com.samourai.whirlpool.client.utils.ClientUtils;
+import com.samourai.whirlpool.client.wallet.data.minerFee.ChainSupplier;
 import com.samourai.whirlpool.client.wallet.data.pool.PoolSupplier;
 import com.samourai.whirlpool.client.wallet.data.utxo.UtxoSupplier;
 import com.samourai.whirlpool.client.whirlpool.beans.Pool;
@@ -25,15 +26,20 @@ public class MixOrchestratorData {
   private MixingStateEditable mixingState;
   private PoolSupplier poolSupplier;
   private UtxoSupplier utxoSupplier;
+  private ChainSupplier chainSupplier;
 
   public MixOrchestratorData(
-      MixingStateEditable mixingState, PoolSupplier poolSupplier, UtxoSupplier utxoSupplier) {
+      MixingStateEditable mixingState,
+      PoolSupplier poolSupplier,
+      UtxoSupplier utxoSupplier,
+      ChainSupplier chainSupplier) {
     this.mixing = new ConcurrentHashMap<String, Mixing>();
     this.mixingHashs = new HashSet<String>();
     this.mixingPerPool = new HashMap<String, Integer>();
     this.mixingState = mixingState;
     this.poolSupplier = poolSupplier;
     this.utxoSupplier = utxoSupplier;
+    this.chainSupplier = chainSupplier;
   }
 
   public Stream<WhirlpoolUtxo> getQueue() {
@@ -140,5 +146,9 @@ public class MixOrchestratorData {
 
   public void recountQueued() {
     mixingState.setUtxosQueued(getQueue().collect(Collectors.<WhirlpoolUtxo>toList()));
+  }
+
+  public int getLatestBlockHeight() {
+    return chainSupplier.getLatestBlockHeight();
   }
 }

@@ -372,7 +372,8 @@ public abstract class MixOrchestrator extends AbstractOrchestrator {
     }
 
     // check confirmations
-    if (whirlpoolUtxo.getUtxo().confirmations < MIX_MIN_CONFIRMATIONS) {
+    int latestBlockHeight = data.getLatestBlockHeight();
+    if (whirlpoolUtxo.computeConfirmations(latestBlockHeight) < MIX_MIN_CONFIRMATIONS) {
       return MixableStatus.UNCONFIRMED;
     }
 
@@ -634,8 +635,8 @@ public abstract class MixOrchestrator extends AbstractOrchestrator {
       }
     }
 
-    // UPDATED
-    for (WhirlpoolUtxo whirlpoolUtxo : whirlpoolUtxoChanges.getUtxosUpdated()) {
+    // CONFIRMED
+    for (WhirlpoolUtxo whirlpoolUtxo : whirlpoolUtxoChanges.getUtxosConfirmed()) {
       // refresh MIXABLE status
       if (isNewMixable(whirlpoolUtxo)) {
         notify = true;

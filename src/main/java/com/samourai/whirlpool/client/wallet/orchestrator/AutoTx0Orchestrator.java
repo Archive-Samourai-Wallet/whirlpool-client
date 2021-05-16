@@ -1,7 +1,6 @@
 package com.samourai.whirlpool.client.wallet.orchestrator;
 
 import com.google.common.eventbus.Subscribe;
-import com.samourai.wallet.api.backend.beans.UnspentOutput;
 import com.samourai.wallet.util.AbstractOrchestrator;
 import com.samourai.whirlpool.client.event.UtxosChangeEvent;
 import com.samourai.whirlpool.client.event.WalletCloseEvent;
@@ -53,8 +52,8 @@ public class AutoTx0Orchestrator extends AbstractOrchestrator {
     } catch (UnconfirmedUtxoException e) {
       String message = " • AutoTx0: waiting for deposit confirmation";
       if (log.isDebugEnabled()) {
-        UnspentOutput utxo = e.getUtxo();
-        log.debug(message + ": " + utxo.toString());
+        WhirlpoolUtxo whirlpoolUtxo = e.getWhirlpoolUtxo();
+        log.debug(message + ": " + whirlpoolUtxo.toString());
       } else {
         log.info(message);
       }
@@ -119,14 +118,18 @@ public class AutoTx0Orchestrator extends AbstractOrchestrator {
 
     // DETECTED
     for (WhirlpoolUtxo whirlpoolUtxo : whirlpoolUtxoChanges.getUtxosAdded()) {
-      if (whirlpoolUtxo.getUtxo().confirmations >= config.getTx0MinConfirmations()) {
+      int latestBlockHeight = whirlpoolWallet.getChainSupplier().getLatestBlockHeight();
+      if (whirlpoolUtxo.computeConfirmations(latestBlockHeight)
+          >= config.getTx0MinConfirmations()) {
         notify = true;
       }
     }
 
     // UPDATED
     for (WhirlpoolUtxo whirlpoolUtxo : whirlpoolUtxoChanges.getUtxosAdded()) {
-      if (whirlpoolUtxo.getUtxo().confirmations >= config.getTx0MinConfirmations()) {
+      int latestBlockHeight = whirlpoolWallet.getChainSupplier().getLatestBlockHeight();
+      if (whirlpoolUtxo.computeConfirmations(latestBlockHeight)
+          >= config.getTx0MinConfirmations()) {
         notify = true;
       }
     }

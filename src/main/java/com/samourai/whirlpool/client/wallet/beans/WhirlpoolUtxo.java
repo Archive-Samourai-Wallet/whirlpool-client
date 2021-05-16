@@ -10,6 +10,7 @@ public class WhirlpoolUtxo extends WhirlpoolUtxoConfig {
   private static final Logger log = LoggerFactory.getLogger(WhirlpoolUtxo.class);
 
   private UnspentOutput utxo;
+  private Integer blockHeight; // null when unconfirmed
   private WhirlpoolAccount account;
   private WhirlpoolUtxoState utxoState;
 
@@ -17,14 +18,23 @@ public class WhirlpoolUtxo extends WhirlpoolUtxoConfig {
 
   public WhirlpoolUtxo(
       UnspentOutput utxo,
+      Integer blockHeight,
       WhirlpoolAccount account,
       WhirlpoolUtxoStatus status,
       UtxoConfigSupplier utxoConfigSupplier) {
     super();
     this.utxo = utxo;
+    this.blockHeight = blockHeight;
     this.account = account;
     this.utxoState = new WhirlpoolUtxoState(status);
     this.utxoConfigSupplier = utxoConfigSupplier;
+  }
+
+  public int computeConfirmations(int latestBlockHeight) {
+    if (blockHeight == null) {
+      return 0;
+    }
+    return latestBlockHeight - blockHeight;
   }
 
   @Override
@@ -41,8 +51,13 @@ public class WhirlpoolUtxo extends WhirlpoolUtxoConfig {
     return utxo;
   }
 
-  public void _setUtxo(UnspentOutput utxo) {
+  public void _setUtxoConfirmed(UnspentOutput utxo, Integer blockHeight) {
     this.utxo = utxo;
+    this.blockHeight = blockHeight;
+  }
+
+  public Integer getBlockHeight() {
+    return blockHeight;
   }
 
   public WhirlpoolAccount getAccount() {
@@ -67,6 +82,14 @@ public class WhirlpoolUtxo extends WhirlpoolUtxoConfig {
 
   @Override
   public String toString() {
-    return account + ": " + utxo.toString() + ": " + utxoState + " ; " + getUtxoConfigPersisted();
+    return account
+        + ": "
+        + utxo.toString()
+        + ": (#"
+        + (blockHeight != null ? blockHeight : "unconfirmed")
+        + ") "
+        + utxoState
+        + " ; "
+        + getUtxoConfigPersisted();
   }
 }

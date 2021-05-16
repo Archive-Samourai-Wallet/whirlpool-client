@@ -19,6 +19,7 @@ import com.samourai.whirlpool.client.tx0.*;
 import com.samourai.whirlpool.client.utils.ClientUtils;
 import com.samourai.whirlpool.client.wallet.beans.*;
 import com.samourai.whirlpool.client.wallet.data.AbstractSupplier;
+import com.samourai.whirlpool.client.wallet.data.minerFee.ChainSupplier;
 import com.samourai.whirlpool.client.wallet.data.minerFee.MinerFeeSupplier;
 import com.samourai.whirlpool.client.wallet.data.minerFee.WalletDataSupplier;
 import com.samourai.whirlpool.client.wallet.data.minerFee.WalletSupplier;
@@ -134,7 +135,9 @@ public class WhirlpoolWallet {
       if (tx0ParamService.isTx0Possible(
           pool, tx0FeeTarget, mixFeeTarget, whirlpoolUtxo.getUtxo().value)) {
         // check confirmation
-        if (whirlpoolUtxo.getUtxo().confirmations >= config.getTx0MinConfirmations()) {
+        int latestBlockHeight = getChainSupplier().getLatestBlockHeight();
+        int confirmations = whirlpoolUtxo.computeConfirmations(latestBlockHeight);
+        if (confirmations >= config.getTx0MinConfirmations()) {
 
           // set pool
           whirlpoolUtxo.setPoolId(pool.getPoolId());
@@ -150,8 +153,7 @@ public class WhirlpoolWallet {
 
     // no confirmed utxo found, but we found unconfirmed utxo
     if (unconfirmedUtxo != null) {
-      UnspentOutput utxo = unconfirmedUtxo.getUtxo();
-      throw new UnconfirmedUtxoException(utxo);
+      throw new UnconfirmedUtxoException(unconfirmedUtxo);
     }
 
     // no eligible deposit UTXO found
@@ -191,13 +193,13 @@ public class WhirlpoolWallet {
       Tx0FeeTarget mixFeeTarget)
       throws Exception {
 
-    Collection<UnspentOutputWithKey> utxos = toUnspentOutputWithKeys(whirlpoolUtxos);
+    Collection<WhirlpoolUtxoWithKey> utxos = toUtxosWithKeys(whirlpoolUtxos);
     return tx0Preview(pool, utxos, tx0Config, tx0FeeTarget, mixFeeTarget);
   }
 
   public Tx0Preview tx0Preview(
       Pool pool,
-      Collection<UnspentOutputWithKey> spendFroms,
+      Collection<WhirlpoolUtxoWithKey> spendFroms,
       Tx0Config tx0Config,
       Tx0FeeTarget tx0FeeTarget,
       Tx0FeeTarget mixFeeTarget)
@@ -215,7 +217,7 @@ public class WhirlpoolWallet {
       Tx0Config tx0Config)
       throws Exception {
 
-    Collection<UnspentOutputWithKey> spendFroms = toUnspentOutputWithKeys(whirlpoolUtxos);
+    Collection<WhirlpoolUtxoWithKey> spendFroms = toUtxosWithKeys(whirlpoolUtxos);
 
     // verify utxos
     String poolId = pool.getPoolId();
@@ -266,7 +268,7 @@ public class WhirlpoolWallet {
   }
 
   public Tx0 tx0(
-      Collection<UnspentOutputWithKey> spendFroms,
+      Collection<WhirlpoolUtxoWithKey> spendFroms,
       Pool pool,
       Tx0Config tx0Config,
       Tx0FeeTarget tx0FeeTarget,
@@ -274,10 +276,12 @@ public class WhirlpoolWallet {
       throws Exception {
 
     // check confirmations
-    for (UnspentOutputWithKey spendFrom : spendFroms) {
-      if (spendFrom.confirmations < config.getTx0MinConfirmations()) {
+    for (WhirlpoolUtxoWithKey spendFrom : spendFroms) {
+      int latestBlockHeight = getChainSupplier().getLatestBlockHeight();
+      int confirmations = spendFrom.getWhirlpoolUtxo().computeConfirmations(latestBlockHeight);
+      if (confirmations < config.getTx0MinConfirmations()) {
         log.error("Minimum confirmation(s) for tx0: " + config.getTx0MinConfirmations());
-        throw new UnconfirmedUtxoException(spendFrom);
+        throw new UnconfirmedUtxoException(spendFrom.getWhirlpoolUtxo());
       }
     }
 
@@ -343,14 +347,14 @@ public class WhirlpoolWallet {
         .start();
   }
 
-  private Collection<UnspentOutputWithKey> toUnspentOutputWithKeys(
+  private Collection<WhirlpoolUtxoWithKey> toUtxosWithKeys(
       Collection<WhirlpoolUtxo> whirlpoolUtxos) {
-    Collection<UnspentOutputWithKey> spendFroms = new LinkedList<UnspentOutputWithKey>();
+    Collection<WhirlpoolUtxoWithKey> spendFroms = new LinkedList<WhirlpoolUtxoWithKey>();
 
     for (WhirlpoolUtxo whirlpoolUtxo : whirlpoolUtxos) {
       UnspentOutput utxo = whirlpoolUtxo.getUtxo();
       byte[] utxoKey = getWalletDeposit().getAddressAt(utxo).getECKey().getPrivKeyBytes();
-      UnspentOutputWithKey spendFrom = new UnspentOutputWithKey(utxo, utxoKey);
+      WhirlpoolUtxoWithKey spendFrom = new WhirlpoolUtxoWithKey(whirlpoolUtxo, utxoKey);
       spendFroms.add(spendFrom);
     }
     return spendFroms;
@@ -472,6 +476,10 @@ public class WhirlpoolWallet {
     return walletDataSupplier.getMinerFeeSupplier();
   }
 
+  public ChainSupplier getChainSupplier() {
+    return walletDataSupplier.getChainSupplier();
+  }
+
   public PoolSupplier getPoolSupplier() {
     return poolSupplier;
   }
@@ -553,7 +561,6 @@ public class WhirlpoolWallet {
 
   /** Refresh utxos now. */
   public void refreshUtxos(boolean waitComplete) {
-    WhirlpoolEventService.getInstance().post(new UtxosRequestEvent());
     getUtxoSupplier().expire();
     dataOrchestrator.notifyOrchestrator();
     if (waitComplete) {
