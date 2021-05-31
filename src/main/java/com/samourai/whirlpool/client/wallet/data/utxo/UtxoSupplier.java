@@ -1,6 +1,8 @@
 package com.samourai.whirlpool.client.wallet.data.utxo;
 
+import com.samourai.wallet.api.backend.beans.UnspentOutput;
 import com.samourai.wallet.api.backend.beans.WalletResponse;
+import com.samourai.wallet.send.MyTransactionOutPoint;
 import com.samourai.whirlpool.client.event.UtxosChangeEvent;
 import com.samourai.whirlpool.client.event.UtxosResponseEvent;
 import com.samourai.whirlpool.client.wallet.WhirlpoolEventService;
@@ -96,6 +98,14 @@ public class UtxoSupplier extends BasicSupplier<UtxoData> {
 
   public long getBalanceTotal() {
     return getValue().getBalanceTotal();
+  }
+
+  public WhirlpoolUtxo findUtxo(MyTransactionOutPoint outPoint) {
+    return findUtxo(outPoint.getTxHash().toString(), outPoint.getTxOutputN());
+  }
+
+  public WhirlpoolUtxo findUtxo(UnspentOutput unspentOutput) {
+    return findUtxo(unspentOutput.tx_hash, unspentOutput.tx_output_n);
   }
 
   public WhirlpoolUtxo findUtxo(String utxoHash, int utxoIndex) {
