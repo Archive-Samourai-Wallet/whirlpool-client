@@ -6,6 +6,7 @@ import com.samourai.wallet.client.Bip84Wallet;
 import com.samourai.wallet.client.indexHandler.IIndexHandler;
 import com.samourai.wallet.hd.HD_Address;
 import com.samourai.wallet.segwit.bech32.Bech32UtilGeneric;
+import com.samourai.wallet.send.spend.SpendBuilder;
 import com.samourai.whirlpool.client.event.UtxosChangeEvent;
 import com.samourai.whirlpool.client.event.WalletStartEvent;
 import com.samourai.whirlpool.client.event.WalletStopEvent;
@@ -713,6 +714,10 @@ public class WhirlpoolWallet {
 
   public boolean hasMoreMixingThreadAvailable(String poolId, boolean liquidity) {
     return mixOrchestrator.hasMoreMixingThreadAvailable(poolId, liquidity);
+  }
+
+  public SpendBuilder getSpendBuilder(Runnable restoreChangeIndexes) {
+    return new SpendBuilder(config.getNetworkParameters(), getUtxoSupplier(), restoreChangeIndexes);
   }
 
   public String getZpubDeposit() {

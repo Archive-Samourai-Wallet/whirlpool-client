@@ -641,11 +641,7 @@ public class Tx0Service {
       } else {
         TransactionSignature sig =
             tx.calculateSignature(
-                idx,
-                spendFromKey,
-                new Script(Hex.decode(input.script)),
-                Transaction.SigHash.ALL,
-                false);
+                idx, spendFromKey, input.computeScript(), Transaction.SigHash.ALL, false);
         tx.getInput(idx).setScriptSig(ScriptBuilder.createInputScript(sig, spendFromKey));
       }
 

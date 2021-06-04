@@ -32,9 +32,7 @@ import java8.util.concurrent.ThreadLocalRandom;
 import java8.util.function.ToLongFunction;
 import java8.util.stream.StreamSupport;
 import org.bitcoinj.core.*;
-import org.bitcoinj.script.Script;
 import org.bouncycastle.crypto.params.RSAKeyParameters;
-import org.bouncycastle.util.encoders.Hex;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -411,7 +409,7 @@ public class ClientUtils {
         if (bech32Util.isP2WPKHScript(uo.script)) {
           nbP2WPKH++;
         } else {
-          String address = new Script(Hex.decode(uo.script)).getToAddress(params).toString();
+          String address = uo.computeScript().getToAddress(params).toString();
           if (Address.fromBase58(params, address).isP2SHAddress()) {
             nbP2SH++;
           } else {

@@ -52,7 +52,8 @@ public class WalletDataSupplier extends ExpirableSupplier<WalletResponse>
         new UtxoConfigSupplier(
             new UtxoConfigPersister(utxoConfigFileName), poolSupplier, tx0ParamService);
 
-    this.utxoSupplier = new UtxoSupplier(walletSupplier, utxoConfigSupplier, this);
+    this.utxoSupplier =
+        new UtxoSupplier(walletSupplier, utxoConfigSupplier, this, config.getNetworkParameters());
   }
 
   protected WalletResponse fetchWalletResponse() throws Exception {
