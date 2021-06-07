@@ -3,6 +3,8 @@ package com.samourai.whirlpool.client.wallet.data.minerFee;
 import com.samourai.wallet.api.backend.MinerFee;
 import com.samourai.wallet.api.backend.MinerFeeTarget;
 import com.samourai.wallet.api.backend.beans.WalletResponse;
+import com.samourai.whirlpool.client.event.MinerFeeChangeEvent;
+import com.samourai.whirlpool.client.wallet.WhirlpoolEventService;
 import com.samourai.whirlpool.client.wallet.beans.Tx0FeeTarget;
 import com.samourai.whirlpool.client.wallet.data.BasicSupplier;
 import java.util.LinkedHashMap;
@@ -37,8 +39,15 @@ public class MinerFeeSupplier extends BasicSupplier<MinerFee> {
       }
     }
 
+    MinerFee oldValue = getValue();
+
     MinerFee minerFee = new MinerFee(walletResponse.info.fees);
     super.setValue(minerFee);
+
+    // notify minerFee changes
+    if (oldValue == null || !oldValue.equals(minerFee)) {
+      WhirlpoolEventService.getInstance().post(new MinerFeeChangeEvent(minerFee));
+    }
   }
 
   protected static MinerFee mockMinerFee(int feeValue) {
