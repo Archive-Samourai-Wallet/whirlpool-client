@@ -3,7 +3,7 @@ package com.samourai.whirlpool.client.tx0;
 import com.samourai.wallet.api.backend.beans.HttpException;
 import com.samourai.wallet.api.backend.beans.UnspentOutput;
 import com.samourai.wallet.bip69.BIP69OutputComparator;
-import com.samourai.wallet.client.Bip84Wallet;
+import com.samourai.wallet.client.BipWallet;
 import com.samourai.wallet.hd.HD_Address;
 import com.samourai.wallet.segwit.SegwitAddress;
 import com.samourai.wallet.segwit.bech32.Bech32UtilGeneric;
@@ -182,10 +182,10 @@ public class Tx0Service {
   /** Generate maxOutputs premixes outputs max. */
   public Tx0 tx0(
       Collection<WhirlpoolUtxoWithKey> spendFroms,
-      Bip84Wallet depositWallet,
-      Bip84Wallet premixWallet,
-      Bip84Wallet postmixWallet,
-      Bip84Wallet badbankWallet,
+      BipWallet depositWallet,
+      BipWallet premixWallet,
+      BipWallet postmixWallet,
+      BipWallet badbankWallet,
       Tx0Config tx0Config,
       Tx0Param tx0Param)
       throws Exception {
@@ -216,10 +216,10 @@ public class Tx0Service {
 
   public Tx0 tx0(
       Collection<WhirlpoolUtxoWithKey> spendFroms,
-      Bip84Wallet depositWallet,
-      Bip84Wallet premixWallet,
-      Bip84Wallet postmixWallet,
-      Bip84Wallet badbankWallet,
+      BipWallet depositWallet,
+      BipWallet premixWallet,
+      BipWallet postmixWallet,
+      BipWallet badbankWallet,
       Tx0Config tx0Config,
       Tx0Preview tx0Preview)
       throws Exception {
@@ -287,10 +287,10 @@ public class Tx0Service {
 
   protected Tx0 tx0(
       List<WhirlpoolUtxoWithKey> sortedSpendFroms,
-      Bip84Wallet depositWallet,
-      Bip84Wallet premixWallet,
-      Bip84Wallet postmixWallet,
-      Bip84Wallet badbankWallet,
+      BipWallet depositWallet,
+      BipWallet premixWallet,
+      BipWallet postmixWallet,
+      BipWallet badbankWallet,
       Tx0Config tx0Config,
       Tx0Preview tx0Preview,
       byte[] opReturnValue,
@@ -298,7 +298,7 @@ public class Tx0Service {
       throws Exception {
 
     // find change wallet
-    Bip84Wallet changeWallet;
+    BipWallet changeWallet;
     switch (tx0Config.getChangeWallet()) {
       case PREMIX:
         changeWallet = premixWallet;
@@ -368,11 +368,11 @@ public class Tx0Service {
 
   protected Tx0 buildTx0(
       Collection<WhirlpoolUtxoWithKey> sortedSpendFroms,
-      Bip84Wallet premixWallet,
+      BipWallet premixWallet,
       Tx0Preview tx0Preview,
       byte[] opReturnValue,
       String feeOrBackAddressBech32,
-      Bip84Wallet changeWallet,
+      BipWallet changeWallet,
       NetworkParameters params)
       throws Exception {
 

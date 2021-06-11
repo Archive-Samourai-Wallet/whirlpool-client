@@ -1,6 +1,7 @@
 package com.samourai.whirlpool.client.mix.handler;
 
-import com.samourai.wallet.client.Bip84Wallet;
+import com.samourai.wallet.client.BipWallet;
+import com.samourai.wallet.hd.Chain;
 import com.samourai.wallet.hd.HD_Address;
 import com.samourai.wallet.segwit.bech32.Bech32UtilGeneric;
 import com.samourai.whirlpool.client.utils.ClientUtils;
@@ -12,10 +13,10 @@ public class Bip84PostmixHandler extends AbstractPostmixHandler {
   private static final Logger log = LoggerFactory.getLogger(Bip84PostmixHandler.class);
 
   private Bech32UtilGeneric bech32Util = Bech32UtilGeneric.getInstance();
-  private Bip84Wallet postmixWallet;
+  private BipWallet postmixWallet;
   private boolean mobile;
 
-  public Bip84PostmixHandler(Bip84Wallet postmixWallet, boolean mobile) {
+  public Bip84PostmixHandler(BipWallet postmixWallet, boolean mobile) {
     super(postmixWallet.getIndexHandler());
     this.postmixWallet = postmixWallet;
     this.mobile = mobile;
@@ -29,7 +30,7 @@ public class Bip84PostmixHandler extends AbstractPostmixHandler {
   @Override
   protected String getAddressAt(int receiveAddressIndex, NetworkParameters params) {
     HD_Address receiveAddress =
-        postmixWallet.getAddressAt(Bip84Wallet.CHAIN_RECEIVE, receiveAddressIndex);
+        postmixWallet.getAddressAt(Chain.RECEIVE.getIndex(), receiveAddressIndex);
 
     String bech32Address = bech32Util.toBech32(receiveAddress, params);
     if (log.isDebugEnabled()) {

@@ -1,7 +1,6 @@
 package com.samourai.whirlpool.client.wallet.data.walletState;
 
 import com.samourai.wallet.api.backend.beans.WalletResponse;
-import com.samourai.whirlpool.client.wallet.beans.WhirlpoolAccount;
 import com.samourai.whirlpool.client.wallet.data.PersistableData;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -28,9 +27,10 @@ public class WalletStateData extends PersistableData {
     return new WalletStateData(this.items);
   }
 
-  protected void updateIndexs(WhirlpoolAccount account, WalletResponse.Address address) {
-    updateIndexs(address.account_index, account.getPersistKeyMain());
-    updateIndexs(address.change_index, account.getPersistKeyChange());
+  protected void updateIndexs(
+      WalletResponse.Address address, String persistKeyReceive, String persistKeyChange) {
+    updateIndexs(address.account_index, persistKeyReceive);
+    updateIndexs(address.change_index, persistKeyChange);
   }
 
   private synchronized void updateIndexs(int apiIndex, String key) {

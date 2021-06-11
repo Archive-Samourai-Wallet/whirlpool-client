@@ -132,7 +132,10 @@ public class UtxoSupplier extends BasicSupplier<UtxoData> implements UtxoProvide
   @Override
   public String getChangeAddress(WhirlpoolAccount account, AddressType addressType) {
     // TODO zeroleak revert change index
-    return walletSupplier.getWallet(account).getNextChangeAddress().getAddressString(addressType);
+    return walletSupplier
+        .getWallet(account, addressType)
+        .getNextChangeAddress()
+        .getAddressString(addressType);
   }
 
   @Override
@@ -155,8 +158,7 @@ public class UtxoSupplier extends BasicSupplier<UtxoData> implements UtxoProvide
     if (whirlpoolUtxo == null) {
       throw new Exception("Utxo not found: " + outPoint.toString());
     }
-    HD_Address premixAddress =
-        walletSupplier.getWallet(account).getAddressAt(whirlpoolUtxo.getUtxo());
+    HD_Address premixAddress = walletSupplier.getAddressAt(account, whirlpoolUtxo.getUtxo());
     return premixAddress.getECKey();
   }
 

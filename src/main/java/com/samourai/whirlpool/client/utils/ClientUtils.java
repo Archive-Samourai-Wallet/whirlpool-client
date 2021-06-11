@@ -174,7 +174,7 @@ public class ClientUtils {
   }
 
   public static void logWhirlpoolUtxos(Collection<WhirlpoolUtxo> utxos, int latestBlockHeight) {
-    String lineFormat = "| %10s | %8s | %68s | %14s | %12s | %14s | %8s | %6s |\n";
+    String lineFormat = "| %10s | %8s | %68s | %45s | %13s | %12s | %14s | %8s | %6s |\n";
     StringBuilder sb = new StringBuilder();
     sb.append(
         String.format(
@@ -182,12 +182,14 @@ public class ClientUtils {
             "BALANCE",
             "CONFIRMS",
             "UTXO",
+            "ADDRESS",
+            "TYPE",
             "PATH",
             "STATUS",
             "MIXABLE",
             "POOL",
             "MIXS"));
-    sb.append(String.format(lineFormat, "(btc)", "", "", "", "", "", "", ""));
+    sb.append(String.format(lineFormat, "(btc)", "", "", "", "", "", "", "", "", ""));
     Iterator var3 = utxos.iterator();
 
     while (var3.hasNext()) {
@@ -203,7 +205,9 @@ public class ClientUtils {
               ClientUtils.satToBtc(o.value),
               whirlpoolUtxo.computeConfirmations(latestBlockHeight),
               utxo,
-              o.getPath(),
+              o.addr,
+              whirlpoolUtxo.getAddressType(),
+              whirlpoolUtxo.getPathFull(),
               utxoState.getStatus().name(),
               mixableStatusName,
               whirlpoolUtxo.getPoolId() != null ? whirlpoolUtxo.getPoolId() : "-",

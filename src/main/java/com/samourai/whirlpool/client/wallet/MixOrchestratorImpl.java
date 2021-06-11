@@ -1,6 +1,7 @@
 package com.samourai.whirlpool.client.wallet;
 
 import com.samourai.wallet.api.backend.beans.UnspentOutput;
+import com.samourai.wallet.hd.AddressType;
 import com.samourai.wallet.hd.HD_Address;
 import com.samourai.wallet.segwit.bech32.Bech32UtilGeneric;
 import com.samourai.whirlpool.client.WhirlpoolClient;
@@ -125,7 +126,7 @@ public class MixOrchestratorImpl extends MixOrchestrator {
     HD_Address premixAddress =
         whirlpoolWallet
             .getWalletSupplier()
-            .getWallet(whirlpoolUtxo.getAccount())
+            .getWallet(whirlpoolUtxo.getAccount(), AddressType.SEGWIT_NATIVE)
             .getAddressAt(whirlpoolUtxo.getUtxo());
     ECKey premixKey = premixAddress.getECKey();
 
@@ -138,7 +139,10 @@ public class MixOrchestratorImpl extends MixOrchestrator {
 
     // use PREMIX(0,0) as userPreHash (not transmitted to server but rehashed with another salt)
     HD_Address premix00 =
-        whirlpoolWallet.getWalletSupplier().getWallet(WhirlpoolAccount.PREMIX).getAddressAt(0, 0);
+        whirlpoolWallet
+            .getWalletSupplier()
+            .getWallet(WhirlpoolAccount.PREMIX, AddressType.SEGWIT_NATIVE)
+            .getAddressAt(0, 0);
     NetworkParameters params = config.getNetworkParameters();
     String premix00Bech32 = Bech32UtilGeneric.getInstance().toBech32(premix00, params);
     String userPreHash = ClientUtils.sha256Hash(premix00Bech32);

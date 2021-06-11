@@ -2,8 +2,10 @@ package com.samourai.whirlpool.client.wallet;
 
 import com.samourai.wallet.api.backend.beans.TxsResponse;
 import com.samourai.wallet.api.backend.beans.UnspentOutput;
-import com.samourai.wallet.client.Bip84Wallet;
+import com.samourai.wallet.client.BipWalletAndAddressType;
 import com.samourai.wallet.client.indexHandler.IIndexHandler;
+import com.samourai.wallet.hd.AddressType;
+import com.samourai.wallet.hd.Chain;
 import com.samourai.wallet.hd.HD_Address;
 import com.samourai.wallet.segwit.bech32.Bech32UtilGeneric;
 import com.samourai.wallet.send.spend.SpendBuilder;
@@ -448,20 +450,20 @@ public class WhirlpoolWallet {
     this.mixOrchestrator.mixStop(whirlpoolUtxo, true, false);
   }
 
-  protected Bip84Wallet getWalletDeposit() {
-    return walletSupplier.getWallet(WhirlpoolAccount.DEPOSIT);
+  public BipWalletAndAddressType getWalletDeposit() {
+    return walletSupplier.getWallet(WhirlpoolAccount.DEPOSIT, AddressType.SEGWIT_NATIVE);
   }
 
-  protected Bip84Wallet getWalletPremix() {
-    return walletSupplier.getWallet(WhirlpoolAccount.PREMIX);
+  public BipWalletAndAddressType getWalletPremix() {
+    return walletSupplier.getWallet(WhirlpoolAccount.PREMIX, AddressType.SEGWIT_NATIVE);
   }
 
-  protected Bip84Wallet getWalletPostmix() {
-    return walletSupplier.getWallet(WhirlpoolAccount.POSTMIX);
+  public BipWalletAndAddressType getWalletPostmix() {
+    return walletSupplier.getWallet(WhirlpoolAccount.POSTMIX, AddressType.SEGWIT_NATIVE);
   }
 
-  protected Bip84Wallet getWalletBadbank() {
-    return walletSupplier.getWallet(WhirlpoolAccount.BADBANK);
+  public BipWalletAndAddressType getWalletBadbank() {
+    return walletSupplier.getWallet(WhirlpoolAccount.BADBANK, AddressType.SEGWIT_NATIVE);
   }
 
   public WalletSupplier getWalletSupplier() {
@@ -617,7 +619,7 @@ public class WhirlpoolWallet {
   private Map<String, TxsResponse.Tx> fetchTxsPostmix() throws Exception {
     Map<String, TxsResponse.Tx> txs = new LinkedHashMap<String, TxsResponse.Tx>();
     int page = -1;
-    String[] zpubs = new String[] {getWalletPostmix().getZpub()};
+    String[] zpubs = new String[] {getWalletPostmix().getPub()};
     TxsResponse txsResponse;
     do {
       page++;
@@ -682,7 +684,7 @@ public class WhirlpoolWallet {
   }
 
   private Observable<Optional<String>> checkPostmixIndex(int postmixIndex) throws Exception {
-    HD_Address hdAddress = getWalletPostmix().getAddressAt(Bip84Wallet.CHAIN_RECEIVE, postmixIndex);
+    HD_Address hdAddress = getWalletPostmix().getAddressAt(Chain.RECEIVE.getIndex(), postmixIndex);
     String outputAddress = bech32Util.toBech32(hdAddress, config.getNetworkParameters());
     String signature = hdAddress.getECKey().signMessage(outputAddress);
     CheckOutputRequest checkOutputRequest = new CheckOutputRequest(outputAddress, signature);
@@ -721,19 +723,19 @@ public class WhirlpoolWallet {
   }
 
   public String getZpubDeposit() {
-    return getWalletDeposit().getZpub();
+    return getWalletDeposit().getPub();
   }
 
   public String getZpubPremix() {
-    return getWalletPremix().getZpub();
+    return getWalletPremix().getPub();
   }
 
   public String getZpubPostmix() {
-    return getWalletPostmix().getZpub();
+    return getWalletPostmix().getPub();
   }
 
   public String getZpubBadBank() {
-    return getWalletBadbank().getZpub();
+    return getWalletBadbank().getPub();
   }
 
   public WhirlpoolWalletConfig getConfig() {

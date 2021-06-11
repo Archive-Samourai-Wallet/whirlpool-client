@@ -1,8 +1,12 @@
 package com.samourai.whirlpool.client.wallet.data.minerFee;
 
 import com.samourai.wallet.api.backend.BackendApi;
-import com.samourai.wallet.client.Bip84Wallet;
+import com.samourai.wallet.api.backend.beans.UnspentOutput;
+import com.samourai.wallet.client.BipWalletAndAddressType;
 import com.samourai.wallet.client.indexHandler.IIndexHandler;
+import com.samourai.wallet.hd.AddressType;
+import com.samourai.wallet.hd.Chain;
+import com.samourai.wallet.hd.HD_Address;
 import com.samourai.wallet.hd.HD_Wallet;
 import com.samourai.whirlpool.client.wallet.beans.WhirlpoolAccount;
 import com.samourai.whirlpool.client.wallet.data.walletState.WalletStateIndexHandler;
@@ -12,7 +16,6 @@ import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import org.apache.commons.lang3.ArrayUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -21,107 +24,81 @@ public class WalletSupplier {
   private static final String EXTERNAL_INDEX_HANDLER = "external";
 
   private final WalletStateSupplier walletStateSupplier;
-  private final Map<WhirlpoolAccount, Bip84Wallet> walletsByAccount;
-  private final Map<String, WhirlpoolAccount> accountsByZpub;
-  private final Map<String, WhirlpoolAccount> accountsByXpub;
-  private final WhirlpoolAccount[] ignoredAccounts;
+  private HD_Wallet bip44w;
+  private final Map<WhirlpoolAccount, Map<AddressType, BipWalletAndAddressType>> wallets;
+  private final Map<String, BipWalletAndAddressType> walletsByPub;
   private final IIndexHandler externalIndexHandler;
 
   public WalletSupplier(
       WalletStatePersister persister,
       BackendApi backendApi,
-      HD_Wallet hdWallet,
+      HD_Wallet bip44w,
       int externalIndexDefault) {
 
     this.walletStateSupplier = new WalletStateSupplier(persister, backendApi, this);
+    this.bip44w = bip44w;
 
     // instanciate wallets
-    this.walletsByAccount = new LinkedHashMap<WhirlpoolAccount, Bip84Wallet>();
-    for (WhirlpoolAccount walletAccount : WhirlpoolAccount.values()) {
-      IIndexHandler mainIndexHandler =
-          new WalletStateIndexHandler(walletStateSupplier, walletAccount.getPersistKeyMain(), 0);
-      IIndexHandler changeIndexHandler =
-          new WalletStateIndexHandler(walletStateSupplier, walletAccount.getPersistKeyChange(), 0);
+    this.wallets = new LinkedHashMap<WhirlpoolAccount, Map<AddressType, BipWalletAndAddressType>>();
+    this.walletsByPub = new LinkedHashMap<String, BipWalletAndAddressType>();
+    for (WhirlpoolAccount account : WhirlpoolAccount.values()) {
 
-      Bip84Wallet wallet =
-          new Bip84Wallet(
-              hdWallet, walletAccount.getAccountIndex(), mainIndexHandler, changeIndexHandler);
-      walletsByAccount.put(walletAccount, wallet);
+      Map<AddressType, BipWalletAndAddressType> walletsByAddressType =
+          new LinkedHashMap<AddressType, BipWalletAndAddressType>();
+      for (AddressType addressType : account.getAddressTypes()) {
+        IIndexHandler indexHandler =
+            walletStateSupplier.computeIndexHandler(account, addressType, Chain.RECEIVE);
+        IIndexHandler indexChangeHandler =
+            walletStateSupplier.computeIndexHandler(account, addressType, Chain.CHANGE);
+        BipWalletAndAddressType bipWallet =
+            new BipWalletAndAddressType(
+                bip44w, account, indexHandler, indexChangeHandler, addressType);
+        walletsByAddressType.put(addressType, bipWallet);
+        String pub = bipWallet.getPub();
+        walletsByPub.put(pub, bipWallet);
+        if (log.isDebugEnabled()) {
+          log.debug(" +WALLET (" + account + "/" + addressType + "): " + pub);
+        }
+      }
+      wallets.put(account, walletsByAddressType);
     }
-    this.ignoredAccounts = WhirlpoolAccount.getListByActive(false);
-    this.accountsByZpub = computeAccountsByZpub(walletsByAccount);
-    this.accountsByXpub = computeAccountsByXpub(walletsByAccount);
     this.externalIndexHandler =
         new WalletStateIndexHandler(
             walletStateSupplier, EXTERNAL_INDEX_HANDLER, externalIndexDefault);
   }
 
-  private static Map<String, WhirlpoolAccount> computeAccountsByZpub(
-      Map<WhirlpoolAccount, Bip84Wallet> walletsByAccount) {
-    Map<String, WhirlpoolAccount> accountsByZpub = new LinkedHashMap<String, WhirlpoolAccount>();
-    for (WhirlpoolAccount account : walletsByAccount.keySet()) {
-      Bip84Wallet wallet = walletsByAccount.get(account);
-      String zpub = wallet.getZpub();
-      accountsByZpub.put(zpub, account);
-    }
-    return accountsByZpub;
-  }
-
-  private static Map<String, WhirlpoolAccount> computeAccountsByXpub(
-      Map<WhirlpoolAccount, Bip84Wallet> walletsByAccount) {
-    Map<String, WhirlpoolAccount> accountsByXpub = new LinkedHashMap<String, WhirlpoolAccount>();
-    for (WhirlpoolAccount account : walletsByAccount.keySet()) {
-      Bip84Wallet wallet = walletsByAccount.get(account);
-      String xpub = wallet.getXpub();
-      accountsByXpub.put(xpub, account);
-    }
-    return accountsByXpub;
-  }
-
-  public Bip84Wallet getWallet(WhirlpoolAccount account) {
-    Bip84Wallet wallet = walletsByAccount.get(account);
-    if (wallet == null) {
-      log.error("No wallet found for account: " + account);
+  public BipWalletAndAddressType getWallet(WhirlpoolAccount account, AddressType addressType) {
+    if (!wallets.containsKey(account) || !wallets.get(account).containsKey(addressType)) {
+      log.error("No wallet found for " + account + " / " + addressType);
       return null;
     }
+    BipWalletAndAddressType wallet = wallets.get(account).get(addressType);
     return wallet;
   }
 
-  public WhirlpoolAccount getAccountByZpub(String zpub) {
-    WhirlpoolAccount account = accountsByZpub.get(zpub);
-    if (account == null) {
-      // android specific: allow finding utxos by xpub
-      account = accountsByXpub.get(zpub);
-    }
-    if (account == null) {
-      log.error("No account found for zpub: " + zpub);
+  public BipWalletAndAddressType getWalletByPub(String pub) {
+    BipWalletAndAddressType bipWallet = walletsByPub.get(pub);
+    if (bipWallet == null) {
+      log.error("No wallet found for: " + pub);
       return null;
     }
-    return account;
+    return bipWallet;
   }
 
-  private boolean isIgnoredAccount(WhirlpoolAccount account) {
-    return ArrayUtils.contains(ignoredAccounts, account);
-  }
-
-  public String[] getZpubs(boolean withIgnoredAccounts) {
-    List<String> zpubs = new LinkedList<String>();
-    for (String zpub : accountsByZpub.keySet()) {
-      WhirlpoolAccount account = accountsByZpub.get(zpub);
-      if (withIgnoredAccounts || !isIgnoredAccount(account)) {
-        zpubs.add(zpub);
+  public String[] getPubs(boolean withIgnoredAccounts) {
+    List<String> pubs = new LinkedList<String>();
+    for (BipWalletAndAddressType bipWallet : walletsByPub.values()) {
+      if (withIgnoredAccounts || bipWallet.getAccount().isActive()) {
+        String pub = bipWallet.getPub();
+        pubs.add(pub);
       }
     }
-    return zpubs.toArray(new String[] {});
+    return pubs.toArray(new String[] {});
   }
 
-  public String[] getZpubs(WhirlpoolAccount... accounts) {
-    List<String> zpubs = new LinkedList<String>();
-    for (WhirlpoolAccount account : accounts) {
-      String zpub = getWallet(account).getZpub();
-      zpubs.add(zpub);
-    }
-    return zpubs.toArray(new String[] {});
+  public HD_Address getAddressAt(WhirlpoolAccount account, UnspentOutput utxo) {
+    return bip44w.getAddressAt(
+        account.getAccountIndex(), utxo.computePathChainIndex(), utxo.computePathAddressIndex());
   }
 
   public WalletStateSupplier getWalletStateSupplier() {

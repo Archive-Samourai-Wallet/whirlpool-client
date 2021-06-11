@@ -1,6 +1,7 @@
 package com.samourai.whirlpool.client.wallet.beans;
 
 import com.samourai.wallet.api.backend.beans.UnspentOutput;
+import com.samourai.wallet.hd.AddressType;
 import com.samourai.whirlpool.client.wallet.data.utxo.UtxoConfigPersisted;
 import com.samourai.whirlpool.client.wallet.data.utxo.UtxoConfigSupplier;
 import org.slf4j.Logger;
@@ -12,6 +13,7 @@ public class WhirlpoolUtxo extends WhirlpoolUtxoConfig {
   private UnspentOutput utxo;
   private Integer blockHeight; // null when unconfirmed
   private WhirlpoolAccount account;
+  private AddressType addressType;
   private WhirlpoolUtxoState utxoState;
 
   private UtxoConfigSupplier utxoConfigSupplier;
@@ -20,12 +22,14 @@ public class WhirlpoolUtxo extends WhirlpoolUtxoConfig {
       UnspentOutput utxo,
       Integer blockHeight,
       WhirlpoolAccount account,
+      AddressType addressType,
       WhirlpoolUtxoStatus status,
       UtxoConfigSupplier utxoConfigSupplier) {
     super();
     this.utxo = utxo;
     this.blockHeight = blockHeight;
     this.account = account;
+    this.addressType = addressType;
     this.utxoState = new WhirlpoolUtxoState(status);
     this.utxoConfigSupplier = utxoConfigSupplier;
   }
@@ -64,6 +68,10 @@ public class WhirlpoolUtxo extends WhirlpoolUtxoConfig {
     return account;
   }
 
+  public AddressType getAddressType() {
+    return addressType;
+  }
+
   public WhirlpoolUtxoState getUtxoState() {
     return utxoState;
   }
@@ -80,9 +88,15 @@ public class WhirlpoolUtxo extends WhirlpoolUtxoConfig {
     return WhirlpoolAccount.POSTMIX.equals(account);
   }
 
+  public String getPathFull() {
+    return utxo.getPathFull(addressType.getPurpose(), account.getAccountIndex());
+  }
+
   @Override
   public String toString() {
     return account
+        + " / "
+        + addressType
         + ": "
         + utxo.toString()
         + ": (#"

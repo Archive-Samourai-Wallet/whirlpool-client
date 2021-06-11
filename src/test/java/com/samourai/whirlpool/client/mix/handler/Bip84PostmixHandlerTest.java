@@ -1,6 +1,6 @@
 package com.samourai.whirlpool.client.mix.handler;
 
-import com.samourai.wallet.client.Bip84Wallet;
+import com.samourai.wallet.client.BipWallet;
 import com.samourai.wallet.client.indexHandler.MemoryIndexHandler;
 import com.samourai.wallet.hd.HD_Wallet;
 import com.samourai.whirlpool.client.test.AbstractTest;
@@ -13,7 +13,7 @@ import org.slf4j.LoggerFactory;
 public class Bip84PostmixHandlerTest extends AbstractTest {
   private Logger log = LoggerFactory.getLogger(Bip84PostmixHandlerTest.class);
 
-  private Bip84Wallet bip84Wallet;
+  private BipWallet bipWallet;
 
   public Bip84PostmixHandlerTest() throws Exception {
     super();
@@ -21,18 +21,15 @@ public class Bip84PostmixHandlerTest extends AbstractTest {
     String passphrase = "whirlpool";
     byte[] seed = hdWalletFactory.computeSeedFromWords(seedWords);
     HD_Wallet bip84w = hdWalletFactory.getBIP84(seed, passphrase, params);
-    bip84Wallet =
-        new Bip84Wallet(
-            bip84w,
-            WhirlpoolAccount.POSTMIX.getAccountIndex(),
-            new MemoryIndexHandler(),
-            new MemoryIndexHandler());
+    bipWallet =
+        new BipWallet(
+            bip84w, WhirlpoolAccount.POSTMIX, new MemoryIndexHandler(), new MemoryIndexHandler());
   }
 
   @Test
   public void computeNextReceiveAddressIndex() {
-    Bip84PostmixHandler phCli = new Bip84PostmixHandler(bip84Wallet, false);
-    Bip84PostmixHandler phMobile = new Bip84PostmixHandler(bip84Wallet, true);
+    Bip84PostmixHandler phCli = new Bip84PostmixHandler(bipWallet, false);
+    Bip84PostmixHandler phMobile = new Bip84PostmixHandler(bipWallet, true);
 
     Assert.assertEquals(0, phCli.computeNextReceiveAddressIndex());
     Assert.assertEquals(2, phCli.computeNextReceiveAddressIndex());

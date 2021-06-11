@@ -1,6 +1,6 @@
 package com.samourai.whirlpool.client.wallet;
 
-import com.samourai.wallet.client.Bip84Wallet;
+import com.samourai.wallet.client.BipWalletAndAddressType;
 import com.samourai.wallet.hd.HD_Wallet;
 import com.samourai.wallet.segwit.bech32.Bech32UtilGeneric;
 import com.samourai.whirlpool.client.event.WalletCloseEvent;
@@ -49,12 +49,12 @@ public class WhirlpoolWalletService {
 
   public WhirlpoolWallet openWallet(
       WhirlpoolWalletConfig config,
-      HD_Wallet bip84w,
+      HD_Wallet bip44w,
       String walletStateFileName,
       String utxoConfigFileName)
       throws Exception {
     WhirlpoolWallet wp =
-        computeWhirlpoolWallet(config, bip84w, walletStateFileName, utxoConfigFileName);
+        computeWhirlpoolWallet(config, bip44w, walletStateFileName, utxoConfigFileName);
     return openWallet(wp);
   }
 
@@ -66,27 +66,27 @@ public class WhirlpoolWalletService {
     wp.open(); // load initial data
     whirlpoolWallet = Optional.of(wp);
 
-    Bip84Wallet depositWallet = wp.getWalletDeposit();
-    Bip84Wallet premixWallet = wp.getWalletPremix();
-    Bip84Wallet postmixWallet = wp.getWalletPostmix();
+    BipWalletAndAddressType depositWallet = wp.getWalletDeposit();
+    BipWalletAndAddressType premixWallet = wp.getWalletPremix();
+    BipWalletAndAddressType postmixWallet = wp.getWalletPostmix();
 
     // log zpubs
     if (log.isDebugEnabled()) {
       log.debug(
           "Deposit wallet: accountIndex="
-              + depositWallet.getAccountIndex()
+              + depositWallet.getAccount().getAccountIndex()
               + ", zpub="
-              + ClientUtils.maskString(depositWallet.getZpub()));
+              + ClientUtils.maskString(depositWallet.getPub()));
       log.debug(
           "Premix wallet: accountIndex="
-              + premixWallet.getAccountIndex()
+              + premixWallet.getAccount().getAccountIndex()
               + ", zpub="
-              + ClientUtils.maskString(premixWallet.getZpub()));
+              + ClientUtils.maskString(premixWallet.getPub()));
       log.debug(
           "Postmix wallet: accountIndex="
-              + postmixWallet.getAccountIndex()
+              + postmixWallet.getAccount().getAccountIndex()
               + ", zpub="
-              + ClientUtils.maskString(postmixWallet.getZpub()));
+              + ClientUtils.maskString(postmixWallet.getPub()));
     }
 
     // notify open
@@ -96,7 +96,7 @@ public class WhirlpoolWalletService {
 
   protected WhirlpoolWallet computeWhirlpoolWallet(
       WhirlpoolWalletConfig config,
-      HD_Wallet hdWallet,
+      HD_Wallet bip44w,
       String walletStateFileName,
       String utxoConfigFileName) {
     // debug whirlpoolWalletConfig
@@ -122,7 +122,7 @@ public class WhirlpoolWalletService {
         new WalletSupplier(
             new WalletStatePersister(walletStateFileName),
             config.getBackendApi(),
-            hdWallet,
+            bip44w,
             externalIndexDefault);
 
     PoolSupplier poolSupplier =

@@ -2,6 +2,10 @@ package com.samourai.whirlpool.client.wallet.data.walletState;
 
 import com.samourai.wallet.api.backend.BackendApi;
 import com.samourai.wallet.api.backend.beans.WalletResponse;
+import com.samourai.wallet.client.BipWalletAndAddressType;
+import com.samourai.wallet.client.indexHandler.IIndexHandler;
+import com.samourai.wallet.hd.AddressType;
+import com.samourai.wallet.hd.Chain;
 import com.samourai.whirlpool.client.exception.NotifiableException;
 import com.samourai.whirlpool.client.wallet.beans.WhirlpoolAccount;
 import com.samourai.whirlpool.client.wallet.data.AbstractPersistableSupplier;
@@ -12,7 +16,7 @@ import org.slf4j.LoggerFactory;
 
 public class WalletStateSupplier extends AbstractPersistableSupplier<WalletStateData> {
   private static final Logger log = LoggerFactory.getLogger(WalletStateSupplier.class);
-  private static final int INIT_BIP84_RETRY = 3;
+  private static final int INITWALLET_RETRY = 3;
   private static final int INIT_BIP84_RETRY_TIMEOUT = 3000;
 
   private BackendApi backendApi;
@@ -40,17 +44,25 @@ public class WalletStateSupplier extends AbstractPersistableSupplier<WalletState
 
     // update indexs from wallet backend
     Map<String, WalletResponse.Address> addressesMap = walletResponse.getAddressesMap();
-    for (String zpub : addressesMap.keySet()) {
-      WalletResponse.Address address = addressesMap.get(zpub);
-      WhirlpoolAccount account = walletSupplier.getAccountByZpub(zpub);
-      if (account != null) {
-        // important: udpate indexs directly on currentValue to prevent index reuse (on concurrent
-        // index update)
-        currentValue.updateIndexs(account, address);
+    for (String pub : addressesMap.keySet()) {
+      WalletResponse.Address address = addressesMap.get(pub);
+      BipWalletAndAddressType bipWallet = walletSupplier.getWalletByPub(pub);
+      if (bipWallet != null) {
+        // important: udpate indexs directly on currentValue to prevent index reuse
+        String persistKeyReceive =
+            computePersistKey(bipWallet.getAccount(), bipWallet.getAddressType(), Chain.RECEIVE);
+        String persistKeyChange =
+            computePersistKey(bipWallet.getAccount(), bipWallet.getAddressType(), Chain.CHANGE);
+        currentValue.updateIndexs(address, persistKeyReceive, persistKeyChange);
       } else {
-        log.error("No account found for zpub: " + zpub);
+        log.error("No wallet found for: " + pub);
       }
     }
+  }
+
+  protected String computePersistKey(
+      WhirlpoolAccount account, AddressType addressType, Chain chain) {
+    return account.name() + "_" + addressType.getPurpose() + "_" + chain.getIndex();
   }
 
   @Override
@@ -72,9 +84,9 @@ public class WalletStateSupplier extends AbstractPersistableSupplier<WalletState
 
     // initialize wallets
     if (!isInitialized) {
-      String[] activeZpubs = walletSupplier.getZpubs(false);
-      for (String zpub : activeZpubs) {
-        initBip84(zpub);
+      String[] activePubs = walletSupplier.getPubs(false);
+      for (String pub : activePubs) {
+        initWallet(pub);
       }
       newValue.setInitialized();
 
@@ -84,26 +96,32 @@ public class WalletStateSupplier extends AbstractPersistableSupplier<WalletState
     setValue(newValue);
   }
 
-  private void initBip84(String zpub) throws Exception {
-    for (int i = 0; i < INIT_BIP84_RETRY; i++) {
-      log.info(" • Initializing bip84 wallet");
+  private void initWallet(String pub) throws Exception {
+    for (int i = 0; i < INITWALLET_RETRY; i++) {
+      log.info(" • Initializing wallet");
       try {
-        backendApi.initBip84(zpub);
+        // backendApi.initBip84(zpub); // TODO zeroleak
         return; // success
       } catch (Exception e) {
         if (log.isDebugEnabled()) {
           log.error("", e);
         }
         log.error(
-            " x Initializing bip84 wallet failed, retrying... ("
+            " x Initializing wallet failed, retrying... ("
                 + (i + 1)
                 + "/"
-                + INIT_BIP84_RETRY
+                + INITWALLET_RETRY
                 + ")");
         Thread.sleep(INIT_BIP84_RETRY_TIMEOUT);
       }
     }
     throw new NotifiableException("Unable to initialize Bip84 wallet");
+  }
+
+  public IIndexHandler computeIndexHandler(
+      WhirlpoolAccount account, AddressType addressType, Chain chain) {
+    String persistKey = computePersistKey(account, addressType, chain);
+    return new WalletStateIndexHandler(this, persistKey, 0);
   }
 
   protected int get(String key, int defaultValue) {

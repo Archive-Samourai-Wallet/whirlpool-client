@@ -2,6 +2,8 @@ package com.samourai.whirlpool.client.wallet.data.utxo;
 
 import com.samourai.wallet.api.backend.beans.UnspentOutput;
 import com.samourai.wallet.api.backend.beans.WalletResponse;
+import com.samourai.wallet.client.BipWallet;
+import com.samourai.wallet.client.BipWalletAndAddressType;
 import com.samourai.whirlpool.client.utils.ClientUtils;
 import com.samourai.whirlpool.client.wallet.beans.*;
 import com.samourai.whirlpool.client.wallet.data.minerFee.WalletSupplier;
@@ -85,17 +87,22 @@ public class UtxoData {
         UnspentOutput utxo = e.getValue();
         try {
           // find account
-          String zpub = utxo.xpub.m;
-          WhirlpoolAccount account = walletSupplier.getAccountByZpub(zpub);
-          if (account == null) {
-            throw new Exception("Unknown account for utxo: " + utxo);
+          String pub = utxo.xpub.m;
+          BipWalletAndAddressType bipWallet = walletSupplier.getWalletByPub(pub);
+          if (bipWallet == null) {
+            throw new Exception("Unknown wallet for: " + pub);
           }
 
           // add missing
           Integer blockHeight = computeBlockHeight(utxo, walletResponse);
           WhirlpoolUtxo whirlpoolUtxo =
               new WhirlpoolUtxo(
-                  utxo, blockHeight, account, WhirlpoolUtxoStatus.READY, utxoConfigSupplier);
+                  utxo,
+                  blockHeight,
+                  bipWallet.getAccount(),
+                  bipWallet.getAddressType(),
+                  WhirlpoolUtxoStatus.READY,
+                  utxoConfigSupplier);
           if (!isFirstFetch) {
             // set lastActivity when utxo is detected but ignore on first fetch
             whirlpoolUtxo.getUtxoState().setLastActivity();
@@ -140,17 +147,17 @@ public class UtxoData {
     // verify inputs
     for (WalletResponse.TxInput input : tx.inputs) {
       if (input.prev_out != null) {
-        WhirlpoolAccount whirlpoolAccount = walletSupplier.getAccountByZpub(input.prev_out.xpub.m);
-        if (whirlpoolAccount != null) {
-          accounts.add(whirlpoolAccount);
+        BipWallet bipWallet = walletSupplier.getWalletByPub(input.prev_out.xpub.m);
+        if (bipWallet != null) {
+          accounts.add(bipWallet.getAccount());
         }
       }
     }
     // verify outputs
     for (WalletResponse.TxOutput output : tx.out) {
-      WhirlpoolAccount whirlpoolAccount = walletSupplier.getAccountByZpub(output.xpub.m);
-      if (whirlpoolAccount != null) {
-        accounts.add(whirlpoolAccount);
+      BipWallet bipWallet = walletSupplier.getWalletByPub(output.xpub.m);
+      if (bipWallet != null) {
+        accounts.add(bipWallet.getAccount());
       }
     }
     return accounts;
