@@ -6,12 +6,12 @@ import com.google.common.io.Files;
 import com.samourai.wallet.api.backend.beans.HttpException;
 import com.samourai.wallet.api.backend.beans.UnspentOutput;
 import com.samourai.wallet.client.indexHandler.IIndexHandler;
+import com.samourai.wallet.hd.AddressType;
 import com.samourai.wallet.segwit.bech32.Bech32UtilGeneric;
 import com.samourai.wallet.util.CallbackWithArg;
 import com.samourai.wallet.util.FeeUtil;
 import com.samourai.wallet.util.FormatsUtilGeneric;
 import com.samourai.whirlpool.client.exception.NotifiableException;
-import com.samourai.whirlpool.client.tx0.WhirlpoolUtxoWithKey;
 import com.samourai.whirlpool.client.wallet.beans.WhirlpoolUtxo;
 import com.samourai.whirlpool.client.wallet.beans.WhirlpoolUtxoState;
 import com.samourai.whirlpool.protocol.WhirlpoolProtocol;
@@ -160,15 +160,23 @@ public class ClientUtils {
     return index;
   }
 
-  public static void logUtxos(Collection<UnspentOutput> utxos) {
-    String lineFormat = "| %10s | %8s | %68s | %45s | %14s |\n";
+  public static void logUtxos(
+      Collection<UnspentOutput> utxos, int purpose, int accountIndex, NetworkParameters params) {
+    String lineFormat = "| %10s | %8s | %68s | %45s | %18s |\n";
     StringBuilder sb = new StringBuilder();
-    sb.append(String.format(lineFormat, "BALANCE", "CONFIRMS", "UTXO", "ADDRESS", "PATH"));
-    sb.append(String.format(lineFormat, "(btc)", "", "", "", ""));
+    sb.append(String.format(lineFormat, "BALANCE", "CONFIRMS", "UTXO", "ADDRESS", "TYPE", "PATH"));
+    sb.append(String.format(lineFormat, "(btc)", "", "", "", "", ""));
     for (UnspentOutput o : utxos) {
       String utxo = o.tx_hash + ":" + o.tx_output_n;
       sb.append(
-          String.format(lineFormat, satToBtc(o.value), o.confirmations, utxo, o.addr, o.getPath()));
+          String.format(
+              lineFormat,
+              satToBtc(o.value),
+              o.confirmations,
+              utxo,
+              o.addr,
+              AddressType.findByAddress(o.addr, params),
+              o.getPathFull(purpose, accountIndex)));
     }
     log.info("\n" + sb.toString());
   }
@@ -444,9 +452,9 @@ public class ClientUtils {
     return spendValue;
   }
 
-  public static int countPrevTxs(Collection<WhirlpoolUtxoWithKey> spendFroms) {
+  public static int countPrevTxs(Collection<UnspentOutput> spendFroms) {
     Map<String, Boolean> mapByPrevTx = new LinkedHashMap<String, Boolean>();
-    for (WhirlpoolUtxoWithKey spendFrom : spendFroms) {
+    for (UnspentOutput spendFrom : spendFroms) {
       mapByPrevTx.put(spendFrom.tx_hash, true);
     }
     return mapByPrevTx.size();

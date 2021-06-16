@@ -1,6 +1,6 @@
 package com.samourai.whirlpool.client.mix.handler;
 
-import com.samourai.wallet.util.TxUtil;
+import com.samourai.wallet.send.SendFactoryGeneric;
 import com.samourai.whirlpool.client.utils.ClientUtils;
 import org.bitcoinj.core.ECKey;
 import org.bitcoinj.core.NetworkParameters;
@@ -25,8 +25,7 @@ public class PremixHandler implements IPremixHandler {
   @Override
   public void signTransaction(Transaction tx, int inputIndex, NetworkParameters params)
       throws Exception {
-    long spendAmount = utxo.getBalance();
-    TxUtil.getInstance().signInputSegwit(tx, inputIndex, utxoKey, spendAmount, params);
+    SendFactoryGeneric.getInstance().signInput(utxoKey, params, tx, inputIndex);
   }
 
   @Override

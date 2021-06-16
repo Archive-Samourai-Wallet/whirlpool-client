@@ -10,7 +10,6 @@ import com.samourai.wallet.util.oauth.OAuthManager;
 import com.samourai.whirlpool.client.tx0.Tx0;
 import com.samourai.whirlpool.client.tx0.Tx0Config;
 import com.samourai.whirlpool.client.tx0.Tx0Preview;
-import com.samourai.whirlpool.client.tx0.WhirlpoolUtxoWithKey;
 import com.samourai.whirlpool.client.wallet.WhirlpoolWallet;
 import com.samourai.whirlpool.client.wallet.WhirlpoolWalletConfig;
 import com.samourai.whirlpool.client.wallet.WhirlpoolWalletService;
@@ -78,9 +77,9 @@ public class JavaExample {
      * WALLET
      */
     // open wallet
-    HD_Wallet bip84w = null; // provide your wallet here
+    HD_Wallet bip44w = null; // provide your wallet here
     WhirlpoolWallet whirlpoolWallet =
-        whirlpoolWalletService.openWallet(config, bip84w, "/tmp/state", "/tmp/utxos");
+        whirlpoolWalletService.openWallet(config, bip44w, "/tmp/state", "/tmp/utxos");
 
     // start whirlpool wallet
     whirlpoolWallet.start();
@@ -142,7 +141,7 @@ public class JavaExample {
       // preview tx0
       try {
         Tx0Preview tx0Preview =
-            whirlpoolWallet.tx0Preview(utxos, pool05btc, tx0Config, tx0FeeTarget, mixFeeTarget);
+            whirlpoolWallet.tx0Preview(pool05btc, utxos, tx0Config, tx0FeeTarget, mixFeeTarget);
         long minerFee =
             tx0Preview
                 .getTx0MinerFee(); // get minerFee, poolFee, premixValue, changeValue, nbPremix...
@@ -163,9 +162,7 @@ public class JavaExample {
     {
       // external utxo for tx0
       WhirlpoolUtxo spendFrom = null; // provide utxo outpoint
-      byte[] spendFromPrivKey = null; // provide utxo private key
-      Collection<WhirlpoolUtxoWithKey> utxos =
-          Lists.of(new WhirlpoolUtxoWithKey(spendFrom, spendFromPrivKey));
+      Collection<WhirlpoolUtxo> utxos = Lists.of(spendFrom);
 
       // configure tx0
       Tx0Config tx0Config =

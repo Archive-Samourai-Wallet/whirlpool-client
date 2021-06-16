@@ -1,12 +1,10 @@
 package com.samourai.whirlpool.client.wallet.data.minerFee;
 
 import com.samourai.wallet.api.backend.BackendApi;
-import com.samourai.wallet.api.backend.beans.UnspentOutput;
 import com.samourai.wallet.client.BipWalletAndAddressType;
 import com.samourai.wallet.client.indexHandler.IIndexHandler;
 import com.samourai.wallet.hd.AddressType;
 import com.samourai.wallet.hd.Chain;
-import com.samourai.wallet.hd.HD_Address;
 import com.samourai.wallet.hd.HD_Wallet;
 import com.samourai.whirlpool.client.wallet.beans.WhirlpoolAccount;
 import com.samourai.whirlpool.client.wallet.data.walletState.WalletStateIndexHandler;
@@ -24,7 +22,6 @@ public class WalletSupplier {
   private static final String EXTERNAL_INDEX_HANDLER = "external";
 
   private final WalletStateSupplier walletStateSupplier;
-  private HD_Wallet bip44w;
   private final Map<WhirlpoolAccount, Map<AddressType, BipWalletAndAddressType>> wallets;
   private final Map<String, BipWalletAndAddressType> walletsByPub;
   private final IIndexHandler externalIndexHandler;
@@ -36,7 +33,6 @@ public class WalletSupplier {
       int externalIndexDefault) {
 
     this.walletStateSupplier = new WalletStateSupplier(persister, backendApi, this);
-    this.bip44w = bip44w;
 
     // instanciate wallets
     this.wallets = new LinkedHashMap<WhirlpoolAccount, Map<AddressType, BipWalletAndAddressType>>();
@@ -94,11 +90,6 @@ public class WalletSupplier {
       }
     }
     return pubs.toArray(new String[] {});
-  }
-
-  public HD_Address getAddressAt(WhirlpoolAccount account, UnspentOutput utxo) {
-    return bip44w.getAddressAt(
-        account.getAccountIndex(), utxo.computePathChainIndex(), utxo.computePathAddressIndex());
   }
 
   public WalletStateSupplier getWalletStateSupplier() {

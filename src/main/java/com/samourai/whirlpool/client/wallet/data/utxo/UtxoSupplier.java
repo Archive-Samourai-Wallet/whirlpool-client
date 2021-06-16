@@ -6,7 +6,7 @@ import com.samourai.wallet.hd.AddressType;
 import com.samourai.wallet.hd.HD_Address;
 import com.samourai.wallet.send.MyTransactionOutPoint;
 import com.samourai.wallet.send.UTXO;
-import com.samourai.wallet.send.UtxoProvider;
+import com.samourai.wallet.send.provider.UtxoProvider;
 import com.samourai.whirlpool.client.event.UtxosChangeEvent;
 import com.samourai.whirlpool.client.event.UtxosResponseEvent;
 import com.samourai.whirlpool.client.wallet.WhirlpoolEventService;
@@ -17,7 +17,7 @@ import com.samourai.whirlpool.client.wallet.data.BasicSupplier;
 import com.samourai.whirlpool.client.wallet.data.minerFee.WalletDataSupplier;
 import com.samourai.whirlpool.client.wallet.data.minerFee.WalletSupplier;
 import java.util.*;
-import java8.util.function.Function;
+import java8.util.function.Predicate;
 import java8.util.stream.Collectors;
 import java8.util.stream.StreamSupport;
 import org.bitcoinj.core.ECKey;
@@ -93,6 +93,19 @@ public class UtxoSupplier extends BasicSupplier<UtxoData> implements UtxoProvide
   }
 
   public Collection<WhirlpoolUtxo> findUtxos(
+      final AddressType addressType, final WhirlpoolAccount... whirlpoolAccounts) {
+    return StreamSupport.stream(findUtxos(whirlpoolAccounts))
+        .filter(
+            new Predicate<WhirlpoolUtxo>() {
+              @Override
+              public boolean test(WhirlpoolUtxo whirlpoolUtxo) {
+                return whirlpoolUtxo.getAddressType() == addressType;
+              }
+            })
+        .collect(Collectors.<WhirlpoolUtxo>toList());
+  }
+
+  public Collection<WhirlpoolUtxo> findUtxos(
       final boolean excludeNoPool, final WhirlpoolAccount... whirlpoolAccounts) {
     return getValue().findUtxos(excludeNoPool, whirlpoolAccounts);
   }
@@ -140,10 +153,7 @@ public class UtxoSupplier extends BasicSupplier<UtxoData> implements UtxoProvide
 
   @Override
   public Collection<UTXO> getUtxos(WhirlpoolAccount account, AddressType addressType) {
-    if (addressType == AddressType.SEGWIT_NATIVE) {
-      return toUTXOs(findUtxos(account));
-    }
-    return new LinkedList<UTXO>(); // TODO zeroleak
+    return toUTXOs(findUtxos(addressType, account));
   }
 
   @Override
@@ -152,29 +162,45 @@ public class UtxoSupplier extends BasicSupplier<UtxoData> implements UtxoProvide
   }
 
   @Override
-  public ECKey _getPrivKey(TransactionOutPoint outPoint, WhirlpoolAccount account)
-      throws Exception {
-    WhirlpoolUtxo whirlpoolUtxo = findUtxo(outPoint);
+  public ECKey _getPrivKey(String utxoHash, int utxoIndex) throws Exception {
+    WhirlpoolUtxo whirlpoolUtxo = findUtxo(utxoHash, utxoIndex);
     if (whirlpoolUtxo == null) {
-      throw new Exception("Utxo not found: " + outPoint.toString());
+      throw new Exception("Utxo not found: " + utxoHash + ":" + utxoIndex);
     }
-    HD_Address premixAddress = walletSupplier.getAddressAt(account, whirlpoolUtxo.getUtxo());
+    HD_Address premixAddress = getAddress(whirlpoolUtxo);
     return premixAddress.getECKey();
   }
 
+  private HD_Address getAddress(WhirlpoolUtxo whirlpoolUtxo) {
+    UnspentOutput utxo = whirlpoolUtxo.getUtxo();
+    AddressType addressType = AddressType.findByAddress(utxo.addr, params);
+    return walletSupplier.getWallet(whirlpoolUtxo.getAccount(), addressType).getAddressAt(utxo);
+  }
+
   private Collection<UTXO> toUTXOs(Collection<WhirlpoolUtxo> whirlpoolUtxos) {
-    return StreamSupport.stream(whirlpoolUtxos)
-        .map(
-            new Function<WhirlpoolUtxo, UTXO>() {
-              @Override
-              public UTXO apply(WhirlpoolUtxo whirlpoolUtxo) {
-                UTXO utxo = new UTXO();
-                List<MyTransactionOutPoint> outs = new ArrayList<MyTransactionOutPoint>();
-                outs.add(new MyTransactionOutPoint(params, whirlpoolUtxo.getUtxo()));
-                utxo.setOutpoints(outs);
-                return utxo;
-              }
-            })
-        .collect(Collectors.<UTXO>toList());
+    // group utxos by script = same address
+    Map<String, UTXO> utxoByScript = new LinkedHashMap<String, UTXO>();
+    for (WhirlpoolUtxo whirlpoolUtxo : whirlpoolUtxos) {
+      MyTransactionOutPoint outPoint = whirlpoolUtxo.getUtxo().computeOutpoint(params);
+      String script = whirlpoolUtxo.getUtxo().script;
+
+      UTXO utxo = utxoByScript.get(script);
+      if (utxo == null) {
+        utxo = new UTXO();
+        utxo.setPath(whirlpoolUtxo.getUtxo().getPath());
+        utxoByScript.put(script, utxo);
+      }
+      utxo.getOutpoints().add(outPoint);
+      if (utxo.getOutpoints().size() > 1) {
+        if (log.isDebugEnabled()) {
+          log.debug(
+              "Found "
+                  + utxo.getOutpoints().size()
+                  + " UTXO with same address: "
+                  + utxo.getOutpoints());
+        }
+      }
+    }
+    return utxoByScript.values();
   }
 }

@@ -5,8 +5,9 @@ import com.samourai.wallet.api.backend.beans.UnspentOutput;
 import com.samourai.wallet.bip69.BIP69OutputComparator;
 import com.samourai.wallet.client.BipWallet;
 import com.samourai.wallet.hd.HD_Address;
-import com.samourai.wallet.segwit.SegwitAddress;
 import com.samourai.wallet.segwit.bech32.Bech32UtilGeneric;
+import com.samourai.wallet.send.SendFactoryGeneric;
+import com.samourai.wallet.send.provider.UtxoKeyProvider;
 import com.samourai.wallet.util.FormatsUtilGeneric;
 import com.samourai.whirlpool.client.exception.NotifiableException;
 import com.samourai.whirlpool.client.utils.BIP69InputComparatorUnspentOutput;
@@ -17,12 +18,10 @@ import com.samourai.whirlpool.client.whirlpool.beans.Tx0Data;
 import com.samourai.whirlpool.protocol.WhirlpoolProtocol;
 import com.samourai.whirlpool.protocol.fee.WhirlpoolFee;
 import com.samourai.whirlpool.protocol.rest.Tx0DataResponse;
-import java.math.BigInteger;
 import java.util.*;
 import java8.util.function.ToLongFunction;
 import java8.util.stream.StreamSupport;
 import org.bitcoinj.core.*;
-import org.bitcoinj.crypto.TransactionSignature;
 import org.bitcoinj.script.Script;
 import org.bitcoinj.script.ScriptBuilder;
 import org.bitcoinj.script.ScriptOpCodes;
@@ -103,7 +102,7 @@ public class Tx0Service {
   }
 
   public Tx0Preview tx0Preview(
-      Collection<WhirlpoolUtxoWithKey> spendFroms, Tx0Config tx0Config, Tx0Param tx0Param)
+      Collection<UnspentOutput> spendFroms, Tx0Config tx0Config, Tx0Param tx0Param)
       throws Exception {
     // fetch fresh Tx0Data
     Tx0Data tx0Data = fetchTx0Data(tx0Param.getPool().getPoolId());
@@ -111,10 +110,7 @@ public class Tx0Service {
   }
 
   protected Tx0Preview tx0Preview(
-      Collection<WhirlpoolUtxoWithKey> spendFroms,
-      Tx0Config tx0Config,
-      Tx0Param tx0Param,
-      Tx0Data tx0Data)
+      Collection<UnspentOutput> spendFroms, Tx0Config tx0Config, Tx0Param tx0Param, Tx0Data tx0Data)
       throws Exception {
 
     // check balance min
@@ -181,13 +177,14 @@ public class Tx0Service {
 
   /** Generate maxOutputs premixes outputs max. */
   public Tx0 tx0(
-      Collection<WhirlpoolUtxoWithKey> spendFroms,
+      Collection<UnspentOutput> spendFroms,
       BipWallet depositWallet,
       BipWallet premixWallet,
       BipWallet postmixWallet,
       BipWallet badbankWallet,
       Tx0Config tx0Config,
-      Tx0Param tx0Param)
+      Tx0Param tx0Param,
+      UtxoKeyProvider utxoKeyProvider)
       throws Exception {
 
     // compute & preview
@@ -211,17 +208,19 @@ public class Tx0Service {
         postmixWallet,
         badbankWallet,
         tx0Config,
-        tx0Preview);
+        tx0Preview,
+        utxoKeyProvider);
   }
 
   public Tx0 tx0(
-      Collection<WhirlpoolUtxoWithKey> spendFroms,
+      Collection<UnspentOutput> spendFroms,
       BipWallet depositWallet,
       BipWallet premixWallet,
       BipWallet postmixWallet,
       BipWallet badbankWallet,
       Tx0Config tx0Config,
-      Tx0Preview tx0Preview)
+      Tx0Preview tx0Preview,
+      UtxoKeyProvider utxoKeyProvider)
       throws Exception {
     NetworkParameters params = config.getNetworkParameters();
 
@@ -252,11 +251,12 @@ public class Tx0Service {
     }
 
     // sort inputs now, we need to know the first input for OP_RETURN encode
-    List<WhirlpoolUtxoWithKey> sortedSpendFroms = new LinkedList<WhirlpoolUtxoWithKey>();
+    List<UnspentOutput> sortedSpendFroms = new LinkedList<UnspentOutput>();
     sortedSpendFroms.addAll(spendFroms);
     Collections.sort(sortedSpendFroms, new BIP69InputComparatorUnspentOutput());
 
-    WhirlpoolUtxoWithKey firstInput = sortedSpendFroms.get(0);
+    UnspentOutput firstInput = sortedSpendFroms.get(0);
+    ECKey firstInputKey = utxoKeyProvider._getPrivKey(firstInput.tx_hash, firstInput.tx_output_n);
     String feePaymentCode = tx0Data.getFeePaymentCode();
     byte[] opReturnValue =
         whirlpoolFee.encode(
@@ -264,7 +264,7 @@ public class Tx0Service {
             feePayload,
             feePaymentCode,
             params,
-            firstInput.getKey(),
+            firstInputKey.getPrivKeyBytes(),
             firstInput.computeOutpoint(params));
     if (log.isDebugEnabled()) {
       log.debug(
@@ -282,11 +282,12 @@ public class Tx0Service {
         tx0Config,
         tx0Preview,
         opReturnValue,
-        feeOrBackAddressBech32);
+        feeOrBackAddressBech32,
+        utxoKeyProvider);
   }
 
   protected Tx0 tx0(
-      List<WhirlpoolUtxoWithKey> sortedSpendFroms,
+      List<UnspentOutput> sortedSpendFroms,
       BipWallet depositWallet,
       BipWallet premixWallet,
       BipWallet postmixWallet,
@@ -294,7 +295,8 @@ public class Tx0Service {
       Tx0Config tx0Config,
       Tx0Preview tx0Preview,
       byte[] opReturnValue,
-      String feeOrBackAddressBech32)
+      String feeOrBackAddressBech32,
+      UtxoKeyProvider utxoKeyProvider)
       throws Exception {
 
     // find change wallet
@@ -326,7 +328,8 @@ public class Tx0Service {
             opReturnValue,
             feeOrBackAddressBech32,
             changeWallet,
-            config.getNetworkParameters());
+            config.getNetworkParameters(),
+            utxoKeyProvider);
 
     Transaction tx = tx0.getTx();
     final String hexTx = new String(Hex.encode(tx.bitcoinSerialize()));
@@ -367,13 +370,14 @@ public class Tx0Service {
   }
 
   protected Tx0 buildTx0(
-      Collection<WhirlpoolUtxoWithKey> sortedSpendFroms,
+      Collection<UnspentOutput> sortedSpendFroms,
       BipWallet premixWallet,
       Tx0Preview tx0Preview,
       byte[] opReturnValue,
       String feeOrBackAddressBech32,
       BipWallet changeWallet,
-      NetworkParameters params)
+      NetworkParameters params,
+      UtxoKeyProvider utxoKeyProvider)
       throws Exception {
 
     long premixValue = tx0Preview.getPremixValue();
@@ -513,21 +517,22 @@ public class Tx0Service {
     }
 
     // all inputs
-    for (WhirlpoolUtxoWithKey spendFrom : sortedSpendFroms) {
-      buildTx0Input(tx, spendFrom, params);
+    for (UnspentOutput spendFrom : sortedSpendFroms) {
+      TransactionInput input = spendFrom.computeSpendInput(params);
+      tx.addInput(input);
       if (log.isDebugEnabled()) {
         log.debug("Tx0 in: utxo=" + spendFrom);
       }
     }
 
-    signTx0(tx, sortedSpendFroms, params);
+    signTx0(tx, utxoKeyProvider);
     tx.verify();
 
     Tx0 tx0 = new Tx0(tx0Preview, tx, premixOutputs, changeOutputs);
     return tx0;
   }
 
-  private boolean useFakeOutput(Collection<WhirlpoolUtxoWithKey> spendFroms) {
+  private boolean useFakeOutput(Collection<UnspentOutput> spendFroms) {
     // experimental feature reserved for testnet
     if (!FormatsUtilGeneric.getInstance().isTestNet(config.getNetworkParameters())) {
       return false;
@@ -582,71 +587,8 @@ public class Tx0Service {
     }
   }
 
-  protected void buildTx0Input(
-      Transaction tx, WhirlpoolUtxoWithKey input, NetworkParameters params) {
-    ECKey spendFromKey = ECKey.fromPrivate(input.getKey());
-    TransactionOutPoint depositSpendFrom = input.computeOutpoint(params);
-
-    SegwitAddress segwitAddress = new SegwitAddress(spendFromKey.getPubKey(), params);
-    WpTransactionOutPoint outpoint =
-        new WpTransactionOutPoint(
-            params,
-            depositSpendFrom.getHash(),
-            (int) depositSpendFrom.getIndex(),
-            BigInteger.valueOf(depositSpendFrom.getValue().longValue()),
-            segwitAddress.segWitRedeemScript().getProgram());
-
-    TransactionInput _input = new TransactionInput(params, null, new byte[0], outpoint);
-    tx.addInput(_input);
-  }
-
-  protected void signTx0(
-      Transaction tx, Collection<WhirlpoolUtxoWithKey> inputs, NetworkParameters params) {
-    int idx = 0;
-    for (WhirlpoolUtxoWithKey input : inputs) {
-
-      String address = input.addr;
-      ECKey spendFromKey = ECKey.fromPrivate(input.getKey());
-
-      // sign input
-      boolean isBech32 = formatsUtilGeneric.isValidBech32(address);
-      if (isBech32 || Address.fromBase58(params, address).isP2SHAddress()) {
-
-        SegwitAddress segwitAddress = new SegwitAddress(spendFromKey.getPubKey(), params);
-        final Script redeemScript = segwitAddress.segWitRedeemScript();
-        final Script scriptCode = redeemScript.scriptCode();
-
-        TransactionSignature sig =
-            tx.calculateWitnessSignature(
-                idx,
-                spendFromKey,
-                scriptCode,
-                Coin.valueOf(input.value),
-                Transaction.SigHash.ALL,
-                false);
-        final TransactionWitness witness = new TransactionWitness(2);
-        witness.setPush(0, sig.encodeToBitcoin());
-        witness.setPush(1, spendFromKey.getPubKey());
-        tx.setWitness(idx, witness);
-
-        if (!isBech32) {
-          // P2SH
-          final ScriptBuilder sigScript = new ScriptBuilder();
-          sigScript.data(redeemScript.getProgram());
-          tx.getInput(idx).setScriptSig(sigScript.build());
-          //                    tx.getInput(idx).getScriptSig().correctlySpends(tx, idx, new
-          // Script(Hex.decode(input.script)), Coin.valueOf(input.value), Script.ALL_VERIFY_FLAGS);
-        }
-
-      } else {
-        TransactionSignature sig =
-            tx.calculateSignature(
-                idx, spendFromKey, input.computeScript(), Transaction.SigHash.ALL, false);
-        tx.getInput(idx).setScriptSig(ScriptBuilder.createInputScript(sig, spendFromKey));
-      }
-
-      idx++;
-    }
+  protected void signTx0(Transaction tx, UtxoKeyProvider utxoKeyProvider) throws Exception {
+    SendFactoryGeneric.getInstance().signTransaction(tx, utxoKeyProvider);
   }
 
   protected Tx0Data fetchTx0Data(String poolId) throws Exception {

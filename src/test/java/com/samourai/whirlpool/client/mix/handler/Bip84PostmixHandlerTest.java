@@ -2,6 +2,7 @@ package com.samourai.whirlpool.client.mix.handler;
 
 import com.samourai.wallet.client.BipWallet;
 import com.samourai.wallet.client.indexHandler.MemoryIndexHandler;
+import com.samourai.wallet.hd.AddressType;
 import com.samourai.wallet.hd.HD_Wallet;
 import com.samourai.whirlpool.client.test.AbstractTest;
 import com.samourai.whirlpool.client.wallet.beans.WhirlpoolAccount;
@@ -23,7 +24,11 @@ public class Bip84PostmixHandlerTest extends AbstractTest {
     HD_Wallet bip84w = hdWalletFactory.getBIP84(seed, passphrase, params);
     bipWallet =
         new BipWallet(
-            bip84w, WhirlpoolAccount.POSTMIX, new MemoryIndexHandler(), new MemoryIndexHandler());
+            bip84w,
+            WhirlpoolAccount.POSTMIX,
+            new MemoryIndexHandler(),
+            new MemoryIndexHandler(),
+            AddressType.SEGWIT_NATIVE);
   }
 
   @Test

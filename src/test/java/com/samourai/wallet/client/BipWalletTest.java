@@ -16,22 +16,26 @@ public class BipWalletTest extends AbstractTest {
 
   public BipWalletTest() throws Exception {
     byte[] seed = hdWalletFactory.computeSeedFromWords(SEED_WORDS);
-    HD_Wallet bip84w = hdWalletFactory.getBIP84(seed, SEED_PASSPHRASE, params);
+    HD_Wallet bip44w = hdWalletFactory.getBIP44(seed, SEED_PASSPHRASE, params);
     bipWallet =
         new BipWallet(
-            bip84w, WhirlpoolAccount.DEPOSIT, new MemoryIndexHandler(), new MemoryIndexHandler());
+            bip44w,
+            WhirlpoolAccount.DEPOSIT,
+            new MemoryIndexHandler(),
+            new MemoryIndexHandler(),
+            AddressType.SEGWIT_NATIVE);
   }
 
   @Test
   public void getAddressAt() throws Exception {
     Assert.assertEquals(
-        "tb1q5lc455emwwttdqwf9p32xf8fhgrhvfp5vxvul7", toBech32(bipWallet.getAddressAt(0, 0)));
+        "tb1qp4jqz890g3u30meeks68aeqyf7tdaeycyc6hd0", toBech32(bipWallet.getAddressAt(0, 0)));
     Assert.assertEquals(
-        "tb1q2vw863w92dwpej48maqyjazj4ch3x0krzrw9cs", toBech32(bipWallet.getAddressAt(0, 15)));
+        "tb1q7uef0jnnj2dnzguz438aeejpqhjk7z45ngd4ww", toBech32(bipWallet.getAddressAt(0, 15)));
     Assert.assertEquals(
-        "tb1qtfrd7zug2qkhv3nc6294pls92qru6vvqse40dw", toBech32(bipWallet.getAddressAt(1, 0)));
+        "tb1q765gfuv0f4l83fqk0sl9vaeu8tjcuqtyrrduyv", toBech32(bipWallet.getAddressAt(1, 0)));
     Assert.assertEquals(
-        "tb1q2vw863w92dwpej48maqyjazj4ch3x0krzrw9cs", toBech32(bipWallet.getAddressAt(0, 15)));
+        "tb1q7uef0jnnj2dnzguz438aeejpqhjk7z45ngd4ww", toBech32(bipWallet.getAddressAt(0, 15)));
   }
 
   @Test
@@ -55,7 +59,7 @@ public class BipWalletTest extends AbstractTest {
   @Test
   public void getZpub() throws Exception {
     Assert.assertEquals(
-        "vpub5YEQpEDXWE3TcFX9JXj73TaBskrDTy5pdw3HNujngNKfAYtgx1ynNd6ri92A8Jdgccm9BX4S8yo45hsK4oiCar15pqA7MHM9XtkzNySdknj",
+        "vpub5YEQpEDPAZWVTkmWASSHyaUMsae7uV9FnRrhZ3cqV6RFbBQx7wjVsUfLqSE3hgNY8WQixurkbWNkfV2sRE7LPfNKQh2t3s5une4QZthwdCu",
         bipWallet.getPub(AddressType.SEGWIT_NATIVE));
   }
 
