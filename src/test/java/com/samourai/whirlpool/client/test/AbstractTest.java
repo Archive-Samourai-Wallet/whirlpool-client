@@ -111,7 +111,7 @@ public class AbstractTest {
 
   protected WhirlpoolWalletConfig computeWhirlpoolWalletConfig() {
     WhirlpoolWalletConfig config =
-        new WhirlpoolWalletConfig(null, null, null, null, TestNet3Params.get(), false, null);
+        new WhirlpoolWalletConfig(null, null, null, null, TestNet3Params.get(), false, null, null);
     return config;
   }
 

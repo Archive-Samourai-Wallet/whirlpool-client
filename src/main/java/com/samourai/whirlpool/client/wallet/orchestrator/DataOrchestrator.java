@@ -52,6 +52,15 @@ public class DataOrchestrator extends AbstractOrchestrator {
   }
 
   @Override
+  public synchronized void stop() {
+    super.stop();
+
+    for (AbstractSupplier supplier : suppliers) {
+      supplier.stop();
+    }
+  }
+
+  @Override
   public synchronized void notifyOrchestrator() {
     super.notifyOrchestrator();
   }

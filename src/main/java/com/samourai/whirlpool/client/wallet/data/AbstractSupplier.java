@@ -12,4 +12,6 @@ public abstract class AbstractSupplier<D> {
   protected abstract D getValue();
 
   public abstract Long getLastUpdate();
+
+  public void stop() {}
 }

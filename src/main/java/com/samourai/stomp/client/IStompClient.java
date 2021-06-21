@@ -1,6 +1,6 @@
 package com.samourai.stomp.client;
 
-import com.samourai.whirlpool.client.utils.MessageErrorListener;
+import com.samourai.wallet.util.MessageErrorListener;
 import java.util.Map;
 
 public interface IStompClient {

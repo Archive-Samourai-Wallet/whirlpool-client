@@ -4,6 +4,7 @@ import com.samourai.http.client.IHttpClientService;
 import com.samourai.stomp.client.IStompClientService;
 import com.samourai.tor.client.TorClientService;
 import com.samourai.wallet.api.backend.BackendApi;
+import com.samourai.wallet.api.backend.websocket.BackendWsApi;
 import com.samourai.wallet.bip47.rpc.java.SecretPointFactoryJava;
 import com.samourai.wallet.bip47.rpc.secretPoint.ISecretPointFactory;
 import com.samourai.whirlpool.client.tx0.ITx0ParamServiceConfig;
@@ -36,6 +37,8 @@ public class WhirlpoolWalletConfig extends WhirlpoolClientConfig implements ITx0
   private Map<String, Long> overspend;
 
   private BackendApi backendApi;
+  private BackendWsApi backendWsApi; // may be null
+  private boolean backendWatch;
   private int tx0Delay;
   private int tx0MinConfirmations;
   private int refreshUtxoDelay;
@@ -56,7 +59,8 @@ public class WhirlpoolWalletConfig extends WhirlpoolClientConfig implements ITx0
       ServerApi serverApi,
       NetworkParameters params,
       boolean mobile,
-      BackendApi backendApi) {
+      BackendApi backendApi,
+      BackendWsApi backendWsApi) {
     super(httpClientService, stompClientService, torClientService, serverApi, null, params, mobile);
 
     // default settings
@@ -75,6 +79,8 @@ public class WhirlpoolWalletConfig extends WhirlpoolClientConfig implements ITx0
 
     // technical settings
     this.backendApi = backendApi;
+    this.backendWsApi = backendWsApi;
+    this.backendWatch = !mobile;
     this.tx0Delay = 30;
     this.tx0MinConfirmations = 0;
     this.refreshUtxoDelay = 60; // 1min
@@ -193,6 +199,18 @@ public class WhirlpoolWalletConfig extends WhirlpoolClientConfig implements ITx0
     return backendApi;
   }
 
+  public BackendWsApi getBackendWsApi() {
+    return backendWsApi;
+  }
+
+  public boolean isBackendWatch() {
+    return backendWatch;
+  }
+
+  public void setBackendWatch(boolean backendWatch) {
+    this.backendWatch = backendWatch;
+  }
+
   public int getTx0Delay() {
     return tx0Delay;
   }
@@ -288,6 +306,8 @@ public class WhirlpoolWalletConfig extends WhirlpoolClientConfig implements ITx0
             + isLiquidityClient()
             + ", clientDelay="
             + getClientDelay()
+            + ", backendWatch="
+            + isBackendWatch()
             + ", tx0Delay="
             + getTx0Delay()
             + ", autoTx0="

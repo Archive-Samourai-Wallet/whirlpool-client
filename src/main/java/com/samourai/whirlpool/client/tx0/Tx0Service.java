@@ -9,6 +9,7 @@ import com.samourai.wallet.segwit.bech32.Bech32UtilGeneric;
 import com.samourai.wallet.send.SendFactoryGeneric;
 import com.samourai.wallet.send.provider.UtxoKeyProvider;
 import com.samourai.wallet.util.FormatsUtilGeneric;
+import com.samourai.wallet.util.RandomUtil;
 import com.samourai.whirlpool.client.exception.NotifiableException;
 import com.samourai.whirlpool.client.utils.BIP69InputComparatorUnspentOutput;
 import com.samourai.whirlpool.client.utils.ClientUtils;
@@ -563,7 +564,7 @@ public class Tx0Service {
       return true;
     }
     // random
-    boolean result = ClientUtils.random(1, randomFactor) == 1;
+    boolean result = RandomUtil.getInstance().random(1, randomFactor) == 1;
     if (log.isDebugEnabled()) {
       log.debug("useFakeOutput => " + result + " (randomFactor=" + randomFactor + ")");
     }
@@ -578,7 +579,7 @@ public class Tx0Service {
     }
     if (useFakeOutput) {
       // 2 change outputs
-      long changeValue1 = ClientUtils.random(VALUE_MIN, changeValueTotal - VALUE_MIN);
+      long changeValue1 = RandomUtil.getInstance().random(VALUE_MIN, changeValueTotal - VALUE_MIN);
       long changeValue2 = changeValueTotal - changeValue1;
       return new long[] {changeValue1, changeValue2};
     } else {

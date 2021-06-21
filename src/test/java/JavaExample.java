@@ -5,8 +5,10 @@ import com.samourai.stomp.client.IStompClientService;
 import com.samourai.tor.client.TorClientService;
 import com.samourai.wallet.api.backend.BackendApi;
 import com.samourai.wallet.api.backend.BackendServer;
+import com.samourai.wallet.api.backend.websocket.BackendWsApi;
 import com.samourai.wallet.hd.HD_Wallet;
 import com.samourai.wallet.util.oauth.OAuthManager;
+import com.samourai.websocket.client.IWebsocketClient;
 import com.samourai.whirlpool.client.tx0.Tx0;
 import com.samourai.whirlpool.client.tx0.Tx0Config;
 import com.samourai.whirlpool.client.tx0.Tx0Preview;
@@ -42,6 +44,9 @@ public class JavaExample {
     TorClientService torClientService = null; // provide impl here
     BackendApi backendApi =
         new BackendApi(httpClientBackend, backendUrl, Optional.<OAuthManager>empty());
+    IWebsocketClient wsClient = null; // TODO provide impl here
+    BackendWsApi backendWsApi =
+        new BackendWsApi(wsClient, backendUrl, Optional.<OAuthManager>empty());
 
     NetworkParameters params = whirlpoolServer.getParams();
     boolean isAndroid = false;
@@ -53,7 +58,8 @@ public class JavaExample {
             serverApi,
             params,
             isAndroid,
-            backendApi);
+            backendApi,
+            backendWsApi);
 
     whirlpoolWalletConfig.setAutoTx0PoolId(null); // disable auto-tx0
     whirlpoolWalletConfig.setAutoMix(false); // disable auto-mix

@@ -46,6 +46,11 @@ public abstract class ExpirableSupplier<D> extends BasicSupplier<D> implements L
     }
   }
 
+  public synchronized void expireAndReload() throws Exception {
+    expire();
+    load();
+  }
+
   @Override
   public synchronized void load() throws Exception {
     if (log.isDebugEnabled()) {

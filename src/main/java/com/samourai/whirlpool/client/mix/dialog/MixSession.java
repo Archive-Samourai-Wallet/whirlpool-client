@@ -3,10 +3,11 @@ package com.samourai.whirlpool.client.mix.dialog;
 import com.samourai.stomp.client.IStompClient;
 import com.samourai.stomp.client.IStompTransportListener;
 import com.samourai.stomp.client.StompTransport;
+import com.samourai.wallet.util.MessageErrorListener;
+import com.samourai.wallet.util.MessageListener;
+import com.samourai.wallet.util.RandomUtil;
 import com.samourai.whirlpool.client.exception.NotifiableException;
 import com.samourai.whirlpool.client.utils.ClientUtils;
-import com.samourai.whirlpool.client.utils.MessageErrorListener;
-import com.samourai.whirlpool.client.utils.MessageListener;
 import com.samourai.whirlpool.client.whirlpool.WhirlpoolClientConfig;
 import com.samourai.whirlpool.protocol.WhirlpoolEndpoint;
 import com.samourai.whirlpool.protocol.WhirlpoolProtocol;
@@ -265,7 +266,7 @@ public class MixSession {
           config.getTorClientService().changeIdentity();
 
           // wait delay before retrying
-          int randomDelaySeconds = ClientUtils.random(5, 120);
+          int randomDelaySeconds = RandomUtil.getInstance().random(5, 120);
           reconnectDelay = randomDelaySeconds * 1000;
           log.info(
               " ! connexion failed since "

@@ -544,21 +544,17 @@ public class WhirlpoolWallet {
         new Runnable() {
           @Override
           public void run() {
-            refreshUtxos(true);
+            refreshUtxos();
           }
         });
   }
 
   /** Refresh utxos now. */
-  public void refreshUtxos(boolean waitComplete) {
-    getUtxoSupplier().expire();
-    dataOrchestrator.notifyOrchestrator();
-    if (waitComplete) {
-      // TODO wait for orchestrator to complete
-      try {
-        Thread.sleep(3000);
-      } catch (InterruptedException e) {
-      }
+  public void refreshUtxos() {
+    try {
+      walletDataSupplier.expireAndReload();
+    } catch (Exception e) {
+      log.error("", e);
     }
   }
 

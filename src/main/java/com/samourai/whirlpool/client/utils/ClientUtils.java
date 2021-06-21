@@ -28,7 +28,6 @@ import java.security.interfaces.RSAPublicKey;
 import java.security.spec.X509EncodedKeySpec;
 import java.util.*;
 import java8.util.Optional;
-import java8.util.concurrent.ThreadLocalRandom;
 import java8.util.function.ToLongFunction;
 import java8.util.stream.StreamSupport;
 import org.bitcoinj.core.*;
@@ -314,14 +313,6 @@ public class ClientUtils {
     return value.substring(0, Math.min(startEnd, value.length()))
         + "..."
         + value.substring(Math.max(0, value.length() - startEnd), value.length());
-  }
-
-  public static int random(int minInclusive, int maxInclusive) {
-    return ThreadLocalRandom.current().nextInt(minInclusive, maxInclusive + 1);
-  }
-
-  public static long random(long minInclusive, long maxInclusive) {
-    return ThreadLocalRandom.current().nextLong(minInclusive, maxInclusive + 1);
   }
 
   public static void safeWrite(File file, CallbackWithArg<File> callback) throws Exception {

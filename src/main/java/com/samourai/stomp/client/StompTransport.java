@@ -1,8 +1,8 @@
 package com.samourai.stomp.client;
 
+import com.samourai.wallet.util.MessageErrorListener;
+import com.samourai.wallet.util.MessageListener;
 import com.samourai.whirlpool.client.utils.ClientUtils;
-import com.samourai.whirlpool.client.utils.MessageErrorListener;
-import com.samourai.whirlpool.client.utils.MessageListener;
 import com.samourai.whirlpool.protocol.WhirlpoolProtocol;
 import java.util.HashMap;
 import java.util.Map;

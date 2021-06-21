@@ -1,5 +1,6 @@
 package com.samourai.whirlpool.client.wallet.beans;
 
+import com.samourai.wallet.util.RandomUtil;
 import com.samourai.whirlpool.client.utils.ClientUtils;
 
 public class ExternalDestination {
@@ -40,7 +41,7 @@ public class ExternalDestination {
       return false;
     }
     // random
-    return ClientUtils.random(1, mixsRandomFactor) == 1;
+    return RandomUtil.getInstance().random(1, mixsRandomFactor) == 1;
   }
 
   @Override

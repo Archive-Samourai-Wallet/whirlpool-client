@@ -1,5 +1,6 @@
 package com.samourai.whirlpool.client.utils;
 
+import com.samourai.wallet.util.RandomUtil;
 import com.samourai.whirlpool.client.test.AbstractTest;
 import org.junit.Assert;
 import org.junit.Test;
@@ -21,7 +22,7 @@ public class ClientUtilsTest extends AbstractTest {
   }
 
   private int doRandom() {
-    int rand = ClientUtils.random(-1, 1);
+    int rand = RandomUtil.getInstance().random(-1, 1);
     if (log.isDebugEnabled()) {
       log.debug("rand=" + rand);
     }

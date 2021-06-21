@@ -98,7 +98,8 @@ public class WhirlpoolWalletService {
       WhirlpoolWalletConfig config,
       HD_Wallet bip44w,
       String walletStateFileName,
-      String utxoConfigFileName) {
+      String utxoConfigFileName)
+      throws Exception {
     // debug whirlpoolWalletConfig
     if (log.isDebugEnabled()) {
       log.debug("openWallet with whirlpoolWalletConfig:");
@@ -146,7 +147,8 @@ public class WhirlpoolWalletService {
       WalletSupplier walletSupplier,
       PoolSupplier poolSupplier,
       String utxoConfigFileName,
-      WhirlpoolWalletConfig config) {
+      WhirlpoolWalletConfig config)
+      throws Exception {
     return new WalletDataSupplier(
         config.getRefreshUtxoDelay(), walletSupplier, poolSupplier, utxoConfigFileName, config);
   }

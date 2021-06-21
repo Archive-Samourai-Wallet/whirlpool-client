@@ -1,7 +1,8 @@
 package com.samourai.whirlpool.client.wallet.data.minerFee;
 
-import com.samourai.wallet.api.backend.BackendApi;
 import com.samourai.wallet.api.backend.beans.WalletResponse;
+import com.samourai.wallet.api.backend.websocket.BackendWsApi;
+import com.samourai.wallet.util.MessageListener;
 import com.samourai.whirlpool.client.event.UtxosRequestEvent;
 import com.samourai.whirlpool.client.tx0.Tx0ParamService;
 import com.samourai.whirlpool.client.wallet.WhirlpoolEventService;
@@ -20,7 +21,7 @@ public class WalletDataSupplier extends ExpirableSupplier<WalletResponse>
     implements LoadableSupplier {
   private static final Logger log = LoggerFactory.getLogger(WalletDataSupplier.class);
 
-  private final BackendApi backendApi;
+  private final WhirlpoolWalletConfig config;
   private final WalletSupplier walletSupplier;
   private final WalletStateSupplier walletStateSupplier;
 
@@ -35,9 +36,10 @@ public class WalletDataSupplier extends ExpirableSupplier<WalletResponse>
       WalletSupplier walletSupplier,
       PoolSupplier poolSupplier,
       String utxoConfigFileName,
-      WhirlpoolWalletConfig config) {
+      WhirlpoolWalletConfig config)
+      throws Exception {
     super(refreshUtxoDelay, null, log);
-    this.backendApi = config.getBackendApi();
+    this.config = config;
     this.walletSupplier = walletSupplier;
     this.walletStateSupplier = walletSupplier.getWalletStateSupplier();
 
@@ -54,11 +56,63 @@ public class WalletDataSupplier extends ExpirableSupplier<WalletResponse>
 
     this.utxoSupplier =
         new UtxoSupplier(walletSupplier, utxoConfigSupplier, this, config.getNetworkParameters());
+
+    if (config.isBackendWatch() && config.getBackendWsApi() != null) {
+      this.watchBackend();
+    }
+  }
+
+  private void watchBackend() throws Exception {
+    final BackendWsApi backendWsApi = config.getBackendWsApi();
+    backendWsApi.connect(
+        new MessageListener<Void>() {
+          @Override
+          public void onMessage(Void foo) {
+            try {
+              // watch blocks
+              backendWsApi.subscribeBlock(
+                  new MessageListener() {
+                    @Override
+                    public void onMessage(Object message) {
+                      if (log.isDebugEnabled()) {
+                        log.debug("new block received -> refreshing walletData");
+                        try {
+                          expireAndReload();
+                        } catch (Exception e) {
+                          log.error("", e);
+                        }
+                      }
+                    }
+                  });
+
+              // watch addresses
+              String[] pubs = walletSupplier.getPubs(true);
+              backendWsApi.subscribeAddress(
+                  pubs,
+                  new MessageListener() {
+                    @Override
+                    public void onMessage(Object message) {
+                      if (log.isDebugEnabled()) {
+                        log.debug("new address received -> refreshing walletData");
+                        try {
+                          expireAndReload();
+                        } catch (Exception e) {
+                          log.error("", e);
+                        }
+                      }
+                    }
+                  });
+            } catch (Exception e) {
+              log.error("", e);
+            }
+          }
+        },
+        true);
   }
 
   protected WalletResponse fetchWalletResponse() throws Exception {
     String[] pubs = walletSupplier.getPubs(true);
-    return backendApi.fetchWallet(pubs);
+    return config.getBackendApi().fetchWallet(pubs);
   }
 
   @Override
@@ -86,6 +140,16 @@ public class WalletDataSupplier extends ExpirableSupplier<WalletResponse>
     walletStateSupplier._setValue(walletResponse);
 
     return walletResponse;
+  }
+
+  @Override
+  public void stop() {
+    super.stop();
+
+    // disconnect backend websocket
+    if (config.isBackendWatch() && config.getBackendWsApi() != null) {
+      config.getBackendWsApi().disconnect();
+    }
   }
 
   public MinerFeeSupplier getMinerFeeSupplier() {
