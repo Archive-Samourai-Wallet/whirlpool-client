@@ -19,6 +19,7 @@ public class UtxoData {
   private static final Logger log = LoggerFactory.getLogger(UtxoData.class);
 
   private final Map<String, WhirlpoolUtxo> utxos;
+  private final Map<String, List<WhirlpoolUtxo>> utxosByAddress;
   private final Map<WhirlpoolAccount, List<WalletResponse.Tx>> txsByAccount;
   private final WhirlpoolUtxoChanges utxoChanges;
   private final Map<WhirlpoolAccount, Long> balanceByAccount;
@@ -58,6 +59,7 @@ public class UtxoData {
     }
 
     this.utxos = new LinkedHashMap<String, WhirlpoolUtxo>();
+    this.utxosByAddress = new LinkedHashMap<String, List<WhirlpoolUtxo>>();
     this.utxoChanges = new WhirlpoolUtxoChanges(isFirstFetch);
 
     // add existing utxos
@@ -73,7 +75,7 @@ public class UtxoData {
           utxoChanges.getUtxosConfirmed().add(whirlpoolUtxo);
         }
         // add
-        utxos.put(key, whirlpoolUtxo);
+        addUtxo(whirlpoolUtxo);
       } else {
         // obsolete
         utxoChanges.getUtxosRemoved().add(whirlpoolUtxo);
@@ -111,7 +113,7 @@ public class UtxoData {
             }
           }
           utxoChanges.getUtxosAdded().add(whirlpoolUtxo);
-          utxos.put(key, whirlpoolUtxo);
+          addUtxo(whirlpoolUtxo);
         } catch (Exception ee) {
           log.error("error loading new utxo", ee);
         }
@@ -132,6 +134,17 @@ public class UtxoData {
     if (log.isDebugEnabled()) {
       log.debug("utxos: " + previousUtxos.size() + " => " + utxos.size() + ", " + utxoChanges);
     }
+  }
+
+  private void addUtxo(WhirlpoolUtxo whirlpoolUtxo) {
+    String key = ClientUtils.utxoToKey(whirlpoolUtxo.getUtxo());
+    utxos.put(key, whirlpoolUtxo);
+
+    String addr = whirlpoolUtxo.getUtxo().addr;
+    if (utxosByAddress.get(addr) == null) {
+      utxosByAddress.put(addr, new LinkedList<WhirlpoolUtxo>());
+    }
+    utxosByAddress.get(addr).add(whirlpoolUtxo);
   }
 
   private Integer computeBlockHeight(UnspentOutput utxo, WalletResponse walletResponse) {
@@ -203,6 +216,10 @@ public class UtxoData {
               }
             })
         .collect(Collectors.<WhirlpoolUtxo>toList());
+  }
+
+  public Collection<WhirlpoolUtxo> findUtxosByAddress(String address) {
+    return utxosByAddress.get(address);
   }
 
   // balances

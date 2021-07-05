@@ -110,6 +110,10 @@ public class UtxoSupplier extends BasicSupplier<UtxoData> implements UtxoProvide
     return getValue().findUtxos(excludeNoPool, whirlpoolAccounts);
   }
 
+  public Collection<WhirlpoolUtxo> findUtxosByAddress(String address) {
+    return getValue().findUtxosByAddress(address);
+  }
+
   public Collection<WalletResponse.Tx> findTxs(WhirlpoolAccount whirlpoolAccount) {
     return getValue().findTxs(whirlpoolAccount);
   }
