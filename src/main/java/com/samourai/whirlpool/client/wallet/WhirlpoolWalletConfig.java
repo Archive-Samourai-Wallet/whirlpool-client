@@ -7,6 +7,7 @@ import com.samourai.wallet.api.backend.BackendApi;
 import com.samourai.wallet.api.backend.websocket.BackendWsApi;
 import com.samourai.wallet.bip47.rpc.java.SecretPointFactoryJava;
 import com.samourai.wallet.bip47.rpc.secretPoint.ISecretPointFactory;
+import com.samourai.wallet.util.FormatsUtilGeneric;
 import com.samourai.whirlpool.client.tx0.ITx0ParamServiceConfig;
 import com.samourai.whirlpool.client.utils.ClientUtils;
 import com.samourai.whirlpool.client.wallet.beans.Tx0FeeTarget;
@@ -27,7 +28,9 @@ public class WhirlpoolWalletConfig extends WhirlpoolClientConfig implements ITx0
   private int maxClientsPerPool;
   private boolean liquidityClient;
   private int clientDelay;
+  private int autoTx0Delay;
   private String autoTx0PoolId;
+  private boolean autoTx0Aggregate; // only on testnet
   private Tx0FeeTarget autoTx0FeeTarget;
   private boolean autoMix;
   private String scode;
@@ -39,7 +42,6 @@ public class WhirlpoolWalletConfig extends WhirlpoolClientConfig implements ITx0
   private BackendApi backendApi;
   private BackendWsApi backendWsApi; // may be null
   private boolean backendWatch;
-  private int tx0Delay;
   private int tx0MinConfirmations;
   private int refreshUtxoDelay;
   private int refreshPoolsDelay;
@@ -68,7 +70,9 @@ public class WhirlpoolWalletConfig extends WhirlpoolClientConfig implements ITx0
     this.maxClientsPerPool = 1;
     this.liquidityClient = true;
     this.clientDelay = 30;
+    this.autoTx0Delay = 60;
     this.autoTx0PoolId = null;
+    this.autoTx0Aggregate = false;
     this.autoTx0FeeTarget = Tx0FeeTarget.BLOCKS_4;
     this.autoMix = false;
     this.scode = null;
@@ -81,7 +85,6 @@ public class WhirlpoolWalletConfig extends WhirlpoolClientConfig implements ITx0
     this.backendApi = backendApi;
     this.backendWsApi = backendWsApi;
     this.backendWatch = !mobile;
-    this.tx0Delay = 30;
     this.tx0MinConfirmations = 0;
     this.refreshUtxoDelay = 60; // 1min
     this.refreshPoolsDelay = 600; // 10min
@@ -93,6 +96,20 @@ public class WhirlpoolWalletConfig extends WhirlpoolClientConfig implements ITx0
     this.resyncOnFirstRun = false;
 
     this.secretPointFactory = SecretPointFactoryJava.getInstance();
+  }
+
+  public void verify() throws Exception {
+    boolean isTestnet = FormatsUtilGeneric.getInstance().isTestNet(getNetworkParameters());
+
+    // require testnet for autoTx0Aggregate
+    if (autoTx0Aggregate && !isTestnet) {
+      throw new RuntimeException("--auto-tx0 is required for --auto-tx0-aggregate");
+    }
+
+    // require autoTx0PoolId for autoTx0Aggregate
+    if (autoTx0Aggregate && StringUtils.isEmpty(autoTx0PoolId)) {
+      throw new RuntimeException("--auto-tx0 is required for --auto-tx0-aggregate");
+    }
   }
 
   public int getMaxClients() {
@@ -127,12 +144,28 @@ public class WhirlpoolWalletConfig extends WhirlpoolClientConfig implements ITx0
     this.clientDelay = clientDelay;
   }
 
+  public int getAutoTx0Delay() {
+    return autoTx0Delay;
+  }
+
+  public void setAutoTx0Delay(int autoTx0Delay) {
+    this.autoTx0Delay = autoTx0Delay;
+  }
+
   public boolean isAutoTx0() {
     return !StringUtils.isEmpty(autoTx0PoolId);
   }
 
   public String getAutoTx0PoolId() {
     return autoTx0PoolId;
+  }
+
+  public boolean isAutoTx0Aggregate() {
+    return autoTx0Aggregate;
+  }
+
+  public void setAutoTx0Aggregate(boolean autoTx0Aggregate) {
+    this.autoTx0Aggregate = autoTx0Aggregate;
   }
 
   public void setAutoTx0PoolId(String autoTx0PoolId) {
@@ -209,14 +242,6 @@ public class WhirlpoolWalletConfig extends WhirlpoolClientConfig implements ITx0
 
   public void setBackendWatch(boolean backendWatch) {
     this.backendWatch = backendWatch;
-  }
-
-  public int getTx0Delay() {
-    return tx0Delay;
-  }
-
-  public void setTx0Delay(int tx0Delay) {
-    this.tx0Delay = tx0Delay;
   }
 
   public int getTx0MinConfirmations() {
@@ -308,10 +333,12 @@ public class WhirlpoolWalletConfig extends WhirlpoolClientConfig implements ITx0
             + getClientDelay()
             + ", backendWatch="
             + isBackendWatch()
-            + ", tx0Delay="
-            + getTx0Delay()
+            + ", autoTx0Delay="
+            + getAutoTx0Delay()
             + ", autoTx0="
             + (isAutoTx0() ? getAutoTx0PoolId() : "false")
+            + ", autoTx0Aggregate="
+            + isAutoTx0Aggregate()
             + ", autoTx0FeeTarget="
             + getAutoTx0FeeTarget().name()
             + ", autoMix="

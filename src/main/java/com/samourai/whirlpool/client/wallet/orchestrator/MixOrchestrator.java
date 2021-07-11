@@ -3,10 +3,7 @@ package com.samourai.whirlpool.client.wallet.orchestrator;
 import com.google.common.eventbus.Subscribe;
 import com.samourai.wallet.util.AbstractOrchestrator;
 import com.samourai.whirlpool.client.WhirlpoolClient;
-import com.samourai.whirlpool.client.event.UtxosChangeEvent;
-import com.samourai.whirlpool.client.event.WalletCloseEvent;
-import com.samourai.whirlpool.client.event.WalletStartEvent;
-import com.samourai.whirlpool.client.event.WalletStopEvent;
+import com.samourai.whirlpool.client.event.*;
 import com.samourai.whirlpool.client.exception.NotifiableException;
 import com.samourai.whirlpool.client.mix.listener.MixFailReason;
 import com.samourai.whirlpool.client.mix.listener.MixStep;
@@ -220,12 +217,6 @@ public abstract class MixOrchestrator extends AbstractOrchestrator {
               }
             })
         .findFirst();
-  }
-
-  public boolean hasMoreMixableOrUnconfirmed() {
-    List<WhirlpoolUtxo> unconfirmedUtxos =
-        getQueueByMixableStatus(false, null, MixableStatus.MIXABLE, MixableStatus.UNCONFIRMED);
-    return !unconfirmedUtxos.isEmpty();
   }
 
   public boolean hasMoreMixingThreadAvailable(String poolId, boolean liquidity) {
@@ -608,6 +599,10 @@ public abstract class MixOrchestrator extends AbstractOrchestrator {
 
   @Subscribe
   public void onUtxosChange(UtxosChangeEvent utxosChangeEvent) {
+    if (!isStarted()) {
+      return;
+    }
+
     WhirlpoolUtxoChanges whirlpoolUtxoChanges = utxosChangeEvent.getUtxoData().getUtxoChanges();
     boolean notify = false;
 

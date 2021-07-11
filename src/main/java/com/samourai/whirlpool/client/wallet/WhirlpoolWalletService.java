@@ -13,6 +13,7 @@ import com.samourai.whirlpool.client.wallet.data.pool.PoolSupplier;
 import com.samourai.whirlpool.client.wallet.data.walletState.WalletStatePersister;
 import java.util.Map;
 import java8.util.Optional;
+import org.bitcoinj.core.NetworkParameters;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -112,8 +113,13 @@ public class WhirlpoolWalletService {
       }
     }
 
+    // verify config
+    config.verify();
+
     Tx0Service tx0Service = new Tx0Service(config);
+    NetworkParameters params = config.getNetworkParameters();
     Bech32UtilGeneric bech32Util = Bech32UtilGeneric.getInstance();
+    WalletAggregateService walletAggregateService = new WalletAggregateService(params, bech32Util);
 
     int externalIndexDefault =
         config.getExternalDestination() != null
@@ -136,6 +142,7 @@ public class WhirlpoolWalletService {
         config,
         walletDataSupplier.getTx0ParamService(),
         tx0Service,
+        walletAggregateService,
         bech32Util,
         walletSupplier,
         poolSupplier,

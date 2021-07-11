@@ -28,8 +28,6 @@ import java.security.interfaces.RSAPublicKey;
 import java.security.spec.X509EncodedKeySpec;
 import java.util.*;
 import java8.util.Optional;
-import java8.util.function.ToLongFunction;
-import java8.util.stream.StreamSupport;
 import org.bitcoinj.core.*;
 import org.bouncycastle.crypto.params.RSAKeyParameters;
 import org.slf4j.Logger;
@@ -181,7 +179,7 @@ public class ClientUtils {
   }
 
   public static void logWhirlpoolUtxos(Collection<WhirlpoolUtxo> utxos, int latestBlockHeight) {
-    String lineFormat = "| %10s | %8s | %68s | %45s | %13s | %12s | %14s | %8s | %6s |\n";
+    String lineFormat = "| %10s | %8s | %68s | %45s | %13s | %27s | %14s | %8s | %6s |\n";
     StringBuilder sb = new StringBuilder();
     sb.append(
         String.format(
@@ -220,22 +218,8 @@ public class ClientUtils {
               whirlpoolUtxo.getPoolId() != null ? whirlpoolUtxo.getPoolId() : "-",
               whirlpoolUtxo.getMixsDone()));
     }
-
+    sb.append("Last block height: #" + latestBlockHeight);
     log.info("\n" + sb.toString());
-  }
-
-  public static Long computeUtxosBalance(Collection<WhirlpoolUtxo> utxos) {
-    long balance =
-        StreamSupport.stream(utxos)
-            .mapToLong(
-                new ToLongFunction<WhirlpoolUtxo>() {
-                  @Override
-                  public long applyAsLong(WhirlpoolUtxo utxo) {
-                    return utxo.getUtxo().value;
-                  }
-                })
-            .sum();
-    return balance;
   }
 
   public static double satToBtc(long sat) {

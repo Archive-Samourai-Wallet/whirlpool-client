@@ -4,6 +4,7 @@ import com.samourai.wallet.api.backend.beans.UnspentOutput;
 import com.samourai.wallet.hd.AddressType;
 import com.samourai.whirlpool.client.wallet.data.utxo.UtxoConfigPersisted;
 import com.samourai.whirlpool.client.wallet.data.utxo.UtxoConfigSupplier;
+import java.util.Collection;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -32,6 +33,14 @@ public class WhirlpoolUtxo extends WhirlpoolUtxoConfig {
     this.addressType = addressType;
     this.utxoState = new WhirlpoolUtxoState(status);
     this.utxoConfigSupplier = utxoConfigSupplier;
+  }
+
+  public static long sumValue(Collection<WhirlpoolUtxo> whirlpoolUtxos) {
+    long sumValue = 0;
+    for (WhirlpoolUtxo whirlpoolUtxo : whirlpoolUtxos) {
+      sumValue += whirlpoolUtxo.getUtxo().value;
+    }
+    return sumValue;
   }
 
   public int computeConfirmations(int latestBlockHeight) {

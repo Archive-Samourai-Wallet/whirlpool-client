@@ -123,9 +123,9 @@ public class UtxoData {
     // compute balances
     this.balanceByAccount = new LinkedHashMap<WhirlpoolAccount, Long>();
     long total = 0;
-    for (WhirlpoolAccount account : WhirlpoolAccount.getListByActive(true)) {
+    for (WhirlpoolAccount account : WhirlpoolAccount.values()) {
       Collection<WhirlpoolUtxo> utxosForAccount = findUtxos(false, account);
-      long balance = ClientUtils.computeUtxosBalance(utxosForAccount);
+      long balance = WhirlpoolUtxo.sumValue(utxosForAccount);
       balanceByAccount.put(account, balance);
       total += balance;
     }
