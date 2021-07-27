@@ -51,6 +51,7 @@ public class WhirlpoolWallet {
   private static final int FETCH_TXS_PER_PAGE = 300;
   private static final int CHECK_POSTMIX_INDEX_MAX = 30;
 
+  private String walletIdentifier;
   private WhirlpoolWalletConfig config;
   private Tx0ParamService tx0ParamService;
   private Tx0Service tx0Service;
@@ -71,6 +72,7 @@ public class WhirlpoolWallet {
 
   protected WhirlpoolWallet(WhirlpoolWallet whirlpoolWallet) {
     this(
+        whirlpoolWallet.walletIdentifier,
         whirlpoolWallet.config,
         whirlpoolWallet.tx0ParamService,
         whirlpoolWallet.tx0Service,
@@ -82,6 +84,7 @@ public class WhirlpoolWallet {
   }
 
   public WhirlpoolWallet(
+      String walletIdentifier,
       WhirlpoolWalletConfig config,
       Tx0ParamService tx0ParamService,
       Tx0Service tx0Service,
@@ -90,6 +93,7 @@ public class WhirlpoolWallet {
       WalletSupplier walletSupplier,
       PoolSupplier poolSupplier,
       WalletDataSupplier walletDataSupplier) {
+    this.walletIdentifier = walletIdentifier;
     this.config = config;
     this.tx0ParamService = tx0ParamService;
     this.tx0Service = tx0Service;
@@ -682,6 +686,10 @@ public class WhirlpoolWallet {
 
   public String getZpubBadBank() {
     return getWalletBadbank().getPub();
+  }
+
+  public String getWalletIdentifier() {
+    return walletIdentifier;
   }
 
   public WhirlpoolWalletConfig getConfig() {

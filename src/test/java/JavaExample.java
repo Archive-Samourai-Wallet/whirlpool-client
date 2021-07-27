@@ -84,8 +84,11 @@ public class JavaExample {
      */
     // open wallet
     HD_Wallet bip44w = null; // provide your wallet here
+    String walletIdentifier = null; // provide unique wallet identifier here
+    // ie: whirlpoolWalletService.computeWalletIdentifier(seed, passphrase, networkParams)
     WhirlpoolWallet whirlpoolWallet =
-        whirlpoolWalletService.openWallet(config, bip44w, "/tmp/state", "/tmp/utxos");
+        whirlpoolWalletService.openWallet(
+            walletIdentifier, config, bip44w, "/tmp/state", "/tmp/utxos");
 
     // start whirlpool wallet
     whirlpoolWallet.start();

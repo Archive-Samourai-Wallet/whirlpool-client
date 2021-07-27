@@ -1,5 +1,6 @@
 package com.samourai.whirlpool.client.wallet;
 
+import com.google.common.primitives.Bytes;
 import com.samourai.wallet.client.BipWalletAndAddressType;
 import com.samourai.wallet.hd.HD_Wallet;
 import com.samourai.wallet.segwit.bech32.Bech32UtilGeneric;
@@ -40,7 +41,7 @@ public class WhirlpoolWalletService {
       whirlpoolWallet = Optional.empty();
 
       // notify close
-      WhirlpoolEventService.getInstance().post(new WalletCloseEvent());
+      WhirlpoolEventService.getInstance().post(new WalletCloseEvent(wp));
     } else {
       if (log.isDebugEnabled()) {
         log.debug("closeWallet skipped: no wallet opened");
@@ -49,13 +50,15 @@ public class WhirlpoolWalletService {
   }
 
   public WhirlpoolWallet openWallet(
+      String walletIdentifier,
       WhirlpoolWalletConfig config,
       HD_Wallet bip44w,
       String walletStateFileName,
       String utxoConfigFileName)
       throws Exception {
     WhirlpoolWallet wp =
-        computeWhirlpoolWallet(config, bip44w, walletStateFileName, utxoConfigFileName);
+        computeWhirlpoolWallet(
+            walletIdentifier, config, bip44w, walletStateFileName, utxoConfigFileName);
     return openWallet(wp);
   }
 
@@ -91,11 +94,18 @@ public class WhirlpoolWalletService {
     }
 
     // notify open
-    WhirlpoolEventService.getInstance().post(new WalletOpenEvent());
+    WhirlpoolEventService.getInstance().post(new WalletOpenEvent(wp));
     return wp;
   }
 
+  public String computeWalletIdentifier(
+      byte[] seed, String seedPassphrase, NetworkParameters params) {
+    return ClientUtils.sha256Hash(
+        Bytes.concat(seed, seedPassphrase.getBytes(), params.getId().getBytes()));
+  }
+
   protected WhirlpoolWallet computeWhirlpoolWallet(
+      String walletIdentifier,
       WhirlpoolWalletConfig config,
       HD_Wallet bip44w,
       String walletStateFileName,
@@ -139,6 +149,7 @@ public class WhirlpoolWalletService {
         computeWalletDataSupplier(walletSupplier, poolSupplier, utxoConfigFileName, config);
 
     return new WhirlpoolWallet(
+        walletIdentifier,
         config,
         walletDataSupplier.getTx0ParamService(),
         tx0Service,
