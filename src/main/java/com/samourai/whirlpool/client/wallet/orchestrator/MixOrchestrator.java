@@ -520,6 +520,7 @@ public abstract class MixOrchestrator extends AbstractOrchestrator {
         // manage
         data.removeMixing(whirlpoolUtxo);
         onMixSuccess(whirlpoolUtxo, mixSuccess);
+        WhirlpoolEventService.getInstance().post(new MixSuccessEvent(whirlpoolUtxo, mixSuccess));
 
         // notify mixProgress
         getObservable().onNext(mixProgress);
@@ -552,6 +553,7 @@ public abstract class MixOrchestrator extends AbstractOrchestrator {
         // manage
         data.removeMixing(whirlpoolUtxo);
         onMixFail(whirlpoolUtxo, reason, notifiableError);
+        WhirlpoolEventService.getInstance().post(new MixFailEvent(whirlpoolUtxo, reason));
 
         // notify mixProgress
         getObservable().onNext(mixProgress);

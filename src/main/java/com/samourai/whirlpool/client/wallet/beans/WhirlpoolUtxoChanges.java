@@ -1,13 +1,13 @@
 package com.samourai.whirlpool.client.wallet.beans;
 
 import java.util.ArrayList;
-import java.util.List;
+import java.util.Collection;
 
 public class WhirlpoolUtxoChanges {
   private boolean isFirstFetch;
-  private List<WhirlpoolUtxo> utxosAdded;
-  private List<WhirlpoolUtxo> utxosConfirmed;
-  private List<WhirlpoolUtxo> utxosRemoved;
+  private Collection<WhirlpoolUtxo> utxosAdded;
+  private Collection<WhirlpoolUtxo> utxosConfirmed;
+  private Collection<WhirlpoolUtxo> utxosRemoved;
 
   public WhirlpoolUtxoChanges(boolean isFirstFetch) {
     this.isFirstFetch = isFirstFetch;
@@ -24,15 +24,15 @@ public class WhirlpoolUtxoChanges {
     return isFirstFetch;
   }
 
-  public List<WhirlpoolUtxo> getUtxosAdded() {
+  public Collection<WhirlpoolUtxo> getUtxosAdded() {
     return utxosAdded;
   }
 
-  public List<WhirlpoolUtxo> getUtxosConfirmed() {
+  public Collection<WhirlpoolUtxo> getUtxosConfirmed() {
     return utxosConfirmed;
   }
 
-  public List<WhirlpoolUtxo> getUtxosRemoved() {
+  public Collection<WhirlpoolUtxo> getUtxosRemoved() {
     return utxosRemoved;
   }
 

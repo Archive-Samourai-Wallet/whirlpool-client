@@ -9,6 +9,7 @@ import com.samourai.wallet.hd.Chain;
 import com.samourai.wallet.hd.HD_Address;
 import com.samourai.wallet.segwit.bech32.Bech32UtilGeneric;
 import com.samourai.wallet.send.spend.SpendBuilder;
+import com.samourai.whirlpool.client.event.Tx0Event;
 import com.samourai.whirlpool.client.event.UtxosChangeEvent;
 import com.samourai.whirlpool.client.event.WalletStartEvent;
 import com.samourai.whirlpool.client.event.WalletStopEvent;
@@ -235,8 +236,9 @@ public class WhirlpoolWallet {
         throw new NotifiableException(e.getMessage());
       }
 
-      // notify coordinator (not mandatory)
-      notifyTx0(tx0.getTx().getHashAsString(), pool.getPoolId());
+      // notify
+      WhirlpoolEventService.getInstance().post(new Tx0Event(tx0));
+      notifyCoordinatorTx0(tx0.getTx().getHashAsString(), pool.getPoolId());
 
       // refresh new utxos in background
       refreshUtxosDelay();
@@ -260,7 +262,7 @@ public class WhirlpoolWallet {
         .collect(Collectors.<UnspentOutput>toList());
   }
 
-  private void notifyTx0(final String txid, final String poolId) {
+  private void notifyCoordinatorTx0(final String txid, final String poolId) {
     new Thread(
             new Runnable() {
               @Override
@@ -269,11 +271,12 @@ public class WhirlpoolWallet {
                   Tx0NotifyRequest tx0NotifyRequest = new Tx0NotifyRequest(txid, poolId);
                   config.getServerApi().tx0Notify(tx0NotifyRequest).blockingSingle().get();
                 } catch (Exception e) {
-                  log.warn("notifyTx0 failed", e);
+                  // ignore failures
+                  log.warn("notifyCoordinatorTx0 failed", e);
                 }
               }
             },
-            "notifyTx0")
+            "notifyCoordinatorTx0")
         .start();
   }
 

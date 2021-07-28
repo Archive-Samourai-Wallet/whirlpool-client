@@ -170,7 +170,7 @@ public class UtxoConfigSupplier extends AbstractPersistableSupplier<UtxoConfigDa
     }
   }
 
-  private int createUtxoConfigPersisted(List<WhirlpoolUtxo> whirlpoolUtxos) {
+  private int createUtxoConfigPersisted(Collection<WhirlpoolUtxo> whirlpoolUtxos) {
     int nbCreated = 0;
     for (WhirlpoolUtxo whirlpoolUtxo : whirlpoolUtxos) {
       UnspentOutput utxo = whirlpoolUtxo.getUtxo();
