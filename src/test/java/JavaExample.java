@@ -35,7 +35,7 @@ public class JavaExample {
 
     WhirlpoolServer whirlpoolServer = WhirlpoolServer.TESTNET;
 
-    boolean onion = true;
+    boolean onion = true; // use Tor onion services?
     String serverUrl = whirlpoolServer.getServerUrl(onion);
     String backendUrl = BackendServer.TESTNET.getBackendUrl(onion);
 
@@ -44,12 +44,12 @@ public class JavaExample {
     TorClientService torClientService = null; // provide impl here
     BackendApi backendApi =
         new BackendApi(httpClientBackend, backendUrl, Optional.<OAuthManager>empty());
-    IWebsocketClient wsClient = null; // TODO provide impl here
+    IWebsocketClient wsClient = null; // provide impl here
     BackendWsApi backendWsApi =
         new BackendWsApi(wsClient, backendUrl, Optional.<OAuthManager>empty());
 
     NetworkParameters params = whirlpoolServer.getParams();
-    boolean isAndroid = false;
+    boolean mobile = false; // true for mobile configuration, false for desktop/CLI
     WhirlpoolWalletConfig whirlpoolWalletConfig =
         new WhirlpoolWalletConfig(
             httpClientService,
@@ -57,17 +57,12 @@ public class JavaExample {
             torClientService,
             serverApi,
             params,
-            isAndroid,
+            mobile,
             backendApi,
             backendWsApi);
 
-    whirlpoolWalletConfig.setAutoTx0PoolId(null); // disable auto-tx0
-    whirlpoolWalletConfig.setAutoMix(false); // disable auto-mix
-
     // configure optional settings (or don't set anything for using default values)
     whirlpoolWalletConfig.setScode("foo");
-    whirlpoolWalletConfig.setMaxClients(1);
-    whirlpoolWalletConfig.setClientDelay(15);
     return whirlpoolWalletConfig;
   }
 
@@ -119,9 +114,6 @@ public class JavaExample {
     WhirlpoolUtxo whirlpoolUtxo =
         utxoSupplier.findUtxo(
             "040df121854c7db49e38b6fcb61c2b0953c8b234ce53c1b2a2fb122a4e1c3d2e", 1);
-
-    // configure utxo
-    whirlpoolUtxo.setPoolId("0.01btc");
 
     // get utxo state (status, mixStep, mixableStatus, progressPercent, message, error...)
     WhirlpoolUtxoState utxoState = whirlpoolUtxo.getUtxoState();
@@ -179,9 +171,6 @@ public class JavaExample {
       Tx0FeeTarget tx0FeeTarget = Tx0FeeTarget.BLOCKS_4;
       Tx0FeeTarget mixFeeTarget = Tx0FeeTarget.BLOCKS_4;
 
-      // pool for tx0
-      Pool pool = poolSupplier.findPoolById(pool05btc.getPoolId()); // provide poolId
-
       // preview tx0
       try {
         Tx0Preview tx0Preview =
@@ -195,17 +184,16 @@ public class JavaExample {
 
       // execute tx0
       try {
-        Tx0 tx0 = whirlpoolWallet.tx0(utxos, pool, tx0Config, tx0FeeTarget, mixFeeTarget);
+        Tx0 tx0 = whirlpoolWallet.tx0(utxos, pool05btc, tx0Config, tx0FeeTarget, mixFeeTarget);
         String txid = tx0.getTx().getHashAsString(); // get txid
+        // mixing will start automatically when tx0 gets confirmed
       } catch (Exception e) {
         // tx0 failed
       }
     }
 
-    /*
-     * MIX
-     */
-    whirlpoolWallet.mix(whirlpoolUtxo).subscribe(/* ... */ );
+    // manually start mixing specific utxo and observe its progress
+    whirlpoolWallet.mix(whirlpoolUtxo).subscribe(/* ... */);
 
     // stop mixing specific utxo (or remove it from mix queue)
     whirlpoolWallet.mixStop(whirlpoolUtxo);

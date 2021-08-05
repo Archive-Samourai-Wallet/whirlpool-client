@@ -66,15 +66,15 @@ public class WhirlpoolWalletConfig extends WhirlpoolClientConfig implements ITx0
     super(httpClientService, stompClientService, torClientService, serverApi, null, params, mobile);
 
     // default settings
-    this.maxClients = 5;
+    this.maxClients = mobile ? 1 : 5;
     this.maxClientsPerPool = 1;
-    this.liquidityClient = true;
+    this.liquidityClient = mobile ? false : true;
     this.clientDelay = 30;
     this.autoTx0Delay = 60;
     this.autoTx0PoolId = null;
     this.autoTx0Aggregate = false;
     this.autoTx0FeeTarget = Tx0FeeTarget.BLOCKS_4;
-    this.autoMix = false;
+    this.autoMix = true;
     this.scode = null;
     this.tx0MaxOutputs = 0;
     this.tx0FakeOutputRandomFactor = 0;
