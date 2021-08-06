@@ -43,13 +43,11 @@ public class WhirlpoolWallet {
   private static final int CHECK_POSTMIX_INDEX_MAX = 30;
 
   private WhirlpoolWalletConfig config;
-  private Tx0ParamService tx0ParamService;
   private Tx0Service tx0Service;
 
   private Bech32UtilGeneric bech32Util;
 
   private final WalletSupplier walletSupplier;
-  private final PoolSupplier poolSupplier;
   private final WalletDataSupplier walletDataSupplier;
 
   private DataOrchestrator dataOrchestrator;
@@ -62,36 +60,30 @@ public class WhirlpoolWallet {
   protected WhirlpoolWallet(WhirlpoolWallet whirlpoolWallet) {
     this(
         whirlpoolWallet.config,
-        whirlpoolWallet.tx0ParamService,
         whirlpoolWallet.tx0Service,
         whirlpoolWallet.bech32Util,
         whirlpoolWallet.walletSupplier,
-        whirlpoolWallet.poolSupplier,
         whirlpoolWallet.walletDataSupplier);
   }
 
   public WhirlpoolWallet(
       WhirlpoolWalletConfig config,
-      Tx0ParamService tx0ParamService,
       Tx0Service tx0Service,
       Bech32UtilGeneric bech32Util,
       WalletSupplier walletSupplier,
-      PoolSupplier poolSupplier,
       WalletDataSupplier walletDataSupplier) {
     this.config = config;
-    this.tx0ParamService = tx0ParamService;
     this.tx0Service = tx0Service;
 
     this.bech32Util = bech32Util;
 
     this.walletSupplier = walletSupplier;
-    this.poolSupplier = poolSupplier;
     this.walletDataSupplier = walletDataSupplier;
 
     this.mixingState = new MixingStateEditable(false);
 
     List<AbstractSupplier> suppliers = new LinkedList<AbstractSupplier>();
-    suppliers.add(poolSupplier);
+    suppliers.add(walletDataSupplier.getPoolSupplier());
     suppliers.add(walletSupplier.getWalletStateSupplier());
     suppliers.add(getUtxoConfigSupplier());
     suppliers.add(walletDataSupplier);
@@ -126,8 +118,8 @@ public class WhirlpoolWallet {
     WhirlpoolUtxo unconfirmedUtxo = null;
     for (WhirlpoolUtxo whirlpoolUtxo : depositUtxosByPriority) {
       // check pool
-      if (tx0ParamService.isTx0Possible(
-          pool, tx0FeeTarget, mixFeeTarget, whirlpoolUtxo.getUtxo().value)) {
+      if (getTx0ParamService()
+          .isTx0Possible(pool, tx0FeeTarget, mixFeeTarget, whirlpoolUtxo.getUtxo().value)) {
         // check confirmation
         if (whirlpoolUtxo.getUtxo().confirmations >= config.getTx0MinConfirmations()) {
 
@@ -155,13 +147,13 @@ public class WhirlpoolWallet {
 
   public long computeTx0SpendFromBalanceMin(
       Pool pool, Tx0FeeTarget tx0FeeTarget, Tx0FeeTarget mixFeeTarget) {
-    Tx0Param tx0Param = tx0ParamService.getTx0Param(pool, tx0FeeTarget, mixFeeTarget);
+    Tx0Param tx0Param = getTx0ParamService().getTx0Param(pool, tx0FeeTarget, mixFeeTarget);
     return tx0Param.getSpendFromBalanceMin();
   }
 
   public Tx0 autoTx0() throws Exception { // throws UnconfirmedUtxoException, EmptyWalletException
     String poolId = config.getAutoTx0PoolId();
-    Pool pool = poolSupplier.findPoolById(poolId);
+    Pool pool = getPoolSupplier().findPoolById(poolId);
     if (pool == null) {
       throw new NotifiableException(
           "No pool found for autoTx0 (autoTx0 = " + (poolId != null ? poolId : "null") + ")");
@@ -198,7 +190,7 @@ public class WhirlpoolWallet {
       Tx0FeeTarget mixFeeTarget)
       throws Exception {
 
-    Tx0Param tx0Param = tx0ParamService.getTx0Param(pool, tx0FeeTarget, mixFeeTarget);
+    Tx0Param tx0Param = getTx0ParamService().getTx0Param(pool, tx0FeeTarget, mixFeeTarget);
     return tx0Service.tx0Preview(spendFroms, tx0Config, tx0Param);
   }
 
@@ -276,7 +268,7 @@ public class WhirlpoolWallet {
       }
     }
 
-    Tx0Param tx0Param = tx0ParamService.getTx0Param(pool, tx0FeeTarget, mixFeeTarget);
+    Tx0Param tx0Param = getTx0ParamService().getTx0Param(pool, tx0FeeTarget, mixFeeTarget);
 
     // run tx0
     int initialPremixIndex = getWalletPremix().getIndexHandler().get();
@@ -475,7 +467,11 @@ public class WhirlpoolWallet {
   }
 
   public PoolSupplier getPoolSupplier() {
-    return poolSupplier;
+    return walletDataSupplier.getPoolSupplier();
+  }
+
+  private Tx0ParamService getTx0ParamService() {
+    return walletDataSupplier.getTx0ParamService();
   }
 
   protected UtxoConfigSupplier getUtxoConfigSupplier() {

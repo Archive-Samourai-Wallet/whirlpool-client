@@ -22,17 +22,17 @@ public class WalletDataSupplier extends ExpirableSupplier<WalletResponse>
 
   private final BackendApi backendApi;
   private final WalletSupplier walletSupplier;
+  private final MinerFeeSupplier minerFeeSupplier;
+  private final Tx0ParamService tx0ParamService;
+  private final PoolSupplier poolSupplier;
   private final WalletStateSupplier walletStateSupplier;
 
-  private final MinerFeeSupplier minerFeeSupplier;
   private final UtxoSupplier utxoSupplier;
   private final UtxoConfigSupplier utxoConfigSupplier;
-  private final Tx0ParamService tx0ParamService;
 
   public WalletDataSupplier(
       int refreshUtxoDelay,
       WalletSupplier walletSupplier,
-      PoolSupplier poolSupplier,
       MessageListener<WhirlpoolUtxoChanges> utxoChangesListener,
       String utxoConfigFileName,
       WhirlpoolWalletConfig config) {
@@ -41,10 +41,9 @@ public class WalletDataSupplier extends ExpirableSupplier<WalletResponse>
     this.walletSupplier = walletSupplier;
     this.walletStateSupplier = walletSupplier.getWalletStateSupplier();
 
-    this.minerFeeSupplier =
-        new MinerFeeSupplier(config.getFeeMin(), config.getFeeMax(), config.getFeeFallback());
-
+    this.minerFeeSupplier = computeMinerFeeSupplier(config);
     this.tx0ParamService = new Tx0ParamService(minerFeeSupplier, config);
+    this.poolSupplier = computePoolSupplier(config, tx0ParamService);
 
     this.utxoConfigSupplier =
         new UtxoConfigSupplier(
@@ -52,6 +51,16 @@ public class WalletDataSupplier extends ExpirableSupplier<WalletResponse>
 
     this.utxoSupplier =
         new UtxoSupplier(walletSupplier, utxoConfigSupplier, this, utxoChangesListener);
+  }
+
+  protected MinerFeeSupplier computeMinerFeeSupplier(WhirlpoolWalletConfig config) {
+    return new MinerFeeSupplier(config.getFeeMin(), config.getFeeMax(), config.getFeeFallback());
+  }
+
+  // overridable for tests
+  protected PoolSupplier computePoolSupplier(
+      WhirlpoolWalletConfig config, Tx0ParamService tx0ParamService) {
+    return new PoolSupplier(config.getRefreshPoolsDelay(), config.getServerApi(), tx0ParamService);
   }
 
   protected WalletResponse fetchWalletResponse() throws Exception {
@@ -92,15 +101,19 @@ public class WalletDataSupplier extends ExpirableSupplier<WalletResponse>
     return minerFeeSupplier;
   }
 
+  public Tx0ParamService getTx0ParamService() {
+    return tx0ParamService;
+  }
+
+  public PoolSupplier getPoolSupplier() {
+    return poolSupplier;
+  }
+
   public UtxoSupplier getUtxoSupplier() {
     return utxoSupplier;
   }
 
   public UtxoConfigSupplier getUtxoConfigSupplier() {
     return utxoConfigSupplier;
-  }
-
-  public Tx0ParamService getTx0ParamService() {
-    return tx0ParamService;
   }
 }
