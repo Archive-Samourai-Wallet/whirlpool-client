@@ -63,15 +63,6 @@ public abstract class AbstractPersister<D extends PersistableData, P> {
     lastWrite = System.currentTimeMillis();
   }
 
-  public synchronized void backup() throws Exception {
-    File file = getFile();
-    File fileBackup = new File(fileName + ".bak");
-    if (log.isDebugEnabled()) {
-      log.debug("Backup => " + fileBackup.getAbsolutePath());
-    }
-    Files.copy(file, fileBackup);
-  }
-
   private File getFile() throws Exception {
     File file = new File(fileName);
     if (!file.exists()) {

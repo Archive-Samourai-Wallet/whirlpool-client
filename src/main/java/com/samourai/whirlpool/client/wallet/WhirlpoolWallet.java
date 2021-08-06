@@ -353,9 +353,6 @@ public class WhirlpoolWallet {
   }
 
   public void open() throws Exception {
-    // backup on startup
-    persistOrchestrator.backup();
-
     // load initial data (or fail)
     dataOrchestrator.loadInitialData();
 
