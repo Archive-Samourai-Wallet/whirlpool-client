@@ -7,6 +7,7 @@ import com.samourai.whirlpool.client.tx0.Tx0Service;
 import com.samourai.whirlpool.client.utils.ClientUtils;
 import com.samourai.whirlpool.client.utils.MessageListener;
 import com.samourai.whirlpool.client.wallet.beans.WhirlpoolUtxoChanges;
+import com.samourai.whirlpool.client.wallet.data.minerFee.BackendWalletDataSupplier;
 import com.samourai.whirlpool.client.wallet.data.minerFee.WalletDataSupplier;
 import com.samourai.whirlpool.client.wallet.data.minerFee.WalletSupplier;
 import com.samourai.whirlpool.client.wallet.data.walletState.WalletStatePersister;
@@ -131,7 +132,7 @@ public class WhirlpoolWalletService {
       MessageListener<WhirlpoolUtxoChanges> utxoChangesListener,
       String utxoConfigFileName,
       WhirlpoolWalletConfig config) {
-    return new WalletDataSupplier(
+    return new BackendWalletDataSupplier(
         config.getRefreshUtxoDelay(),
         walletSupplier,
         utxoChangesListener,

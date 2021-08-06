@@ -1,6 +1,5 @@
 package com.samourai.whirlpool.client.wallet.data.minerFee;
 
-import com.samourai.wallet.api.backend.BackendApi;
 import com.samourai.wallet.api.backend.beans.WalletResponse;
 import com.samourai.whirlpool.client.tx0.Tx0ParamService;
 import com.samourai.whirlpool.client.utils.MessageListener;
@@ -16,19 +15,18 @@ import com.samourai.whirlpool.client.wallet.data.walletState.WalletStateSupplier
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class WalletDataSupplier extends ExpirableSupplier<WalletResponse>
+public abstract class WalletDataSupplier extends ExpirableSupplier<WalletResponse>
     implements LoadableSupplier {
   private static final Logger log = LoggerFactory.getLogger(WalletDataSupplier.class);
 
-  private final BackendApi backendApi;
-  private final WalletSupplier walletSupplier;
-  private final MinerFeeSupplier minerFeeSupplier;
-  private final Tx0ParamService tx0ParamService;
-  private final PoolSupplier poolSupplier;
-  private final WalletStateSupplier walletStateSupplier;
+  protected final WalletSupplier walletSupplier;
+  protected final MinerFeeSupplier minerFeeSupplier;
+  protected final Tx0ParamService tx0ParamService;
+  protected final PoolSupplier poolSupplier;
+  protected final WalletStateSupplier walletStateSupplier;
 
-  private final UtxoSupplier utxoSupplier;
-  private final UtxoConfigSupplier utxoConfigSupplier;
+  protected final UtxoSupplier utxoSupplier;
+  protected final UtxoConfigSupplier utxoConfigSupplier;
 
   public WalletDataSupplier(
       int refreshUtxoDelay,
@@ -37,7 +35,6 @@ public class WalletDataSupplier extends ExpirableSupplier<WalletResponse>
       String utxoConfigFileName,
       WhirlpoolWalletConfig config) {
     super(refreshUtxoDelay, null, log);
-    this.backendApi = config.getBackendApi();
     this.walletSupplier = walletSupplier;
     this.walletStateSupplier = walletSupplier.getWalletStateSupplier();
 
@@ -45,28 +42,33 @@ public class WalletDataSupplier extends ExpirableSupplier<WalletResponse>
     this.tx0ParamService = new Tx0ParamService(minerFeeSupplier, config);
     this.poolSupplier = computePoolSupplier(config, tx0ParamService);
 
-    this.utxoConfigSupplier =
-        new UtxoConfigSupplier(
-            new UtxoConfigPersister(utxoConfigFileName), poolSupplier, tx0ParamService);
-
-    this.utxoSupplier =
-        new UtxoSupplier(walletSupplier, utxoConfigSupplier, this, utxoChangesListener);
+    this.utxoConfigSupplier = computeUtxoConfigSupplier(utxoConfigFileName, poolSupplier, tx0ParamService);
+    this.utxoSupplier = computeUtxoSupplier(walletSupplier, utxoConfigSupplier, utxoChangesListener);
   }
 
   protected MinerFeeSupplier computeMinerFeeSupplier(WhirlpoolWalletConfig config) {
     return new MinerFeeSupplier(config.getFeeMin(), config.getFeeMax(), config.getFeeFallback());
   }
 
-  // overridable for tests
   protected PoolSupplier computePoolSupplier(
       WhirlpoolWalletConfig config, Tx0ParamService tx0ParamService) {
     return new PoolSupplier(config.getRefreshPoolsDelay(), config.getServerApi(), tx0ParamService);
   }
 
-  protected WalletResponse fetchWalletResponse() throws Exception {
-    String[] utxoZpubs = walletSupplier.getZpubs(false);
-    return backendApi.fetchWallet(utxoZpubs);
+  protected UtxoConfigPersister computeUtxoConfigPersister(String utxoConfigFileName) {
+    return new UtxoConfigPersister(utxoConfigFileName);
   }
+
+  protected UtxoConfigSupplier computeUtxoConfigSupplier(String utxoConfigFileName, PoolSupplier poolSupplier, Tx0ParamService tx0ParamService) {
+    UtxoConfigPersister utxoConfigPersister = computeUtxoConfigPersister(utxoConfigFileName);
+    return new UtxoConfigSupplier(utxoConfigPersister, poolSupplier, tx0ParamService);
+  }
+
+  protected UtxoSupplier computeUtxoSupplier(WalletSupplier walletSupplier, UtxoConfigSupplier utxoConfigSupplier, MessageListener<WhirlpoolUtxoChanges> utxoChangesListener) {
+    return new UtxoSupplier(walletSupplier, utxoConfigSupplier, this, utxoChangesListener);
+  }
+
+  protected abstract WalletResponse fetchWalletResponse() throws Exception;
 
   @Override
   protected WalletResponse fetch() throws Exception {
