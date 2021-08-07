@@ -1,7 +1,10 @@
 package com.samourai.whirlpool.client.wallet.data.minerFee;
 
 import com.samourai.wallet.api.backend.beans.WalletResponse;
+import com.samourai.wallet.hd.HD_Wallet;
+import com.samourai.whirlpool.client.exception.NotifiableException;
 import com.samourai.whirlpool.client.tx0.Tx0ParamService;
+import com.samourai.whirlpool.client.utils.ClientUtils;
 import com.samourai.whirlpool.client.utils.MessageListener;
 import com.samourai.whirlpool.client.wallet.WhirlpoolWalletConfig;
 import com.samourai.whirlpool.client.wallet.beans.WhirlpoolUtxoChanges;
@@ -11,7 +14,9 @@ import com.samourai.whirlpool.client.wallet.data.pool.PoolSupplier;
 import com.samourai.whirlpool.client.wallet.data.utxo.UtxoConfigPersister;
 import com.samourai.whirlpool.client.wallet.data.utxo.UtxoConfigSupplier;
 import com.samourai.whirlpool.client.wallet.data.utxo.UtxoSupplier;
+import com.samourai.whirlpool.client.wallet.data.walletState.WalletStatePersister;
 import com.samourai.whirlpool.client.wallet.data.walletState.WalletStateSupplier;
+import java.io.File;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -30,20 +35,37 @@ public abstract class WalletDataSupplier extends ExpirableSupplier<WalletRespons
 
   public WalletDataSupplier(
       int refreshUtxoDelay,
-      WalletSupplier walletSupplier,
       MessageListener<WhirlpoolUtxoChanges> utxoChangesListener,
-      String utxoConfigFileName,
-      WhirlpoolWalletConfig config) {
+      WhirlpoolWalletConfig config,
+      HD_Wallet bip84w,
+      String walletIdentifier)
+      throws Exception {
     super(refreshUtxoDelay, null, log);
-    this.walletSupplier = walletSupplier;
+    this.walletSupplier = computeWalletSupplier(config, bip84w, walletIdentifier);
     this.walletStateSupplier = walletSupplier.getWalletStateSupplier();
 
     this.minerFeeSupplier = computeMinerFeeSupplier(config);
     this.tx0ParamService = new Tx0ParamService(minerFeeSupplier, config);
     this.poolSupplier = computePoolSupplier(config, tx0ParamService);
 
-    this.utxoConfigSupplier = computeUtxoConfigSupplier(utxoConfigFileName, poolSupplier, tx0ParamService);
-    this.utxoSupplier = computeUtxoSupplier(walletSupplier, utxoConfigSupplier, utxoChangesListener);
+    this.utxoConfigSupplier =
+        computeUtxoConfigSupplier(poolSupplier, tx0ParamService, walletIdentifier);
+    this.utxoSupplier =
+        computeUtxoSupplier(walletSupplier, utxoConfigSupplier, utxoChangesListener);
+  }
+
+  protected WalletSupplier computeWalletSupplier(
+      WhirlpoolWalletConfig config, HD_Wallet bip84w, String walletIdentifier) throws Exception {
+    int externalIndexDefault =
+        config.getExternalDestination() != null
+            ? config.getExternalDestination().getStartIndex()
+            : 0;
+    String walletStateFileName = computeIndexFile(walletIdentifier).getAbsolutePath();
+    return new WalletSupplier(
+        new WalletStatePersister(walletStateFileName),
+        config.getBackendApi(),
+        bip84w,
+        externalIndexDefault);
   }
 
   protected MinerFeeSupplier computeMinerFeeSupplier(WhirlpoolWalletConfig config) {
@@ -55,17 +77,34 @@ public abstract class WalletDataSupplier extends ExpirableSupplier<WalletRespons
     return new PoolSupplier(config.getRefreshPoolsDelay(), config.getServerApi(), tx0ParamService);
   }
 
-  protected UtxoConfigPersister computeUtxoConfigPersister(String utxoConfigFileName) {
+  protected UtxoConfigPersister computeUtxoConfigPersister(String walletIdentifier)
+      throws Exception {
+    String utxoConfigFileName = computeUtxosFile(walletIdentifier).getAbsolutePath();
     return new UtxoConfigPersister(utxoConfigFileName);
   }
 
-  protected UtxoConfigSupplier computeUtxoConfigSupplier(String utxoConfigFileName, PoolSupplier poolSupplier, Tx0ParamService tx0ParamService) {
-    UtxoConfigPersister utxoConfigPersister = computeUtxoConfigPersister(utxoConfigFileName);
+  protected UtxoConfigSupplier computeUtxoConfigSupplier(
+      PoolSupplier poolSupplier, Tx0ParamService tx0ParamService, String walletIdentifier)
+      throws Exception {
+    UtxoConfigPersister utxoConfigPersister = computeUtxoConfigPersister(walletIdentifier);
     return new UtxoConfigSupplier(utxoConfigPersister, poolSupplier, tx0ParamService);
   }
 
-  protected UtxoSupplier computeUtxoSupplier(WalletSupplier walletSupplier, UtxoConfigSupplier utxoConfigSupplier, MessageListener<WhirlpoolUtxoChanges> utxoChangesListener) {
+  protected UtxoSupplier computeUtxoSupplier(
+      WalletSupplier walletSupplier,
+      UtxoConfigSupplier utxoConfigSupplier,
+      MessageListener<WhirlpoolUtxoChanges> utxoChangesListener) {
     return new UtxoSupplier(walletSupplier, utxoConfigSupplier, this, utxoChangesListener);
+  }
+
+  protected File computeIndexFile(String walletIdentifier) throws NotifiableException {
+    String path = "whirlpool-cli-state-" + walletIdentifier + ".json";
+    return ClientUtils.computeFile(path);
+  }
+
+  protected File computeUtxosFile(String walletIdentifier) throws NotifiableException {
+    String path = "whirlpool-cli-utxos-" + walletIdentifier + ".json";
+    return ClientUtils.computeFile(path);
   }
 
   protected abstract WalletResponse fetchWalletResponse() throws Exception;
@@ -97,6 +136,10 @@ public abstract class WalletDataSupplier extends ExpirableSupplier<WalletRespons
   @Override
   public WalletResponse getValue() {
     return super.getValue();
+  }
+
+  public WalletSupplier getWalletSupplier() {
+    return walletSupplier;
   }
 
   public MinerFeeSupplier getMinerFeeSupplier() {

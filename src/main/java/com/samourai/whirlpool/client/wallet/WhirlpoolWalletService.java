@@ -1,7 +1,9 @@
 package com.samourai.whirlpool.client.wallet;
 
+import com.google.common.primitives.Bytes;
 import com.samourai.wallet.client.Bip84Wallet;
 import com.samourai.wallet.hd.HD_Wallet;
+import com.samourai.wallet.hd.java.HD_WalletFactoryJava;
 import com.samourai.wallet.segwit.bech32.Bech32UtilGeneric;
 import com.samourai.whirlpool.client.tx0.Tx0Service;
 import com.samourai.whirlpool.client.utils.ClientUtils;
@@ -9,10 +11,9 @@ import com.samourai.whirlpool.client.utils.MessageListener;
 import com.samourai.whirlpool.client.wallet.beans.WhirlpoolUtxoChanges;
 import com.samourai.whirlpool.client.wallet.data.minerFee.BackendWalletDataSupplier;
 import com.samourai.whirlpool.client.wallet.data.minerFee.WalletDataSupplier;
-import com.samourai.whirlpool.client.wallet.data.minerFee.WalletSupplier;
-import com.samourai.whirlpool.client.wallet.data.walletState.WalletStatePersister;
 import java.util.Map;
 import java8.util.Optional;
+import org.bitcoinj.core.NetworkParameters;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -45,13 +46,14 @@ public class WhirlpoolWalletService {
   }
 
   public WhirlpoolWallet openWallet(
-      WhirlpoolWalletConfig config,
-      HD_Wallet bip84w,
-      String walletStateFileName,
-      String utxoConfigFileName)
-      throws Exception {
-    WhirlpoolWallet wp =
-        computeWhirlpoolWallet(config, bip84w, walletStateFileName, utxoConfigFileName);
+      WhirlpoolWalletConfig config, byte[] seed, String seedPassphrase) throws Exception {
+    WhirlpoolWallet wp = computeWhirlpoolWallet(config, seed, seedPassphrase);
+    return openWallet(wp);
+  }
+
+  public WhirlpoolWallet openWallet(
+      WhirlpoolWalletConfig config, HD_Wallet bip84w, String walletIdentifier) throws Exception {
+    WhirlpoolWallet wp = computeWhirlpoolWallet(config, bip84w, walletIdentifier);
     return openWallet(wp);
   }
 
@@ -88,56 +90,53 @@ public class WhirlpoolWalletService {
     return wp;
   }
 
+  protected String computeWalletIdentifier(
+      byte[] seed, String seedPassphrase, NetworkParameters params) {
+    return ClientUtils.sha256Hash(
+        Bytes.concat(seed, seedPassphrase.getBytes(), params.getId().getBytes()));
+  }
+
   protected WhirlpoolWallet computeWhirlpoolWallet(
-      WhirlpoolWalletConfig config,
-      HD_Wallet hdWallet,
-      String walletStateFileName,
-      String utxoConfigFileName) {
+      WhirlpoolWalletConfig config, byte[] seed, String seedPassphrase) throws Exception {
+    NetworkParameters params = config.getNetworkParameters();
+    if (seedPassphrase == null) {
+      seedPassphrase = "";
+    }
+    String walletIdentifier = computeWalletIdentifier(seed, seedPassphrase, params);
+    HD_Wallet bip84w = HD_WalletFactoryJava.getInstance().getBIP84(seed, seedPassphrase, params);
+    return computeWhirlpoolWallet(config, bip84w, walletIdentifier);
+  }
+
+  protected WhirlpoolWallet computeWhirlpoolWallet(
+      WhirlpoolWalletConfig config, HD_Wallet bip84w, String walletIdentifier) throws Exception {
     // debug whirlpoolWalletConfig
     if (log.isDebugEnabled()) {
       log.debug("openWallet with whirlpoolWalletConfig:");
       for (Map.Entry<String, String> entry : config.getConfigInfo().entrySet()) {
         log.debug("[whirlpoolWalletConfig/" + entry.getKey() + "] " + entry.getValue());
       }
-      if (log.isDebugEnabled()) {
-        log.debug("walletStateFile: " + walletStateFileName);
-        log.debug("utxoConfigFile: " + utxoConfigFileName);
-      }
+      log.debug("walletIdentifier: " + walletIdentifier);
     }
 
     Tx0Service tx0Service = new Tx0Service(config);
     Bech32UtilGeneric bech32Util = Bech32UtilGeneric.getInstance();
 
-    int externalIndexDefault =
-        config.getExternalDestination() != null
-            ? config.getExternalDestination().getStartIndex()
-            : 0;
-    WalletSupplier walletSupplier =
-        new WalletSupplier(
-            new WalletStatePersister(walletStateFileName),
-            config.getBackendApi(),
-            hdWallet,
-            externalIndexDefault);
-
     WalletDataSupplier walletDataSupplier =
-        computeWalletDataSupplier(
-            walletSupplier, computeUtxoChangesListener(), utxoConfigFileName, config);
+        computeWalletDataSupplier(computeUtxoChangesListener(), config, bip84w, walletIdentifier);
 
-    return new WhirlpoolWallet(config, tx0Service, bech32Util, walletSupplier, walletDataSupplier);
+    return new WhirlpoolWallet(
+        walletIdentifier, config, tx0Service, bech32Util, walletDataSupplier);
   }
 
   // overridable for android
   protected WalletDataSupplier computeWalletDataSupplier(
-      WalletSupplier walletSupplier,
       MessageListener<WhirlpoolUtxoChanges> utxoChangesListener,
-      String utxoConfigFileName,
-      WhirlpoolWalletConfig config) {
+      WhirlpoolWalletConfig config,
+      HD_Wallet bip84w,
+      String walletIdentifier)
+      throws Exception {
     return new BackendWalletDataSupplier(
-        config.getRefreshUtxoDelay(),
-        walletSupplier,
-        utxoChangesListener,
-        utxoConfigFileName,
-        config);
+        config.getRefreshUtxoDelay(), utxoChangesListener, config, bip84w, walletIdentifier);
   }
 
   protected MessageListener<WhirlpoolUtxoChanges> computeUtxoChangesListener() {

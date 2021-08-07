@@ -6,7 +6,6 @@ import com.samourai.tor.client.TorClientService;
 import com.samourai.wallet.api.backend.BackendApi;
 import com.samourai.wallet.api.backend.BackendServer;
 import com.samourai.wallet.api.backend.beans.UnspentOutput;
-import com.samourai.wallet.hd.HD_Wallet;
 import com.samourai.wallet.util.oauth.OAuthManager;
 import com.samourai.whirlpool.client.mix.listener.MixStep;
 import com.samourai.whirlpool.client.tx0.Tx0;
@@ -28,6 +27,7 @@ import java8.util.Optional;
 import org.bitcoinj.core.NetworkParameters;
 
 public class JavaExample {
+  private WhirlpoolWalletService whirlpoolWalletService = new WhirlpoolWalletService();
 
   // TODO configure these values as you wish
   private WhirlpoolWalletConfig computeWhirlpoolWalletConfig() {
@@ -74,16 +74,16 @@ public class JavaExample {
      * CONFIGURATION
      */
     // configure whirlpool
-    WhirlpoolWalletService whirlpoolWalletService = new WhirlpoolWalletService();
     WhirlpoolWalletConfig config = computeWhirlpoolWalletConfig();
 
     /*
      * WALLET
      */
     // open wallet
-    HD_Wallet bip84w = null; // provide your wallet here
+    byte[] seed = null; // provide wallet seed here
+    String seedPassphrase = null; // provide wallet seed passphrase here (or null if none)
     WhirlpoolWallet whirlpoolWallet =
-        whirlpoolWalletService.openWallet(config, bip84w, "/tmp/state", "/tmp/utxos");
+        whirlpoolWalletService.openWallet(config, seed, seedPassphrase);
 
     // start whirlpool wallet
     whirlpoolWallet.start();

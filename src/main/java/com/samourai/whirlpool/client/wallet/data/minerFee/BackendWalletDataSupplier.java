@@ -2,6 +2,7 @@ package com.samourai.whirlpool.client.wallet.data.minerFee;
 
 import com.samourai.wallet.api.backend.BackendApi;
 import com.samourai.wallet.api.backend.beans.WalletResponse;
+import com.samourai.wallet.hd.HD_Wallet;
 import com.samourai.whirlpool.client.utils.MessageListener;
 import com.samourai.whirlpool.client.wallet.WhirlpoolWalletConfig;
 import com.samourai.whirlpool.client.wallet.beans.WhirlpoolUtxoChanges;
@@ -15,11 +16,12 @@ public class BackendWalletDataSupplier extends WalletDataSupplier {
 
   public BackendWalletDataSupplier(
       int refreshUtxoDelay,
-      WalletSupplier walletSupplier,
       MessageListener<WhirlpoolUtxoChanges> utxoChangesListener,
-      String utxoConfigFileName,
-      WhirlpoolWalletConfig config) {
-    super(refreshUtxoDelay, walletSupplier, utxoChangesListener, utxoConfigFileName, config);
+      WhirlpoolWalletConfig config,
+      HD_Wallet bip84w,
+      String walletIdentifier)
+      throws Exception {
+    super(refreshUtxoDelay, utxoChangesListener, config, bip84w, walletIdentifier);
     this.backendApi = config.getBackendApi();
   }
 

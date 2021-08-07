@@ -2,7 +2,6 @@ package com.samourai.whirlpool.client.wallet.data;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.google.common.io.Files;
 import com.samourai.whirlpool.client.utils.ClientUtils;
 import java.io.File;
 import org.slf4j.Logger;

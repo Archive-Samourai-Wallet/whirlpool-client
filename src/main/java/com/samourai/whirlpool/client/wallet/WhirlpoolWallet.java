@@ -42,12 +42,12 @@ public class WhirlpoolWallet {
   private static final int FETCH_TXS_PER_PAGE = 300;
   private static final int CHECK_POSTMIX_INDEX_MAX = 30;
 
+  private String walletIdentifier;
   private WhirlpoolWalletConfig config;
   private Tx0Service tx0Service;
 
   private Bech32UtilGeneric bech32Util;
 
-  private final WalletSupplier walletSupplier;
   private final WalletDataSupplier walletDataSupplier;
 
   private DataOrchestrator dataOrchestrator;
@@ -59,32 +59,32 @@ public class WhirlpoolWallet {
 
   protected WhirlpoolWallet(WhirlpoolWallet whirlpoolWallet) {
     this(
+        whirlpoolWallet.walletIdentifier,
         whirlpoolWallet.config,
         whirlpoolWallet.tx0Service,
         whirlpoolWallet.bech32Util,
-        whirlpoolWallet.walletSupplier,
         whirlpoolWallet.walletDataSupplier);
   }
 
   public WhirlpoolWallet(
+      String walletIdentifier,
       WhirlpoolWalletConfig config,
       Tx0Service tx0Service,
       Bech32UtilGeneric bech32Util,
-      WalletSupplier walletSupplier,
       WalletDataSupplier walletDataSupplier) {
+    this.walletIdentifier = walletIdentifier;
     this.config = config;
     this.tx0Service = tx0Service;
 
     this.bech32Util = bech32Util;
 
-    this.walletSupplier = walletSupplier;
     this.walletDataSupplier = walletDataSupplier;
 
     this.mixingState = new MixingStateEditable(false);
 
     List<AbstractSupplier> suppliers = new LinkedList<AbstractSupplier>();
     suppliers.add(walletDataSupplier.getPoolSupplier());
-    suppliers.add(walletSupplier.getWalletStateSupplier());
+    suppliers.add(walletDataSupplier.getWalletSupplier().getWalletStateSupplier());
     suppliers.add(getUtxoConfigSupplier());
     suppliers.add(walletDataSupplier);
 
@@ -352,7 +352,7 @@ public class WhirlpoolWallet {
     return mixingState.isStarted();
   }
 
-  public void open() throws Exception {
+  protected void open() throws Exception {
     // load initial data (or fail)
     dataOrchestrator.loadInitialData();
 
@@ -364,7 +364,7 @@ public class WhirlpoolWallet {
     persistOrchestrator.start(true);
 
     // resync on first run
-    WalletStateSupplier walletStateSupplier = walletSupplier.getWalletStateSupplier();
+    WalletStateSupplier walletStateSupplier = getWalletSupplier().getWalletStateSupplier();
     if (config.isResyncOnFirstRun() && !walletStateSupplier.isSynced()) {
       // only resync if we have remixable utxos
       if (!getUtxoSupplier().findUtxos(true, WhirlpoolAccount.POSTMIX).isEmpty()) {
@@ -384,7 +384,7 @@ public class WhirlpoolWallet {
     checkPostmixIndex();
   }
 
-  public void close() {
+  protected void close() {
     persistOrchestrator.stop();
     dataOrchestrator.stop();
   }
@@ -436,23 +436,23 @@ public class WhirlpoolWallet {
   }
 
   protected Bip84Wallet getWalletDeposit() {
-    return walletSupplier.getWallet(WhirlpoolAccount.DEPOSIT);
+    return getWalletSupplier().getWallet(WhirlpoolAccount.DEPOSIT);
   }
 
   protected Bip84Wallet getWalletPremix() {
-    return walletSupplier.getWallet(WhirlpoolAccount.PREMIX);
+    return getWalletSupplier().getWallet(WhirlpoolAccount.PREMIX);
   }
 
   protected Bip84Wallet getWalletPostmix() {
-    return walletSupplier.getWallet(WhirlpoolAccount.POSTMIX);
+    return getWalletSupplier().getWallet(WhirlpoolAccount.POSTMIX);
   }
 
   protected Bip84Wallet getWalletBadbank() {
-    return walletSupplier.getWallet(WhirlpoolAccount.BADBANK);
+    return getWalletSupplier().getWallet(WhirlpoolAccount.BADBANK);
   }
 
   public WalletSupplier getWalletSupplier() {
-    return walletSupplier;
+    return walletDataSupplier.getWalletSupplier();
   }
 
   public UtxoSupplier getUtxoSupplier() {
@@ -725,6 +725,10 @@ public class WhirlpoolWallet {
 
   public String getZpubBadBank() {
     return getWalletBadbank().getZpub();
+  }
+
+  public String getWalletIdentifier() {
+    return walletIdentifier;
   }
 
   public WhirlpoolWalletConfig getConfig() {
