@@ -1,7 +1,6 @@
 package com.samourai.whirlpool.client.wallet.data.utxo;
 
 import com.google.common.eventbus.Subscribe;
-import com.samourai.wallet.api.backend.BackendApi;
 import com.samourai.wallet.api.backend.MinerFeeTarget;
 import com.samourai.wallet.api.backend.beans.UnspentOutput;
 import com.samourai.wallet.api.backend.beans.WalletResponse;
@@ -9,15 +8,13 @@ import com.samourai.wallet.hd.HD_Wallet;
 import com.samourai.wallet.util.MessageListener;
 import com.samourai.whirlpool.client.event.UtxosChangeEvent;
 import com.samourai.whirlpool.client.test.AbstractTest;
+import com.samourai.whirlpool.client.tx0.Tx0ParamService;
 import com.samourai.whirlpool.client.wallet.WhirlpoolEventService;
 import com.samourai.whirlpool.client.wallet.WhirlpoolWalletConfig;
 import com.samourai.whirlpool.client.wallet.beans.WhirlpoolUtxo;
 import com.samourai.whirlpool.client.wallet.beans.WhirlpoolUtxoChanges;
 import com.samourai.whirlpool.client.wallet.data.minerFee.WalletDataSupplier;
-import com.samourai.whirlpool.client.wallet.data.minerFee.WalletSupplier;
-import com.samourai.whirlpool.client.wallet.data.pool.MockPoolSupplier;
-import com.samourai.whirlpool.client.wallet.data.walletState.WalletStatePersister;
-import com.samourai.whirlpool.protocol.rest.PoolInfo;
+import com.samourai.whirlpool.client.wallet.data.pool.PoolSupplier;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.LinkedHashMap;
@@ -36,9 +33,6 @@ public class UtxoSupplierTest extends AbstractTest {
   protected WalletResponse mockWalletResponse;
   protected boolean mockException;
 
-  private static final String SEED_WORDS = "all all all all all all all all all all all all";
-  private static final String SEED_PASSPHRASE = "whirlpool";
-
   private static final String ZPUB_DEPOSIT =
       "vpub5YEQpEDPAZWVTkmWASSHyaUMsae7uV9FnRrhZ3cqV6RFbBQx7wjVsUfLqSE3hgNY8WQixurkbWNkfV2sRE7LPfNKQh2t3s5une4QZthwdCu";
   private static final String ZPUB_PREMIX =
@@ -54,27 +48,8 @@ public class UtxoSupplierTest extends AbstractTest {
 
   protected WhirlpoolUtxoChanges lastUtxoChanges;
 
-  private WalletSupplier computeWalletSupplier() throws Exception {
-    byte[] seed = hdWalletFactory.computeSeedFromWords(SEED_WORDS);
-    HD_Wallet hdWallet = hdWalletFactory.getBIP84(seed, SEED_PASSPHRASE, params);
-
-    BackendApi backendApi =
-        new BackendApi(null, "http://testbackend", null) {
-          @Override
-          public void initBip84(String zpub) throws Exception {
-            // mock
-          }
-        };
-    String fileName = "/tmp/walletState";
-    resetFile(fileName);
-    WalletStatePersister persister = new WalletStatePersister(fileName);
-    return new WalletSupplier(persister, backendApi, hdWallet, 0);
-  }
-
   @Before
   public void setup() throws Exception {
-    WalletSupplier walletSupplier = computeWalletSupplier();
-
     WhirlpoolEventService.getInstance()
         .register(
             new MessageListener<UtxosChangeEvent>() {
@@ -85,13 +60,13 @@ public class UtxoSupplierTest extends AbstractTest {
               }
             });
 
-    String fileName = "/tmp/utxoConfig";
-    resetFile(fileName);
     WhirlpoolWalletConfig config = computeWhirlpoolWalletConfig();
-    MockPoolSupplier poolSupplier = new MockPoolSupplier(new PoolInfo[] {});
-    poolSupplier.load();
+
+    byte[] seed = hdWalletFactory.computeSeedFromWords(SEED_WORDS);
+    HD_Wallet bip44w = hdWalletFactory.getBIP44(seed, SEED_PASSPHRASE, params);
+
     walletDataSupplier =
-        new WalletDataSupplier(999999, walletSupplier, poolSupplier, fileName, config) {
+        new WalletDataSupplier(999999, config, bip44w, "test") {
           @Override
           protected WalletResponse fetchWalletResponse() throws Exception {
             if (mockException) {
@@ -99,8 +74,15 @@ public class UtxoSupplierTest extends AbstractTest {
             }
             return mockWalletResponse;
           }
+
+          @Override
+          protected PoolSupplier computePoolSupplier(
+              WhirlpoolWalletConfig config, Tx0ParamService tx0ParamService) {
+            return mockPoolSupplier();
+          }
         };
-    walletSupplier.getWalletStateSupplier().load();
+    walletDataSupplier.getPoolSupplier().load();
+    walletDataSupplier.getWalletSupplier().getWalletStateSupplier().load();
 
     utxoSupplier = walletDataSupplier.getUtxoSupplier();
     utxoConfigSupplier = walletDataSupplier.getUtxoConfigSupplier();

@@ -54,14 +54,11 @@ public class WhirlpoolWallet {
 
   private String walletIdentifier;
   private WhirlpoolWalletConfig config;
-  private Tx0ParamService tx0ParamService;
   private Tx0Service tx0Service;
   private WalletAggregateService walletAggregateService;
 
   private Bech32UtilGeneric bech32Util;
 
-  private final WalletSupplier walletSupplier;
-  private final PoolSupplier poolSupplier;
   private final WalletDataSupplier walletDataSupplier;
 
   private DataOrchestrator dataOrchestrator;
@@ -75,35 +72,26 @@ public class WhirlpoolWallet {
     this(
         whirlpoolWallet.walletIdentifier,
         whirlpoolWallet.config,
-        whirlpoolWallet.tx0ParamService,
         whirlpoolWallet.tx0Service,
         whirlpoolWallet.walletAggregateService,
         whirlpoolWallet.bech32Util,
-        whirlpoolWallet.walletSupplier,
-        whirlpoolWallet.poolSupplier,
         whirlpoolWallet.walletDataSupplier);
   }
 
   public WhirlpoolWallet(
       String walletIdentifier,
       WhirlpoolWalletConfig config,
-      Tx0ParamService tx0ParamService,
       Tx0Service tx0Service,
       WalletAggregateService walletAggregateService,
       Bech32UtilGeneric bech32Util,
-      WalletSupplier walletSupplier,
-      PoolSupplier poolSupplier,
       WalletDataSupplier walletDataSupplier) {
     this.walletIdentifier = walletIdentifier;
     this.config = config;
-    this.tx0ParamService = tx0ParamService;
     this.tx0Service = tx0Service;
     this.walletAggregateService = walletAggregateService;
 
     this.bech32Util = bech32Util;
 
-    this.walletSupplier = walletSupplier;
-    this.poolSupplier = poolSupplier;
     this.walletDataSupplier = walletDataSupplier;
 
     this.mixingState = new MixingStateEditable(false);
@@ -111,7 +99,7 @@ public class WhirlpoolWallet {
 
   public long computeTx0SpendFromBalanceMin(
       Pool pool, Tx0FeeTarget tx0FeeTarget, Tx0FeeTarget mixFeeTarget) {
-    Tx0Param tx0Param = tx0ParamService.getTx0Param(pool, tx0FeeTarget, mixFeeTarget);
+    Tx0Param tx0Param = getTx0ParamService().getTx0Param(pool, tx0FeeTarget, mixFeeTarget);
     return tx0Param.getSpendFromBalanceMin();
   }
 
@@ -122,7 +110,7 @@ public class WhirlpoolWallet {
       Tx0FeeTarget tx0FeeTarget,
       Tx0FeeTarget mixFeeTarget)
       throws Exception {
-    Tx0Param tx0Param = tx0ParamService.getTx0Param(pool, tx0FeeTarget, mixFeeTarget);
+    Tx0Param tx0Param = getTx0ParamService().getTx0Param(pool, tx0FeeTarget, mixFeeTarget);
     return tx0Service.tx0Preview(toUnspentOutputs(whirlpoolUtxos), tx0Config, tx0Param);
   }
 
@@ -203,7 +191,7 @@ public class WhirlpoolWallet {
       }
     }
 
-    Tx0Param tx0Param = tx0ParamService.getTx0Param(pool, tx0FeeTarget, mixFeeTarget);
+    Tx0Param tx0Param = getTx0ParamService().getTx0Param(pool, tx0FeeTarget, mixFeeTarget);
 
     // run tx0
     int initialPremixIndex = getWalletPremix().getIndexHandler().get();
@@ -289,11 +277,11 @@ public class WhirlpoolWallet {
     return mixingState.isStarted();
   }
 
-  public void open() throws Exception {
+  protected void open() throws Exception {
     // instanciate orchestrators
     List<AbstractSupplier> suppliers = new LinkedList<AbstractSupplier>();
-    suppliers.add(poolSupplier);
-    suppliers.add(walletSupplier.getWalletStateSupplier());
+    suppliers.add(walletDataSupplier.getPoolSupplier());
+    suppliers.add(walletDataSupplier.getWalletSupplier().getWalletStateSupplier());
     suppliers.add(getUtxoConfigSupplier());
     suppliers.add(walletDataSupplier);
 
@@ -310,13 +298,10 @@ public class WhirlpoolWallet {
 
     if (config.isAutoTx0()) {
       this.autoTx0Orchestrator =
-          Optional.of(new AutoTx0Orchestrator(this, config, tx0ParamService));
+          Optional.of(new AutoTx0Orchestrator(this, config, getTx0ParamService()));
     } else {
       this.autoTx0Orchestrator = Optional.empty();
     }
-
-    // backup on startup
-    persistOrchestrator.backup();
 
     // load initial data (or fail)
     dataOrchestrator.loadInitialData();
@@ -329,7 +314,7 @@ public class WhirlpoolWallet {
     persistOrchestrator.start(true);
 
     // resync on first run
-    WalletStateSupplier walletStateSupplier = walletSupplier.getWalletStateSupplier();
+    WalletStateSupplier walletStateSupplier = getWalletSupplier().getWalletStateSupplier();
     if (config.isResyncOnFirstRun() && !walletStateSupplier.isSynced()) {
       // only resync if we have remixable utxos
       if (!getUtxoSupplier().findUtxos(true, WhirlpoolAccount.POSTMIX).isEmpty()) {
@@ -349,7 +334,7 @@ public class WhirlpoolWallet {
     checkPostmixIndex();
   }
 
-  public void close() {
+  protected void close() {
     persistOrchestrator.stop();
     dataOrchestrator.stop();
   }
@@ -394,23 +379,23 @@ public class WhirlpoolWallet {
   }
 
   public BipWalletAndAddressType getWalletDeposit() {
-    return walletSupplier.getWallet(WhirlpoolAccount.DEPOSIT, AddressType.SEGWIT_NATIVE);
+    return getWalletSupplier().getWallet(WhirlpoolAccount.DEPOSIT, AddressType.SEGWIT_NATIVE);
   }
 
   public BipWalletAndAddressType getWalletPremix() {
-    return walletSupplier.getWallet(WhirlpoolAccount.PREMIX, AddressType.SEGWIT_NATIVE);
+    return getWalletSupplier().getWallet(WhirlpoolAccount.PREMIX, AddressType.SEGWIT_NATIVE);
   }
 
   public BipWalletAndAddressType getWalletPostmix() {
-    return walletSupplier.getWallet(WhirlpoolAccount.POSTMIX, AddressType.SEGWIT_NATIVE);
+    return getWalletSupplier().getWallet(WhirlpoolAccount.POSTMIX, AddressType.SEGWIT_NATIVE);
   }
 
   public BipWalletAndAddressType getWalletBadbank() {
-    return walletSupplier.getWallet(WhirlpoolAccount.BADBANK, AddressType.SEGWIT_NATIVE);
+    return getWalletSupplier().getWallet(WhirlpoolAccount.BADBANK, AddressType.SEGWIT_NATIVE);
   }
 
   public WalletSupplier getWalletSupplier() {
-    return walletSupplier;
+    return walletDataSupplier.getWalletSupplier();
   }
 
   public UtxoSupplier getUtxoSupplier() {
@@ -426,7 +411,11 @@ public class WhirlpoolWallet {
   }
 
   public PoolSupplier getPoolSupplier() {
-    return poolSupplier;
+    return walletDataSupplier.getPoolSupplier();
+  }
+
+  private Tx0ParamService getTx0ParamService() {
+    return walletDataSupplier.getTx0ParamService();
   }
 
   protected UtxoConfigSupplier getUtxoConfigSupplier() {

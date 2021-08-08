@@ -10,8 +10,6 @@ import org.junit.Assert;
 import org.junit.Test;
 
 public class BipWalletTest extends AbstractTest {
-  private static final String SEED_WORDS = "all all all all all all all all all all all all";
-  private static final String SEED_PASSPHRASE = "whirlpool";
   private BipWallet bipWallet;
 
   public BipWalletTest() throws Exception {

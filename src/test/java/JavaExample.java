@@ -6,7 +6,6 @@ import com.samourai.tor.client.TorClientService;
 import com.samourai.wallet.api.backend.BackendApi;
 import com.samourai.wallet.api.backend.BackendServer;
 import com.samourai.wallet.api.backend.websocket.BackendWsApi;
-import com.samourai.wallet.hd.HD_Wallet;
 import com.samourai.wallet.util.oauth.OAuthManager;
 import com.samourai.websocket.client.IWebsocketClient;
 import com.samourai.whirlpool.client.tx0.Tx0;
@@ -78,12 +77,10 @@ public class JavaExample {
      * WALLET
      */
     // open wallet
-    HD_Wallet bip44w = null; // provide your wallet here
-    String walletIdentifier = null; // provide unique wallet identifier here
-    // ie: whirlpoolWalletService.computeWalletIdentifier(seed, passphrase, networkParams)
+    byte[] seed = null; // provide seed here
+    String seedPassphrase = null; // provide seed passphrase here (or null if none)
     WhirlpoolWallet whirlpoolWallet =
-        whirlpoolWalletService.openWallet(
-            walletIdentifier, config, bip44w, "/tmp/state", "/tmp/utxos");
+        whirlpoolWalletService.openWallet(config, seed, seedPassphrase);
 
     // start whirlpool wallet
     whirlpoolWallet.start();
@@ -193,7 +190,7 @@ public class JavaExample {
     }
 
     // manually start mixing specific utxo and observe its progress
-    whirlpoolWallet.mix(whirlpoolUtxo).subscribe(/* ... */);
+    whirlpoolWallet.mix(whirlpoolUtxo).subscribe(/* ... */ );
 
     // stop mixing specific utxo (or remove it from mix queue)
     whirlpoolWallet.mixStop(whirlpoolUtxo);

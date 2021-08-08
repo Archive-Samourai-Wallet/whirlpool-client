@@ -1,5 +1,6 @@
 package com.samourai.whirlpool.client.wallet.data.pool;
 
+import com.samourai.whirlpool.client.tx0.Tx0ParamService;
 import com.samourai.whirlpool.client.wallet.beans.WhirlpoolPoolByBalanceMinDescComparator;
 import com.samourai.whirlpool.client.whirlpool.beans.Pool;
 import com.samourai.whirlpool.protocol.rest.PoolInfo;
@@ -16,11 +17,12 @@ public class PoolData {
 
   private final Map<String, Pool> poolsById;
 
-  public PoolData(PoolsResponse poolsResponse) {
-    this.poolsById = computePools(poolsResponse);
+  public PoolData(PoolsResponse poolsResponse, Tx0ParamService tx0ParamService) {
+    this.poolsById = computePools(poolsResponse, tx0ParamService);
   }
 
-  private static Map<String, Pool> computePools(PoolsResponse poolsResponse) {
+  private static Map<String, Pool> computePools(
+      PoolsResponse poolsResponse, final Tx0ParamService tx0ParamService) {
     // biggest balanceMin first
     List<Pool> poolsOrdered =
         StreamSupport.stream(Arrays.asList(poolsResponse.pools))
@@ -44,6 +46,8 @@ public class PoolData {
                     pool.setMixStatus(poolInfo.mixStatus);
                     pool.setElapsedTime(poolInfo.elapsedTime);
                     pool.setNbConfirmed(poolInfo.nbConfirmed);
+
+                    pool.setPremixValueMinAndDepositMin(tx0ParamService);
                     return pool;
                   }
                 })

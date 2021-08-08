@@ -434,4 +434,19 @@ public class ClientUtils {
     }
     return mapByPrevTx.size();
   }
+
+  public static File computeFile(String path) throws NotifiableException {
+    File f = new File(path);
+    if (!f.exists()) {
+      if (log.isDebugEnabled()) {
+        log.debug("Creating file " + path);
+      }
+      try {
+        f.createNewFile();
+      } catch (Exception e) {
+        throw new NotifiableException("Unable to write file " + path);
+      }
+    }
+    return f;
+  }
 }

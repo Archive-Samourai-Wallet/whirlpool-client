@@ -7,8 +7,15 @@ import com.samourai.wallet.api.backend.beans.UnspentOutput;
 import com.samourai.wallet.hd.HD_Address;
 import com.samourai.wallet.hd.java.HD_WalletFactoryJava;
 import com.samourai.wallet.segwit.bech32.Bech32UtilGeneric;
+import com.samourai.whirlpool.client.tx0.ITx0ParamServiceConfig;
+import com.samourai.whirlpool.client.tx0.Tx0ParamService;
+import com.samourai.whirlpool.client.utils.ClientUtils;
 import com.samourai.whirlpool.client.wallet.WhirlpoolWalletConfig;
+import com.samourai.whirlpool.client.wallet.data.minerFee.MinerFeeSupplier;
+import com.samourai.whirlpool.client.wallet.data.pool.MockPoolSupplier;
+import com.samourai.whirlpool.client.wallet.data.pool.PoolSupplier;
 import com.samourai.whirlpool.client.whirlpool.beans.Pool;
+import com.samourai.whirlpool.protocol.rest.PoolsResponse;
 import com.samourai.whirlpool.protocol.websocket.notifications.MixStatus;
 import java.io.File;
 import java.util.Collection;
@@ -22,12 +29,17 @@ import org.slf4j.LoggerFactory;
 public class AbstractTest {
   protected static final Logger log = LoggerFactory.getLogger(AbstractTest.class);
 
+  protected static final String SEED_WORDS = "all all all all all all all all all all all all";
+  protected static final String SEED_PASSPHRASE = "whirlpool";
+
   protected NetworkParameters params = TestNet3Params.get();
   protected HD_WalletFactoryJava hdWalletFactory = HD_WalletFactoryJava.getInstance();
   protected Bech32UtilGeneric bech32Util = Bech32UtilGeneric.getInstance();
   protected Pool pool01btc;
   protected Pool pool05btc;
   protected Pool pool001btc;
+  private static final String POOLS_RESPONSE =
+      "{\"pools\":[{\"poolId\":\"0.01btc\",\"denomination\":1000000,\"feeValue\":50000,\"mustMixBalanceMin\":1000170,\"mustMixBalanceCap\":1009690,\"mustMixBalanceMax\":1019125,\"minAnonymitySet\":5,\"minMustMix\":2,\"tx0MaxOutputs\":70,\"nbRegistered\":180,\"mixAnonymitySet\":5,\"mixStatus\":\"CONFIRM_INPUT\",\"elapsedTime\":672969,\"nbConfirmed\":2},{\"poolId\":\"0.001btc\",\"denomination\":100000,\"feeValue\":5000,\"mustMixBalanceMin\":100170,\"mustMixBalanceCap\":109690,\"mustMixBalanceMax\":119125,\"minAnonymitySet\":5,\"minMustMix\":2,\"tx0MaxOutputs\":25,\"nbRegistered\":157,\"mixAnonymitySet\":5,\"mixStatus\":\"CONFIRM_INPUT\",\"elapsedTime\":217766,\"nbConfirmed\":2},{\"poolId\":\"0.05btc\",\"denomination\":5000000,\"feeValue\":175000,\"mustMixBalanceMin\":5000170,\"mustMixBalanceCap\":5009690,\"mustMixBalanceMax\":5019125,\"minAnonymitySet\":5,\"minMustMix\":2,\"tx0MaxOutputs\":70,\"nbRegistered\":126,\"mixAnonymitySet\":5,\"mixStatus\":\"CONFIRM_INPUT\",\"elapsedTime\":4237382,\"nbConfirmed\":2},{\"poolId\":\"0.5btc\",\"denomination\":50000000,\"feeValue\":1750000,\"mustMixBalanceMin\":50000170,\"mustMixBalanceCap\":50009690,\"mustMixBalanceMax\":50019125,\"minAnonymitySet\":5,\"minMustMix\":2,\"tx0MaxOutputs\":70,\"nbRegistered\":34,\"mixAnonymitySet\":5,\"mixStatus\":\"CONFIRM_INPUT\",\"elapsedTime\":5971543,\"nbConfirmed\":2}]}";
 
   public AbstractTest() {
     pool01btc = new Pool();
@@ -77,6 +89,36 @@ public class AbstractTest {
     pool05btc.setMixStatus(MixStatus.CONFIRM_INPUT);
     pool05btc.setElapsedTime(1000);
     pool05btc.setNbConfirmed(0);
+  }
+
+  protected Tx0ParamService mockTx0ParamService() {
+    MinerFeeSupplier minerFeeSupplier = mockMinerFeeSupplier();
+    return new Tx0ParamService(
+        minerFeeSupplier,
+        new ITx0ParamServiceConfig() {
+          @Override
+          public NetworkParameters getNetworkParameters() {
+            return params;
+          }
+
+          @Override
+          public Long getOverspend(String poolId) {
+            return null;
+          }
+        });
+  }
+
+  protected PoolSupplier mockPoolSupplier() {
+    try {
+      PoolsResponse poolsResponse = ClientUtils.fromJson(POOLS_RESPONSE, PoolsResponse.class);
+      return new MockPoolSupplier(mockTx0ParamService(), poolsResponse.pools);
+    } catch (Exception e) {
+      throw new RuntimeException(e);
+    }
+  }
+
+  protected MinerFeeSupplier mockMinerFeeSupplier() {
+    return new MinerFeeSupplier(1, 100, 1);
   }
 
   protected Collection<Pool> getPools() {

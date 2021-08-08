@@ -1,5 +1,8 @@
 package com.samourai.whirlpool.client.whirlpool.beans;
 
+import com.samourai.whirlpool.client.tx0.Tx0Param;
+import com.samourai.whirlpool.client.tx0.Tx0ParamService;
+import com.samourai.whirlpool.client.wallet.beans.Tx0FeeTarget;
 import com.samourai.whirlpool.protocol.WhirlpoolProtocol;
 import com.samourai.whirlpool.protocol.websocket.notifications.MixStatus;
 
@@ -20,7 +23,18 @@ public class Pool {
   private long elapsedTime;
   private int nbConfirmed;
 
+  // computed for min feeTarget
+  private long premixValueMin;
+  private long spendFromBalanceMin;
+
   public Pool() {}
+
+  public void setPremixValueMinAndDepositMin(Tx0ParamService tx0ParamService) {
+    // compute for min feeTarget
+    Tx0Param tx0Param = tx0ParamService.getTx0Param(this, Tx0FeeTarget.MIN, Tx0FeeTarget.MIN);
+    this.premixValueMin = tx0Param.getPremixValue();
+    this.spendFromBalanceMin = tx0Param.getSpendFromBalanceMin();
+  }
 
   public boolean checkInputBalance(long inputBalance, boolean liquidity) {
     long minBalance = computePremixBalanceMin(liquidity);
@@ -150,5 +164,13 @@ public class Pool {
 
   public void setNbConfirmed(int nbConfirmed) {
     this.nbConfirmed = nbConfirmed;
+  }
+
+  public long getPremixValueMin() {
+    return premixValueMin;
+  }
+
+  public long getSpendFromBalanceMin() {
+    return spendFromBalanceMin;
   }
 }
