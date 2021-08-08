@@ -96,7 +96,7 @@ public class WhirlpoolWalletService {
     return wp;
   }
 
-  protected String computeWalletIdentifier(
+  public String computeWalletIdentifier(
       byte[] seed, String seedPassphrase, NetworkParameters params) {
     return ClientUtils.sha256Hash(
         Bytes.concat(seed, seedPassphrase.getBytes(), params.getId().getBytes()));

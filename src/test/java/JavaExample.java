@@ -7,6 +7,7 @@ import com.samourai.tor.client.TorClientService;
 import com.samourai.wallet.api.backend.BackendApi;
 import com.samourai.wallet.api.backend.BackendServer;
 import com.samourai.wallet.api.backend.websocket.BackendWsApi;
+import com.samourai.wallet.hd.HD_Wallet;
 import com.samourai.wallet.util.oauth.OAuthManager;
 import com.samourai.websocket.client.IWebsocketClient;
 import com.samourai.whirlpool.client.event.*;
@@ -79,11 +80,16 @@ public class JavaExample {
     /*
      * WALLET
      */
-    // open wallet
+    // open wallet: standard way
     byte[] seed = null; // provide seed here
     String seedPassphrase = null; // provide seed passphrase here (or null if none)
-    WhirlpoolWallet whirlpoolWallet =
-        whirlpoolWalletService.openWallet(config, seed, seedPassphrase);
+    WhirlpoolWallet whirlpoolWallet = whirlpoolWalletService.openWallet(config, seed, seedPassphrase);
+
+    // open wallet: alternate way
+    HD_Wallet bip44w = null; // provide bip44 wallet here
+    NetworkParameters params = config.getNetworkParameters();
+    String walletIdentifier = whirlpoolWalletService.computeWalletIdentifier(seed, seedPassphrase, params);
+    whirlpoolWallet = whirlpoolWalletService.openWallet(config, bip44w, walletIdentifier);
 
     // start whirlpool wallet
     whirlpoolWallet.start();
@@ -101,6 +107,9 @@ public class JavaExample {
 
     // find pool by poolId
     Pool pool05btc = poolSupplier.findPoolById("0.5btc");
+
+    // get min deposit for pool
+    long minDeposit = pool05btc.getSpendFromBalanceMin();
 
     /*
      * UTXOS
