@@ -1,3 +1,4 @@
+import com.google.common.eventbus.Subscribe;
 import com.samourai.http.client.HttpUsage;
 import com.samourai.http.client.IHttpClient;
 import com.samourai.http.client.IHttpClientService;
@@ -8,9 +9,12 @@ import com.samourai.wallet.api.backend.BackendServer;
 import com.samourai.wallet.api.backend.websocket.BackendWsApi;
 import com.samourai.wallet.util.oauth.OAuthManager;
 import com.samourai.websocket.client.IWebsocketClient;
+import com.samourai.whirlpool.client.event.*;
+import com.samourai.whirlpool.client.mix.listener.MixSuccess;
 import com.samourai.whirlpool.client.tx0.Tx0;
 import com.samourai.whirlpool.client.tx0.Tx0Config;
 import com.samourai.whirlpool.client.tx0.Tx0Preview;
+import com.samourai.whirlpool.client.wallet.WhirlpoolEventService;
 import com.samourai.whirlpool.client.wallet.WhirlpoolWallet;
 import com.samourai.whirlpool.client.wallet.WhirlpoolWalletConfig;
 import com.samourai.whirlpool.client.wallet.WhirlpoolWalletService;
@@ -197,5 +201,69 @@ public class JavaExample {
 
     // stop Whirlpool
     whirlpoolWalletService.closeWallet();
+
+    // subscribe events for this class (see @Subscribe methods below)
+    WhirlpoolEventService.getInstance().register(this);
+  }
+
+  // OBSERVE EVENTS
+  @Subscribe
+  public void onChainBlockChange(ChainBlockChangeEvent e) {
+    // new block confirmed
+  }
+
+  @Subscribe
+  public void onChainBlockChange(MinerFeeChangeEvent e) {
+    // miner fee estimation changed
+  }
+
+  @Subscribe
+  public void onChainBlockChange(MixFailEvent e) {
+    // mix failed
+  }
+
+  @Subscribe
+  public void onMixSuccess(MixSuccessEvent e) {
+    // mix success
+  }
+
+  @Subscribe
+  public void onTx0(Tx0Event e) {
+    // tx0 success
+  }
+
+  @Subscribe
+  public void onUtxosChange(UtxosChangeEvent e) {
+    // utxos changed
+  }
+
+  @Subscribe
+  public void onUtxosRequest(UtxosRequestEvent e) {
+    // manual utxos refresh in progress
+  }
+
+  @Subscribe
+  public void onUtxosResponse(UtxosResponseEvent e) {
+    // manual utxos refresh completed
+  }
+
+  @Subscribe
+  public void onWalletClose(WalletCloseEvent e) {
+    // wallet closed
+  }
+
+  @Subscribe
+  public void onWalletOpen(WalletOpenEvent e) {
+    // wallet opened
+  }
+
+  @Subscribe
+  public void onWalletStart(WalletStartEvent e) {
+    // wallet started
+  }
+
+  @Subscribe
+  public void onWalletStop(WalletStopEvent e) {
+    // wallet stopped
   }
 }
