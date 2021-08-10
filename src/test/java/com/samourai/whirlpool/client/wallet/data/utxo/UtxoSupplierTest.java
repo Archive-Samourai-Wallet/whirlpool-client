@@ -1,7 +1,6 @@
 package com.samourai.whirlpool.client.wallet.data.utxo;
 
 import com.google.common.eventbus.Subscribe;
-import com.samourai.wallet.api.backend.MinerFeeTarget;
 import com.samourai.wallet.api.backend.beans.UnspentOutput;
 import com.samourai.wallet.api.backend.beans.WalletResponse;
 import com.samourai.wallet.hd.HD_Wallet;
@@ -18,7 +17,6 @@ import com.samourai.whirlpool.client.wallet.data.minerFee.WalletDataSupplier;
 import com.samourai.whirlpool.client.wallet.data.pool.PoolSupplier;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java8.util.function.Function;
 import java8.util.stream.Collectors;

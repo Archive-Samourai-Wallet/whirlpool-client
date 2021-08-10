@@ -4,11 +4,10 @@ import com.samourai.wallet.api.backend.MinerFeeTarget;
 import com.samourai.wallet.api.backend.beans.WalletResponse;
 import com.samourai.whirlpool.client.test.AbstractTest;
 import com.samourai.whirlpool.client.wallet.beans.Tx0FeeTarget;
+import java.util.LinkedHashMap;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
-
-import java.util.LinkedHashMap;
 
 public class MinerFeeSupplierTest extends AbstractTest {
   private MinerFeeSupplier supplier;
