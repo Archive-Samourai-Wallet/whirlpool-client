@@ -4,13 +4,12 @@ import com.samourai.wallet.api.backend.MinerFeeTarget;
 import com.samourai.wallet.api.backend.beans.WalletResponse;
 import com.samourai.whirlpool.client.test.AbstractTest;
 import com.samourai.whirlpool.client.wallet.beans.Tx0FeeTarget;
-import java.util.LinkedHashMap;
 import org.junit.Assert;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 
-@Ignore // WalletResponse refactoring
+import java.util.LinkedHashMap;
+
 public class MinerFeeSupplierTest extends AbstractTest {
   private MinerFeeSupplier supplier;
   private final int FEE_MIN = 50;
@@ -45,11 +44,10 @@ public class MinerFeeSupplierTest extends AbstractTest {
   }
 
   private void setMockFeeValue(int feeValue) throws Exception {
-    WalletResponse walletResponse = new WalletResponse();
-    walletResponse.info = new WalletResponse.Info();
+    WalletResponse walletResponse = mockWalletResponse();
     walletResponse.info.fees = new LinkedHashMap<String, Integer>();
     for (MinerFeeTarget minerFeeTarget : MinerFeeTarget.values()) {
-      walletResponse.info.fees.put(minerFeeTarget.name(), feeValue);
+      walletResponse.info.fees.put(minerFeeTarget.getValue(), feeValue);
     }
     supplier._setValue(walletResponse);
   }

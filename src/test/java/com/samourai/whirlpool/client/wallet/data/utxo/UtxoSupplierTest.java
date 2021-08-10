@@ -11,6 +11,7 @@ import com.samourai.whirlpool.client.test.AbstractTest;
 import com.samourai.whirlpool.client.tx0.Tx0ParamService;
 import com.samourai.whirlpool.client.wallet.WhirlpoolEventService;
 import com.samourai.whirlpool.client.wallet.WhirlpoolWalletConfig;
+import com.samourai.whirlpool.client.wallet.beans.WhirlpoolAccount;
 import com.samourai.whirlpool.client.wallet.beans.WhirlpoolUtxo;
 import com.samourai.whirlpool.client.wallet.beans.WhirlpoolUtxoChanges;
 import com.samourai.whirlpool.client.wallet.data.minerFee.WalletDataSupplier;
@@ -163,28 +164,16 @@ public class UtxoSupplierTest extends AbstractTest {
     Assert.assertEquals(null, lastUtxoChanges);
   }
 
-  protected void setMockWalletResponse(UnspentOutput[] unspentOutputs) {
-    mockWalletResponse = new WalletResponse();
-    mockWalletResponse.info = new WalletResponse.Info();
+  protected void setMockWalletResponse(UnspentOutput[] unspentOutputs) throws Exception {
+    mockWalletResponse = mockWalletResponse();
     mockWalletResponse.unspent_outputs = unspentOutputs;
-    mockWalletResponse.txs = new WalletResponse.Tx[] {};
-
-    mockWalletResponse.info.latest_block = new WalletResponse.InfoBlock();
-    mockWalletResponse.info.latest_block.height = 12345678;
-    mockWalletResponse.info.latest_block.time = System.currentTimeMillis();
-    mockWalletResponse.info.latest_block.hash = "testblock";
-
-    mockWalletResponse.info.fees = new LinkedHashMap<String, Integer>();
-    for (MinerFeeTarget minerFeeTarget : MinerFeeTarget.values()) {
-      mockWalletResponse.info.fees.put(minerFeeTarget.getValue(), 1);
-    }
   }
 
   protected void doTest(UnspentOutput[] expected) throws Exception {
     walletDataSupplier.load();
 
     // getUtxos()
-    // TODO assertUtxoEquals(expected, utxoSupplier.getUtxos());
+    assertUtxoEquals(expected, utxoSupplier.findUtxos(WhirlpoolAccount.values()));
   }
 
   private UnspentOutput computeUtxo(String hash, int n, String xpub, int confirms) {
