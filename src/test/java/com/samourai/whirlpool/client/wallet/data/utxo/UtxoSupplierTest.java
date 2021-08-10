@@ -1,7 +1,6 @@
 package com.samourai.whirlpool.client.wallet.data.utxo;
 
 import com.google.common.eventbus.Subscribe;
-import com.samourai.wallet.api.backend.MinerFeeTarget;
 import com.samourai.wallet.api.backend.beans.UnspentOutput;
 import com.samourai.wallet.api.backend.beans.WalletResponse;
 import com.samourai.wallet.hd.HD_Wallet;
@@ -11,13 +10,13 @@ import com.samourai.whirlpool.client.test.AbstractTest;
 import com.samourai.whirlpool.client.tx0.Tx0ParamService;
 import com.samourai.whirlpool.client.wallet.WhirlpoolEventService;
 import com.samourai.whirlpool.client.wallet.WhirlpoolWalletConfig;
+import com.samourai.whirlpool.client.wallet.beans.WhirlpoolAccount;
 import com.samourai.whirlpool.client.wallet.beans.WhirlpoolUtxo;
 import com.samourai.whirlpool.client.wallet.beans.WhirlpoolUtxoChanges;
 import com.samourai.whirlpool.client.wallet.data.minerFee.WalletDataSupplier;
 import com.samourai.whirlpool.client.wallet.data.pool.PoolSupplier;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java8.util.function.Function;
 import java8.util.stream.Collectors;
@@ -163,28 +162,16 @@ public class UtxoSupplierTest extends AbstractTest {
     Assert.assertEquals(null, lastUtxoChanges);
   }
 
-  protected void setMockWalletResponse(UnspentOutput[] unspentOutputs) {
-    mockWalletResponse = new WalletResponse();
-    mockWalletResponse.info = new WalletResponse.Info();
+  protected void setMockWalletResponse(UnspentOutput[] unspentOutputs) throws Exception {
+    mockWalletResponse = mockWalletResponse();
     mockWalletResponse.unspent_outputs = unspentOutputs;
-    mockWalletResponse.txs = new WalletResponse.Tx[] {};
-
-    mockWalletResponse.info.latest_block = new WalletResponse.InfoBlock();
-    mockWalletResponse.info.latest_block.height = 12345678;
-    mockWalletResponse.info.latest_block.time = System.currentTimeMillis();
-    mockWalletResponse.info.latest_block.hash = "testblock";
-
-    mockWalletResponse.info.fees = new LinkedHashMap<String, Integer>();
-    for (MinerFeeTarget minerFeeTarget : MinerFeeTarget.values()) {
-      mockWalletResponse.info.fees.put(minerFeeTarget.getValue(), 1);
-    }
   }
 
   protected void doTest(UnspentOutput[] expected) throws Exception {
     walletDataSupplier.load();
 
     // getUtxos()
-    // TODO assertUtxoEquals(expected, utxoSupplier.getUtxos());
+    assertUtxoEquals(expected, utxoSupplier.findUtxos(WhirlpoolAccount.values()));
   }
 
   private UnspentOutput computeUtxo(String hash, int n, String xpub, int confirms) {
