@@ -33,7 +33,7 @@ public class JavaExample {
   private WhirlpoolWalletConfig computeWhirlpoolWalletConfig() {
     IHttpClientService httpClientService = null; // provide impl here, ie: new AndroidHttpClient();
     IStompClientService stompClientService =
-        null; // provide impl here, ie: new AndroidStompClientService();
+        null; // provide impl here, ie: AndroidStompClientService or https://code.samourai.io/whirlpool/whirlpool-client-cli/-/blob/develop/src/main/java/com/samourai/stomp/client/JavaStompClient.java
 
     WhirlpoolServer whirlpoolServer = WhirlpoolServer.TESTNET;
 
@@ -48,7 +48,10 @@ public class JavaExample {
         new BackendApi(httpClientBackend, backendUrl, Optional.<OAuthManager>empty());
     IWebsocketClient wsClient = null; // provide impl here
     BackendWsApi backendWsApi =
-        new BackendWsApi(wsClient, backendUrl, Optional.<OAuthManager>empty());
+        new BackendWsApi(
+            wsClient,
+            backendUrl,
+            Optional.<OAuthManager>empty()); // or NULL to disable backend real-time sync
 
     NetworkParameters params = whirlpoolServer.getParams();
     boolean mobile = false; // true for mobile configuration, false for desktop/CLI
