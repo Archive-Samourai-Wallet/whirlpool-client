@@ -55,7 +55,7 @@ public class WalletDataSupplier extends ExpirableSupplier<WalletResponse>
   }
 
   protected WalletResponse fetchWalletResponse() throws Exception {
-    String[] utxoZpubs = walletSupplier.getZpubs(false);
+    String[] utxoZpubs = walletSupplier.getZpubs(true);
     return backendApi.fetchWallet(utxoZpubs);
   }
 

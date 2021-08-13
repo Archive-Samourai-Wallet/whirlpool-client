@@ -72,7 +72,7 @@ public class WalletStateSupplier extends AbstractPersistableSupplier<WalletState
 
     // initialize wallets
     if (!isInitialized) {
-      String[] activeZpubs = walletSupplier.getZpubs(false);
+      String[] activeZpubs = walletSupplier.getZpubs(true);
       for (String zpub : activeZpubs) {
         initBip84(zpub);
       }
