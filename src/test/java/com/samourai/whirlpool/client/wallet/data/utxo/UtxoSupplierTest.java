@@ -33,11 +33,11 @@ public class UtxoSupplierTest extends AbstractTest {
   protected boolean mockException;
 
   private static final String ZPUB_DEPOSIT =
-      "vpub5YEQpEDPAZWVTkmWASSHyaUMsae7uV9FnRrhZ3cqV6RFbBQx7wjVsUfLqSE3hgNY8WQixurkbWNkfV2sRE7LPfNKQh2t3s5une4QZthwdCu";
+          "vpub5YEQpEDPAZWVTkmWASSHyaUMsae7uV9FnRrhZ3cqV6RFbBQx7wjVsUfLqSE3hgNY8WQixurkbWNkfV2sRE7LPfNKQh2t3s5une4QZthwdCu";
   private static final String ZPUB_PREMIX =
-      "vpub5YEQpEDXWE3TW21vo2zdDK9PZgKqnonnomB2b18dadRTgtnB5F8SZg1reqvMHEDKq1k3oHz1AXbsD6MCfNcw77BqfZxWmZm4nn16XNC84mL";
+          "vpub5YEQpEDXWE3TW21vo2zdDK9PZgKqnonnomB2b18dadRTgtnB5F8SZg1reqvMHEDKq1k3oHz1AXbsD6MCfNcw77BqfZxWmZm4nn16XNC84mL";
   private static final String ZPUB_POSTMIX =
-      "vpub5YEQpEDXWE3TawqjQNFt5o4sBM1RP1B1mtVZr8ysEA9hFLsZZ4RB8oxE4Sfkumc47jnVPUgRL9hJf3sWpTYBKtdkP3UK6J8p1n2ykmjHnrW";
+          "vpub5YEQpEDXWE3TawqjQNFt5o4sBM1RP1B1mtVZr8ysEA9hFLsZZ4RB8oxE4Sfkumc47jnVPUgRL9hJf3sWpTYBKtdkP3UK6J8p1n2ykmjHnrW";
 
   protected UnspentOutput UTXO_DEPOSIT1;
   protected UnspentOutput UTXO_DEPOSIT1_UPDATED;
@@ -50,14 +50,14 @@ public class UtxoSupplierTest extends AbstractTest {
   @Before
   public void setup() throws Exception {
     WhirlpoolEventService.getInstance()
-        .register(
-            new MessageListener<UtxosChangeEvent>() {
-              @Subscribe
-              @Override
-              public void onMessage(UtxosChangeEvent message) {
-                lastUtxoChanges = message.getUtxoData().getUtxoChanges();
-              }
-            });
+            .register(
+                    new MessageListener<UtxosChangeEvent>() {
+                      @Subscribe
+                      @Override
+                      public void onMessage(UtxosChangeEvent message) {
+                        lastUtxoChanges = message.getUtxoData().getUtxoChanges();
+                      }
+                    });
 
     WhirlpoolWalletConfig config = computeWhirlpoolWalletConfig();
 
@@ -65,21 +65,21 @@ public class UtxoSupplierTest extends AbstractTest {
     HD_Wallet bip44w = hdWalletFactory.getBIP44(seed, SEED_PASSPHRASE, params);
 
     walletDataSupplier =
-        new WalletDataSupplier(999999, config, bip44w, "test") {
-          @Override
-          protected WalletResponse fetchWalletResponse() throws Exception {
-            if (mockException) {
-              throw new Exception("utxos not available");
-            }
-            return mockWalletResponse;
-          }
+            new WalletDataSupplier(999999, config, bip44w, "test") {
+              @Override
+              protected WalletResponse fetchWalletResponse() throws Exception {
+                if (mockException) {
+                  throw new Exception("utxos not available");
+                }
+                return mockWalletResponse;
+              }
 
-          @Override
-          protected PoolSupplier computePoolSupplier(
-              WhirlpoolWalletConfig config, Tx0ParamService tx0ParamService) {
-            return mockPoolSupplier();
-          }
-        };
+              @Override
+              protected PoolSupplier computePoolSupplier(
+                      WhirlpoolWalletConfig config, Tx0ParamService tx0ParamService) {
+                return mockPoolSupplier();
+              }
+            };
     walletDataSupplier.getPoolSupplier().load();
     walletDataSupplier.getWalletSupplier().getWalletStateSupplier().load();
 
@@ -121,9 +121,9 @@ public class UtxoSupplierTest extends AbstractTest {
     // should use fresh data
     doTest(utxos2);
     assertUtxoChanges(
-        new UnspentOutput[] {UTXO_PREMIX2},
-        new UnspentOutput[] {UTXO_DEPOSIT1_UPDATED},
-        new UnspentOutput[] {UTXO_PREMIX1, UTXO_POSTMIX1});
+            new UnspentOutput[] {UTXO_PREMIX2},
+            new UnspentOutput[] {UTXO_DEPOSIT1_UPDATED},
+            new UnspentOutput[] {UTXO_PREMIX1, UTXO_POSTMIX1});
   }
 
   @Test
@@ -188,15 +188,15 @@ public class UtxoSupplierTest extends AbstractTest {
     Assert.assertEquals(utxos1.length, utxos2.size());
 
     List<String> utxos1Ids =
-        StreamSupport.stream(Arrays.asList(utxos1))
-            .map(
-                new Function<UnspentOutput, String>() {
-                  @Override
-                  public String apply(UnspentOutput utxo) {
-                    return computeUtxoId(utxo);
-                  }
-                })
-            .collect(Collectors.<String>toList());
+            StreamSupport.stream(Arrays.asList(utxos1))
+                    .map(
+                            new Function<UnspentOutput, String>() {
+                              @Override
+                              public String apply(UnspentOutput utxo) {
+                                return computeUtxoId(utxo);
+                              }
+                            })
+                    .collect(Collectors.<String>toList());
     for (WhirlpoolUtxo whirlpoolUtxo : utxos2) {
       // search utxo by id
       Assert.assertTrue(utxos1Ids.contains(computeUtxoId(whirlpoolUtxo.getUtxo())));
@@ -208,7 +208,7 @@ public class UtxoSupplierTest extends AbstractTest {
   }
 
   protected void assertUtxoChanges(
-      UnspentOutput[] added, UnspentOutput[] confirmed, UnspentOutput[] removed) {
+          UnspentOutput[] added, UnspentOutput[] confirmed, UnspentOutput[] removed) {
     assertUtxoEquals(added, lastUtxoChanges.getUtxosAdded());
     assertUtxoEquals(confirmed, lastUtxoChanges.getUtxosConfirmed());
     assertUtxoEquals(removed, lastUtxoChanges.getUtxosRemoved());

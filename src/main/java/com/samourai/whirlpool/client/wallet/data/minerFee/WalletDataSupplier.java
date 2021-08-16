@@ -114,7 +114,7 @@ public abstract class WalletDataSupplier extends ExpirableSupplier<WalletRespons
         config.getExternalDestination() != null
             ? config.getExternalDestination().getStartIndex()
             : 0;
-    String walletStateFileName = computeIndexFile(walletIdentifier).getAbsolutePath();
+    String walletStateFileName = computeFileIndex(walletIdentifier).getAbsolutePath();
     return new WalletSupplier(
         new WalletStatePersister(walletStateFileName),
         config.getBackendApi(),
@@ -133,7 +133,7 @@ public abstract class WalletDataSupplier extends ExpirableSupplier<WalletRespons
 
   protected UtxoConfigPersister computeUtxoConfigPersister(String walletIdentifier)
       throws Exception {
-    String utxoConfigFileName = computeUtxosFile(walletIdentifier).getAbsolutePath();
+    String utxoConfigFileName = computeFileUtxos(walletIdentifier).getAbsolutePath();
     return new UtxoConfigPersister(utxoConfigFileName);
   }
 
@@ -150,14 +150,20 @@ public abstract class WalletDataSupplier extends ExpirableSupplier<WalletRespons
         walletSupplier, utxoConfigSupplier, this, config.getNetworkParameters());
   }
 
-  protected File computeIndexFile(String walletIdentifier) throws NotifiableException {
-    String path = "whirlpool-cli-state-" + walletIdentifier + ".json";
-    return ClientUtils.computeFile(path);
+  protected File computeFileIndex(String walletIdentifier) throws NotifiableException {
+    String fileName = "whirlpool-cli-state-" + walletIdentifier + ".json";
+    return computeFile(fileName);
   }
 
-  protected File computeUtxosFile(String walletIdentifier) throws NotifiableException {
-    String path = "whirlpool-cli-utxos-" + walletIdentifier + ".json";
-    return ClientUtils.computeFile(path);
+  protected File computeFileUtxos(String walletIdentifier) throws NotifiableException {
+    String fileName = "whirlpool-cli-utxos-" + walletIdentifier + ".json";
+    return computeFile(fileName);
+  }
+
+  protected File computeFile(String fileName) throws NotifiableException {
+    File f = new File(fileName); // use current directory
+    ClientUtils.createFile(f);
+    return f;
   }
 
   protected abstract WalletResponse fetchWalletResponse() throws Exception;
