@@ -51,13 +51,6 @@ public class PersistOrchestrator extends AbstractOrchestrator {
     }
   }
 
-  public void backup() throws Exception {
-    // backup or fail
-    for (AbstractPersistableSupplier supplier : suppliers) {
-      supplier.backup();
-    }
-  }
-
   public void persistInitialData() throws Exception {
     // forced persist or fail
     persist(true);

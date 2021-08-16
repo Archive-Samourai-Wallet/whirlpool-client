@@ -2,64 +2,54 @@ package com.samourai.whirlpool.client.wallet.data.pool;
 
 import com.samourai.whirlpool.client.test.AbstractTest;
 import com.samourai.whirlpool.client.whirlpool.beans.Pool;
-import com.samourai.whirlpool.protocol.rest.PoolInfo;
+import com.samourai.whirlpool.protocol.websocket.notifications.MixStatus;
 import java.util.Collection;
-import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
+import org.junit.Assert;
+import org.junit.Before;
+import org.junit.Test;
 
 public class PoolSupplierTest extends AbstractTest {
-  private MockPoolSupplier supplier;
+  private PoolSupplier supplier;
 
-  private PoolInfo POOL_1;
-  private PoolInfo POOL_2;
-  private PoolInfo POOL_3;
-
-  @BeforeEach
-  public void setup() {
-    this.supplier = new MockPoolSupplier();
-    POOL_1 = new PoolInfo();
-    POOL_1.poolId = "POOL_1";
-
-    POOL_2 = new PoolInfo();
-    POOL_2.poolId = "POOL_2";
-
-    POOL_3 = new PoolInfo();
-    POOL_3.poolId = "POOL_3";
+  @Before
+  public void setup() throws Exception {
+    this.supplier = mockPoolSupplier();
   }
 
   @Test
   public void testValid() throws Exception {
     // valid
-    supplier.mock(POOL_1, POOL_2, POOL_3);
-    doTest(POOL_1, POOL_2, POOL_3);
+    doTest();
 
     // non-existing pool
-    Assertions.assertNull(supplier.findPoolById("foo"));
+    Assert.assertNull(supplier.findPoolById("foo"));
   }
 
-  private void doTest(PoolInfo... pools) throws Exception {
+  private void doTest() throws Exception {
     supplier.load();
 
     // verify getPools
     Collection<Pool> getPools = supplier.getPools();
-    Assertions.assertEquals(pools.length, getPools.size());
-    for (PoolInfo poolInfo : pools) {
-      boolean found = false;
-      for (Pool p : getPools) {
-        if (p.getPoolId().equals(poolInfo.poolId)) {
-          found = true;
-          break;
-        }
-      }
-      if (!found) {
-        throw new Exception("Expected pool not found: " + poolInfo.poolId);
-      }
-    }
+    Assert.assertEquals(4, getPools.size());
 
     // verify findPoolById
-    for (PoolInfo poolInfo : pools) {
-      Assertions.assertEquals(supplier.findPoolById(poolInfo.poolId).getPoolId(), poolInfo.poolId);
-    }
+    Pool pool01 = supplier.findPoolById("0.01btc");
+    Assert.assertEquals("0.01btc", pool01.getPoolId());
+    Assert.assertEquals(1000000, pool01.getDenomination());
+    Assert.assertEquals(50000, pool01.getFeeValue());
+    Assert.assertEquals(1000170, pool01.getMustMixBalanceMin());
+    Assert.assertEquals(1009690, pool01.getMustMixBalanceCap());
+    Assert.assertEquals(1019125, pool01.getMustMixBalanceMax());
+    Assert.assertEquals(5, pool01.getMinAnonymitySet());
+    Assert.assertEquals(2, pool01.getMinMustMix());
+    Assert.assertEquals(70, pool01.getTx0MaxOutputs());
+    Assert.assertEquals(180, pool01.getNbRegistered());
+    Assert.assertEquals(5, pool01.getMixAnonymitySet());
+    Assert.assertEquals(MixStatus.CONFIRM_INPUT, pool01.getMixStatus());
+    Assert.assertEquals(672969, pool01.getElapsedTime());
+    Assert.assertEquals(2, pool01.getNbConfirmed());
+
+    Assert.assertEquals(1000302, pool01.getPremixValueMin());
+    Assert.assertEquals(1050491, pool01.getSpendFromBalanceMin());
   }
 }
