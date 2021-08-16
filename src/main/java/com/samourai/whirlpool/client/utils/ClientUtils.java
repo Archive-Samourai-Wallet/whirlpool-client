@@ -450,18 +450,16 @@ public class ClientUtils {
     return mapByPrevTx.size();
   }
 
-  public static File computeFile(String path) throws NotifiableException {
-    File f = new File(path);
+  public static void createFile(File f) throws NotifiableException {
     if (!f.exists()) {
       if (log.isDebugEnabled()) {
-        log.debug("Creating file " + path);
+        log.debug("Creating file " + f.getAbsolutePath());
       }
       try {
         f.createNewFile();
       } catch (Exception e) {
-        throw new NotifiableException("Unable to write file " + path);
+        throw new NotifiableException("Unable to write file " + f.getAbsolutePath());
       }
     }
-    return f;
   }
 }

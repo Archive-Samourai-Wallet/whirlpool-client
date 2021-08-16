@@ -51,9 +51,9 @@ public class WhirlpoolWalletService {
     return openWallet(wp);
   }
 
-  public WhirlpoolWallet openWallet(
-      WhirlpoolWalletConfig config, HD_Wallet bip84w, String walletIdentifier) throws Exception {
-    WhirlpoolWallet wp = computeWhirlpoolWallet(config, bip84w, walletIdentifier);
+  public WhirlpoolWallet openWallet(WhirlpoolWalletConfig config, HD_Wallet bip84w)
+      throws Exception {
+    WhirlpoolWallet wp = computeWhirlpoolWallet(config, bip84w);
     return openWallet(wp);
   }
 
@@ -96,6 +96,11 @@ public class WhirlpoolWalletService {
         Bytes.concat(seed, seedPassphrase.getBytes(), params.getId().getBytes()));
   }
 
+  protected WhirlpoolWallet computeWhirlpoolWallet(WhirlpoolWalletConfig config, HD_Wallet bip84w)
+      throws Exception {
+    return computeWhirlpoolWallet(config, bip84w.getSeed(), bip84w.getPassphrase());
+  }
+
   protected WhirlpoolWallet computeWhirlpoolWallet(
       WhirlpoolWalletConfig config, byte[] seed, String seedPassphrase) throws Exception {
     NetworkParameters params = config.getNetworkParameters();
@@ -104,11 +109,7 @@ public class WhirlpoolWalletService {
     }
     String walletIdentifier = computeWalletIdentifier(seed, seedPassphrase, params);
     HD_Wallet bip84w = HD_WalletFactoryJava.getInstance().getBIP84(seed, seedPassphrase, params);
-    return computeWhirlpoolWallet(config, bip84w, walletIdentifier);
-  }
 
-  protected WhirlpoolWallet computeWhirlpoolWallet(
-      WhirlpoolWalletConfig config, HD_Wallet bip84w, String walletIdentifier) throws Exception {
     // debug whirlpoolWalletConfig
     if (log.isDebugEnabled()) {
       log.debug("openWallet with whirlpoolWalletConfig:");
