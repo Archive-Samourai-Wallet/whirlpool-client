@@ -47,8 +47,7 @@ public class UtxoSupplierTest extends AbstractTest {
   protected WhirlpoolUtxoChanges lastUtxoChanges;
 
   private WalletSupplier computeWalletSupplier() throws Exception {
-    byte[] seed = hdWalletFactory.computeSeedFromWords(SEED_WORDS);
-    HD_Wallet hdWallet = hdWalletFactory.getBIP84(seed, SEED_PASSPHRASE, params);
+    HD_Wallet hdWallet = computeBip84w();
 
     BackendApi backendApi =
         new BackendApi(null, "http://testbackend", null) {
@@ -63,9 +62,15 @@ public class UtxoSupplierTest extends AbstractTest {
     return new WalletSupplier(persister, backendApi, hdWallet, 0);
   }
 
+  private HD_Wallet computeBip84w() throws Exception {
+    byte[] seed = hdWalletFactory.computeSeedFromWords(SEED_WORDS);
+    HD_Wallet bip84w = hdWalletFactory.getBIP84(seed, SEED_PASSPHRASE, params);
+    return bip84w;
+  }
+
   @Before
   public void setup() throws Exception {
-    WalletSupplier walletSupplier = computeWalletSupplier();
+    HD_Wallet bip84w = computeBip84w();
 
     MessageListener<WhirlpoolUtxoChanges> changeListener =
         new MessageListener<WhirlpoolUtxoChanges>() {
@@ -74,11 +79,9 @@ public class UtxoSupplierTest extends AbstractTest {
             lastUtxoChanges = message;
           }
         };
-    String fileName = "/tmp/utxoConfig";
-    resetFile(fileName);
     WhirlpoolWalletConfig config = computeWhirlpoolWalletConfig();
     walletDataSupplier =
-        new WalletDataSupplier(999999, walletSupplier, changeListener, fileName, config) {
+        new WalletDataSupplier(999999, changeListener, config, bip84w, "test") {
           @Override
           protected WalletResponse fetchWalletResponse() throws Exception {
             if (mockException) {
@@ -92,9 +95,16 @@ public class UtxoSupplierTest extends AbstractTest {
               WhirlpoolWalletConfig config, Tx0ParamService tx0ParamService) {
             return mockPoolSupplier();
           }
+
+          @Override
+          protected WalletSupplier computeWalletSupplier(
+              WhirlpoolWalletConfig config, HD_Wallet bip84w, String walletIdentifier)
+              throws Exception {
+            return UtxoSupplierTest.this.computeWalletSupplier();
+          }
         };
     walletDataSupplier.getPoolSupplier().load();
-    walletSupplier.getWalletStateSupplier().load();
+    walletDataSupplier.getWalletSupplier().getWalletStateSupplier().load();
     utxoSupplier = walletDataSupplier.getUtxoSupplier();
     utxoConfigSupplier = walletDataSupplier.getUtxoConfigSupplier();
     utxoConfigSupplier.load();

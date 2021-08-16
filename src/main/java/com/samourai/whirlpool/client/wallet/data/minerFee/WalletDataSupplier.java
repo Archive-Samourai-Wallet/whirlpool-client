@@ -21,7 +21,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public abstract class WalletDataSupplier extends ExpirableSupplier<WalletResponse>
-        implements LoadableSupplier {
+    implements LoadableSupplier {
   private static final Logger log = LoggerFactory.getLogger(WalletDataSupplier.class);
 
   protected final WalletSupplier walletSupplier;
@@ -34,12 +34,12 @@ public abstract class WalletDataSupplier extends ExpirableSupplier<WalletRespons
   protected final UtxoConfigSupplier utxoConfigSupplier;
 
   public WalletDataSupplier(
-          int refreshUtxoDelay,
-          MessageListener<WhirlpoolUtxoChanges> utxoChangesListener,
-          WhirlpoolWalletConfig config,
-          HD_Wallet bip84w,
-          String walletIdentifier)
-          throws Exception {
+      int refreshUtxoDelay,
+      MessageListener<WhirlpoolUtxoChanges> utxoChangesListener,
+      WhirlpoolWalletConfig config,
+      HD_Wallet bip84w,
+      String walletIdentifier)
+      throws Exception {
     super(refreshUtxoDelay, null, log);
     this.walletSupplier = computeWalletSupplier(config, bip84w, walletIdentifier);
     this.walletStateSupplier = walletSupplier.getWalletStateSupplier();
@@ -49,23 +49,23 @@ public abstract class WalletDataSupplier extends ExpirableSupplier<WalletRespons
     this.poolSupplier = computePoolSupplier(config, tx0ParamService);
 
     this.utxoConfigSupplier =
-            computeUtxoConfigSupplier(poolSupplier, tx0ParamService, walletIdentifier);
+        computeUtxoConfigSupplier(poolSupplier, tx0ParamService, walletIdentifier);
     this.utxoSupplier =
-            computeUtxoSupplier(walletSupplier, utxoConfigSupplier, utxoChangesListener);
+        computeUtxoSupplier(walletSupplier, utxoConfigSupplier, utxoChangesListener);
   }
 
   protected WalletSupplier computeWalletSupplier(
-          WhirlpoolWalletConfig config, HD_Wallet bip84w, String walletIdentifier) throws Exception {
+      WhirlpoolWalletConfig config, HD_Wallet bip84w, String walletIdentifier) throws Exception {
     int externalIndexDefault =
-            config.getExternalDestination() != null
-                    ? config.getExternalDestination().getStartIndex()
-                    : 0;
+        config.getExternalDestination() != null
+            ? config.getExternalDestination().getStartIndex()
+            : 0;
     String walletStateFileName = computeIndexFile(walletIdentifier).getAbsolutePath();
     return new WalletSupplier(
-            new WalletStatePersister(walletStateFileName),
-            config.getBackendApi(),
-            bip84w,
-            externalIndexDefault);
+        new WalletStatePersister(walletStateFileName),
+        config.getBackendApi(),
+        bip84w,
+        externalIndexDefault);
   }
 
   protected MinerFeeSupplier computeMinerFeeSupplier(WhirlpoolWalletConfig config) {
@@ -73,27 +73,27 @@ public abstract class WalletDataSupplier extends ExpirableSupplier<WalletRespons
   }
 
   protected PoolSupplier computePoolSupplier(
-          WhirlpoolWalletConfig config, Tx0ParamService tx0ParamService) {
+      WhirlpoolWalletConfig config, Tx0ParamService tx0ParamService) {
     return new PoolSupplier(config.getRefreshPoolsDelay(), config.getServerApi(), tx0ParamService);
   }
 
   protected UtxoConfigPersister computeUtxoConfigPersister(String walletIdentifier)
-          throws Exception {
+      throws Exception {
     String utxoConfigFileName = computeUtxosFile(walletIdentifier).getAbsolutePath();
     return new UtxoConfigPersister(utxoConfigFileName);
   }
 
   protected UtxoConfigSupplier computeUtxoConfigSupplier(
-          PoolSupplier poolSupplier, Tx0ParamService tx0ParamService, String walletIdentifier)
-          throws Exception {
+      PoolSupplier poolSupplier, Tx0ParamService tx0ParamService, String walletIdentifier)
+      throws Exception {
     UtxoConfigPersister utxoConfigPersister = computeUtxoConfigPersister(walletIdentifier);
     return new UtxoConfigSupplier(utxoConfigPersister, poolSupplier, tx0ParamService);
   }
 
   protected UtxoSupplier computeUtxoSupplier(
-          WalletSupplier walletSupplier,
-          UtxoConfigSupplier utxoConfigSupplier,
-          MessageListener<WhirlpoolUtxoChanges> utxoChangesListener) {
+      WalletSupplier walletSupplier,
+      UtxoConfigSupplier utxoConfigSupplier,
+      MessageListener<WhirlpoolUtxoChanges> utxoChangesListener) {
     return new UtxoSupplier(walletSupplier, utxoConfigSupplier, this, utxoChangesListener);
   }
 
