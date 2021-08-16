@@ -98,17 +98,19 @@ public abstract class WalletDataSupplier extends ExpirableSupplier<WalletRespons
   }
 
   protected File computeFileIndex(String walletIdentifier) throws NotifiableException {
-    String path = computeFilePath("whirlpool-cli-state-" + walletIdentifier + ".json");
-    return ClientUtils.computeFile(path);
+    String fileName = "whirlpool-cli-state-" + walletIdentifier + ".json";
+    return computeFile(fileName);
   }
 
   protected File computeFileUtxos(String walletIdentifier) throws NotifiableException {
-    String path = computeFilePath("whirlpool-cli-utxos-" + walletIdentifier + ".json");
-    return ClientUtils.computeFile(path);
+    String fileName = "whirlpool-cli-utxos-" + walletIdentifier + ".json";
+    return computeFile(fileName);
   }
 
-  protected String computeFilePath(String fileName) {
-    return fileName; // use current directory
+  protected File computeFile(String fileName) throws NotifiableException {
+    File f = new File(fileName); // use current directory
+    ClientUtils.createFile(f);
+    return f;
   }
 
   protected abstract WalletResponse fetchWalletResponse() throws Exception;

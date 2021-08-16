@@ -51,7 +51,8 @@ public class WhirlpoolWalletService {
     return openWallet(wp);
   }
 
-  public WhirlpoolWallet openWallet(WhirlpoolWalletConfig config, HD_Wallet bip84w) throws Exception {
+  public WhirlpoolWallet openWallet(WhirlpoolWalletConfig config, HD_Wallet bip84w)
+      throws Exception {
     WhirlpoolWallet wp = computeWhirlpoolWallet(config, bip84w);
     return openWallet(wp);
   }
@@ -95,7 +96,8 @@ public class WhirlpoolWalletService {
         Bytes.concat(seed, seedPassphrase.getBytes(), params.getId().getBytes()));
   }
 
-  protected WhirlpoolWallet computeWhirlpoolWallet(WhirlpoolWalletConfig config, HD_Wallet bip84w) throws Exception {
+  protected WhirlpoolWallet computeWhirlpoolWallet(WhirlpoolWalletConfig config, HD_Wallet bip84w)
+      throws Exception {
     return computeWhirlpoolWallet(config, bip84w.getSeed(), bip84w.getPassphrase());
   }
 
