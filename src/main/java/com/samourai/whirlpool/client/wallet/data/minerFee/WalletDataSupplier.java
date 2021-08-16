@@ -60,7 +60,7 @@ public abstract class WalletDataSupplier extends ExpirableSupplier<WalletRespons
         config.getExternalDestination() != null
             ? config.getExternalDestination().getStartIndex()
             : 0;
-    String walletStateFileName = computeIndexFile(walletIdentifier).getAbsolutePath();
+    String walletStateFileName = computeFileIndex(walletIdentifier).getAbsolutePath();
     return new WalletSupplier(
         new WalletStatePersister(walletStateFileName),
         config.getBackendApi(),
@@ -79,7 +79,7 @@ public abstract class WalletDataSupplier extends ExpirableSupplier<WalletRespons
 
   protected UtxoConfigPersister computeUtxoConfigPersister(String walletIdentifier)
       throws Exception {
-    String utxoConfigFileName = computeUtxosFile(walletIdentifier).getAbsolutePath();
+    String utxoConfigFileName = computeFileUtxos(walletIdentifier).getAbsolutePath();
     return new UtxoConfigPersister(utxoConfigFileName);
   }
 
@@ -97,14 +97,18 @@ public abstract class WalletDataSupplier extends ExpirableSupplier<WalletRespons
     return new UtxoSupplier(walletSupplier, utxoConfigSupplier, this, utxoChangesListener);
   }
 
-  protected File computeIndexFile(String walletIdentifier) throws NotifiableException {
-    String path = "whirlpool-cli-state-" + walletIdentifier + ".json";
+  protected File computeFileIndex(String walletIdentifier) throws NotifiableException {
+    String path = computeFilePath("whirlpool-cli-state-" + walletIdentifier + ".json");
     return ClientUtils.computeFile(path);
   }
 
-  protected File computeUtxosFile(String walletIdentifier) throws NotifiableException {
-    String path = "whirlpool-cli-utxos-" + walletIdentifier + ".json";
+  protected File computeFileUtxos(String walletIdentifier) throws NotifiableException {
+    String path = computeFilePath("whirlpool-cli-utxos-" + walletIdentifier + ".json");
     return ClientUtils.computeFile(path);
+  }
+
+  protected String computeFilePath(String fileName) {
+    return fileName; // use current directory
   }
 
   protected abstract WalletResponse fetchWalletResponse() throws Exception;
