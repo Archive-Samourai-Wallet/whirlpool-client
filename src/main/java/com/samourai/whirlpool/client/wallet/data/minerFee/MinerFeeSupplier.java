@@ -18,8 +18,12 @@ public class MinerFeeSupplier extends BasicSupplier<MinerFee> {
   protected int feeMin;
   protected int feeMax;
 
-  public MinerFeeSupplier(int feeMin, int feeMax, int feeFallback) {
-    super(log, mockMinerFee(feeFallback));
+  public MinerFeeSupplier(int feeMin, int feeMax, int initialValue) {
+    this(feeMin, feeMax, mockMinerFee(initialValue));
+  }
+
+  public MinerFeeSupplier(int feeMin, int feeMax, MinerFee initialValue) {
+    super(log, initialValue);
     this.feeMin = feeMin;
     this.feeMax = feeMax;
   }
