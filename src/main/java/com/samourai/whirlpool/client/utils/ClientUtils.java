@@ -462,4 +462,10 @@ public class ClientUtils {
       }
     }
   }
+
+  public static File createFile(String fileName) throws NotifiableException {
+    File f = new File(fileName); // use current directory
+    ClientUtils.createFile(f);
+    return f;
+  }
 }
