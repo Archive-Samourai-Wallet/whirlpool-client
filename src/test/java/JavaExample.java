@@ -33,7 +33,8 @@ public class JavaExample {
   private WhirlpoolWalletConfig computeWhirlpoolWalletConfig() {
     IHttpClientService httpClientService = null; // provide impl here, ie: new AndroidHttpClient();
     IStompClientService stompClientService =
-        null; // provide impl here, ie: AndroidStompClientService or https://code.samourai.io/whirlpool/whirlpool-client-cli/-/blob/develop/src/main/java/com/samourai/stomp/client/JavaStompClient.java
+        null; // provide impl here, ie: AndroidStompClientService or
+              // https://code.samourai.io/whirlpool/whirlpool-client-cli/-/blob/develop/src/main/java/com/samourai/stomp/client/JavaStompClient.java
 
     WhirlpoolServer whirlpoolServer = WhirlpoolServer.TESTNET;
 

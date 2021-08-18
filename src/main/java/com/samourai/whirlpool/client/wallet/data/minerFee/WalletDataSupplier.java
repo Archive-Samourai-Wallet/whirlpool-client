@@ -161,9 +161,7 @@ public abstract class WalletDataSupplier extends ExpirableSupplier<WalletRespons
   }
 
   protected File computeFile(String fileName) throws NotifiableException {
-    File f = new File(fileName); // use current directory
-    ClientUtils.createFile(f);
-    return f;
+    return ClientUtils.createFile(fileName); // use current directory
   }
 
   protected abstract WalletResponse fetchWalletResponse() throws Exception;

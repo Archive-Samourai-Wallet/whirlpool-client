@@ -17,7 +17,7 @@ import org.slf4j.LoggerFactory;
 public class WalletStateSupplier extends AbstractPersistableSupplier<WalletStateData> {
   private static final Logger log = LoggerFactory.getLogger(WalletStateSupplier.class);
   private static final int INITWALLET_RETRY = 3;
-  private static final int INIT_BIP84_RETRY_TIMEOUT = 3000;
+  private static final int INITWALLET_RETRY_TIMEOUT = 3000;
 
   private BackendApi backendApi;
   private WalletSupplier walletSupplier;
@@ -84,7 +84,7 @@ public class WalletStateSupplier extends AbstractPersistableSupplier<WalletState
 
     // initialize wallets
     if (!isInitialized) {
-      String[] activePubs = walletSupplier.getPubs(false);
+      String[] activePubs = walletSupplier.getPubs(true);
       for (String pub : activePubs) {
         initWallet(pub);
       }
@@ -100,7 +100,7 @@ public class WalletStateSupplier extends AbstractPersistableSupplier<WalletState
     for (int i = 0; i < INITWALLET_RETRY; i++) {
       log.info(" • Initializing wallet");
       try {
-        // backendApi.initBip84(zpub); // TODO zeroleak
+        backendApi.initBip84(pub);
         return; // success
       } catch (Exception e) {
         if (log.isDebugEnabled()) {
@@ -112,7 +112,7 @@ public class WalletStateSupplier extends AbstractPersistableSupplier<WalletState
                 + "/"
                 + INITWALLET_RETRY
                 + ")");
-        Thread.sleep(INIT_BIP84_RETRY_TIMEOUT);
+        Thread.sleep(INITWALLET_RETRY_TIMEOUT);
       }
     }
     throw new NotifiableException("Unable to initialize Bip84 wallet");

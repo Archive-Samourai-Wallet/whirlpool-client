@@ -51,6 +51,7 @@ public class WhirlpoolWalletConfig extends WhirlpoolClientConfig implements ITx0
   private int feeFallback;
 
   private boolean resyncOnFirstRun;
+  private boolean strictMode;
 
   private ISecretPointFactory secretPointFactory;
 
@@ -94,6 +95,7 @@ public class WhirlpoolWalletConfig extends WhirlpoolClientConfig implements ITx0
     this.feeFallback = 75;
 
     this.resyncOnFirstRun = false;
+    this.strictMode = true;
 
     this.secretPointFactory = SecretPointFactoryJava.getInstance();
   }
@@ -300,6 +302,14 @@ public class WhirlpoolWalletConfig extends WhirlpoolClientConfig implements ITx0
     this.resyncOnFirstRun = resyncOnFirstRun;
   }
 
+  public boolean isStrictMode() {
+    return strictMode;
+  }
+
+  public void setStrictMode(boolean strictMode) {
+    this.strictMode = strictMode;
+  }
+
   public ISecretPointFactory getSecretPointFactory() {
     return secretPointFactory;
   }
@@ -356,6 +366,7 @@ public class WhirlpoolWalletConfig extends WhirlpoolClientConfig implements ITx0
     configInfo.put(
         "fee", "fallback=" + getFeeFallback() + ", min=" + getFeeMin() + ", max=" + getFeeMax());
     configInfo.put("resyncOnFirstRun", Boolean.toString(resyncOnFirstRun));
+    configInfo.put("strictMode", Boolean.toString(strictMode));
     return configInfo;
   }
 }

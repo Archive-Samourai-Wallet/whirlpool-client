@@ -49,7 +49,7 @@ public class WhirlpoolWalletService {
   }
 
   public WhirlpoolWallet openWallet(
-          WhirlpoolWalletConfig config, byte[] seed, String seedPassphrase) throws Exception {
+      WhirlpoolWalletConfig config, byte[] seed, String seedPassphrase) throws Exception {
     WhirlpoolWallet wp = computeWhirlpoolWallet(config, seed, seedPassphrase);
     return openWallet(wp);
   }
@@ -75,20 +75,20 @@ public class WhirlpoolWalletService {
     // log zpubs
     if (log.isDebugEnabled()) {
       log.debug(
-              "Deposit wallet: accountIndex="
-                      + depositWallet.getAccount().getAccountIndex()
-                      + ", zpub="
-                      + ClientUtils.maskString(depositWallet.getPub()));
+          "Deposit wallet: accountIndex="
+              + depositWallet.getAccount().getAccountIndex()
+              + ", zpub="
+              + ClientUtils.maskString(depositWallet.getPub()));
       log.debug(
-              "Premix wallet: accountIndex="
-                      + premixWallet.getAccount().getAccountIndex()
-                      + ", zpub="
-                      + ClientUtils.maskString(premixWallet.getPub()));
+          "Premix wallet: accountIndex="
+              + premixWallet.getAccount().getAccountIndex()
+              + ", zpub="
+              + ClientUtils.maskString(premixWallet.getPub()));
       log.debug(
-              "Postmix wallet: accountIndex="
-                      + postmixWallet.getAccount().getAccountIndex()
-                      + ", zpub="
-                      + ClientUtils.maskString(postmixWallet.getPub()));
+          "Postmix wallet: accountIndex="
+              + postmixWallet.getAccount().getAccountIndex()
+              + ", zpub="
+              + ClientUtils.maskString(postmixWallet.getPub()));
     }
 
     // notify open
@@ -97,9 +97,9 @@ public class WhirlpoolWalletService {
   }
 
   protected String computeWalletIdentifier(
-          byte[] seed, String seedPassphrase, NetworkParameters params) {
+      byte[] seed, String seedPassphrase, NetworkParameters params) {
     return ClientUtils.sha256Hash(
-            Bytes.concat(seed, seedPassphrase.getBytes(), params.getId().getBytes()));
+        Bytes.concat(seed, seedPassphrase.getBytes(), params.getId().getBytes()));
   }
 
   protected WhirlpoolWallet computeWhirlpoolWallet(WhirlpoolWalletConfig config, HD_Wallet bip84w)
@@ -108,7 +108,7 @@ public class WhirlpoolWalletService {
   }
 
   protected WhirlpoolWallet computeWhirlpoolWallet(
-          WhirlpoolWalletConfig config, byte[] seed, String seedPassphrase) throws Exception {
+      WhirlpoolWalletConfig config, byte[] seed, String seedPassphrase) throws Exception {
     NetworkParameters params = config.getNetworkParameters();
     if (seedPassphrase == null) {
       seedPassphrase = "";
@@ -133,22 +133,22 @@ public class WhirlpoolWalletService {
     WalletAggregateService walletAggregateService = new WalletAggregateService(params, bech32Util);
 
     WalletDataSupplier walletDataSupplier =
-            computeWalletDataSupplier(config, bip44w, walletIdentifier);
+        computeWalletDataSupplier(config, bip44w, walletIdentifier);
 
     return new WhirlpoolWallet(
-            walletIdentifier,
-            config,
-            tx0Service,
-            walletAggregateService,
-            bech32Util,
-            walletDataSupplier);
+        walletIdentifier,
+        config,
+        tx0Service,
+        walletAggregateService,
+        bech32Util,
+        walletDataSupplier);
   }
 
   // overridable for android
   protected WalletDataSupplier computeWalletDataSupplier(
-          WhirlpoolWalletConfig config, HD_Wallet bip44w, String walletIdentifier) throws Exception {
+      WhirlpoolWalletConfig config, HD_Wallet bip44w, String walletIdentifier) throws Exception {
     return new BackendWalletDataSupplier(
-            config.getRefreshUtxoDelay(), config, bip44w, walletIdentifier);
+        config.getRefreshUtxoDelay(), config, bip44w, walletIdentifier);
   }
 
   public Optional<WhirlpoolWallet> getWhirlpoolWallet() {
