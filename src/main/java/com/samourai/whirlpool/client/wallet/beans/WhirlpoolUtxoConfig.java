@@ -15,7 +15,7 @@ public abstract class WhirlpoolUtxoConfig {
   }
 
   private void onChange() {
-    getUtxoConfigSupplier().setLastChange();
+    getUtxoConfigSupplier().onUtxoConfigChange();
   }
 
   public void setPoolId(String poolId) {

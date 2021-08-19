@@ -5,10 +5,10 @@ import com.samourai.whirlpool.client.whirlpool.ServerApi;
 import com.samourai.whirlpool.protocol.rest.PoolInfo;
 import com.samourai.whirlpool.protocol.rest.PoolsResponse;
 
-public class MockPoolSupplier extends PoolSupplier {
+public class MockPoolSupplier extends ExpirablePoolSupplier {
   private static PoolsResponse poolsResponse;
 
-  public MockPoolSupplier(Tx0ParamService tx0ParamService, PoolInfo... pools) {
+  public MockPoolSupplier(Tx0ParamService tx0ParamService, PoolInfo... pools) throws Exception {
     super(9999999, computeServerApi(), tx0ParamService);
     mock(pools);
   }

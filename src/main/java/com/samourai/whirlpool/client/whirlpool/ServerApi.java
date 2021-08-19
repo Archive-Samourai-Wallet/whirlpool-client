@@ -3,7 +3,6 @@ package com.samourai.whirlpool.client.whirlpool;
 import com.samourai.http.client.HttpUsage;
 import com.samourai.http.client.IHttpClient;
 import com.samourai.http.client.IHttpClientService;
-import com.samourai.wallet.api.backend.BackendApi;
 import com.samourai.whirlpool.client.utils.ClientUtils;
 import com.samourai.whirlpool.protocol.WhirlpoolProtocol;
 import com.samourai.whirlpool.protocol.rest.*;
@@ -14,7 +13,7 @@ import org.slf4j.LoggerFactory;
 
 /** Whirlpool server API */
 public class ServerApi {
-  private Logger log = LoggerFactory.getLogger(BackendApi.class);
+  private Logger log = LoggerFactory.getLogger(ServerApi.class);
 
   private String urlServer;
   private IHttpClient httpClientRest;

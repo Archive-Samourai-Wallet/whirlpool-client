@@ -453,4 +453,14 @@ public class ClientUtils {
     ClientUtils.createFile(f);
     return f;
   }
+
+  public static <T> Collection<T> filterByAssignableType(Collection items, Class<T> type) {
+    List<T> list = new LinkedList<T>();
+    for (Object item : items) {
+      if (item.getClass().isAssignableFrom(type)) {
+        list.add((T) item);
+      }
+    }
+    return list;
+  }
 }

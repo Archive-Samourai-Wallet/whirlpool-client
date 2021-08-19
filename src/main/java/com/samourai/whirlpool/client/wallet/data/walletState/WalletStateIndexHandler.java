@@ -3,12 +3,12 @@ package com.samourai.whirlpool.client.wallet.data.walletState;
 import com.samourai.wallet.client.indexHandler.AbstractIndexHandler;
 
 public class WalletStateIndexHandler extends AbstractIndexHandler {
-  private WalletStateSupplier walletStateSupplier;
+  private PersistableWalletStateSupplier walletStateSupplier;
   private String key;
   private int defaultValue;
 
   public WalletStateIndexHandler(
-      WalletStateSupplier walletStateSupplier, String key, int defaultValue) {
+      PersistableWalletStateSupplier walletStateSupplier, String key, int defaultValue) {
     super();
     this.walletStateSupplier = walletStateSupplier;
     this.key = key;

@@ -4,8 +4,9 @@ import com.samourai.whirlpool.client.wallet.beans.Tx0FeeTarget;
 import com.samourai.whirlpool.client.wallet.beans.WhirlpoolUtxo;
 import com.samourai.whirlpool.client.wallet.data.minerFee.MinerFeeSupplier;
 import com.samourai.whirlpool.client.whirlpool.beans.Pool;
-import java.util.*;
-import org.bitcoinj.core.*;
+import java.util.Collection;
+import java.util.LinkedList;
+import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -21,8 +22,8 @@ public class Tx0ParamService {
   }
 
   public Tx0Param getTx0Param(Pool pool, Tx0FeeTarget tx0FeeTarget, Tx0FeeTarget mixFeeTarget) {
-    int feeTx0 = minerFeeSupplier.getFee(tx0FeeTarget);
-    int feePremix = minerFeeSupplier.getFee(mixFeeTarget);
+    int feeTx0 = minerFeeSupplier.getFee(tx0FeeTarget.getFeeTarget());
+    int feePremix = minerFeeSupplier.getFee(mixFeeTarget.getFeeTarget());
     Long overspendOrNull = config.getOverspend(pool.getPoolId());
     Tx0Param tx0Param =
         new Tx0Param(config.getNetworkParameters(), feeTx0, feePremix, pool, overspendOrNull);

@@ -1,6 +1,7 @@
 package com.samourai.whirlpool.client.wallet.data.utxo;
 
 import com.google.common.eventbus.Subscribe;
+import com.samourai.wallet.api.backend.beans.TxsResponse;
 import com.samourai.wallet.api.backend.beans.UnspentOutput;
 import com.samourai.wallet.api.backend.beans.WalletResponse;
 import com.samourai.wallet.hd.HD_Wallet;
@@ -13,8 +14,9 @@ import com.samourai.whirlpool.client.wallet.WhirlpoolWalletConfig;
 import com.samourai.whirlpool.client.wallet.beans.WhirlpoolAccount;
 import com.samourai.whirlpool.client.wallet.beans.WhirlpoolUtxo;
 import com.samourai.whirlpool.client.wallet.beans.WhirlpoolUtxoChanges;
-import com.samourai.whirlpool.client.wallet.data.minerFee.WalletDataSupplier;
-import com.samourai.whirlpool.client.wallet.data.pool.PoolSupplier;
+import com.samourai.whirlpool.client.wallet.data.dataPersister.FileDataPersister;
+import com.samourai.whirlpool.client.wallet.data.dataSource.WalletResponseDataSource;
+import com.samourai.whirlpool.client.wallet.data.pool.ExpirablePoolSupplier;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
@@ -26,9 +28,10 @@ import org.junit.Before;
 import org.junit.Test;
 
 public class UtxoSupplierTest extends AbstractTest {
-  protected WalletDataSupplier walletDataSupplier;
+  protected WalletResponseDataSource dataSource;
+  protected FileDataPersister dataPersister;
   protected UtxoSupplier utxoSupplier;
-  protected UtxoConfigSupplier utxoConfigSupplier;
+  protected PersistableUtxoConfigSupplier utxoConfigSupplier;
   protected WalletResponse mockWalletResponse;
   protected boolean mockException;
 
@@ -64,8 +67,12 @@ public class UtxoSupplierTest extends AbstractTest {
     byte[] seed = hdWalletFactory.computeSeedFromWords(SEED_WORDS);
     HD_Wallet bip44w = hdWalletFactory.getBIP44(seed, SEED_PASSPHRASE, params);
 
-    walletDataSupplier =
-        new WalletDataSupplier(999999, config, bip44w, "test") {
+    setMockWalletResponse(new UnspentOutput[] {});
+
+    String walletIdentifier = "test";
+    dataPersister = new FileDataPersister(config, bip44w, walletIdentifier);
+    dataSource =
+        new WalletResponseDataSource(config, bip44w, walletIdentifier, dataPersister) {
           @Override
           protected WalletResponse fetchWalletResponse() throws Exception {
             if (mockException) {
@@ -75,17 +82,25 @@ public class UtxoSupplierTest extends AbstractTest {
           }
 
           @Override
-          protected PoolSupplier computePoolSupplier(
+          protected ExpirablePoolSupplier computePoolSupplier(
               WhirlpoolWalletConfig config, Tx0ParamService tx0ParamService) {
             return mockPoolSupplier();
           }
-        };
-    walletDataSupplier.getPoolSupplier().load();
-    walletDataSupplier.getWalletSupplier().getWalletStateSupplier().load();
 
-    utxoSupplier = walletDataSupplier.getUtxoSupplier();
-    utxoConfigSupplier = walletDataSupplier.getUtxoConfigSupplier();
-    utxoConfigSupplier.load();
+          @Override
+          public void pushTx(String txHex) throws Exception {
+            // do nothing
+          }
+
+          @Override
+          public TxsResponse fetchTxs(String[] zpubs, int page, int count) throws Exception {
+            return null; // not available
+          }
+        };
+    dataSource.open();
+
+    utxoSupplier = dataSource.getUtxoSupplier();
+    utxoConfigSupplier = dataPersister.getUtxoConfigSupplier();
 
     mockException = false;
 
@@ -168,7 +183,7 @@ public class UtxoSupplierTest extends AbstractTest {
   }
 
   protected void doTest(UnspentOutput[] expected) throws Exception {
-    walletDataSupplier.load();
+    dataSource.open();
 
     // getUtxos()
     assertUtxoEquals(expected, utxoSupplier.findUtxos(WhirlpoolAccount.values()));

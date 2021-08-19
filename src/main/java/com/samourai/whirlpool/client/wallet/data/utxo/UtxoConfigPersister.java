@@ -1,7 +1,7 @@
 package com.samourai.whirlpool.client.wallet.data.utxo;
 
 import com.fasterxml.jackson.core.type.TypeReference;
-import com.samourai.whirlpool.client.wallet.data.AbstractPersister;
+import com.samourai.whirlpool.client.wallet.data.supplier.AbstractPersister;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import org.slf4j.Logger;

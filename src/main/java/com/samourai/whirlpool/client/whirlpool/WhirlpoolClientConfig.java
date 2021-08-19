@@ -34,6 +34,10 @@ public class WhirlpoolClientConfig {
     this.mobile = mobile;
   }
 
+  public IHttpClientService getHttpClientService() {
+    return httpClientService;
+  }
+
   public IHttpClient getHttpClient(HttpUsage httpUsage) {
     return httpClientService.getHttpClient(httpUsage);
   }

@@ -1,14 +1,15 @@
-package com.samourai.whirlpool.client.wallet.data;
+package com.samourai.whirlpool.client.wallet.data.supplier;
 
 import org.slf4j.Logger;
 
 /** Supplier with static data. */
-public abstract class BasicSupplier<D> extends AbstractSupplier<D> {
+public abstract class BasicSupplier<D> {
+  protected final Logger log;
   private D value;
   private Long lastUpdate;
 
-  public BasicSupplier(final Logger log, D initialValue) {
-    super(log);
+  public BasicSupplier(final Logger log, D initialValue) throws Exception {
+    this.log = log;
     this.value = null;
     this.lastUpdate = null;
     if (initialValue != null) {
@@ -16,17 +17,18 @@ public abstract class BasicSupplier<D> extends AbstractSupplier<D> {
     }
   }
 
-  protected void setValue(D value) {
+  protected void setValue(D value) throws Exception {
+    if (log.isDebugEnabled()) {
+      log.debug("setValue");
+    }
     this.value = value;
     this.lastUpdate = System.currentTimeMillis();
   }
 
-  @Override
   public D getValue() {
     return value;
   }
 
-  @Override
   public Long getLastUpdate() {
     return lastUpdate;
   }

@@ -1,6 +1,6 @@
 package com.samourai.whirlpool.client.wallet.data.utxo;
 
-import com.samourai.whirlpool.client.wallet.data.PersistableData;
+import com.samourai.whirlpool.client.wallet.data.supplier.PersistableData;
 import java.util.Collection;
 import java.util.LinkedHashMap;
 import java.util.Map;
