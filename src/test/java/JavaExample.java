@@ -109,6 +109,7 @@ public class JavaExample {
 
   // Example 2: get data from external backend
   private DataSourceFactory computeDataSourceFactoryExternal() {
+    // note: when external data changed, use WalletResponseDataSource.refresh() to refresh it
     return new DataSourceFactory() {
       @Override
       public DataSource createDataSource(
@@ -157,11 +158,15 @@ public class JavaExample {
     /*
      * WALLET
      */
-    // open wallet
+    // open wallet: standard way
     byte[] seed = null; // provide seed here
     String seedPassphrase = null; // provide seed passphrase here (or null if none)
-    WhirlpoolWallet whirlpoolWallet =
-        whirlpoolWalletService.openWallet(config, seed, seedPassphrase);
+    WhirlpoolWallet whirlpoolWallet = whirlpoolWalletService.openWallet(config, seed, seedPassphrase);
+
+    // open wallet: alternate way
+    HD_Wallet bip44w = null; // provide bip44 wallet here
+    NetworkParameters params = config.getNetworkParameters();
+    whirlpoolWallet = whirlpoolWalletService.openWallet(config, bip44w);
 
     // start whirlpool wallet
     whirlpoolWallet.start();
