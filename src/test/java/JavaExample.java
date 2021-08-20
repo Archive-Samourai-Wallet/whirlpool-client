@@ -38,7 +38,7 @@ import java8.util.Optional;
 import org.bitcoinj.core.NetworkParameters;
 
 public class JavaExample {
-  // TODO configure these values as you wish
+  // configure these values as you wish
   private WhirlpoolWalletConfig computeWhirlpoolWalletConfig() {
     IStompClientService stompClientService =
         null; // provide impl here, ie: AndroidStompClientService or
@@ -161,7 +161,8 @@ public class JavaExample {
     // open wallet: standard way
     byte[] seed = null; // provide seed here
     String seedPassphrase = null; // provide seed passphrase here (or null if none)
-    WhirlpoolWallet whirlpoolWallet = whirlpoolWalletService.openWallet(config, seed, seedPassphrase);
+    WhirlpoolWallet whirlpoolWallet =
+        whirlpoolWalletService.openWallet(config, seed, seedPassphrase);
 
     // open wallet: alternate way
     HD_Wallet bip44w = null; // provide bip44 wallet here

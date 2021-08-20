@@ -1,5 +1,7 @@
 package com.samourai.whirlpool.client.whirlpool.listener;
 
+import com.samourai.whirlpool.client.mix.handler.MixDestination;
+import com.samourai.whirlpool.client.mix.listener.MixFail;
 import com.samourai.whirlpool.client.mix.listener.MixFailReason;
 import com.samourai.whirlpool.client.mix.listener.MixStep;
 import com.samourai.whirlpool.client.mix.listener.MixSuccess;
@@ -31,20 +33,42 @@ public class LoggingWhirlpoolClientListener extends AbstractWhirlpoolClientListe
   @Override
   public void success(MixSuccess mixSuccess) {
     super.success(mixSuccess);
-    logInfo(format("⣿ WHIRLPOOL SUCCESS ⣿ txid: " + mixSuccess.getReceiveUtxo().getHash()));
+    MixDestination destination = mixSuccess.getDestination();
+    logInfo(
+        format(
+            "⣿ WHIRLPOOL SUCCESS ⣿ txid: "
+                + mixSuccess.getReceiveUtxo().getHash()
+                + ", receiveAddress="
+                + destination.getAddress()
+                + ", path="
+                + destination.getPath()
+                + ", type="
+                + destination.getType()));
   }
 
   @Override
-  public void fail(MixFailReason failReason, String notifiableError) {
-    super.fail(failReason, notifiableError);
+  public void fail(MixFail mixFail) {
+    super.fail(mixFail);
+    MixFailReason failReason = mixFail.getMixFailReason();
     String message = failReason.getMessage();
+    String notifiableError = mixFail.getError();
     if (notifiableError != null) {
       message += " ; " + notifiableError;
     }
     if (MixFailReason.CANCEL.equals(failReason)) {
       logInfo(format(message));
     } else {
-      logError(format("⣿ WHIRLPOOL FAILED ⣿ " + message));
+      MixDestination destination = mixFail.getDestination();
+      String destinationStr =
+          (destination != null
+              ? ", receiveAddress="
+                  + destination.getAddress()
+                  + ", path="
+                  + destination.getPath()
+                  + ", type="
+                  + destination.getType()
+              : "");
+      logError(format("⣿ WHIRLPOOL FAILED ⣿ " + message + destinationStr));
     }
   }
 

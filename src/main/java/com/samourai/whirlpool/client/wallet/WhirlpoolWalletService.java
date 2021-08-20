@@ -1,7 +1,6 @@
 package com.samourai.whirlpool.client.wallet;
 
 import com.google.common.primitives.Bytes;
-import com.samourai.wallet.client.BipWalletAndAddressType;
 import com.samourai.wallet.hd.HD_Wallet;
 import com.samourai.wallet.hd.java.HD_WalletFactoryJava;
 import com.samourai.whirlpool.client.event.WalletCloseEvent;
@@ -73,29 +72,6 @@ public class WhirlpoolWalletService {
     wp.open(); // load initial data
     whirlpoolWallet = Optional.of(wp);
 
-    BipWalletAndAddressType depositWallet = wp.getWalletDeposit();
-    BipWalletAndAddressType premixWallet = wp.getWalletPremix();
-    BipWalletAndAddressType postmixWallet = wp.getWalletPostmix();
-
-    // log zpubs
-    if (log.isDebugEnabled()) {
-      log.debug(
-          "Deposit wallet: accountIndex="
-              + depositWallet.getAccount().getAccountIndex()
-              + ", zpub="
-              + ClientUtils.maskString(depositWallet.getPub()));
-      log.debug(
-          "Premix wallet: accountIndex="
-              + premixWallet.getAccount().getAccountIndex()
-              + ", zpub="
-              + ClientUtils.maskString(premixWallet.getPub()));
-      log.debug(
-          "Postmix wallet: accountIndex="
-              + postmixWallet.getAccount().getAccountIndex()
-              + ", zpub="
-              + ClientUtils.maskString(postmixWallet.getPub()));
-    }
-
     // notify open
     WhirlpoolEventService.getInstance().post(new WalletOpenEvent(wp));
     return wp;
@@ -127,7 +103,7 @@ public class WhirlpoolWalletService {
       for (Map.Entry<String, String> entry : config.getConfigInfo().entrySet()) {
         log.debug("[whirlpoolWalletConfig/" + entry.getKey() + "] " + entry.getValue());
       }
-      log.debug("walletIdentifier: " + walletIdentifier);
+      log.debug("[walletIdentifier] " + walletIdentifier);
     }
 
     // verify config

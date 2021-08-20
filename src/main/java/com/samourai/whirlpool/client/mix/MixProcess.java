@@ -5,8 +5,8 @@ import com.samourai.wallet.util.TxUtil;
 import com.samourai.whirlpool.client.exception.NotifiableException;
 import com.samourai.whirlpool.client.mix.handler.IPostmixHandler;
 import com.samourai.whirlpool.client.mix.handler.IPremixHandler;
+import com.samourai.whirlpool.client.mix.handler.MixDestination;
 import com.samourai.whirlpool.client.mix.handler.UtxoWithBalance;
-import com.samourai.whirlpool.client.mix.listener.MixSuccess;
 import com.samourai.whirlpool.client.utils.ClientCryptoService;
 import com.samourai.whirlpool.client.utils.ClientUtils;
 import com.samourai.whirlpool.protocol.WhirlpoolProtocol;
@@ -47,7 +47,7 @@ public class MixProcess {
   // computed values
   private boolean liquidity;
   private RSABlindingParameters blindingParams;
-  private String receiveAddress;
+  private MixDestination receiveDestination;
   private Utxo receiveUtxo;
 
   // security checks
@@ -145,12 +145,12 @@ public class MixProcess {
     byte[] publicKey = WhirlpoolProtocol.decodeBytes(confirmInputMixStatusNotification.publicKey64);
     RSAKeyParameters serverPublicKey = ClientUtils.publicKeyUnserialize(publicKey);
     this.blindingParams = clientCryptoService.computeBlindingParams(serverPublicKey);
-    this.receiveAddress = postmixHandler.computeReceiveAddress(params);
+    this.receiveDestination = postmixHandler.computeDestination();
 
     String mixId = confirmInputMixStatusNotification.mixId;
     String blindedBordereau64 =
         WhirlpoolProtocol.encodeBytes(
-            clientCryptoService.blind(this.receiveAddress, blindingParams));
+            clientCryptoService.blind(this.receiveDestination.getAddress(), blindingParams));
     String userHash = premixHandler.computeUserHash(mixId);
     ConfirmInputRequest confirmInputRequest =
         new ConfirmInputRequest(mixId, blindedBordereau64, userHash);
@@ -191,7 +191,8 @@ public class MixProcess {
     String unblindedSignedBordereau64 =
         WhirlpoolProtocol.encodeBytes(clientCryptoService.unblind(signedBordereau, blindingParams));
     RegisterOutputRequest registerOutputRequest =
-        new RegisterOutputRequest(inputsHash, unblindedSignedBordereau64, this.receiveAddress);
+        new RegisterOutputRequest(
+            inputsHash, unblindedSignedBordereau64, this.receiveDestination.getAddress());
 
     registeredOutput = true;
     return registerOutputRequest;
@@ -209,7 +210,8 @@ public class MixProcess {
     }
 
     RevealOutputRequest revealOutputRequest =
-        new RevealOutputRequest(revealOutputMixStatusNotification.mixId, this.receiveAddress);
+        new RevealOutputRequest(
+            revealOutputMixStatusNotification.mixId, this.receiveDestination.getAddress());
 
     revealedOutput = true;
     return revealOutputRequest;
@@ -244,10 +246,6 @@ public class MixProcess {
 
     signed = true;
     return signingRequest;
-  }
-
-  protected MixSuccess computeMixSuccess() {
-    return new MixSuccess(this.receiveAddress, this.receiveUtxo);
   }
 
   //
@@ -307,7 +305,8 @@ public class MixProcess {
     }
 
     // verify my output
-    Integer outputIndex = ClientUtils.findTxOutputIndex(this.receiveAddress, tx, params);
+    Integer outputIndex =
+        ClientUtils.findTxOutputIndex(this.receiveDestination.getAddress(), tx, params);
     if (outputIndex == null) {
       throw new Exception("Output not found in tx");
     }
@@ -370,6 +369,10 @@ public class MixProcess {
       utxos.add(utxo);
     }
     return WhirlpoolProtocol.computeInputsHash(utxos);
+  }
+
+  public Utxo getReceiveUtxo() {
+    return receiveUtxo;
   }
 
   private boolean throwProtocolException() throws Exception {
