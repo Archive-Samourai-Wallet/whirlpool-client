@@ -104,7 +104,7 @@ public class SamouraiDataSource extends WalletResponseDataSource {
                       if (log.isDebugEnabled()) {
                         log.debug("new block received -> refreshing walletData");
                         try {
-                          getWalletResponseSupplier().refresh();
+                          refresh();
                         } catch (Exception e) {
                           log.error("", e);
                         }
@@ -122,7 +122,7 @@ public class SamouraiDataSource extends WalletResponseDataSource {
                       if (log.isDebugEnabled()) {
                         log.debug("new address received -> refreshing walletData");
                         try {
-                          getWalletResponseSupplier().refresh();
+                          refresh();
                         } catch (Exception e) {
                           log.error("", e);
                         }

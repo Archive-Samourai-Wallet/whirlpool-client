@@ -106,9 +106,13 @@ public abstract class WalletResponseDataSource implements DataSource {
         config.getNetworkParameters()) {
       @Override
       public void refresh() throws Exception {
-        walletResponseSupplier.refresh();
+        WalletResponseDataSource.this.refresh();
       }
     };
+  }
+
+  public void refresh() throws Exception {
+    walletResponseSupplier.refresh();
   }
 
   protected abstract WalletResponse fetchWalletResponse() throws Exception;

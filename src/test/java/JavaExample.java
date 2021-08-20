@@ -109,6 +109,7 @@ public class JavaExample {
 
   // Example 2: get data from external backend
   private DataSourceFactory computeDataSourceFactoryExternal() {
+    // note: when external data changed, use WalletResponseDataSource.refresh() to refresh it
     return new DataSourceFactory() {
       @Override
       public DataSource createDataSource(
