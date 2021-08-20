@@ -3,7 +3,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>io.samourai.code.whirlpool</groupId>
     <artifactId>whirlpool-client</artifactId>
-    <version>0.23.30-early3</version>
+    <version>0.23.30-early4-SNAPSHOT</version>
     <name>whirlpool-client</name>
     <properties>
         <maven.compiler.source>1.6</maven.compiler.source>
@@ -25,7 +25,7 @@
         <dependency>
             <groupId>io.samourai.code.wallet</groupId>
             <artifactId>extlibj</artifactId>
-            <version>0.0.19-dsk2</version>
+            <version>0.0.19-dsk3-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>io.samourai.code.wallet</groupId>
