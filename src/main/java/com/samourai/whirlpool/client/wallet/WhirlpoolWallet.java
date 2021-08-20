@@ -17,6 +17,7 @@ import com.samourai.whirlpool.client.exception.NotifiableException;
 import com.samourai.whirlpool.client.exception.UnconfirmedUtxoException;
 import com.samourai.whirlpool.client.mix.listener.MixFail;
 import com.samourai.whirlpool.client.mix.listener.MixFailReason;
+import com.samourai.whirlpool.client.mix.listener.MixProgress;
 import com.samourai.whirlpool.client.mix.listener.MixSuccess;
 import com.samourai.whirlpool.client.tx0.*;
 import com.samourai.whirlpool.client.utils.ClientUtils;
@@ -28,6 +29,7 @@ import com.samourai.whirlpool.client.wallet.data.minerFee.MinerFeeSupplier;
 import com.samourai.whirlpool.client.wallet.data.pool.PoolSupplier;
 import com.samourai.whirlpool.client.wallet.data.utxo.UtxoData;
 import com.samourai.whirlpool.client.wallet.data.utxo.UtxoSupplier;
+import com.samourai.whirlpool.client.wallet.data.utxoConfig.UtxoConfigPersisted;
 import com.samourai.whirlpool.client.wallet.data.utxoConfig.UtxoConfigSupplier;
 import com.samourai.whirlpool.client.wallet.data.wallet.WalletSupplier;
 import com.samourai.whirlpool.client.wallet.data.walletState.WalletStateSupplier;
@@ -146,10 +148,12 @@ public class WhirlpoolWallet {
         utxoState.setStatus(WhirlpoolUtxoStatus.TX0_SUCCESS, true);
       }
 
-      // preserve utxo config
+      // forward utxoConfig
       String tx0Txid = tx0.getTx().getHashAsString();
-      WhirlpoolUtxo whirlpoolUtxoSource = whirlpoolUtxos.iterator().next();
-      getUtxoConfigSupplier().forwardUtxoConfig(whirlpoolUtxoSource, tx0Txid);
+      UnspentOutput unspentOutput = whirlpoolUtxos.iterator().next().getUtxo();
+      UtxoConfigPersisted utxoConfig =
+          getUtxoConfigSupplier().getUtxo(unspentOutput.tx_hash, unspentOutput.tx_output_n);
+      getUtxoConfigSupplier().saveTx(tx0Txid, utxoConfig.copy());
 
       return tx0;
     } catch (Exception e) {
@@ -403,11 +407,12 @@ public class WhirlpoolWallet {
     return dataSource.getPoolSupplier();
   }
 
-  private Tx0ParamService getTx0ParamService() {
+  public Tx0ParamService getTx0ParamService() {
     return dataSource.getTx0ParamService();
   }
 
-  protected UtxoConfigSupplier getUtxoConfigSupplier() {
+  // used by Sparrow
+  public UtxoConfigSupplier getUtxoConfigSupplier() {
     return dataPersister.getUtxoConfigSupplier();
   }
 
@@ -416,9 +421,13 @@ public class WhirlpoolWallet {
   }
 
   public void onMixSuccess(MixSuccess mixSuccess) {
-    // preserve utxo config
+    // forward utxoConfig
+    UnspentOutput unspentOutput = mixSuccess.getWhirlpoolUtxo().getUtxo();
+    UtxoConfigPersisted utxoConfig =
+        getUtxoConfigSupplier().getUtxo(unspentOutput.tx_hash, unspentOutput.tx_output_n);
     Utxo receiveUtxo = mixSuccess.getReceiveUtxo();
-    getUtxoConfigSupplier().forwardUtxoConfig(mixSuccess.getWhirlpoolUtxo(), receiveUtxo.getHash());
+    getUtxoConfigSupplier()
+        .saveUtxo(receiveUtxo.getHash(), (int) receiveUtxo.getIndex(), utxoConfig.copy());
 
     // change Tor identity
     config.getTorClientService().changeIdentity();

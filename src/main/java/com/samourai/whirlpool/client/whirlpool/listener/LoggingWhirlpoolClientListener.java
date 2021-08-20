@@ -1,10 +1,7 @@
 package com.samourai.whirlpool.client.whirlpool.listener;
 
 import com.samourai.whirlpool.client.mix.handler.MixDestination;
-import com.samourai.whirlpool.client.mix.listener.MixFail;
-import com.samourai.whirlpool.client.mix.listener.MixFailReason;
-import com.samourai.whirlpool.client.mix.listener.MixStep;
-import com.samourai.whirlpool.client.mix.listener.MixSuccess;
+import com.samourai.whirlpool.client.mix.listener.*;
 import com.samourai.whirlpool.client.utils.ClientUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -73,8 +70,10 @@ public class LoggingWhirlpoolClientListener extends AbstractWhirlpoolClientListe
   }
 
   @Override
-  public void progress(MixStep step) {
-    super.progress(step);
+  public void progress(MixProgress mixProgress) {
+    super.progress(mixProgress);
+
+    MixStep step = mixProgress.getMixProgressDetail().getMixStep();
     String asciiProgress = renderProgress(step.getProgress());
     logInfo(format(asciiProgress + " " + step + " : " + step.getMessage()));
   }

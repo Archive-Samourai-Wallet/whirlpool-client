@@ -8,6 +8,7 @@ import com.samourai.whirlpool.client.tx0.Tx0ParamService;
 import com.samourai.whirlpool.client.utils.ClientUtils;
 import com.samourai.whirlpool.client.wallet.beans.*;
 import com.samourai.whirlpool.client.wallet.data.pool.PoolSupplier;
+import com.samourai.whirlpool.client.wallet.data.utxoConfig.UtxoConfigManager;
 import com.samourai.whirlpool.client.wallet.data.utxoConfig.UtxoConfigSupplier;
 import com.samourai.whirlpool.client.wallet.data.wallet.WalletSupplierImpl;
 import com.samourai.whirlpool.client.whirlpool.beans.Pool;
@@ -151,6 +152,11 @@ public class UtxoData {
 
     if (log.isDebugEnabled()) {
       log.debug("utxos: " + previousUtxos.size() + " => " + utxos.size() + ", " + utxoChanges);
+    }
+
+    // utxoConfig management
+    if (!utxoChanges.isEmpty()) {
+      new UtxoConfigManager(utxoConfigSupplier).onUtxoChanges(this);
     }
   }
 

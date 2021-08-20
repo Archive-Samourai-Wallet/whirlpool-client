@@ -7,7 +7,7 @@ import io.reactivex.subjects.Subject;
 
 public class WhirlpoolUtxoState {
   private WhirlpoolUtxoStatus status;
-  private MixProgress mixProgress;
+  private MixProgressDetail mixProgress;
   private MixableStatus mixableStatus;
 
   private String message;
@@ -42,7 +42,7 @@ public class WhirlpoolUtxoState {
   public void setStatus(
       WhirlpoolUtxoStatus status,
       boolean updateLastActivity,
-      MixProgress mixProgress,
+      MixProgressDetail mixProgress,
       String error) {
     this.status = status;
     this.mixProgress = mixProgress;
@@ -61,7 +61,7 @@ public class WhirlpoolUtxoState {
   }
 
   public void setStatus(
-      WhirlpoolUtxoStatus status, boolean updateLastActivity, MixProgress mixProgress) {
+      WhirlpoolUtxoStatus status, boolean updateLastActivity, MixProgressDetail mixProgress) {
     setStatus(status, updateLastActivity, mixProgress, null);
   }
 
@@ -73,7 +73,7 @@ public class WhirlpoolUtxoState {
     setStatus(status, updateLastActivity, null, null);
   }
 
-  public MixProgress getMixProgress() {
+  public MixProgressDetail getMixProgress() {
     return mixProgress;
   }
 

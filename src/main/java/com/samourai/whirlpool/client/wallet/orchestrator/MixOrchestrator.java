@@ -5,10 +5,7 @@ import com.samourai.wallet.util.AbstractOrchestrator;
 import com.samourai.whirlpool.client.WhirlpoolClient;
 import com.samourai.whirlpool.client.event.*;
 import com.samourai.whirlpool.client.exception.NotifiableException;
-import com.samourai.whirlpool.client.mix.listener.MixFail;
-import com.samourai.whirlpool.client.mix.listener.MixFailReason;
-import com.samourai.whirlpool.client.mix.listener.MixStep;
-import com.samourai.whirlpool.client.mix.listener.MixSuccess;
+import com.samourai.whirlpool.client.mix.listener.*;
 import com.samourai.whirlpool.client.wallet.WhirlpoolEventService;
 import com.samourai.whirlpool.client.wallet.beans.*;
 import com.samourai.whirlpool.client.whirlpool.beans.Pool;
@@ -174,7 +171,7 @@ public abstract class MixOrchestrator extends AbstractOrchestrator {
                 String poolId = mixing.getUtxo().getPoolId();
 
                 // should not interrupt a mix
-                MixProgress mixProgress = mixing.getUtxo().getUtxoState().getMixProgress();
+                MixProgressDetail mixProgress = mixing.getUtxo().getUtxoState().getMixProgress();
                 if (mixProgress != null && !mixProgress.getMixStep().isInterruptable()) {
                   return false;
                 }
@@ -461,7 +458,7 @@ public abstract class MixOrchestrator extends AbstractOrchestrator {
     }
 
     // mix
-    MixProgress mixProgress = new MixProgress(MixStep.CONNECTING);
+    MixProgressDetail mixProgress = new MixProgressDetail(MixStep.CONNECTING);
     whirlpoolUtxo.getUtxoState().setStatus(WhirlpoolUtxoStatus.MIX_STARTED, true, mixProgress);
 
     // run mix
@@ -484,13 +481,11 @@ public abstract class MixOrchestrator extends AbstractOrchestrator {
       @Override
       public void success(MixSuccess mixSuccess) {
         super.success(mixSuccess);
-        MixProgressSuccess mixProgress =
-            new MixProgressSuccess(mixSuccess.getDestination(), mixSuccess.getReceiveUtxo());
 
         // update utxo
         WhirlpoolUtxoState utxoState = whirlpoolUtxo.getUtxoState();
-        utxoState.setStatus(WhirlpoolUtxoStatus.MIX_SUCCESS, true, mixProgress);
-        whirlpoolUtxo.incrementMixsDone();
+        utxoState.setStatus(
+            WhirlpoolUtxoStatus.MIX_SUCCESS, true, mixSuccess.getMixProgressDetail());
 
         // manage
         data.removeMixing(whirlpoolUtxo);
@@ -498,7 +493,7 @@ public abstract class MixOrchestrator extends AbstractOrchestrator {
         WhirlpoolEventService.getInstance().post(new MixSuccessEvent(mixSuccess));
 
         // notify mixProgress
-        getObservable().onNext(mixProgress);
+        getObservable().onNext(mixSuccess);
         getObservable().onComplete();
 
         // idle => notify orchestrator
@@ -509,7 +504,6 @@ public abstract class MixOrchestrator extends AbstractOrchestrator {
       public void fail(MixFail mixFail) {
         super.fail(mixFail);
         MixFailReason reason = mixFail.getMixFailReason();
-        MixProgress mixProgress = new MixProgressFail(reason);
 
         // update utxo
         String error = reason.getMessage();
@@ -519,12 +513,14 @@ public abstract class MixOrchestrator extends AbstractOrchestrator {
         }
         WhirlpoolUtxoState utxoState = whirlpoolUtxo.getUtxoState();
         if (reason == MixFailReason.STOP) {
-          utxoState.setStatus(WhirlpoolUtxoStatus.STOP, false, mixProgress, error);
+          utxoState.setStatus(
+              WhirlpoolUtxoStatus.STOP, false, mixFail.getMixProgressDetail(), error);
         } else if (reason == MixFailReason.CANCEL) {
           // silent stop
-          utxoState.setStatus(WhirlpoolUtxoStatus.READY, false, mixProgress);
+          utxoState.setStatus(WhirlpoolUtxoStatus.READY, false, mixFail.getMixProgressDetail());
         } else {
-          utxoState.setStatus(WhirlpoolUtxoStatus.MIX_FAILED, true, mixProgress, error);
+          utxoState.setStatus(
+              WhirlpoolUtxoStatus.MIX_FAILED, true, mixFail.getMixProgressDetail(), error);
         }
 
         // manage
@@ -533,7 +529,7 @@ public abstract class MixOrchestrator extends AbstractOrchestrator {
         WhirlpoolEventService.getInstance().post(new MixFailEvent(mixFail));
 
         // notify mixProgress
-        getObservable().onNext(mixProgress);
+        getObservable().onNext(mixFail);
         getObservable().onComplete();
 
         // idle => notify orchestrator
@@ -541,13 +537,14 @@ public abstract class MixOrchestrator extends AbstractOrchestrator {
       }
 
       @Override
-      public void progress(MixStep step) {
-        super.progress(step);
-        MixProgress mixProgress = new MixProgress(step);
+      public void progress(MixProgress mixProgress) {
+        super.progress(mixProgress);
 
         // update utxo
         WhirlpoolUtxoState utxoState = whirlpoolUtxo.getUtxoState();
-        utxoState.setStatus(utxoState.getStatus(), true, mixProgress);
+        utxoState.setStatus(utxoState.getStatus(), true, mixProgress.getMixProgressDetail());
+
+        WhirlpoolEventService.getInstance().post(new MixProgressEvent(mixProgress));
 
         // notify mixProgress
         getObservable().onNext(mixProgress);

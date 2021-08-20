@@ -13,10 +13,10 @@ import com.samourai.whirlpool.client.tx0.Tx0ParamService;
 import com.samourai.whirlpool.client.wallet.WhirlpoolEventService;
 import com.samourai.whirlpool.client.wallet.beans.WhirlpoolAccount;
 import com.samourai.whirlpool.client.wallet.beans.WhirlpoolUtxo;
-import com.samourai.whirlpool.client.wallet.beans.WhirlpoolUtxoChanges;
 import com.samourai.whirlpool.client.wallet.data.chain.ChainSupplier;
 import com.samourai.whirlpool.client.wallet.data.pool.PoolSupplier;
 import com.samourai.whirlpool.client.wallet.data.supplier.BasicSupplier;
+import com.samourai.whirlpool.client.wallet.data.utxoConfig.UtxoConfigManager;
 import com.samourai.whirlpool.client.wallet.data.utxoConfig.UtxoConfigSupplier;
 import com.samourai.whirlpool.client.wallet.data.wallet.WalletSupplierImpl;
 import java.util.Collection;
@@ -41,6 +41,7 @@ public abstract class BasicUtxoSupplier extends BasicSupplier<UtxoData>
   private final PoolSupplier poolSupplier;
   private final Tx0ParamService tx0ParamService;
   private NetworkParameters params;
+  private UtxoConfigManager utxoConfigManager;
 
   private Map<String, WhirlpoolUtxo> previousUtxos;
 
@@ -60,6 +61,7 @@ public abstract class BasicUtxoSupplier extends BasicSupplier<UtxoData>
     this.poolSupplier = poolSupplier;
     this.tx0ParamService = tx0ParamService;
     this.params = params;
+    this.utxoConfigManager = new UtxoConfigManager(utxoConfigSupplier);
   }
 
   public abstract void refresh() throws Exception;
@@ -74,12 +76,6 @@ public abstract class BasicUtxoSupplier extends BasicSupplier<UtxoData>
         previousUtxos,
         chainSupplier.getLatestBlock().height);
 
-    // notify utxoConfigSupplier
-    final WhirlpoolUtxoChanges utxoChanges = utxoData.getUtxoChanges();
-    if (!utxoChanges.isEmpty()) {
-      utxoConfigSupplier.onUtxoChanges(utxoData);
-    }
-
     // update previousUtxos
     Map<String, WhirlpoolUtxo> newPreviousUtxos = new LinkedHashMap<String, WhirlpoolUtxo>();
     newPreviousUtxos.putAll(utxoData.getUtxos());
@@ -90,7 +86,7 @@ public abstract class BasicUtxoSupplier extends BasicSupplier<UtxoData>
 
     // notify
     eventService.post(new UtxosResponseEvent());
-    if (!utxoChanges.isEmpty()) {
+    if (!utxoData.getUtxoChanges().isEmpty()) {
       eventService.post(new UtxosChangeEvent(utxoData));
     }
   }

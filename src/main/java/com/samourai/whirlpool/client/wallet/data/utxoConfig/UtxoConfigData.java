@@ -91,11 +91,6 @@ public class UtxoConfigData extends PersistableData {
   }
 
   @Override
-  protected void setLastChange() {
-    super.setLastChange();
-  }
-
-  @Override
   public String toString() {
     return utxoConfigs.size() + " utxoConfigs";
   }

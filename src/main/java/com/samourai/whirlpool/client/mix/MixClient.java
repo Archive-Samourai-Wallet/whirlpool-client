@@ -63,7 +63,8 @@ public class MixClient {
   }
 
   private void listenerProgress(MixStep mixStep) {
-    this.listener.progress(mixStep);
+    MixProgress mixProgress = new MixProgress(mixParams, mixStep);
+    this.listener.progress(mixProgress);
   }
 
   private void connect() {
@@ -228,7 +229,7 @@ public class MixClient {
         // disconnect before notifying listener to avoid reconnecting before disconnect
         disconnect();
         // notify
-        listener.progress(MixStep.SUCCESS);
+        listenerProgress(MixStep.SUCCESS);
         listener.success(new MixSuccess(mixParams, mixProcess.getReceiveUtxo()));
       }
 

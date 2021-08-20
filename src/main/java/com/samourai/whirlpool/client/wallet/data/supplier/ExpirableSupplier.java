@@ -1,6 +1,5 @@
 package com.samourai.whirlpool.client.wallet.data.supplier;
 
-import com.google.common.base.ExpiringMemoizingSupplierUtil;
 import com.google.common.base.Supplier;
 import com.google.common.base.Suppliers;
 import com.zeroleak.throwingsupplier.Throwing;
@@ -13,7 +12,8 @@ public abstract class ExpirableSupplier<D> extends BasicSupplier<D> {
   private static final int ATTEMPTS = 2;
 
   private final Integer refreshDelaySeconds; // null for non-expirable
-  private final Supplier<Throwing<D, Exception>> supplier;
+  private final ThrowingSupplier throwingSupplier;
+  private Supplier<Throwing<D, Exception>> supplier;
 
   protected abstract D fetch() throws Exception;
 
@@ -22,7 +22,7 @@ public abstract class ExpirableSupplier<D> extends BasicSupplier<D> {
       throws Exception {
     super(log, initialValueFallback);
     this.refreshDelaySeconds = refreshDelaySeconds;
-    ThrowingSupplier sup =
+    this.throwingSupplier =
         new ThrowingSupplier<D, Exception>() {
           @Override
           public D getOrThrow() throws Exception {
@@ -30,18 +30,24 @@ public abstract class ExpirableSupplier<D> extends BasicSupplier<D> {
             return result;
           }
         }.attempts(ATTEMPTS);
-    this.supplier =
-        refreshDelaySeconds != null
-            ? Suppliers.memoizeWithExpiration(sup, refreshDelaySeconds, TimeUnit.SECONDS)
-            : Suppliers.memoize(sup);
+    resetSupplier();
   }
 
-  public void expire() {
+  private synchronized void resetSupplier() {
+    // don't use ExpiringMemoizingSupplierUtil.expire() to avoid dependencies issues
+    this.supplier =
+        refreshDelaySeconds != null
+            ? Suppliers.memoizeWithExpiration(
+                throwingSupplier, refreshDelaySeconds, TimeUnit.SECONDS)
+            : Suppliers.memoize(throwingSupplier);
+  }
+
+  public synchronized void expire() {
     if (refreshDelaySeconds != null) {
       if (log.isDebugEnabled()) {
         log.debug("expire");
       }
-      ExpiringMemoizingSupplierUtil.expire(this.supplier);
+      resetSupplier();
     } else {
       log.error("Cannot expire non-expirable supplier!");
     }

@@ -43,24 +43,9 @@ public class UtxoConfigSupplierTest extends UtxoSupplierTest {
     doTest(utxos1);
     assertUtxoChanges(utxos1, new UnspentOutput[] {}, new UnspentOutput[] {});
 
-    // TODO Assert.assertEquals(utxos1.length, utxoSupplier.getUtxos().size());
-
-    // forward
-    String fromKey =
-        utxoConfigSupplier.computeUtxoConfigKey(UTXO_DEPOSIT1.tx_hash, UTXO_DEPOSIT1.tx_output_n);
-    String toKey =
-        utxoConfigSupplier.computeUtxoConfigKey(UTXO_PREMIX1.tx_hash, UTXO_PREMIX1.tx_output_n);
-    utxoConfigSupplier.forwardUtxoConfig(fromKey, toKey);
-
-    // spent utxo disappears
-    UnspentOutput[] utxos2 = new UnspentOutput[] {};
-    setMockWalletResponse(utxos2);
-
-    // Thread.sleep(UtxoConfigData.FORWARDING_EXPIRATION_SECONDS+1); // test should fail
-
     // verify => no change
     utxoSupplier.refresh();
-    doTest(utxos2);
+    doTest(utxos1);
 
     // receive utxo appears
     UnspentOutput[] utxos3 = new UnspentOutput[] {UTXO_PREMIX1};
@@ -74,6 +59,10 @@ public class UtxoConfigSupplierTest extends UtxoSupplierTest {
     WhirlpoolUtxo utxoPremix1 =
         utxoSupplier.findUtxo(UTXO_PREMIX1.tx_hash, UTXO_PREMIX1.tx_output_n);
     // verify forwarding null
-    Assert.assertNull(utxoConfigSupplier.getUtxoConfig(utxoPremix1).getForwarding());
+    UnspentOutput unspentOutput = utxoPremix1.getUtxo();
+    Assert.assertNull(
+        utxoConfigSupplier
+            .getUtxo(unspentOutput.tx_hash, unspentOutput.tx_output_n)
+            .getForwarding());
   }
 }

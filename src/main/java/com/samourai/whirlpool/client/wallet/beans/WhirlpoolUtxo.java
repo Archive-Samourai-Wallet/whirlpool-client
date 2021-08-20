@@ -91,7 +91,7 @@ public class WhirlpoolUtxo extends WhirlpoolUtxoConfig {
   @Override
   protected UtxoConfigPersisted getUtxoConfigPersisted() {
     // always fetch fresh instance from supplier
-    return utxoConfigSupplier.getUtxoConfig(this);
+    return utxoConfigSupplier.getUtxo(utxo.tx_hash, utxo.tx_output_n);
   }
 
   protected UtxoConfigSupplier getUtxoConfigSupplier() {

@@ -6,7 +6,7 @@ import com.samourai.http.client.IHttpClientService;
 import com.samourai.wallet.api.backend.beans.UnspentOutput;
 import com.samourai.wallet.api.backend.beans.WalletResponse;
 import com.samourai.wallet.hd.HD_Address;
-import com.samourai.wallet.hd.java.HD_WalletFactoryJava;
+import com.samourai.wallet.hd.HD_WalletFactoryGeneric;
 import com.samourai.wallet.segwit.bech32.Bech32UtilGeneric;
 import com.samourai.whirlpool.client.tx0.ITx0ParamServiceConfig;
 import com.samourai.whirlpool.client.tx0.Tx0ParamService;
@@ -35,7 +35,7 @@ public class AbstractTest {
   protected static final String SEED_PASSPHRASE = "whirlpool";
 
   protected NetworkParameters params = TestNet3Params.get();
-  protected HD_WalletFactoryJava hdWalletFactory = HD_WalletFactoryJava.getInstance();
+  protected HD_WalletFactoryGeneric hdWalletFactory = HD_WalletFactoryGeneric.getInstance();
   protected Bech32UtilGeneric bech32Util = Bech32UtilGeneric.getInstance();
   protected Pool pool01btc;
   protected Pool pool05btc;

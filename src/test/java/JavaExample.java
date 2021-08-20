@@ -34,7 +34,6 @@ import com.samourai.whirlpool.client.whirlpool.ServerApi;
 import com.samourai.whirlpool.client.whirlpool.beans.Pool;
 import java.util.Collection;
 import java8.util.Lists;
-import java8.util.Optional;
 import org.bitcoinj.core.NetworkParameters;
 
 public class JavaExample {
@@ -89,7 +88,7 @@ public class JavaExample {
         boolean onion = true; // use Tor onion services?
         String backendUrl = BackendServer.TESTNET.getBackendUrl(onion);
         IHttpClient httpClientBackend = config.getHttpClient(HttpUsage.BACKEND);
-        Optional<OAuthManager> oAuthManager =
+        OAuthManager oAuthManager =
             null; // NULL for Samourai backend, not NULL for Dojo, ie: new OAuthManagerJava()
         BackendApi backendApi = new BackendApi(httpClientBackend, backendUrl, oAuthManager);
 
@@ -97,9 +96,7 @@ public class JavaExample {
         IWebsocketClient wsClient = null; // provide impl here
         BackendWsApi backendWsApi =
             new BackendWsApi(
-                wsClient,
-                backendUrl,
-                Optional.<OAuthManager>empty()); // or NULL to disable backend real-time sync
+                wsClient, backendUrl, null); // or NULL to disable backend real-time sync
 
         return new SamouraiDataSource(
             config, bip44w, walletIdentifier, dataPersister, backendApi, backendWsApi);

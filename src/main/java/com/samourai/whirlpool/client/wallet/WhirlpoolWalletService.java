@@ -2,7 +2,7 @@ package com.samourai.whirlpool.client.wallet;
 
 import com.google.common.primitives.Bytes;
 import com.samourai.wallet.hd.HD_Wallet;
-import com.samourai.wallet.hd.java.HD_WalletFactoryJava;
+import com.samourai.wallet.hd.HD_WalletFactoryGeneric;
 import com.samourai.whirlpool.client.event.WalletCloseEvent;
 import com.samourai.whirlpool.client.event.WalletOpenEvent;
 import com.samourai.whirlpool.client.utils.ClientUtils;
@@ -21,27 +21,36 @@ public class WhirlpoolWalletService {
 
   private DataPersisterFactory dataPersisterFactory;
   private DataSourceFactory dataSourceFactory;
-  private Optional<WhirlpoolWallet> whirlpoolWallet;
+  private HD_WalletFactoryGeneric hdWalletFactory;
+  private WhirlpoolWallet whirlpoolWallet; // or null
 
   public WhirlpoolWalletService(
       DataPersisterFactory dataPersisterFactory, DataSourceFactory dataSourceFactory) {
+    this(dataPersisterFactory, dataSourceFactory, HD_WalletFactoryGeneric.getInstance());
+  }
+
+  public WhirlpoolWalletService(
+      DataPersisterFactory dataPersisterFactory,
+      DataSourceFactory dataSourceFactory,
+      HD_WalletFactoryGeneric hdWalletFactory) {
     this.dataSourceFactory = dataSourceFactory;
     this.dataPersisterFactory = dataPersisterFactory;
-    this.whirlpoolWallet = Optional.empty();
+    this.hdWalletFactory = hdWalletFactory;
+    this.whirlpoolWallet = null;
 
     // set user-agent
     ClientUtils.setupEnv();
   }
 
   public synchronized void closeWallet() {
-    if (whirlpoolWallet.isPresent()) {
+    if (whirlpoolWallet != null) {
       if (log.isDebugEnabled()) {
         log.debug("Closing wallet");
       }
-      WhirlpoolWallet wp = whirlpoolWallet.get();
+      WhirlpoolWallet wp = whirlpoolWallet;
       wp.stop();
       wp.close();
-      whirlpoolWallet = Optional.empty();
+      whirlpoolWallet = null;
 
       // notify close
       WhirlpoolEventService.getInstance().post(new WalletCloseEvent(wp));
@@ -65,12 +74,12 @@ public class WhirlpoolWalletService {
   }
 
   protected synchronized WhirlpoolWallet openWallet(WhirlpoolWallet wp) throws Exception {
-    if (whirlpoolWallet.isPresent()) {
+    if (whirlpoolWallet != null) {
       throw new Exception("WhirlpoolWallet already opened");
     }
 
     wp.open(); // load initial data
-    whirlpoolWallet = Optional.of(wp);
+    whirlpoolWallet = wp;
 
     // notify open
     WhirlpoolEventService.getInstance().post(new WalletOpenEvent(wp));
@@ -95,7 +104,7 @@ public class WhirlpoolWalletService {
       seedPassphrase = "";
     }
     String walletIdentifier = computeWalletIdentifier(seed, seedPassphrase, params);
-    HD_Wallet bip44w = HD_WalletFactoryJava.getInstance().getBIP44(seed, seedPassphrase, params);
+    HD_Wallet bip44w = hdWalletFactory.getBIP44(seed, seedPassphrase, params);
 
     // debug whirlpoolWalletConfig
     if (log.isDebugEnabled()) {
@@ -117,6 +126,10 @@ public class WhirlpoolWalletService {
   }
 
   public Optional<WhirlpoolWallet> getWhirlpoolWallet() {
+    return Optional.of(whirlpoolWallet);
+  }
+
+  public WhirlpoolWallet getWhirlpoolWalletOrNull() {
     return whirlpoolWallet;
   }
 }

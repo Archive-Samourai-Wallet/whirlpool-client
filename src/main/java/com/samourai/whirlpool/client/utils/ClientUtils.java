@@ -15,6 +15,7 @@ import com.samourai.whirlpool.client.exception.NotifiableException;
 import com.samourai.whirlpool.client.wallet.beans.WhirlpoolUtxo;
 import com.samourai.whirlpool.client.wallet.beans.WhirlpoolUtxoState;
 import com.samourai.whirlpool.protocol.WhirlpoolProtocol;
+import com.samourai.whirlpool.protocol.beans.Utxo;
 import com.samourai.whirlpool.protocol.rest.RestErrorResponse;
 import io.reactivex.Observable;
 import io.reactivex.subjects.BehaviorSubject;
@@ -227,6 +228,10 @@ public class ClientUtils {
 
   public static String utxoToKey(UnspentOutput unspentOutput) {
     return unspentOutput.tx_hash + ':' + unspentOutput.tx_output_n;
+  }
+
+  public static String utxoToKey(Utxo utxo) {
+    return utxo.getHash() + ':' + utxo.getIndex();
   }
 
   public static String utxoToKey(String utxoHash, int utxoIndex) {

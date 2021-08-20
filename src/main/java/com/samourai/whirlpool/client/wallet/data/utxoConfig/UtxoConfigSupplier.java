@@ -1,14 +1,16 @@
 package com.samourai.whirlpool.client.wallet.data.utxoConfig;
 
 import com.samourai.whirlpool.client.wallet.beans.WhirlpoolUtxo;
-import com.samourai.whirlpool.client.wallet.data.utxo.UtxoData;
+import java.util.Collection;
 
 public interface UtxoConfigSupplier {
-  UtxoConfigPersisted getUtxoConfig(WhirlpoolUtxo whirlpoolUtxo);
+  UtxoConfigPersisted getTx(String txHash);
 
-  void forwardUtxoConfig(WhirlpoolUtxo fromUtxo, String txid);
+  UtxoConfigPersisted getUtxo(String utxoHash, int utxoIndex);
 
-  void saveUtxoConfig(UtxoConfigPersisted utxoConfigPersisted);
+  void saveTx(String txHash, UtxoConfigPersisted utxoConfigPersisted);
 
-  void onUtxoChanges(UtxoData utxoData);
+  void saveUtxo(String utxoHash, int utxoIndex, UtxoConfigPersisted utxoConfigPersisted);
+
+  void clean(Collection<WhirlpoolUtxo> existingUtxos);
 }

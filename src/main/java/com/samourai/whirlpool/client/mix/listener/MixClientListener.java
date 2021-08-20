@@ -5,5 +5,5 @@ public interface MixClientListener {
 
   void fail(MixFail mixFail);
 
-  void progress(MixStep step);
+  void progress(MixProgress mixProgress);
 }
