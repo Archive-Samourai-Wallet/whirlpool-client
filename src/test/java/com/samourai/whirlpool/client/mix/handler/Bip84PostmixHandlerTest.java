@@ -1,6 +1,6 @@
 package com.samourai.whirlpool.client.mix.handler;
 
-import com.samourai.wallet.client.BipWallet;
+import com.samourai.wallet.client.BipWalletAndAddressType;
 import com.samourai.wallet.client.indexHandler.MemoryIndexHandler;
 import com.samourai.wallet.hd.AddressType;
 import com.samourai.wallet.hd.HD_Wallet;
@@ -14,7 +14,7 @@ import org.slf4j.LoggerFactory;
 public class Bip84PostmixHandlerTest extends AbstractTest {
   private Logger log = LoggerFactory.getLogger(Bip84PostmixHandlerTest.class);
 
-  private BipWallet bipWallet;
+  private BipWalletAndAddressType bipWallet;
 
   public Bip84PostmixHandlerTest() throws Exception {
     super();
@@ -23,7 +23,7 @@ public class Bip84PostmixHandlerTest extends AbstractTest {
     byte[] seed = hdWalletFactory.computeSeedFromWords(seedWords);
     HD_Wallet bip84w = hdWalletFactory.getBIP84(seed, passphrase, params);
     bipWallet =
-        new BipWallet(
+        new BipWalletAndAddressType(
             bip84w,
             WhirlpoolAccount.POSTMIX,
             new MemoryIndexHandler(),
@@ -32,24 +32,24 @@ public class Bip84PostmixHandlerTest extends AbstractTest {
   }
 
   @Test
-  public void computeNextReceiveAddressIndex() {
-    Bip84PostmixHandler phCli = new Bip84PostmixHandler(bipWallet, false);
-    Bip84PostmixHandler phMobile = new Bip84PostmixHandler(bipWallet, true);
+  public void computeNextReceiveAddressIndex() throws Exception {
+    Bip84PostmixHandler phCli = new Bip84PostmixHandler(params, bipWallet, false);
+    Bip84PostmixHandler phMobile = new Bip84PostmixHandler(params, bipWallet, true);
 
-    Assert.assertEquals(0, phCli.computeNextReceiveAddressIndex());
-    Assert.assertEquals(2, phCli.computeNextReceiveAddressIndex());
-    Assert.assertEquals(4, phCli.computeNextReceiveAddressIndex());
+    Assert.assertEquals(0, phCli.computeDestination().getIndex());
+    Assert.assertEquals(2, phCli.computeDestination().getIndex());
+    Assert.assertEquals(4, phCli.computeDestination().getIndex());
 
-    Assert.assertEquals(5, phMobile.computeNextReceiveAddressIndex());
-    Assert.assertEquals(7, phMobile.computeNextReceiveAddressIndex());
-    Assert.assertEquals(9, phMobile.computeNextReceiveAddressIndex());
+    Assert.assertEquals(5, phMobile.computeDestination().getIndex());
+    Assert.assertEquals(7, phMobile.computeDestination().getIndex());
+    Assert.assertEquals(9, phMobile.computeDestination().getIndex());
 
-    Assert.assertEquals(10, phCli.computeNextReceiveAddressIndex());
-    Assert.assertEquals(11, phMobile.computeNextReceiveAddressIndex());
-    Assert.assertEquals(12, phCli.computeNextReceiveAddressIndex());
-    Assert.assertEquals(13, phMobile.computeNextReceiveAddressIndex());
-    Assert.assertEquals(15, phMobile.computeNextReceiveAddressIndex());
-    Assert.assertEquals(16, phCli.computeNextReceiveAddressIndex());
-    Assert.assertEquals(18, phCli.computeNextReceiveAddressIndex());
+    Assert.assertEquals(10, phCli.computeDestination().getIndex());
+    Assert.assertEquals(11, phMobile.computeDestination().getIndex());
+    Assert.assertEquals(12, phCli.computeDestination().getIndex());
+    Assert.assertEquals(13, phMobile.computeDestination().getIndex());
+    Assert.assertEquals(15, phMobile.computeDestination().getIndex());
+    Assert.assertEquals(16, phCli.computeDestination().getIndex());
+    Assert.assertEquals(18, phCli.computeDestination().getIndex());
   }
 }

@@ -14,28 +14,29 @@ public class XPubPostmixHandler extends AbstractPostmixHandler {
   private int chain;
   private int startIndex;
 
-  public XPubPostmixHandler(String xPub, int chain, int startIndex, IIndexHandler indexHandler) {
-    super(indexHandler);
+  public XPubPostmixHandler(
+      IIndexHandler indexHandler,
+      NetworkParameters params,
+      String xPub,
+      int chain,
+      int startIndex) {
+    super(indexHandler, params);
     this.xPub = xPub;
     this.chain = chain;
     this.startIndex = startIndex;
   }
 
   @Override
-  protected int computeNextReceiveAddressIndex() {
+  protected MixDestination computeNextDestination() throws Exception {
+    // index
     int index = indexHandler.getAndIncrementUnconfirmed();
     index = Math.max(index, startIndex);
-    return index;
-  }
 
-  @Override
-  protected String getAddressAt(int receiveAddressIndex, NetworkParameters params) {
-    String bech32Address = xPubUtil.getAddressBech32(xPub, receiveAddressIndex, chain, params);
-    log.info(
-        "Mixing to external xPub -> receiveAddress="
-            + bech32Address
-            + ", path="
-            + xPubUtil.getPath(receiveAddressIndex, chain));
-    return bech32Address;
+    // address
+    String address = xPubUtil.getAddressBech32(xPub, index, chain, params);
+    String path = xPubUtil.getPath(index, chain);
+
+    log.info("Mixing to external xPub -> receiveAddress=" + address + ", path=" + path);
+    return new MixDestination(DestinationType.XPUB, index, address, path);
   }
 }

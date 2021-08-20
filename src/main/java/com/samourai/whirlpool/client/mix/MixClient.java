@@ -3,9 +3,7 @@ package com.samourai.whirlpool.client.mix;
 import com.samourai.whirlpool.client.exception.NotifiableException;
 import com.samourai.whirlpool.client.mix.dialog.MixDialogListener;
 import com.samourai.whirlpool.client.mix.dialog.MixSession;
-import com.samourai.whirlpool.client.mix.listener.MixClientListener;
-import com.samourai.whirlpool.client.mix.listener.MixFailReason;
-import com.samourai.whirlpool.client.mix.listener.MixStep;
+import com.samourai.whirlpool.client.mix.listener.*;
 import com.samourai.whirlpool.client.utils.ClientCryptoService;
 import com.samourai.whirlpool.client.whirlpool.ServerApi;
 import com.samourai.whirlpool.client.whirlpool.WhirlpoolClientConfig;
@@ -100,7 +98,7 @@ public class MixClient {
 
   private void failAndExit(MixFailReason reason, String notifiableError) {
     mixParams.getPostmixHandler().onMixFail();
-    this.listener.fail(reason, notifiableError);
+    this.listener.fail(new MixFail(mixParams, reason, notifiableError));
     disconnect();
   }
 
@@ -231,7 +229,7 @@ public class MixClient {
         disconnect();
         // notify
         listener.progress(MixStep.SUCCESS);
-        listener.success(mixProcess.computeMixSuccess());
+        listener.success(new MixSuccess(mixParams, mixProcess.getReceiveUtxo()));
       }
 
       @Override

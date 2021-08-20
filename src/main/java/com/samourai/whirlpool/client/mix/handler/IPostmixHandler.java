@@ -1,10 +1,10 @@
 package com.samourai.whirlpool.client.mix.handler;
 
-import org.bitcoinj.core.NetworkParameters;
-
 public interface IPostmixHandler {
 
-  String computeReceiveAddress(NetworkParameters params) throws Exception;
+  MixDestination getDestination();
+
+  MixDestination computeDestination() throws Exception;
 
   void onRegisterOutput();
 

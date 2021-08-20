@@ -7,10 +7,7 @@ import com.samourai.wallet.hd.Chain;
 import com.samourai.wallet.hd.HD_Wallet;
 import com.samourai.whirlpool.client.wallet.beans.WhirlpoolAccount;
 import com.samourai.whirlpool.client.wallet.data.walletState.WalletStateSupplier;
-import java.util.LinkedHashMap;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -39,12 +36,14 @@ public class WalletSupplierImpl implements WalletSupplier {
         walletsByAddressType.put(addressType, bipWallet);
         String pub = bipWallet.getPub();
         walletsByPub.put(pub, bipWallet);
-        if (log.isDebugEnabled()) {
-          log.debug(" +WALLET (" + account + "/" + addressType + "): " + pub);
-        }
       }
       wallets.put(account, walletsByAddressType);
     }
+  }
+
+  @Override
+  public Collection<BipWalletAndAddressType> getWallets() {
+    return walletsByPub.values();
   }
 
   @Override

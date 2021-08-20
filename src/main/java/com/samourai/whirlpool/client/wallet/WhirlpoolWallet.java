@@ -15,6 +15,7 @@ import com.samourai.whirlpool.client.event.WalletStartEvent;
 import com.samourai.whirlpool.client.event.WalletStopEvent;
 import com.samourai.whirlpool.client.exception.NotifiableException;
 import com.samourai.whirlpool.client.exception.UnconfirmedUtxoException;
+import com.samourai.whirlpool.client.mix.listener.MixFail;
 import com.samourai.whirlpool.client.mix.listener.MixFailReason;
 import com.samourai.whirlpool.client.mix.listener.MixSuccess;
 import com.samourai.whirlpool.client.tx0.*;
@@ -282,6 +283,27 @@ public class WhirlpoolWallet {
     dataPersister.open();
     dataSource.open();
 
+    // log wallets
+    for (BipWalletAndAddressType bipWallet : getWalletSupplier().getWallets()) {
+      String nextReceivePath =
+          bipWallet.getNextAddress(false).getPathFull(bipWallet.getAddressType());
+      String nextChangePath =
+          bipWallet.getNextChangeAddress(false).getPathFull(bipWallet.getAddressType());
+      String pub =
+          log.isDebugEnabled() ? bipWallet.getPub() : ClientUtils.maskString(bipWallet.getPub());
+      log.info(
+          " +WALLET "
+              + bipWallet.getAccount()
+              + ", "
+              + bipWallet.getAddressType()
+              + ", receive="
+              + nextReceivePath
+              + ", change="
+              + nextChangePath
+              + ", "
+              + pub);
+    }
+
     // check postmix index against coordinator
     checkPostmixIndex();
 
@@ -393,10 +415,10 @@ public class WhirlpoolWallet {
     return mixOrchestrator.mixNow(whirlpoolUtxo);
   }
 
-  public void onMixSuccess(WhirlpoolUtxo whirlpoolUtxo, MixSuccess mixSuccess) {
+  public void onMixSuccess(MixSuccess mixSuccess) {
     // preserve utxo config
     Utxo receiveUtxo = mixSuccess.getReceiveUtxo();
-    getUtxoConfigSupplier().forwardUtxoConfig(whirlpoolUtxo, receiveUtxo.getHash());
+    getUtxoConfigSupplier().forwardUtxoConfig(mixSuccess.getWhirlpoolUtxo(), receiveUtxo.getHash());
 
     // change Tor identity
     config.getTorClientService().changeIdentity();
@@ -405,7 +427,8 @@ public class WhirlpoolWallet {
     refreshUtxosDelay();
   }
 
-  public void onMixFail(WhirlpoolUtxo whirlpoolUtxo, MixFailReason reason, String notifiableError) {
+  public void onMixFail(MixFail mixFail) {
+    MixFailReason reason = mixFail.getMixFailReason();
     switch (reason) {
       case PROTOCOL_MISMATCH:
         // stop mixing on protocol mismatch
@@ -418,7 +441,7 @@ public class WhirlpoolWallet {
         // retry later
         log.info("onMixFail(" + reason + "): will retry later");
         try {
-          mixQueue(whirlpoolUtxo);
+          mixQueue(mixFail.getWhirlpoolUtxo());
         } catch (Exception e) {
           log.error("", e);
         }
@@ -544,6 +567,8 @@ public class WhirlpoolWallet {
             log.debug("fixing postmixIndex: " + initialPostmixIndex + " -> " + postmixIndex);
           }
           postmixIndexHandler.confirmUnconfirmed(postmixIndex);
+        } else {
+          postmixIndexHandler.cancelUnconfirmed(initialPostmixIndex);
         }
         return;
       } catch (RuntimeException runtimeException) { // blockingGet wraps errors in RuntimeException

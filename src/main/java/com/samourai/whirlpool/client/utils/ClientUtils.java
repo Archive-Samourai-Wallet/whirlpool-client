@@ -159,9 +159,9 @@ public class ClientUtils {
 
   public static void logUtxos(
       Collection<UnspentOutput> utxos, int purpose, int accountIndex, NetworkParameters params) {
-    String lineFormat = "| %10s | %8s | %68s | %45s | %18s |\n";
+    String lineFormat = "| %10s | %7s | %68s | %45s | %18s |\n";
     StringBuilder sb = new StringBuilder();
-    sb.append(String.format(lineFormat, "BALANCE", "CONFIRMS", "UTXO", "ADDRESS", "TYPE", "PATH"));
+    sb.append(String.format(lineFormat, "BALANCE", "CONFIRM", "UTXO", "ADDRESS", "TYPE", "PATH"));
     sb.append(String.format(lineFormat, "(btc)", "", "", "", "", ""));
     for (UnspentOutput o : utxos) {
       String utxo = o.tx_hash + ":" + o.tx_output_n;
@@ -179,13 +179,13 @@ public class ClientUtils {
   }
 
   public static void logWhirlpoolUtxos(Collection<WhirlpoolUtxo> utxos, int latestBlockHeight) {
-    String lineFormat = "| %10s | %8s | %68s | %45s | %13s | %27s | %14s | %8s | %6s |\n";
+    String lineFormat = "| %10s | %7s | %68s | %45s | %13s | %27s | %14s | %8s | %8s | %4s |\n";
     StringBuilder sb = new StringBuilder();
     sb.append(
         String.format(
             lineFormat,
             "BALANCE",
-            "CONFIRMS",
+            "CONFIRM",
             "UTXO",
             "ADDRESS",
             "TYPE",
@@ -218,7 +218,6 @@ public class ClientUtils {
               whirlpoolUtxo.getPoolId() != null ? whirlpoolUtxo.getPoolId() : "-",
               whirlpoolUtxo.getMixsDone()));
     }
-    sb.append("Last block height: #" + latestBlockHeight);
     log.info("\n" + sb.toString());
   }
 

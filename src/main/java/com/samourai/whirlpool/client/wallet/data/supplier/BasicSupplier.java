@@ -18,8 +18,8 @@ public abstract class BasicSupplier<D> {
   }
 
   protected void setValue(D value) throws Exception {
-    if (log.isDebugEnabled()) {
-      log.debug("setValue");
+    if (log.isTraceEnabled()) {
+      log.trace("setValue");
     }
     this.value = value;
     this.lastUpdate = System.currentTimeMillis();

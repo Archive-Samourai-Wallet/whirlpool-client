@@ -5,6 +5,7 @@ import com.samourai.wallet.util.AbstractOrchestrator;
 import com.samourai.whirlpool.client.WhirlpoolClient;
 import com.samourai.whirlpool.client.event.*;
 import com.samourai.whirlpool.client.exception.NotifiableException;
+import com.samourai.whirlpool.client.mix.listener.MixFail;
 import com.samourai.whirlpool.client.mix.listener.MixFailReason;
 import com.samourai.whirlpool.client.mix.listener.MixStep;
 import com.samourai.whirlpool.client.mix.listener.MixSuccess;
@@ -484,7 +485,7 @@ public abstract class MixOrchestrator extends AbstractOrchestrator {
       public void success(MixSuccess mixSuccess) {
         super.success(mixSuccess);
         MixProgressSuccess mixProgress =
-            new MixProgressSuccess(mixSuccess.getReceiveAddress(), mixSuccess.getReceiveUtxo());
+            new MixProgressSuccess(mixSuccess.getDestination(), mixSuccess.getReceiveUtxo());
 
         // update utxo
         WhirlpoolUtxoState utxoState = whirlpoolUtxo.getUtxoState();
@@ -493,8 +494,8 @@ public abstract class MixOrchestrator extends AbstractOrchestrator {
 
         // manage
         data.removeMixing(whirlpoolUtxo);
-        onMixSuccess(whirlpoolUtxo, mixSuccess);
-        WhirlpoolEventService.getInstance().post(new MixSuccessEvent(whirlpoolUtxo, mixSuccess));
+        onMixSuccess(mixSuccess);
+        WhirlpoolEventService.getInstance().post(new MixSuccessEvent(mixSuccess));
 
         // notify mixProgress
         getObservable().onNext(mixProgress);
@@ -505,12 +506,14 @@ public abstract class MixOrchestrator extends AbstractOrchestrator {
       }
 
       @Override
-      public void fail(MixFailReason reason, String notifiableError) {
-        super.fail(reason, notifiableError);
+      public void fail(MixFail mixFail) {
+        super.fail(mixFail);
+        MixFailReason reason = mixFail.getMixFailReason();
         MixProgress mixProgress = new MixProgressFail(reason);
 
         // update utxo
         String error = reason.getMessage();
+        String notifiableError = mixFail.getError();
         if (notifiableError != null) {
           error += " ; " + notifiableError;
         }
@@ -526,8 +529,8 @@ public abstract class MixOrchestrator extends AbstractOrchestrator {
 
         // manage
         data.removeMixing(whirlpoolUtxo);
-        onMixFail(whirlpoolUtxo, reason, notifiableError);
-        WhirlpoolEventService.getInstance().post(new MixFailEvent(whirlpoolUtxo, reason));
+        onMixFail(mixFail);
+        WhirlpoolEventService.getInstance().post(new MixFailEvent(mixFail));
 
         // notify mixProgress
         getObservable().onNext(mixProgress);
@@ -552,12 +555,11 @@ public abstract class MixOrchestrator extends AbstractOrchestrator {
     };
   }
 
-  protected void onMixSuccess(WhirlpoolUtxo whirlpoolUtxo, MixSuccess mixSuccess) {
+  protected void onMixSuccess(MixSuccess mixSuccess) {
     // override here
   }
 
-  protected void onMixFail(
-      WhirlpoolUtxo whirlpoolUtxo, MixFailReason reason, String notifiableError) {
+  protected void onMixFail(MixFail mixFail) {
     // override here
   }
 
