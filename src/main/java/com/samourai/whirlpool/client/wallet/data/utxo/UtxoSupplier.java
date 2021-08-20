@@ -28,7 +28,5 @@ public interface UtxoSupplier extends UtxoProvider {
 
   Long getLastUpdate();
 
-  void expire();
-
   void refresh() throws Exception;
 }

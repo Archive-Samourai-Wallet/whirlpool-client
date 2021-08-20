@@ -7,8 +7,6 @@ import com.samourai.wallet.hd.HD_Address;
 import com.samourai.wallet.send.MyTransactionOutPoint;
 import com.samourai.wallet.send.UTXO;
 import com.samourai.wallet.send.provider.UtxoProvider;
-import com.samourai.whirlpool.client.event.UtxoSupplierExpireRequest;
-import com.samourai.whirlpool.client.event.UtxoSupplierRefreshRequest;
 import com.samourai.whirlpool.client.event.UtxosChangeEvent;
 import com.samourai.whirlpool.client.event.UtxosResponseEvent;
 import com.samourai.whirlpool.client.tx0.Tx0ParamService;
@@ -19,6 +17,7 @@ import com.samourai.whirlpool.client.wallet.beans.WhirlpoolUtxoChanges;
 import com.samourai.whirlpool.client.wallet.data.chain.ChainSupplier;
 import com.samourai.whirlpool.client.wallet.data.pool.PoolSupplier;
 import com.samourai.whirlpool.client.wallet.data.supplier.BasicSupplier;
+import com.samourai.whirlpool.client.wallet.data.utxoConfig.UtxoConfigSupplier;
 import com.samourai.whirlpool.client.wallet.data.wallet.WalletSupplierImpl;
 import java.util.Collection;
 import java.util.LinkedHashMap;
@@ -31,7 +30,7 @@ import org.bitcoinj.core.NetworkParameters;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class BasicUtxoSupplier extends BasicSupplier<UtxoData>
+public abstract class BasicUtxoSupplier extends BasicSupplier<UtxoData>
     implements UtxoProvider, UtxoSupplier {
   private static final Logger log = LoggerFactory.getLogger(BasicUtxoSupplier.class);
 
@@ -63,23 +62,22 @@ public class BasicUtxoSupplier extends BasicSupplier<UtxoData>
     this.params = params;
   }
 
-  public void expire() {
-    WhirlpoolEventService.getInstance().post(new UtxoSupplierExpireRequest());
-  }
-
-  public void refresh() {
-    WhirlpoolEventService.getInstance().post(new UtxoSupplierRefreshRequest());
-  }
+  public abstract void refresh() throws Exception;
 
   @Override
   public void setValue(UtxoData utxoData) throws Exception {
     utxoData.init(
-        walletSupplier, utxoConfigSupplier, previousUtxos, chainSupplier.getLatestBlock().height);
+        walletSupplier,
+        utxoConfigSupplier,
+        poolSupplier,
+        tx0ParamService,
+        previousUtxos,
+        chainSupplier.getLatestBlock().height);
 
     // notify utxoConfigSupplier
     final WhirlpoolUtxoChanges utxoChanges = utxoData.getUtxoChanges();
     if (!utxoChanges.isEmpty()) {
-      utxoConfigSupplier.onUtxoChanges(utxoData, poolSupplier, tx0ParamService);
+      utxoConfigSupplier.onUtxoChanges(utxoData);
     }
 
     // update previousUtxos

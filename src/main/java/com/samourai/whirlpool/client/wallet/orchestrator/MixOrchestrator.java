@@ -30,7 +30,6 @@ import org.slf4j.LoggerFactory;
 public abstract class MixOrchestrator extends AbstractOrchestrator {
   private final Logger log = LoggerFactory.getLogger(MixOrchestrator.class);
   private static final int LAST_ERROR_DELAY = 60 * 5; // 5min
-  private static final int MIX_MIN_CONFIRMATIONS = 1;
   private static final int START_DELAY = 5000;
 
   private MixOrchestratorData data;
@@ -355,39 +354,14 @@ public abstract class MixOrchestrator extends AbstractOrchestrator {
     Collections.sort(whirlpoolUtxos, WhirlpoolUtxoPriorityComparator.getInstance());
   }
 
-  private MixableStatus computeMixableStatus(WhirlpoolUtxo whirlpoolUtxo) {
-
-    // check pool
-    if (whirlpoolUtxo.getPoolId() == null) {
-      return MixableStatus.NO_POOL;
-    }
-
-    // check confirmations
-    int latestBlockHeight = data.getLatestBlockHeight();
-    if (whirlpoolUtxo.computeConfirmations(latestBlockHeight) < MIX_MIN_CONFIRMATIONS) {
-      return MixableStatus.UNCONFIRMED;
-    }
-
-    // ok
-    return MixableStatus.MIXABLE;
-  }
-
-  private boolean isNewMixable(WhirlpoolUtxo whirlpoolUtxo) {
-    boolean wasMixable =
+  private boolean isQueuedAndMixable(WhirlpoolUtxo whirlpoolUtxo) {
+    boolean isMixable =
         MixableStatus.MIXABLE.equals(whirlpoolUtxo.getUtxoState().getMixableStatus());
-
-    // refresh mixable status
-    MixableStatus mixableStatus = computeMixableStatus(whirlpoolUtxo);
-    whirlpoolUtxo.getUtxoState().setMixableStatus(mixableStatus);
-
-    boolean isMixable = MixableStatus.MIXABLE.equals(mixableStatus);
-
-    if (log.isTraceEnabled()) {
-      log.trace("refreshMixableStatus: " + wasMixable + " -> " + isMixable + " : " + whirlpoolUtxo);
-    }
-    if (!wasMixable
-        && isMixable
+    if (isMixable
         && WhirlpoolUtxoStatus.MIX_QUEUE.equals(whirlpoolUtxo.getUtxoState().getStatus())) {
+      if (log.isTraceEnabled()) {
+        log.trace("new MIXABLE in mixQueue: " + whirlpoolUtxo);
+      }
       return true;
     }
     return false;
@@ -621,8 +595,7 @@ public abstract class MixOrchestrator extends AbstractOrchestrator {
         notify = true;
         nbQueued++;
       }
-      // refresh MIXABLE status
-      if (isNewMixable(whirlpoolUtxo)) {
+      if (isQueuedAndMixable(whirlpoolUtxo)) {
         notify = true;
       }
     }
@@ -634,8 +607,7 @@ public abstract class MixOrchestrator extends AbstractOrchestrator {
 
     // CONFIRMED
     for (WhirlpoolUtxo whirlpoolUtxo : whirlpoolUtxoChanges.getUtxosConfirmed()) {
-      // refresh MIXABLE status
-      if (isNewMixable(whirlpoolUtxo)) {
+      if (isQueuedAndMixable(whirlpoolUtxo)) {
         notify = true;
       }
     }

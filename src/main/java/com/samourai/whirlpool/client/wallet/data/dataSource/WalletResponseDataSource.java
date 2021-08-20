@@ -1,17 +1,12 @@
 package com.samourai.whirlpool.client.wallet.data.dataSource;
 
-import com.google.common.eventbus.Subscribe;
 import com.samourai.wallet.api.backend.MinerFee;
 import com.samourai.wallet.api.backend.beans.WalletResponse;
 import com.samourai.wallet.client.BipWalletAndAddressType;
 import com.samourai.wallet.hd.Chain;
 import com.samourai.wallet.hd.HD_Wallet;
 import com.samourai.wallet.util.AbstractOrchestrator;
-import com.samourai.whirlpool.client.event.DataSourceExpireRequest;
-import com.samourai.whirlpool.client.event.UtxoSupplierExpireRequest;
-import com.samourai.whirlpool.client.event.UtxoSupplierRefreshRequest;
 import com.samourai.whirlpool.client.tx0.Tx0ParamService;
-import com.samourai.whirlpool.client.wallet.WhirlpoolEventService;
 import com.samourai.whirlpool.client.wallet.WhirlpoolWalletConfig;
 import com.samourai.whirlpool.client.wallet.data.chain.BasicChainSupplier;
 import com.samourai.whirlpool.client.wallet.data.chain.ChainData;
@@ -22,9 +17,9 @@ import com.samourai.whirlpool.client.wallet.data.minerFee.MinerFeeSupplier;
 import com.samourai.whirlpool.client.wallet.data.pool.ExpirablePoolSupplier;
 import com.samourai.whirlpool.client.wallet.data.pool.PoolSupplier;
 import com.samourai.whirlpool.client.wallet.data.utxo.BasicUtxoSupplier;
-import com.samourai.whirlpool.client.wallet.data.utxo.UtxoConfigSupplier;
 import com.samourai.whirlpool.client.wallet.data.utxo.UtxoData;
 import com.samourai.whirlpool.client.wallet.data.utxo.UtxoSupplier;
+import com.samourai.whirlpool.client.wallet.data.utxoConfig.UtxoConfigSupplier;
 import com.samourai.whirlpool.client.wallet.data.wallet.WalletSupplier;
 import com.samourai.whirlpool.client.wallet.data.wallet.WalletSupplierImpl;
 import com.samourai.whirlpool.client.wallet.data.walletState.WalletStateSupplier;
@@ -108,22 +103,12 @@ public abstract class WalletResponseDataSource implements DataSource {
         chainSupplier,
         poolSupplier,
         tx0ParamService,
-        config.getNetworkParameters());
-  }
-
-  @Subscribe
-  public void onUtxoSupplierExpireRequest(UtxoSupplierExpireRequest request) {
-    walletResponseSupplier.expire();
-  }
-
-  @Subscribe
-  public void onUtxoSupplierRefreshRequest(UtxoSupplierRefreshRequest request) throws Exception {
-    walletResponseSupplier.refresh();
-  }
-
-  @Subscribe
-  public void onDataSourceExpireRequest(DataSourceExpireRequest request) throws Exception {
-    walletResponseSupplier.refresh();
+        config.getNetworkParameters()) {
+      @Override
+      public void refresh() throws Exception {
+        walletResponseSupplier.refresh();
+      }
+    };
   }
 
   protected abstract WalletResponse fetchWalletResponse() throws Exception;
@@ -194,8 +179,6 @@ public abstract class WalletResponseDataSource implements DataSource {
 
   @Override
   public void open() throws Exception {
-    WhirlpoolEventService.getInstance().register(this);
-
     // load initial data (or fail)
     load(true);
 
@@ -225,7 +208,6 @@ public abstract class WalletResponseDataSource implements DataSource {
 
   @Override
   public void close() throws Exception {
-    WhirlpoolEventService.getInstance().unregister(this);
     dataOrchestrator.stop();
   }
 
@@ -265,5 +247,9 @@ public abstract class WalletResponseDataSource implements DataSource {
   @Override
   public UtxoSupplier getUtxoSupplier() {
     return utxoSupplier;
+  }
+
+  protected WalletResponseSupplier getWalletResponseSupplier() {
+    return walletResponseSupplier;
   }
 }

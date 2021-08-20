@@ -1,4 +1,4 @@
-package com.samourai.whirlpool.client.wallet.data.utxo;
+package com.samourai.whirlpool.client.wallet.data.utxoConfig;
 
 import com.samourai.whirlpool.client.wallet.data.supplier.PersistableData;
 import java.util.Collection;

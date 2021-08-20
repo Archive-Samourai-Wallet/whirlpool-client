@@ -17,8 +17,8 @@ public class WhirlpoolUtxoState {
   private Long lastError;
   private Subject<WhirlpoolUtxoState> observable;
 
-  public WhirlpoolUtxoState(WhirlpoolUtxoStatus status) {
-    this.status = status;
+  public WhirlpoolUtxoState() {
+    this.status = WhirlpoolUtxoStatus.READY;
     this.mixProgress = null;
     this.mixableStatus = null;
 

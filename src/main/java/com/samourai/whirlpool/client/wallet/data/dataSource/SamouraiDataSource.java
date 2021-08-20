@@ -6,9 +6,7 @@ import com.samourai.wallet.api.backend.beans.WalletResponse;
 import com.samourai.wallet.api.backend.websocket.BackendWsApi;
 import com.samourai.wallet.hd.HD_Wallet;
 import com.samourai.wallet.util.MessageListener;
-import com.samourai.whirlpool.client.event.DataSourceExpireRequest;
 import com.samourai.whirlpool.client.exception.NotifiableException;
-import com.samourai.whirlpool.client.wallet.WhirlpoolEventService;
 import com.samourai.whirlpool.client.wallet.WhirlpoolWalletConfig;
 import com.samourai.whirlpool.client.wallet.data.dataPersister.DataPersister;
 import com.samourai.whirlpool.client.wallet.data.walletState.WalletStateSupplier;
@@ -106,7 +104,7 @@ public class SamouraiDataSource extends WalletResponseDataSource {
                       if (log.isDebugEnabled()) {
                         log.debug("new block received -> refreshing walletData");
                         try {
-                          WhirlpoolEventService.getInstance().post(new DataSourceExpireRequest());
+                          getWalletResponseSupplier().refresh();
                         } catch (Exception e) {
                           log.error("", e);
                         }
@@ -124,7 +122,7 @@ public class SamouraiDataSource extends WalletResponseDataSource {
                       if (log.isDebugEnabled()) {
                         log.debug("new address received -> refreshing walletData");
                         try {
-                          WhirlpoolEventService.getInstance().post(new DataSourceExpireRequest());
+                          getWalletResponseSupplier().refresh();
                         } catch (Exception e) {
                           log.error("", e);
                         }

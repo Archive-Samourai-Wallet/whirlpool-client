@@ -4,9 +4,13 @@ import com.samourai.wallet.api.backend.beans.UnspentOutput;
 import com.samourai.wallet.api.backend.beans.WalletResponse;
 import com.samourai.wallet.client.BipWallet;
 import com.samourai.wallet.client.BipWalletAndAddressType;
+import com.samourai.whirlpool.client.tx0.Tx0ParamService;
 import com.samourai.whirlpool.client.utils.ClientUtils;
 import com.samourai.whirlpool.client.wallet.beans.*;
+import com.samourai.whirlpool.client.wallet.data.pool.PoolSupplier;
+import com.samourai.whirlpool.client.wallet.data.utxoConfig.UtxoConfigSupplier;
 import com.samourai.whirlpool.client.wallet.data.wallet.WalletSupplierImpl;
+import com.samourai.whirlpool.client.whirlpool.beans.Pool;
 import java.util.*;
 import java8.util.function.Predicate;
 import java8.util.stream.Collectors;
@@ -37,6 +41,8 @@ public class UtxoData {
   protected void init(
       WalletSupplierImpl walletSupplier,
       UtxoConfigSupplier utxoConfigSupplier,
+      PoolSupplier poolSupplier,
+      Tx0ParamService tx0ParamService,
       Map<String, WhirlpoolUtxo> previousUtxos,
       int latestBlockHeight) {
     // txs
@@ -79,8 +85,7 @@ public class UtxoData {
       if (freshUtxo != null) {
         // update utxo if confirmed
         if (whirlpoolUtxo.getBlockHeight() == null && freshUtxo.confirmations > 0) {
-          Integer blockHeight = computeBlockHeight(freshUtxo, latestBlockHeight);
-          whirlpoolUtxo._setUtxoConfirmed(freshUtxo, blockHeight);
+          whirlpoolUtxo.setUtxoConfirmed(freshUtxo, latestBlockHeight);
           utxoChanges.getUtxosConfirmed().add(whirlpoolUtxo);
         }
         // add
@@ -104,16 +109,20 @@ public class UtxoData {
             throw new Exception("Unknown wallet for: " + pub);
           }
 
+          // auto-assign pool when possible
+          String poolId =
+              computeAutoAssignPoolId(
+                  bipWallet.getAccount(), utxo.value, poolSupplier, tx0ParamService);
+
           // add missing
-          Integer blockHeight = computeBlockHeight(utxo, latestBlockHeight);
           WhirlpoolUtxo whirlpoolUtxo =
               new WhirlpoolUtxo(
                   utxo,
-                  blockHeight,
                   bipWallet.getAccount(),
                   bipWallet.getAddressType(),
-                  WhirlpoolUtxoStatus.READY,
-                  utxoConfigSupplier);
+                  poolId,
+                  utxoConfigSupplier,
+                  latestBlockHeight);
           if (!isFirstFetch) {
             // set lastActivity when utxo is detected but ignore on first fetch
             whirlpoolUtxo.getUtxoState().setLastActivity();
@@ -145,6 +154,36 @@ public class UtxoData {
     }
   }
 
+  private String computeAutoAssignPoolId(
+      WhirlpoolAccount account,
+      long value,
+      PoolSupplier poolSupplier,
+      Tx0ParamService tx0ParamService) {
+    Collection<Pool> eligiblePools = new LinkedList<Pool>();
+
+    // find eligible pools for tx0/premix/postmix
+    switch (account) {
+      case DEPOSIT:
+        Collection<Pool> pools = poolSupplier.getPools();
+        eligiblePools = tx0ParamService.findPools(pools, value);
+        break;
+
+      case PREMIX:
+        eligiblePools = poolSupplier.findPoolsForPremix(value, false);
+        break;
+
+      case POSTMIX:
+        eligiblePools = poolSupplier.findPoolsForPremix(value, true);
+        break;
+    }
+
+    // auto-assign pool by preference when found
+    if (!eligiblePools.isEmpty()) {
+      return eligiblePools.iterator().next().getPoolId();
+    }
+    return null; // no pool found
+  }
+
   private void addUtxo(WhirlpoolUtxo whirlpoolUtxo) {
     String key = ClientUtils.utxoToKey(whirlpoolUtxo.getUtxo());
     utxos.put(key, whirlpoolUtxo);
@@ -154,13 +193,6 @@ public class UtxoData {
       utxosByAddress.put(addr, new LinkedList<WhirlpoolUtxo>());
     }
     utxosByAddress.get(addr).add(whirlpoolUtxo);
-  }
-
-  private Integer computeBlockHeight(UnspentOutput utxo, int latestBlockHeight) {
-    if (utxo.confirmations <= 0) {
-      return null;
-    }
-    return latestBlockHeight - utxo.confirmations;
   }
 
   private Collection<WhirlpoolAccount> findTxAccounts(

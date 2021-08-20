@@ -65,7 +65,7 @@ public class WalletAggregateService {
       throw new NotifiableException(
           "Wallet aggregation is disabled on mainnet for security reasons.");
     }
-    whirlpoolWallet.getUtxoSupplier().expire();
+    whirlpoolWallet.getUtxoSupplier().refresh();
     Collection<WhirlpoolUtxo> utxos =
         whirlpoolWallet
             .getUtxoSupplier()

@@ -17,6 +17,7 @@ import com.samourai.whirlpool.client.wallet.beans.WhirlpoolUtxoChanges;
 import com.samourai.whirlpool.client.wallet.data.dataPersister.FileDataPersister;
 import com.samourai.whirlpool.client.wallet.data.dataSource.WalletResponseDataSource;
 import com.samourai.whirlpool.client.wallet.data.pool.ExpirablePoolSupplier;
+import com.samourai.whirlpool.client.wallet.data.utxoConfig.PersistableUtxoConfigSupplier;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
@@ -67,10 +68,9 @@ public class UtxoSupplierTest extends AbstractTest {
     byte[] seed = hdWalletFactory.computeSeedFromWords(SEED_WORDS);
     HD_Wallet bip44w = hdWalletFactory.getBIP44(seed, SEED_PASSPHRASE, params);
 
-    setMockWalletResponse(new UnspentOutput[] {});
-
     String walletIdentifier = "test";
     dataPersister = new FileDataPersister(config, bip44w, walletIdentifier);
+    dataPersister.open();
     dataSource =
         new WalletResponseDataSource(config, bip44w, walletIdentifier, dataPersister) {
           @Override
@@ -97,7 +97,6 @@ public class UtxoSupplierTest extends AbstractTest {
             return null; // not available
           }
         };
-    dataSource.open();
 
     utxoSupplier = dataSource.getUtxoSupplier();
     utxoConfigSupplier = dataPersister.getUtxoConfigSupplier();
@@ -116,6 +115,7 @@ public class UtxoSupplierTest extends AbstractTest {
     // mock initial data
     UnspentOutput[] utxos1 = new UnspentOutput[] {UTXO_DEPOSIT1, UTXO_PREMIX1, UTXO_POSTMIX1};
     setMockWalletResponse(utxos1);
+    dataSource.open();
 
     // verify
     doTest(utxos1);
@@ -131,7 +131,7 @@ public class UtxoSupplierTest extends AbstractTest {
     Assert.assertEquals(null, lastUtxoChanges);
 
     // expire data
-    utxoSupplier.expire();
+    utxoSupplier.refresh();
 
     // should use fresh data
     doTest(utxos2);
@@ -148,7 +148,7 @@ public class UtxoSupplierTest extends AbstractTest {
 
     // verify
     try {
-      doTest(new UnspentOutput[] {});
+      dataSource.open();
       Assert.assertTrue(false);
     } catch (Exception e) {
       Assert.assertEquals("utxos not available", e.getMessage());
@@ -160,13 +160,14 @@ public class UtxoSupplierTest extends AbstractTest {
     // mock initial data
     UnspentOutput[] utxos1 = new UnspentOutput[] {UTXO_DEPOSIT1, UTXO_PREMIX1, UTXO_POSTMIX1};
     setMockWalletResponse(utxos1);
+    dataSource.open();
 
     // verify
     doTest(utxos1);
     assertUtxoChanges(utxos1, new UnspentOutput[] {}, new UnspentOutput[] {});
 
     // expire data
-    utxoSupplier.expire();
+    utxoSupplier.refresh();
 
     // mock throwing backend
     mockException = true;
@@ -183,9 +184,6 @@ public class UtxoSupplierTest extends AbstractTest {
   }
 
   protected void doTest(UnspentOutput[] expected) throws Exception {
-    dataSource.open();
-
-    // getUtxos()
     assertUtxoEquals(expected, utxoSupplier.findUtxos(WhirlpoolAccount.values()));
   }
 

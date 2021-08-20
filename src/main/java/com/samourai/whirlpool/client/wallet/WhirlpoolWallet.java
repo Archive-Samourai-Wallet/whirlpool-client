@@ -25,9 +25,9 @@ import com.samourai.whirlpool.client.wallet.data.dataPersister.DataPersister;
 import com.samourai.whirlpool.client.wallet.data.dataSource.DataSource;
 import com.samourai.whirlpool.client.wallet.data.minerFee.MinerFeeSupplier;
 import com.samourai.whirlpool.client.wallet.data.pool.PoolSupplier;
-import com.samourai.whirlpool.client.wallet.data.utxo.UtxoConfigSupplier;
 import com.samourai.whirlpool.client.wallet.data.utxo.UtxoData;
 import com.samourai.whirlpool.client.wallet.data.utxo.UtxoSupplier;
+import com.samourai.whirlpool.client.wallet.data.utxoConfig.UtxoConfigSupplier;
 import com.samourai.whirlpool.client.wallet.data.wallet.WalletSupplier;
 import com.samourai.whirlpool.client.wallet.data.walletState.WalletStateSupplier;
 import com.samourai.whirlpool.client.wallet.orchestrator.AutoTx0Orchestrator;
@@ -131,13 +131,8 @@ public class WhirlpoolWallet {
       }
     }
 
-    // set utxos
+    // set utxos status
     for (WhirlpoolUtxo whirlpoolUtxo : whirlpoolUtxos) {
-      // set pool
-      if (!poolId.equals(whirlpoolUtxo.getPoolId())) {
-        whirlpoolUtxo.setPoolId(poolId);
-      }
-      // set status
       whirlpoolUtxo.getUtxoState().setStatus(WhirlpoolUtxoStatus.TX0, true);
     }
     try {
@@ -401,8 +396,7 @@ public class WhirlpoolWallet {
   public void onMixSuccess(WhirlpoolUtxo whirlpoolUtxo, MixSuccess mixSuccess) {
     // preserve utxo config
     Utxo receiveUtxo = mixSuccess.getReceiveUtxo();
-    getUtxoConfigSupplier()
-        .forwardUtxoConfig(whirlpoolUtxo, receiveUtxo.getHash(), (int) receiveUtxo.getIndex());
+    getUtxoConfigSupplier().forwardUtxoConfig(whirlpoolUtxo, receiveUtxo.getHash());
 
     // change Tor identity
     config.getTorClientService().changeIdentity();
@@ -421,14 +415,6 @@ public class WhirlpoolWallet {
 
       case DISCONNECTED:
       case MIX_FAILED:
-        // is utxo still mixable?
-        if (whirlpoolUtxo.getPoolId() == null) {
-          // utxo was spent in the meantime
-          log.warn(
-              "onMixFail(" + reason + "): not retrying because UTXO was spent: " + whirlpoolUtxo);
-          return;
-        }
-
         // retry later
         log.info("onMixFail(" + reason + "): will retry later");
         try {
@@ -635,7 +621,7 @@ public class WhirlpoolWallet {
 
     // reset mixing threads to avoid mixing obsolete consolidated utxos
     mixOrchestrator.stopMixingClients();
-    getUtxoSupplier().expire();
+    getUtxoSupplier().refresh();
 
     if (!success) {
       throw new NotifiableException("AutoAggregatePostmix failed (nothing to aggregate?)");
@@ -653,8 +639,8 @@ public class WhirlpoolWallet {
     log.info(" • Moving funds to: " + toAddress);
     walletAggregateService.toAddress(getWalletDeposit(), toAddress);
 
-    // expire
-    getUtxoSupplier().expire();
+    // refresh
+    getUtxoSupplier().refresh();
   }
 
   public MixingState getMixingState() {

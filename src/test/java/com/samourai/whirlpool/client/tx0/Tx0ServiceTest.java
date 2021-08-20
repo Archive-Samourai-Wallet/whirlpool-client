@@ -11,12 +11,9 @@ import com.samourai.whirlpool.client.utils.MockUtxoKeyProvider;
 import com.samourai.whirlpool.client.wallet.WhirlpoolWalletConfig;
 import com.samourai.whirlpool.client.wallet.beans.WhirlpoolAccount;
 import com.samourai.whirlpool.client.wallet.beans.WhirlpoolServer;
-import com.samourai.whirlpool.client.wallet.beans.WhirlpoolUtxo;
-import com.samourai.whirlpool.client.wallet.beans.WhirlpoolUtxoStatus;
 import com.samourai.whirlpool.client.whirlpool.beans.Tx0Data;
 import java.util.Arrays;
 import java8.util.Lists;
-import org.bitcoinj.core.ECKey;
 import org.bitcoinj.core.Transaction;
 import org.bouncycastle.util.encoders.Hex;
 import org.junit.Assert;
@@ -29,6 +26,7 @@ public class Tx0ServiceTest extends AbstractTest {
   private Logger log = LoggerFactory.getLogger(Tx0ServiceTest.class);
 
   private static final long FEE_VALUE = 10000;
+  private static final int LATEST_BLOCK_HEIGHT = 99999999;
 
   private Tx0Service tx0Service;
 
@@ -57,21 +55,12 @@ public class Tx0ServiceTest extends AbstractTest {
     HD_Wallet bip84w = hdWalletFactory.getBIP84(seed, passphrase, params);
 
     HD_Address address = bip84w.getAccountAt(0).getChain(0).getAddressAt(61);
-    ECKey spendFromKey = address.getECKey();
     UnspentOutput spendFromUtxo =
         newUnspentOutput(
             "cc588cdcb368f894a41c372d1f905770b61ecb3fb8e5e01a97e7cedbf5e324ae",
             1,
             500000000,
             address);
-    WhirlpoolUtxo whirlpoolUtxo =
-        new WhirlpoolUtxo(
-            spendFromUtxo,
-            1234,
-            WhirlpoolAccount.DEPOSIT,
-            AddressType.SEGWIT_NATIVE,
-            WhirlpoolUtxoStatus.READY,
-            null);
 
     Tx0Config tx0Config = new Tx0Config();
     int nbOutputsExpected = 10;
@@ -115,21 +104,12 @@ public class Tx0ServiceTest extends AbstractTest {
     HD_Wallet bip84w = hdWalletFactory.getBIP84(seed, passphrase, params);
 
     HD_Address address = bip84w.getAccountAt(0).getChain(0).getAddressAt(61);
-    ECKey spendFromKey = address.getECKey();
     UnspentOutput spendFromUtxo =
         newUnspentOutput(
             "cc588cdcb368f894a41c372d1f905770b61ecb3fb8e5e01a97e7cedbf5e324ae",
             1,
             500000000,
             address);
-    WhirlpoolUtxo spendFrom =
-        new WhirlpoolUtxo(
-            spendFromUtxo,
-            1234,
-            WhirlpoolAccount.DEPOSIT,
-            AddressType.SEGWIT_NATIVE,
-            WhirlpoolUtxoStatus.READY,
-            null);
 
     Tx0Config tx0Config = new Tx0Config();
     String feePaymentCode =
@@ -178,21 +158,12 @@ public class Tx0ServiceTest extends AbstractTest {
     HD_Wallet bip84w = hdWalletFactory.getBIP84(seed, passphrase, params);
 
     HD_Address address = bip84w.getAccountAt(0).getChain(0).getAddressAt(61);
-    ECKey spendFromKey = address.getECKey();
     UnspentOutput spendFromUtxo =
         newUnspentOutput(
             "cc588cdcb368f894a41c372d1f905770b61ecb3fb8e5e01a97e7cedbf5e324ae",
             1,
             500000000,
             address);
-    WhirlpoolUtxo spendFrom =
-        new WhirlpoolUtxo(
-            spendFromUtxo,
-            1234,
-            WhirlpoolAccount.DEPOSIT,
-            AddressType.SEGWIT_NATIVE,
-            WhirlpoolUtxoStatus.READY,
-            null);
 
     Tx0Config tx0Config = new Tx0Config();
     String feePaymentCode =
@@ -245,21 +216,12 @@ public class Tx0ServiceTest extends AbstractTest {
     HD_Wallet bip84w = hdWalletFactory.getBIP84(seed, passphrase, params);
 
     HD_Address address = bip84w.getAccountAt(0).getChain(0).getAddressAt(61);
-    ECKey spendFromKey = address.getECKey();
     UnspentOutput spendFromUtxo =
         newUnspentOutput(
             "cc588cdcb368f894a41c372d1f905770b61ecb3fb8e5e01a97e7cedbf5e324ae",
             1,
             500000000,
             address);
-    WhirlpoolUtxo spendFrom =
-        new WhirlpoolUtxo(
-            spendFromUtxo,
-            1234,
-            WhirlpoolAccount.DEPOSIT,
-            AddressType.SEGWIT_NATIVE,
-            WhirlpoolUtxoStatus.READY,
-            null);
 
     Tx0Config tx0Config = new Tx0Config();
     String feePaymentCode =
