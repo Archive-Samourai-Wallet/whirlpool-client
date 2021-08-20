@@ -1,4 +1,4 @@
-package com.samourai.whirlpool.client.wallet.data;
+package com.samourai.whirlpool.client.wallet.data.supplier;
 
 import com.google.common.base.ExpiringMemoizingSupplierUtil;
 import com.google.common.base.Supplier;
@@ -9,7 +9,7 @@ import java.util.concurrent.TimeUnit;
 import org.slf4j.Logger;
 
 /** Supplier with expirable data. */
-public abstract class ExpirableSupplier<D> extends BasicSupplier<D> implements LoadableSupplier {
+public abstract class ExpirableSupplier<D> extends BasicSupplier<D> {
   private static final int ATTEMPTS = 2;
 
   private final Integer refreshDelaySeconds; // null for non-expirable
@@ -18,7 +18,8 @@ public abstract class ExpirableSupplier<D> extends BasicSupplier<D> implements L
   protected abstract D fetch() throws Exception;
 
   public ExpirableSupplier(
-      Integer refreshDelaySeconds, final D initialValueFallback, final Logger log) {
+      Integer refreshDelaySeconds, final D initialValueFallback, final Logger log)
+      throws Exception {
     super(log, initialValueFallback);
     this.refreshDelaySeconds = refreshDelaySeconds;
     ThrowingSupplier sup =
@@ -46,12 +47,11 @@ public abstract class ExpirableSupplier<D> extends BasicSupplier<D> implements L
     }
   }
 
-  public synchronized void expireAndReload() throws Exception {
+  public synchronized void refresh() throws Exception {
     expire();
     load();
   }
 
-  @Override
   public synchronized void load() throws Exception {
     if (log.isDebugEnabled()) {
       log.debug("load()");

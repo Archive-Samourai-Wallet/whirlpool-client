@@ -1,7 +1,6 @@
 package com.samourai.whirlpool.client.wallet.data.walletState;
 
-import com.samourai.wallet.api.backend.beans.WalletResponse;
-import com.samourai.whirlpool.client.wallet.data.PersistableData;
+import com.samourai.whirlpool.client.wallet.data.supplier.PersistableData;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import org.slf4j.Logger;
@@ -23,37 +22,27 @@ public class WalletStateData extends PersistableData {
     this.items.putAll(indexes);
   }
 
-  protected WalletStateData copy() {
-    return new WalletStateData(this.items);
-  }
-
-  protected void updateIndexs(
-      WalletResponse.Address address, String persistKeyReceive, String persistKeyChange) {
-    updateIndexs(address.account_index, persistKeyReceive);
-    updateIndexs(address.change_index, persistKeyChange);
-  }
-
-  private synchronized void updateIndexs(int apiIndex, String key) {
+  protected synchronized void setWalletIndex(String key, int value) {
     Integer currentIndex = items.get(key);
-    if (currentIndex == null || currentIndex < apiIndex) {
+    if (currentIndex == null || currentIndex < value) {
       // update index
       if (log.isDebugEnabled()) {
         log.debug(
             key
                 + ": apiIndex="
-                + apiIndex
+                + value
                 + ", localIndex="
                 + (currentIndex != null ? currentIndex : "null")
                 + " => updating");
       }
-      set(key, apiIndex);
+      set(key, value);
     } else {
       // index unchanged
       if (log.isTraceEnabled()) {
         log.trace(
             key
                 + ": apiIndex="
-                + apiIndex
+                + value
                 + ", localIndex="
                 + (currentIndex != null ? currentIndex : "null")
                 + " => unchanged");
@@ -65,8 +54,8 @@ public class WalletStateData extends PersistableData {
     return get(INDEX_INITIALIZED, 0) == 1;
   }
 
-  public void setInitialized() {
-    set(INDEX_INITIALIZED, 1);
+  public void setInitialized(boolean initialized) {
+    set(INDEX_INITIALIZED, initialized ? 1 : 0);
   }
 
   protected Map<String, Integer> getItems() {

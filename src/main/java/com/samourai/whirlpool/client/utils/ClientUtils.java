@@ -435,18 +435,32 @@ public class ClientUtils {
     return mapByPrevTx.size();
   }
 
-  public static File computeFile(String path) throws NotifiableException {
-    File f = new File(path);
+  public static void createFile(File f) throws NotifiableException {
     if (!f.exists()) {
       if (log.isDebugEnabled()) {
-        log.debug("Creating file " + path);
+        log.debug("Creating file " + f.getAbsolutePath());
       }
       try {
         f.createNewFile();
       } catch (Exception e) {
-        throw new NotifiableException("Unable to write file " + path);
+        throw new NotifiableException("Unable to write file " + f.getAbsolutePath());
       }
     }
+  }
+
+  public static File createFile(String fileName) throws NotifiableException {
+    File f = new File(fileName); // use current directory
+    ClientUtils.createFile(f);
     return f;
+  }
+
+  public static <T> Collection<T> filterByAssignableType(Collection items, Class<T> type) {
+    List<T> list = new LinkedList<T>();
+    for (Object item : items) {
+      if (item.getClass().isAssignableFrom(type)) {
+        list.add((T) item);
+      }
+    }
+    return list;
   }
 }

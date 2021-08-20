@@ -171,7 +171,7 @@ public class MixOrchestratorImpl extends MixOrchestrator {
               externalDestination.getXpub(),
               externalDestination.getChain(),
               externalDestination.getStartIndex(),
-              whirlpoolWallet.getWalletSupplier().getExternalIndexHandler());
+              whirlpoolWallet.getWalletStateSupplier().getExternalIndexHandler());
         }
       } else {
         if (log.isDebugEnabled()) {

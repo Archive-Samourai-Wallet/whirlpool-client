@@ -1,7 +1,8 @@
-package com.samourai.whirlpool.client.wallet.data.utxo;
+package com.samourai.whirlpool.client.wallet.data.utxoConfig;
 
 import com.samourai.wallet.api.backend.beans.UnspentOutput;
 import com.samourai.whirlpool.client.wallet.beans.WhirlpoolUtxo;
+import com.samourai.whirlpool.client.wallet.data.utxo.UtxoSupplierTest;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -12,6 +13,7 @@ public class UtxoConfigSupplierTest extends UtxoSupplierTest {
     // mock initial data
     UnspentOutput[] utxos1 = new UnspentOutput[] {UTXO_DEPOSIT1, UTXO_PREMIX1, UTXO_POSTMIX1};
     setMockWalletResponse(utxos1);
+    dataSource.open();
 
     // verify
     doTest(utxos1);
@@ -28,12 +30,6 @@ public class UtxoConfigSupplierTest extends UtxoSupplierTest {
         1, utxoSupplier.findUtxo(UTXO_POSTMIX1.tx_hash, UTXO_POSTMIX1.tx_output_n).getMixsDone());
 
     Assert.assertNull(utxoSupplier.findUtxo(UTXO_DEPOSIT1.tx_hash, 99));
-
-    // setPoolId
-    utxoSupplier.findUtxo(UTXO_DEPOSIT1.tx_hash, UTXO_DEPOSIT1.tx_output_n).setPoolId("test");
-    Assert.assertEquals(
-        "test",
-        utxoSupplier.findUtxo(UTXO_DEPOSIT1.tx_hash, UTXO_DEPOSIT1.tx_output_n).getPoolId());
   }
 
   @Test
@@ -41,6 +37,7 @@ public class UtxoConfigSupplierTest extends UtxoSupplierTest {
     // mock initial data
     UnspentOutput[] utxos1 = new UnspentOutput[] {UTXO_DEPOSIT1};
     setMockWalletResponse(utxos1);
+    dataSource.open();
 
     // verify
     doTest(utxos1);
@@ -62,7 +59,7 @@ public class UtxoConfigSupplierTest extends UtxoSupplierTest {
     // Thread.sleep(UtxoConfigData.FORWARDING_EXPIRATION_SECONDS+1); // test should fail
 
     // verify => no change
-    utxoSupplier.expire();
+    utxoSupplier.refresh();
     doTest(utxos2);
 
     // receive utxo appears
@@ -70,13 +67,13 @@ public class UtxoConfigSupplierTest extends UtxoSupplierTest {
     setMockWalletResponse(utxos3);
 
     // verify => no change
-    utxoSupplier.expire();
+    utxoSupplier.refresh();
     doTest(utxos3);
 
     // verify config preserved
     WhirlpoolUtxo utxoPremix1 =
         utxoSupplier.findUtxo(UTXO_PREMIX1.tx_hash, UTXO_PREMIX1.tx_output_n);
     // verify forwarding null
-    Assert.assertNull(utxoConfigSupplier.getUtxoConfigPersisted(utxoPremix1).getForwarding());
+    Assert.assertNull(utxoConfigSupplier.getUtxoConfig(utxoPremix1).getForwarding());
   }
 }

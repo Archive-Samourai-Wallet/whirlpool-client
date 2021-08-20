@@ -1,13 +1,11 @@
-package com.samourai.whirlpool.client.wallet.data.utxo;
+package com.samourai.whirlpool.client.wallet.data.utxoConfig;
 
 import com.samourai.wallet.api.backend.beans.UnspentOutput;
-import com.samourai.whirlpool.client.tx0.Tx0ParamService;
 import com.samourai.whirlpool.client.utils.ClientUtils;
 import com.samourai.whirlpool.client.wallet.beans.WhirlpoolUtxo;
 import com.samourai.whirlpool.client.wallet.beans.WhirlpoolUtxoChanges;
-import com.samourai.whirlpool.client.wallet.data.AbstractPersistableSupplier;
-import com.samourai.whirlpool.client.wallet.data.pool.PoolSupplier;
-import com.samourai.whirlpool.client.whirlpool.beans.Pool;
+import com.samourai.whirlpool.client.wallet.data.supplier.AbstractPersistableSupplier;
+import com.samourai.whirlpool.client.wallet.data.utxo.UtxoData;
 import java.util.Collection;
 import java.util.List;
 import java8.util.function.Function;
@@ -16,39 +14,12 @@ import java8.util.stream.StreamSupport;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class UtxoConfigSupplier extends AbstractPersistableSupplier<UtxoConfigData> {
-  private static final Logger log = LoggerFactory.getLogger(UtxoConfigSupplier.class);
+public class PersistableUtxoConfigSupplier extends AbstractPersistableSupplier<UtxoConfigData>
+    implements UtxoConfigSupplier {
+  private static final Logger log = LoggerFactory.getLogger(PersistableUtxoConfigSupplier.class);
 
-  private final PoolSupplier poolSupplier;
-  private final Tx0ParamService tx0ParamService;
-
-  public UtxoConfigSupplier(
-      UtxoConfigPersister persister, PoolSupplier poolSupplier, Tx0ParamService tx0ParamService) {
+  public PersistableUtxoConfigSupplier(UtxoConfigPersister persister) throws Exception {
     super(null, persister, log);
-    this.poolSupplier = poolSupplier;
-    this.tx0ParamService = tx0ParamService;
-  }
-
-  private String computeAutoAssignPoolId(WhirlpoolUtxo whirlpoolUtxo) {
-    Collection<Pool> eligiblePools = null;
-
-    // find eligible pools for tx0
-    if (whirlpoolUtxo.isAccountDeposit()) {
-      Collection<Pool> pools = poolSupplier.getPools();
-      eligiblePools = tx0ParamService.findPools(pools, whirlpoolUtxo.getUtxo().value);
-    }
-
-    // find eligible pools for mix
-    else if (whirlpoolUtxo.isAccountPremix() || whirlpoolUtxo.isAccountPostmix()) {
-      boolean liquidity = whirlpoolUtxo.isAccountPostmix();
-      eligiblePools = poolSupplier.findPoolsForPremix(whirlpoolUtxo.getUtxo().value, liquidity);
-    }
-
-    // auto-assign pool by preference when found
-    if (eligiblePools != null && !eligiblePools.isEmpty()) {
-      return eligiblePools.iterator().next().getPoolId();
-    }
-    return null; // no pool found
   }
 
   private UtxoConfigPersisted newUtxoConfig(WhirlpoolUtxo whirlpoolUtxo) {
@@ -65,37 +36,12 @@ public class UtxoConfigSupplier extends AbstractPersistableSupplier<UtxoConfigDa
       utxoConfig.incrementMixsDone();
     }
 
-    // check pool
-    if (utxoConfig.getPoolId() != null) {
-      // check pool applicable
-      Pool pool = poolSupplier.findPoolById(utxoConfig.getPoolId());
-      if (pool == null) {
-        log.warn("pool not found for utxoConfig: " + utxoConfig.getPoolId());
-      } else if (!tx0ParamService.isPoolApplicable(pool, whirlpoolUtxo)) {
-        if (log.isDebugEnabled()) {
-          log.debug("pool not applicable for utxo: " + whirlpoolUtxo);
-        }
-        pool = null;
-      }
-      if (pool == null) {
-        // clear pool configuration
-        utxoConfig.setPoolId(null);
-      }
-    }
-
-    // auto-assign pool when possible
-    if (utxoConfig.getPoolId() == null) {
-      String poolId = computeAutoAssignPoolId(whirlpoolUtxo);
-      if (poolId != null) {
-        utxoConfig.setPoolId(poolId);
-      }
-    }
-
     // log
     return utxoConfig;
   }
 
-  public UtxoConfigPersisted getUtxoConfigPersisted(WhirlpoolUtxo whirlpoolUtxo) {
+  @Override
+  public UtxoConfigPersisted getUtxoConfig(WhirlpoolUtxo whirlpoolUtxo) {
     UnspentOutput utxo = whirlpoolUtxo.getUtxo();
     String key = computeUtxoConfigKey(utxo.tx_hash, utxo.tx_output_n);
 
@@ -104,13 +50,7 @@ public class UtxoConfigSupplier extends AbstractPersistableSupplier<UtxoConfigDa
     return utxoConfigPersisted;
   }
 
-  public void forwardUtxoConfig(WhirlpoolUtxo fromUtxo, String hash, int index) {
-    UnspentOutput utxo = fromUtxo.getUtxo();
-    String fromKey = computeUtxoConfigKey(utxo.tx_hash, utxo.tx_output_n);
-    String toKey = computeUtxoConfigKey(hash, index);
-    forwardUtxoConfig(fromKey, toKey);
-  }
-
+  @Override
   public void forwardUtxoConfig(WhirlpoolUtxo fromUtxo, String txid) {
     UnspentOutput utxo = fromUtxo.getUtxo();
     String fromKey = computeUtxoConfigKey(utxo.tx_hash, utxo.tx_output_n);
@@ -133,7 +73,8 @@ public class UtxoConfigSupplier extends AbstractPersistableSupplier<UtxoConfigDa
     }
   }
 
-  public void setLastChange() {
+  @Override
+  public void saveUtxoConfig(UtxoConfigPersisted utxoConfigPersisted) {
     getValue().setLastChange();
   }
 

@@ -12,9 +12,10 @@ import com.samourai.whirlpool.client.tx0.ITx0ParamServiceConfig;
 import com.samourai.whirlpool.client.tx0.Tx0ParamService;
 import com.samourai.whirlpool.client.utils.ClientUtils;
 import com.samourai.whirlpool.client.wallet.WhirlpoolWalletConfig;
+import com.samourai.whirlpool.client.wallet.data.minerFee.BasicMinerFeeSupplier;
 import com.samourai.whirlpool.client.wallet.data.minerFee.MinerFeeSupplier;
+import com.samourai.whirlpool.client.wallet.data.pool.ExpirablePoolSupplier;
 import com.samourai.whirlpool.client.wallet.data.pool.MockPoolSupplier;
-import com.samourai.whirlpool.client.wallet.data.pool.PoolSupplier;
 import com.samourai.whirlpool.client.whirlpool.beans.Pool;
 import com.samourai.whirlpool.protocol.rest.PoolsResponse;
 import com.samourai.whirlpool.protocol.websocket.notifications.MixStatus;
@@ -98,7 +99,7 @@ public class AbstractTest {
     return ClientUtils.fromJson(WALLET_RESPONSE, WalletResponse.class);
   }
 
-  protected Tx0ParamService mockTx0ParamService() {
+  protected Tx0ParamService mockTx0ParamService() throws Exception {
     MinerFeeSupplier minerFeeSupplier = mockMinerFeeSupplier();
     return new Tx0ParamService(
         minerFeeSupplier,
@@ -115,7 +116,7 @@ public class AbstractTest {
         });
   }
 
-  protected PoolSupplier mockPoolSupplier() {
+  protected ExpirablePoolSupplier mockPoolSupplier() {
     try {
       PoolsResponse poolsResponse = ClientUtils.fromJson(POOLS_RESPONSE, PoolsResponse.class);
       return new MockPoolSupplier(mockTx0ParamService(), poolsResponse.pools);
@@ -124,8 +125,8 @@ public class AbstractTest {
     }
   }
 
-  protected MinerFeeSupplier mockMinerFeeSupplier() {
-    return new MinerFeeSupplier(1, 100, 1);
+  protected MinerFeeSupplier mockMinerFeeSupplier() throws Exception {
+    return new BasicMinerFeeSupplier(1, 100, 1);
   }
 
   protected Collection<Pool> getPools() {
@@ -160,7 +161,7 @@ public class AbstractTest {
 
   protected WhirlpoolWalletConfig computeWhirlpoolWalletConfig() {
     WhirlpoolWalletConfig config =
-        new WhirlpoolWalletConfig(null, null, null, null, TestNet3Params.get(), false, null, null);
+        new WhirlpoolWalletConfig(null, null, null, null, TestNet3Params.get(), false);
     return config;
   }
 

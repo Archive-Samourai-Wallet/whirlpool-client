@@ -1,23 +1,22 @@
 package com.samourai.whirlpool.client.wallet.data.minerFee;
 
+import com.samourai.wallet.api.backend.MinerFee;
 import com.samourai.wallet.api.backend.MinerFeeTarget;
-import com.samourai.wallet.api.backend.beans.WalletResponse;
 import com.samourai.whirlpool.client.test.AbstractTest;
 import com.samourai.whirlpool.client.wallet.beans.Tx0FeeTarget;
-import java.util.LinkedHashMap;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
 public class MinerFeeSupplierTest extends AbstractTest {
-  private MinerFeeSupplier supplier;
+  private BasicMinerFeeSupplier supplier;
   private final int FEE_MIN = 50;
   private final int FEE_MAX = 500;
   private final int FEE_FALLBACK = 123;
 
   @Before
   public void setup() throws Exception {
-    this.supplier = new MinerFeeSupplier(FEE_MIN, FEE_MAX, FEE_FALLBACK);
+    this.supplier = new BasicMinerFeeSupplier(FEE_MIN, FEE_MAX, FEE_FALLBACK);
   }
 
   @Test
@@ -43,12 +42,8 @@ public class MinerFeeSupplierTest extends AbstractTest {
   }
 
   private void setMockFeeValue(int feeValue) throws Exception {
-    WalletResponse walletResponse = mockWalletResponse();
-    walletResponse.info.fees = new LinkedHashMap<String, Integer>();
-    for (MinerFeeTarget minerFeeTarget : MinerFeeTarget.values()) {
-      walletResponse.info.fees.put(minerFeeTarget.getValue(), feeValue);
-    }
-    supplier._setValue(walletResponse);
+    MinerFee value = BasicMinerFeeSupplier.mockMinerFee(feeValue);
+    supplier.setValue(value);
   }
 
   private void doTest(int expected) throws Exception {
@@ -59,7 +54,7 @@ public class MinerFeeSupplierTest extends AbstractTest {
 
     // getFee(Tx0FeeTarget)
     for (Tx0FeeTarget tx0FeeTarget : Tx0FeeTarget.values()) {
-      Assert.assertEquals(expected, supplier.getFee(tx0FeeTarget));
+      Assert.assertEquals(expected, supplier.getFee(tx0FeeTarget.getFeeTarget()));
     }
   }
 }

@@ -1,14 +1,11 @@
-package com.samourai.whirlpool.client.wallet.data.minerFee;
+package com.samourai.whirlpool.client.wallet.data.wallet;
 
-import com.samourai.wallet.api.backend.BackendApi;
 import com.samourai.wallet.client.BipWalletAndAddressType;
 import com.samourai.wallet.client.indexHandler.IIndexHandler;
 import com.samourai.wallet.hd.AddressType;
 import com.samourai.wallet.hd.Chain;
 import com.samourai.wallet.hd.HD_Wallet;
 import com.samourai.whirlpool.client.wallet.beans.WhirlpoolAccount;
-import com.samourai.whirlpool.client.wallet.data.walletState.WalletStateIndexHandler;
-import com.samourai.whirlpool.client.wallet.data.walletState.WalletStatePersister;
 import com.samourai.whirlpool.client.wallet.data.walletState.WalletStateSupplier;
 import java.util.LinkedHashMap;
 import java.util.LinkedList;
@@ -17,23 +14,13 @@ import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class WalletSupplier {
-  private static final Logger log = LoggerFactory.getLogger(WalletSupplier.class);
-  private static final String EXTERNAL_INDEX_HANDLER = "external";
+public class WalletSupplierImpl implements WalletSupplier {
+  private static final Logger log = LoggerFactory.getLogger(WalletSupplierImpl.class);
 
-  private final WalletStateSupplier walletStateSupplier;
   private final Map<WhirlpoolAccount, Map<AddressType, BipWalletAndAddressType>> wallets;
   private final Map<String, BipWalletAndAddressType> walletsByPub;
-  private final IIndexHandler externalIndexHandler;
 
-  public WalletSupplier(
-      WalletStatePersister persister,
-      BackendApi backendApi,
-      HD_Wallet bip44w,
-      int externalIndexDefault) {
-
-    this.walletStateSupplier = new WalletStateSupplier(persister, backendApi, this);
-
+  public WalletSupplierImpl(HD_Wallet bip44w, WalletStateSupplier walletStateSupplier) {
     // instanciate wallets
     this.wallets = new LinkedHashMap<WhirlpoolAccount, Map<AddressType, BipWalletAndAddressType>>();
     this.walletsByPub = new LinkedHashMap<String, BipWalletAndAddressType>();
@@ -58,11 +45,9 @@ public class WalletSupplier {
       }
       wallets.put(account, walletsByAddressType);
     }
-    this.externalIndexHandler =
-        new WalletStateIndexHandler(
-            walletStateSupplier, EXTERNAL_INDEX_HANDLER, externalIndexDefault);
   }
 
+  @Override
   public BipWalletAndAddressType getWallet(WhirlpoolAccount account, AddressType addressType) {
     if (!wallets.containsKey(account) || !wallets.get(account).containsKey(addressType)) {
       log.error("No wallet found for " + account + " / " + addressType);
@@ -72,6 +57,7 @@ public class WalletSupplier {
     return wallet;
   }
 
+  @Override
   public BipWalletAndAddressType getWalletByPub(String pub) {
     BipWalletAndAddressType bipWallet = walletsByPub.get(pub);
     if (bipWallet == null) {
@@ -81,6 +67,7 @@ public class WalletSupplier {
     return bipWallet;
   }
 
+  @Override
   public String[] getPubs(boolean withIgnoredAccounts) {
     List<String> pubs = new LinkedList<String>();
     for (BipWalletAndAddressType bipWallet : walletsByPub.values()) {
@@ -90,13 +77,5 @@ public class WalletSupplier {
       }
     }
     return pubs.toArray(new String[] {});
-  }
-
-  public WalletStateSupplier getWalletStateSupplier() {
-    return walletStateSupplier;
-  }
-
-  public IIndexHandler getExternalIndexHandler() {
-    return externalIndexHandler;
   }
 }

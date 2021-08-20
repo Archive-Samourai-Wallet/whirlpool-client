@@ -1,14 +1,14 @@
-package com.samourai.whirlpool.client.wallet.data;
+package com.samourai.whirlpool.client.wallet.data.supplier;
 
 import org.slf4j.Logger;
 
 public abstract class AbstractPersistableSupplier<D extends PersistableData>
-    extends BasicSupplier<D> implements LoadableSupplier {
+    extends BasicSupplier<D> {
 
   private AbstractPersister<D, ?> persister;
 
   public AbstractPersistableSupplier(
-      final D fallbackValue, AbstractPersister<D, ?> persister, Logger log) {
+      final D fallbackValue, AbstractPersister<D, ?> persister, Logger log) throws Exception {
     super(log, fallbackValue);
     this.persister = persister;
   }

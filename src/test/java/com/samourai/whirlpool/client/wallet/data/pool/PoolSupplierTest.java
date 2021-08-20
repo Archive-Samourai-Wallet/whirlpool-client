@@ -9,7 +9,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 public class PoolSupplierTest extends AbstractTest {
-  private PoolSupplier supplier;
+  private ExpirablePoolSupplier supplier;
 
   @Before
   public void setup() throws Exception {

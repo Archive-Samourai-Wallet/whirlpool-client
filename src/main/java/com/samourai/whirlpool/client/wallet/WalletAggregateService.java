@@ -1,25 +1,22 @@
 package com.samourai.whirlpool.client.wallet;
 
-import com.samourai.wallet.api.backend.BackendApi;
 import com.samourai.wallet.api.backend.MinerFeeTarget;
 import com.samourai.wallet.api.backend.beans.UnspentOutput;
 import com.samourai.wallet.bip69.BIP69InputComparator;
-import com.samourai.wallet.client.BipWallet;
 import com.samourai.wallet.client.BipWalletAndAddressType;
 import com.samourai.wallet.hd.AddressType;
 import com.samourai.wallet.segwit.bech32.Bech32UtilGeneric;
 import com.samourai.wallet.send.SendFactoryGeneric;
-import com.samourai.wallet.send.provider.UtxoKeyProvider;
 import com.samourai.wallet.util.FeeUtil;
 import com.samourai.wallet.util.FormatsUtilGeneric;
 import com.samourai.whirlpool.client.exception.NotifiableException;
 import com.samourai.whirlpool.client.utils.ClientUtils;
 import com.samourai.whirlpool.client.wallet.beans.WhirlpoolAccount;
-import com.samourai.whirlpool.client.wallet.data.utxo.UtxoSupplier;
+import com.samourai.whirlpool.client.wallet.beans.WhirlpoolUtxo;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
-import java8.util.Lists;
 import org.bitcoinj.core.NetworkParameters;
 import org.bitcoinj.core.Transaction;
 import org.bitcoinj.core.TransactionInput;
@@ -35,49 +32,44 @@ public class WalletAggregateService {
 
   private NetworkParameters params;
   private Bech32UtilGeneric bech32Util;
+  private WhirlpoolWallet whirlpoolWallet;
 
-  public WalletAggregateService(NetworkParameters params, Bech32UtilGeneric bech32Util) {
+  public WalletAggregateService(
+      NetworkParameters params, Bech32UtilGeneric bech32Util, WhirlpoolWallet whirlpoolWallet) {
     this.params = params;
     this.bech32Util = bech32Util;
+    this.whirlpoolWallet = whirlpoolWallet;
   }
 
   private boolean toWallet(
       BipWalletAndAddressType sourceWallet,
       BipWalletAndAddressType destinationWallet,
-      int feeSatPerByte,
-      BackendApi backendApi,
-      UtxoKeyProvider utxoKeySupplier)
+      int feeSatPerByte)
       throws Exception {
-    return doAggregate(
-        sourceWallet, null, destinationWallet, feeSatPerByte, backendApi, utxoKeySupplier);
+    return doAggregate(sourceWallet, null, destinationWallet, feeSatPerByte);
   }
 
-  public boolean toAddress(
-      BipWalletAndAddressType sourceWallet,
-      String destinationAddress,
-      WhirlpoolWallet whirlpoolWallet)
+  public boolean toAddress(BipWalletAndAddressType sourceWallet, String destinationAddress)
       throws Exception {
     int feeSatPerByte = whirlpoolWallet.getMinerFeeSupplier().getFee(MinerFeeTarget.BLOCKS_2);
-    BackendApi backendApi = whirlpoolWallet.getConfig().getBackendApi();
-    UtxoSupplier utxoSupplier = whirlpoolWallet.getUtxoSupplier();
-    return doAggregate(
-        sourceWallet, destinationAddress, null, feeSatPerByte, backendApi, utxoSupplier);
+    return doAggregate(sourceWallet, destinationAddress, null, feeSatPerByte);
   }
 
   private boolean doAggregate(
       BipWalletAndAddressType sourceWallet,
       String destinationAddress,
       BipWalletAndAddressType destinationWallet,
-      int feeSatPerByte,
-      BackendApi backendApi,
-      UtxoKeyProvider utxoKeySupplier)
+      int feeSatPerByte)
       throws Exception {
     if (!formatUtils.isTestNet(params)) {
       throw new NotifiableException(
           "Wallet aggregation is disabled on mainnet for security reasons.");
     }
-    List<UnspentOutput> utxos =
-        Lists.of(backendApi.fetchWallet(sourceWallet.getPub()).unspent_outputs);
+    whirlpoolWallet.getUtxoSupplier().refresh();
+    Collection<WhirlpoolUtxo> utxos =
+        whirlpoolWallet
+            .getUtxoSupplier()
+            .findUtxos(sourceWallet.getAddressType(), sourceWallet.getAccount());
     if (utxos.isEmpty() || (utxos.size() == 1 && sourceWallet == destinationWallet)) {
       // maybe you need to declare zpub as bip84 with /multiaddr?bip84=
       log.info(
@@ -105,21 +97,19 @@ public class WalletAggregateService {
               + ":"
               + destinationWallet.getAddressType()
               + "):");
-      ClientUtils.logUtxos(
-          utxos,
-          sourceWallet.getAddressType().getPurpose(),
-          sourceWallet.getAccount().getAccountIndex(),
-          params);
+      ClientUtils.logWhirlpoolUtxos(
+          utxos, whirlpoolWallet.getChainSupplier().getLatestBlock().height);
     }
 
     boolean success = false;
     int round = 0;
     int offset = 0;
+    WhirlpoolUtxo[] utxosArray = utxos.toArray(new WhirlpoolUtxo[] {});
     while (offset < utxos.size()) {
       List<UnspentOutput> subsetUtxos = new ArrayList<UnspentOutput>();
       offset = AGGREGATED_UTXOS_PER_TX * round;
       for (int i = offset; i < (offset + AGGREGATED_UTXOS_PER_TX) && i < utxos.size(); i++) {
-        subsetUtxos.add(utxos.get(i));
+        subsetUtxos.add(utxosArray[i].getUtxo());
       }
       if (!subsetUtxos.isEmpty()) {
         String toAddress = destinationAddress;
@@ -128,8 +118,7 @@ public class WalletAggregateService {
         }
 
         log.info(" -> aggregating " + subsetUtxos.size() + " utxos (pass #" + round + ")");
-        txAggregate(
-            sourceWallet, subsetUtxos, toAddress, feeSatPerByte, backendApi, utxoKeySupplier);
+        txAggregate(subsetUtxos, toAddress, feeSatPerByte);
         success = true;
       }
       round++;
@@ -137,17 +126,11 @@ public class WalletAggregateService {
     return success;
   }
 
-  private void txAggregate(
-      BipWallet sourceWallet,
-      List<UnspentOutput> postmixUtxos,
-      String toAddress,
-      int feeSatPerByte,
-      BackendApi backendApi,
-      UtxoKeyProvider utxoKeySupplier)
+  private void txAggregate(List<UnspentOutput> postmixUtxos, String toAddress, int feeSatPerByte)
       throws Exception {
 
     // tx
-    Transaction txAggregate = txAggregate(postmixUtxos, toAddress, feeSatPerByte, utxoKeySupplier);
+    Transaction txAggregate = computeTxAggregate(postmixUtxos, toAddress, feeSatPerByte);
 
     log.info("txAggregate:");
     log.info(txAggregate.toString());
@@ -155,15 +138,11 @@ public class WalletAggregateService {
     // broadcast
     log.info(" • Broadcasting TxAggregate...");
     String txHex = ClientUtils.getTxHex(txAggregate);
-    backendApi.pushTx(txHex);
+    whirlpoolWallet.pushTx(txHex);
   }
 
-  private Transaction txAggregate(
-      List<UnspentOutput> spendFroms,
-      String toAddress,
-      long feeSatPerByte,
-      UtxoKeyProvider utxoKeySupplier)
-      throws Exception {
+  private Transaction computeTxAggregate(
+      List<UnspentOutput> spendFroms, String toAddress, long feeSatPerByte) throws Exception {
 
     long inputsValue = UnspentOutput.sumValue(spendFroms);
 
@@ -198,7 +177,7 @@ public class WalletAggregateService {
     }
 
     // sign inputs
-    SendFactoryGeneric.getInstance().signTransaction(tx, utxoKeySupplier);
+    SendFactoryGeneric.getInstance().signTransaction(tx, whirlpoolWallet.getUtxoSupplier());
 
     final String hexTx = new String(Hex.encode(tx.bitcoinSerialize()));
     final String strTxHash = tx.getHashAsString();
@@ -211,10 +190,8 @@ public class WalletAggregateService {
     return tx;
   }
 
-  public boolean consolidateWallet(WhirlpoolWallet whirlpoolWallet, UtxoKeyProvider utxoKeySupplier)
-      throws Exception {
+  public boolean consolidateWallet() throws Exception {
     BipWalletAndAddressType depositWallet = whirlpoolWallet.getWalletDeposit();
-    BackendApi backendApi = whirlpoolWallet.getConfig().getBackendApi();
 
     // consolidate each wallet to deposit
     int feeSatPerByte = whirlpoolWallet.getMinerFeeSupplier().getFee(MinerFeeTarget.BLOCKS_2);
@@ -233,7 +210,7 @@ public class WalletAggregateService {
                   + "/"
                   + depositWallet.getAddressType()
                   + "...");
-          toWallet(sourceWallet, depositWallet, feeSatPerByte, backendApi, utxoKeySupplier);
+          toWallet(sourceWallet, depositWallet, feeSatPerByte);
         }
       }
     }
@@ -245,13 +222,7 @@ public class WalletAggregateService {
 
     ClientUtils.sleepUtxosDelay(params);
     log.info(" • Consolidating deposit...");
-    boolean success =
-        toWallet(
-            depositWallet,
-            depositWallet,
-            feeSatPerByte,
-            backendApi,
-            whirlpoolWallet.getUtxoSupplier());
+    boolean success = toWallet(depositWallet, depositWallet, feeSatPerByte);
     return success;
   }
 }

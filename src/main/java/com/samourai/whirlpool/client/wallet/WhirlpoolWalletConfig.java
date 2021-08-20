@@ -3,8 +3,6 @@ package com.samourai.whirlpool.client.wallet;
 import com.samourai.http.client.IHttpClientService;
 import com.samourai.stomp.client.IStompClientService;
 import com.samourai.tor.client.TorClientService;
-import com.samourai.wallet.api.backend.BackendApi;
-import com.samourai.wallet.api.backend.websocket.BackendWsApi;
 import com.samourai.wallet.bip47.rpc.java.SecretPointFactoryJava;
 import com.samourai.wallet.bip47.rpc.secretPoint.ISecretPointFactory;
 import com.samourai.wallet.util.FormatsUtilGeneric;
@@ -39,9 +37,6 @@ public class WhirlpoolWalletConfig extends WhirlpoolClientConfig implements ITx0
   private int tx0FakeOutputMinValue;
   private Map<String, Long> overspend;
 
-  private BackendApi backendApi;
-  private BackendWsApi backendWsApi; // may be null
-  private boolean backendWatch;
   private int tx0MinConfirmations;
   private int refreshUtxoDelay;
   private int refreshPoolsDelay;
@@ -51,6 +46,7 @@ public class WhirlpoolWalletConfig extends WhirlpoolClientConfig implements ITx0
   private int feeFallback;
 
   private boolean resyncOnFirstRun;
+  private boolean strictMode;
 
   private ISecretPointFactory secretPointFactory;
 
@@ -60,9 +56,7 @@ public class WhirlpoolWalletConfig extends WhirlpoolClientConfig implements ITx0
       TorClientService torClientService,
       ServerApi serverApi,
       NetworkParameters params,
-      boolean mobile,
-      BackendApi backendApi,
-      BackendWsApi backendWsApi) {
+      boolean mobile) {
     super(httpClientService, stompClientService, torClientService, serverApi, null, params, mobile);
 
     // default settings
@@ -82,9 +76,6 @@ public class WhirlpoolWalletConfig extends WhirlpoolClientConfig implements ITx0
     this.overspend = new LinkedHashMap<String, Long>();
 
     // technical settings
-    this.backendApi = backendApi;
-    this.backendWsApi = backendWsApi;
-    this.backendWatch = !mobile;
     this.tx0MinConfirmations = 0;
     this.refreshUtxoDelay = 60; // 1min
     this.refreshPoolsDelay = 600; // 10min
@@ -94,6 +85,7 @@ public class WhirlpoolWalletConfig extends WhirlpoolClientConfig implements ITx0
     this.feeFallback = 75;
 
     this.resyncOnFirstRun = false;
+    this.strictMode = true;
 
     this.secretPointFactory = SecretPointFactoryJava.getInstance();
   }
@@ -228,22 +220,6 @@ public class WhirlpoolWalletConfig extends WhirlpoolClientConfig implements ITx0
     this.overspend = overspend;
   }
 
-  public BackendApi getBackendApi() {
-    return backendApi;
-  }
-
-  public BackendWsApi getBackendWsApi() {
-    return backendWsApi;
-  }
-
-  public boolean isBackendWatch() {
-    return backendWatch;
-  }
-
-  public void setBackendWatch(boolean backendWatch) {
-    this.backendWatch = backendWatch;
-  }
-
   public int getTx0MinConfirmations() {
     return tx0MinConfirmations;
   }
@@ -300,6 +276,14 @@ public class WhirlpoolWalletConfig extends WhirlpoolClientConfig implements ITx0
     this.resyncOnFirstRun = resyncOnFirstRun;
   }
 
+  public boolean isStrictMode() {
+    return strictMode;
+  }
+
+  public void setStrictMode(boolean strictMode) {
+    this.strictMode = strictMode;
+  }
+
   public ISecretPointFactory getSecretPointFactory() {
     return secretPointFactory;
   }
@@ -331,8 +315,6 @@ public class WhirlpoolWalletConfig extends WhirlpoolClientConfig implements ITx0
             + isLiquidityClient()
             + ", clientDelay="
             + getClientDelay()
-            + ", backendWatch="
-            + isBackendWatch()
             + ", autoTx0Delay="
             + getAutoTx0Delay()
             + ", autoTx0="
@@ -356,6 +338,7 @@ public class WhirlpoolWalletConfig extends WhirlpoolClientConfig implements ITx0
     configInfo.put(
         "fee", "fallback=" + getFeeFallback() + ", min=" + getFeeMin() + ", max=" + getFeeMax());
     configInfo.put("resyncOnFirstRun", Boolean.toString(resyncOnFirstRun));
+    configInfo.put("strictMode", Boolean.toString(strictMode));
     return configInfo;
   }
 }

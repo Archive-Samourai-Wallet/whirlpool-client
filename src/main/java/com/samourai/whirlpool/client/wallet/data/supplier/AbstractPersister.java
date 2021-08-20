@@ -1,4 +1,4 @@
-package com.samourai.whirlpool.client.wallet.data;
+package com.samourai.whirlpool.client.wallet.data.supplier;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;

@@ -1,7 +1,7 @@
 package com.samourai.whirlpool.client.wallet.beans;
 
-import com.samourai.whirlpool.client.wallet.data.utxo.UtxoConfigPersisted;
-import com.samourai.whirlpool.client.wallet.data.utxo.UtxoConfigSupplier;
+import com.samourai.whirlpool.client.wallet.data.utxoConfig.UtxoConfigPersisted;
+import com.samourai.whirlpool.client.wallet.data.utxoConfig.UtxoConfigSupplier;
 
 public abstract class WhirlpoolUtxoConfig {
   public WhirlpoolUtxoConfig() {}
@@ -10,17 +10,8 @@ public abstract class WhirlpoolUtxoConfig {
 
   protected abstract UtxoConfigSupplier getUtxoConfigSupplier();
 
-  public String getPoolId() {
-    return getUtxoConfigPersisted().getPoolId();
-  }
-
   private void onChange() {
-    getUtxoConfigSupplier().setLastChange();
-  }
-
-  public void setPoolId(String poolId) {
-    getUtxoConfigPersisted().setPoolId(poolId);
-    onChange();
+    getUtxoConfigSupplier().saveUtxoConfig(getUtxoConfigPersisted());
   }
 
   public int getMixsDone() {

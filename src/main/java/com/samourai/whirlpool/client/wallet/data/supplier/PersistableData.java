@@ -1,4 +1,4 @@
-package com.samourai.whirlpool.client.wallet.data;
+package com.samourai.whirlpool.client.wallet.data.supplier;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

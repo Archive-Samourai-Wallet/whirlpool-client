@@ -99,7 +99,7 @@ public class AutoTx0Orchestrator extends AbstractOrchestrator {
     Collection<WhirlpoolUtxo> readyUtxos = new LinkedList<WhirlpoolUtxo>();
     for (WhirlpoolUtxo whirlpoolUtxo : spendFroms) {
       // check confirmation
-      int latestBlockHeight = whirlpoolWallet.getChainSupplier().getLatestBlockHeight();
+      int latestBlockHeight = whirlpoolWallet.getChainSupplier().getLatestBlock().height;
       int confirmations = whirlpoolUtxo.computeConfirmations(latestBlockHeight);
       if (confirmations >= config.getTx0MinConfirmations()) {
         WhirlpoolUtxoStatus utxoStatus = whirlpoolUtxo.getUtxoState().getStatus();
@@ -123,7 +123,7 @@ public class AutoTx0Orchestrator extends AbstractOrchestrator {
   }
 
   private long computeTotalUnconfirmedDeposits() {
-    final int latestBlockHeight = whirlpoolWallet.getChainSupplier().getLatestBlockHeight();
+    final int latestBlockHeight = whirlpoolWallet.getChainSupplier().getLatestBlock().height;
     return WhirlpoolUtxo.sumValue(
         StreamSupport.stream(whirlpoolWallet.getUtxoSupplier().findUtxos(WhirlpoolAccount.DEPOSIT))
             .filter(
@@ -232,7 +232,7 @@ public class AutoTx0Orchestrator extends AbstractOrchestrator {
 
     // DETECTED
     for (WhirlpoolUtxo whirlpoolUtxo : whirlpoolUtxoChanges.getUtxosAdded()) {
-      int latestBlockHeight = whirlpoolWallet.getChainSupplier().getLatestBlockHeight();
+      int latestBlockHeight = whirlpoolWallet.getChainSupplier().getLatestBlock().height;
       if (whirlpoolUtxo.computeConfirmations(latestBlockHeight)
           >= config.getTx0MinConfirmations()) {
         notify = true;
@@ -241,7 +241,7 @@ public class AutoTx0Orchestrator extends AbstractOrchestrator {
 
     // UPDATED
     for (WhirlpoolUtxo whirlpoolUtxo : whirlpoolUtxoChanges.getUtxosAdded()) {
-      int latestBlockHeight = whirlpoolWallet.getChainSupplier().getLatestBlockHeight();
+      int latestBlockHeight = whirlpoolWallet.getChainSupplier().getLatestBlock().height;
       if (whirlpoolUtxo.computeConfirmations(latestBlockHeight)
           >= config.getTx0MinConfirmations()) {
         notify = true;
