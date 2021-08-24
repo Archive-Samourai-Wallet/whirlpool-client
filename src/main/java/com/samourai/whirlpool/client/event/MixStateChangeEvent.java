@@ -1,10 +1,10 @@
 package com.samourai.whirlpool.client.event;
 
-import com.samourai.whirlpool.client.wallet.beans.WhirlpoolEvent;
+import com.samourai.whirlpool.client.wallet.WhirlpoolWallet;
 
-public class MixStateChangeEvent extends WhirlpoolEvent {
+public class MixStateChangeEvent extends WhirlpoolWalletEvent {
 
-  public MixStateChangeEvent() {
-    super();
+  public MixStateChangeEvent(WhirlpoolWallet whirlpoolWallet) {
+    super(whirlpoolWallet);
   }
 }

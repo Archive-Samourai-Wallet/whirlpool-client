@@ -5,6 +5,7 @@ import com.samourai.whirlpool.client.mix.MixClient;
 import com.samourai.whirlpool.client.mix.MixParams;
 import com.samourai.whirlpool.client.mix.listener.*;
 import com.samourai.whirlpool.client.whirlpool.listener.WhirlpoolClientListener;
+import com.samourai.whirlpool.protocol.beans.Utxo;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -59,30 +60,31 @@ public class WhirlpoolClientImpl implements WhirlpoolClient {
   }
 
   private void runClient(MixParams mixParams) {
-    MixClientListener mixListener = computeMixListener();
+    WhirlpoolClientListener mixListener = computeMixListener();
 
     mixClient = new MixClient(config, logPrefix);
     mixClient.whirlpool(mixParams, mixListener);
   }
 
-  private MixClientListener computeMixListener() {
-    return new MixClientListener() {
+  private WhirlpoolClientListener computeMixListener() {
+    return new WhirlpoolClientListener() {
+
       @Override
-      public void success(MixSuccess mixSuccess) {
+      public void success(Utxo receiveUtxo) {
         // done
-        listener.success(mixSuccess);
+        listener.success(receiveUtxo);
         disconnect();
       }
 
       @Override
-      public void fail(MixFail mixFail) {
-        listener.fail(mixFail);
+      public void fail(MixFailReason reason, String notifiableError) {
+        listener.fail(reason, notifiableError);
         disconnect();
       }
 
       @Override
-      public void progress(MixProgress mixProgress) {
-        listener.progress(mixProgress);
+      public void progress(MixStep mixStep) {
+        listener.progress(mixStep);
       }
     };
   }

@@ -2,8 +2,9 @@ package com.samourai.whirlpool.client.wallet.data.dataSource;
 
 import com.samourai.wallet.api.backend.beans.WalletResponse;
 import com.samourai.whirlpool.client.event.UtxosRequestEvent;
+import com.samourai.whirlpool.client.event.UtxosResponseEvent;
 import com.samourai.whirlpool.client.wallet.WhirlpoolEventService;
-import com.samourai.whirlpool.client.wallet.WhirlpoolWalletConfig;
+import com.samourai.whirlpool.client.wallet.WhirlpoolWallet;
 import com.samourai.whirlpool.client.wallet.data.supplier.ExpirableSupplier;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -11,11 +12,13 @@ import org.slf4j.LoggerFactory;
 public class WalletResponseSupplier extends ExpirableSupplier<WalletResponse> {
   private static final Logger log = LoggerFactory.getLogger(WalletResponseSupplier.class);
 
+  private WhirlpoolWallet whirlpoolWallet;
   private WalletResponseDataSource dataSource;
 
-  public WalletResponseSupplier(WhirlpoolWalletConfig config, WalletResponseDataSource dataSource)
-      throws Exception {
-    super(config.getRefreshUtxoDelay(), null, log);
+  public WalletResponseSupplier(
+      WhirlpoolWallet whirlpoolWallet, WalletResponseDataSource dataSource) throws Exception {
+    super(whirlpoolWallet.getConfig().getRefreshUtxoDelay(), null, log);
+    this.whirlpoolWallet = whirlpoolWallet;
     this.dataSource = dataSource;
   }
 
@@ -26,8 +29,9 @@ public class WalletResponseSupplier extends ExpirableSupplier<WalletResponse> {
     }
 
     // notify
-    WhirlpoolEventService.getInstance().post(new UtxosRequestEvent());
+    WhirlpoolEventService.getInstance().post(new UtxosRequestEvent(whirlpoolWallet));
     WalletResponse walletResponse = dataSource.fetchWalletResponse();
+    WhirlpoolEventService.getInstance().post(new UtxosResponseEvent(whirlpoolWallet));
     return walletResponse;
   }
 

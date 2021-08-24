@@ -21,12 +21,12 @@ public enum MixStep {
   FAIL("mix failed", 100, true);
 
   private String message;
-  private int progress;
+  private int progressPercent;
   private boolean interruptable;
 
-  MixStep(String message, int progress, boolean interruptable) {
+  MixStep(String message, int progressPercent, boolean interruptable) {
     this.message = message;
-    this.progress = progress;
+    this.progressPercent = progressPercent;
     this.interruptable = interruptable;
   }
 
@@ -34,8 +34,8 @@ public enum MixStep {
     return message;
   }
 
-  public int getProgress() {
-    return progress;
+  public int getProgressPercent() {
+    return progressPercent;
   }
 
   public boolean isInterruptable() {

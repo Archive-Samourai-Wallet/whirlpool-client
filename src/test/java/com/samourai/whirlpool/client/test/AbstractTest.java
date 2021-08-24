@@ -3,6 +3,7 @@ package com.samourai.whirlpool.client.test;
 import com.samourai.http.client.HttpUsage;
 import com.samourai.http.client.IHttpClient;
 import com.samourai.http.client.IHttpClientService;
+import com.samourai.wallet.api.backend.BackendServer;
 import com.samourai.wallet.api.backend.beans.UnspentOutput;
 import com.samourai.wallet.api.backend.beans.WalletResponse;
 import com.samourai.wallet.hd.HD_Address;
@@ -12,6 +13,8 @@ import com.samourai.whirlpool.client.tx0.ITx0ParamServiceConfig;
 import com.samourai.whirlpool.client.tx0.Tx0ParamService;
 import com.samourai.whirlpool.client.utils.ClientUtils;
 import com.samourai.whirlpool.client.wallet.WhirlpoolWalletConfig;
+import com.samourai.whirlpool.client.wallet.data.dataSource.DataSourceFactory;
+import com.samourai.whirlpool.client.wallet.data.dataSource.SamouraiDataSourceFactory;
 import com.samourai.whirlpool.client.wallet.data.minerFee.BasicMinerFeeSupplier;
 import com.samourai.whirlpool.client.wallet.data.minerFee.MinerFeeSupplier;
 import com.samourai.whirlpool.client.wallet.data.pool.ExpirablePoolSupplier;
@@ -150,18 +153,19 @@ public class AbstractTest {
     return spendFrom;
   }
 
-  protected IHttpClientService mockHttpClientService() {
-    return new IHttpClientService() {
-      @Override
-      public IHttpClient getHttpClient(HttpUsage httpUsage) {
-        return null;
-      }
-    };
-  }
-
   protected WhirlpoolWalletConfig computeWhirlpoolWalletConfig() {
+    DataSourceFactory dataSourceFactory =
+        new SamouraiDataSourceFactory(BackendServer.TESTNET, false, null);
+    IHttpClientService httpClientService =
+        new IHttpClientService() {
+          @Override
+          public IHttpClient getHttpClient(HttpUsage httpUsage) {
+            return null;
+          }
+        };
     WhirlpoolWalletConfig config =
-        new WhirlpoolWalletConfig(null, null, null, null, TestNet3Params.get(), false);
+        new WhirlpoolWalletConfig(
+            dataSourceFactory, httpClientService, null, null, null, TestNet3Params.get(), false);
     return config;
   }
 

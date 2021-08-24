@@ -11,7 +11,7 @@ public class XManagerClientExample {
     boolean onion = false;
     IHttpClient httpClient = null; // TODO provide AndroidHttpClient or CliHttpClient
 
-    // instanciation
+    // instantiation
     XManagerClient xManagerClient = new XManagerClient(testnet, onion, httpClient);
     XManagerEnv xManagerEnv = XManagerEnv.get(testnet);
 

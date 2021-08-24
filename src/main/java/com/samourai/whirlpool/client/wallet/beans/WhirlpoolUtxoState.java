@@ -1,13 +1,15 @@
 package com.samourai.whirlpool.client.wallet.beans;
 
+import com.samourai.whirlpool.client.mix.MixParams;
 import com.samourai.whirlpool.client.mix.listener.MixStep;
 import io.reactivex.Observable;
 import io.reactivex.subjects.BehaviorSubject;
 import io.reactivex.subjects.Subject;
 
 public class WhirlpoolUtxoState {
+  private String poolId;
   private WhirlpoolUtxoStatus status;
-  private MixProgressDetail mixProgress;
+  private MixProgress mixProgress;
   private MixableStatus mixableStatus;
 
   private String message;
@@ -17,7 +19,8 @@ public class WhirlpoolUtxoState {
   private Long lastError;
   private Subject<WhirlpoolUtxoState> observable;
 
-  public WhirlpoolUtxoState() {
+  public WhirlpoolUtxoState(String poolId) {
+    this.poolId = poolId;
     this.status = WhirlpoolUtxoStatus.READY;
     this.mixProgress = null;
     this.mixableStatus = null;
@@ -35,14 +38,18 @@ public class WhirlpoolUtxoState {
     observable.onNext(this);
   }
 
+  public String getPoolId() {
+    return poolId;
+  }
+
   public WhirlpoolUtxoStatus getStatus() {
     return status;
   }
 
-  public void setStatus(
+  protected void setStatus(
       WhirlpoolUtxoStatus status,
       boolean updateLastActivity,
-      MixProgressDetail mixProgress,
+      MixProgress mixProgress,
       String error) {
     this.status = status;
     this.mixProgress = mixProgress;
@@ -58,22 +65,30 @@ public class WhirlpoolUtxoState {
     if (updateLastActivity) {
       setLastActivity();
     }
+    emit();
   }
 
-  public void setStatus(
-      WhirlpoolUtxoStatus status, boolean updateLastActivity, MixProgressDetail mixProgress) {
-    setStatus(status, updateLastActivity, mixProgress, null);
+  public void setStatusMixing(
+      WhirlpoolUtxoStatus status,
+      boolean updateLastActivity,
+      MixParams mixParams,
+      MixStep mixStep) {
+    setStatus(status, updateLastActivity, new MixProgress(mixParams, mixStep), null);
   }
 
-  public void setStatus(WhirlpoolUtxoStatus status, boolean updateLastActivity, String error) {
-    setStatus(status, updateLastActivity, null, error);
+  public void setStatusError(WhirlpoolUtxoStatus status, String error) {
+    setStatus(status, true, null, error);
+  }
+
+  public void setStatusMixingError(WhirlpoolUtxoStatus status, MixParams mixParams, String error) {
+    setStatus(status, true, new MixProgress(mixParams, MixStep.FAIL), error);
   }
 
   public void setStatus(WhirlpoolUtxoStatus status, boolean updateLastActivity) {
     setStatus(status, updateLastActivity, null, null);
   }
 
-  public MixProgressDetail getMixProgress() {
+  public MixProgress getMixProgress() {
     return mixProgress;
   }
 
@@ -127,7 +142,9 @@ public class WhirlpoolUtxoState {
 
   @Override
   public String toString() {
-    return "status="
+    return "poolId="
+        + (poolId != null ? poolId : "null")
+        + ", status="
         + status
         + (mixProgress != null ? "(" + mixProgress + ")" : "")
         + ", mixableStatus="

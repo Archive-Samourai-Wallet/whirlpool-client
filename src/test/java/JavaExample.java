@@ -1,16 +1,10 @@
 import com.google.common.eventbus.Subscribe;
-import com.samourai.http.client.HttpUsage;
-import com.samourai.http.client.IHttpClient;
 import com.samourai.http.client.IHttpClientService;
 import com.samourai.stomp.client.IStompClientService;
 import com.samourai.tor.client.TorClientService;
-import com.samourai.wallet.api.backend.BackendApi;
 import com.samourai.wallet.api.backend.BackendServer;
-import com.samourai.wallet.api.backend.beans.TxsResponse;
 import com.samourai.wallet.api.backend.beans.WalletResponse;
-import com.samourai.wallet.api.backend.websocket.BackendWsApi;
 import com.samourai.wallet.hd.HD_Wallet;
-import com.samourai.wallet.util.oauth.OAuthManager;
 import com.samourai.websocket.client.IWebsocketClient;
 import com.samourai.whirlpool.client.event.*;
 import com.samourai.whirlpool.client.tx0.Tx0;
@@ -23,13 +17,11 @@ import com.samourai.whirlpool.client.wallet.WhirlpoolWalletService;
 import com.samourai.whirlpool.client.wallet.beans.*;
 import com.samourai.whirlpool.client.wallet.data.dataPersister.DataPersister;
 import com.samourai.whirlpool.client.wallet.data.dataPersister.DataPersisterFactory;
-import com.samourai.whirlpool.client.wallet.data.dataPersister.FileDataPersister;
-import com.samourai.whirlpool.client.wallet.data.dataSource.DataSource;
-import com.samourai.whirlpool.client.wallet.data.dataSource.DataSourceFactory;
-import com.samourai.whirlpool.client.wallet.data.dataSource.SamouraiDataSource;
-import com.samourai.whirlpool.client.wallet.data.dataSource.WalletResponseDataSource;
+import com.samourai.whirlpool.client.wallet.data.dataSource.*;
 import com.samourai.whirlpool.client.wallet.data.pool.PoolSupplier;
 import com.samourai.whirlpool.client.wallet.data.utxo.UtxoSupplier;
+import com.samourai.whirlpool.client.wallet.data.utxoConfig.UtxoConfigSupplier;
+import com.samourai.whirlpool.client.wallet.data.walletState.WalletStateSupplier;
 import com.samourai.whirlpool.client.whirlpool.ServerApi;
 import com.samourai.whirlpool.client.whirlpool.beans.Pool;
 import java.util.Collection;
@@ -39,84 +31,66 @@ import org.bitcoinj.core.NetworkParameters;
 public class JavaExample {
   // configure these values as you wish
   private WhirlpoolWalletConfig computeWhirlpoolWalletConfig() {
+    // option 1 - use Samourai backend
+    BackendServer backendServer = BackendServer.TESTNET;
+    boolean onion = true; // use Tor onion services?
+    IWebsocketClient wsClient = null; // provide impl, or null to disable real-time sync backend
+    DataSourceFactory dataSourceFactory =
+        new SamouraiDataSourceFactory(backendServer, onion, wsClient);
+
+    // option 2 - use Dojo backend
+    String dojoUrl = ""; // provide Dojo onion URL
+    String dojoApiKey = ""; // provide Dojo apiKey
+    wsClient = null; // provide impl, or null to disable real-time sync backend
+    dataSourceFactory = new DojoDataSourceFactory(dojoUrl, dojoApiKey, wsClient);
+
+    // option 3 - use external backend
+    dataSourceFactory =
+        computeDataSourceFactoryExternal(); // example of external backend integration
+
     IStompClientService stompClientService =
         null; // provide impl here, ie: AndroidStompClientService or
     // https://code.samourai.io/whirlpool/whirlpool-client-cli/-/blob/develop/src/main/java/com/samourai/stomp/client/JavaStompClient.java
 
     WhirlpoolServer whirlpoolServer = WhirlpoolServer.TESTNET;
 
-    boolean onion = true; // use Tor onion services?
+    // coordinator configuration
     String serverUrl = whirlpoolServer.getServerUrl(onion);
     IHttpClientService httpClientService = null; // provide impl here, ie: new AndroidHttpClient();
     ServerApi serverApi = new ServerApi(serverUrl, httpClientService);
-    TorClientService torClientService = null; // provide impl here
 
+    TorClientService torClientService = null; // provide impl here
     NetworkParameters params = whirlpoolServer.getParams();
     boolean mobile = false; // true for mobile configuration, false for desktop/CLI
     WhirlpoolWalletConfig whirlpoolWalletConfig =
         new WhirlpoolWalletConfig(
-            httpClientService, stompClientService, torClientService, serverApi, params, mobile);
+            dataSourceFactory,
+            httpClientService,
+            stompClientService,
+            torClientService,
+            serverApi,
+            params,
+            mobile);
 
-    // configure optional settings (or don't set anything for using default values)
+    // optional - SCODE
     whirlpoolWalletConfig.setScode("foo");
+
+    // optional - external persistence
+    whirlpoolWalletConfig.setDataPersisterFactory(computeDataPersisterFactoryExternal());
+
     return whirlpoolWalletConfig;
   }
 
-  private DataPersisterFactory computeDataPersisterFactory() {
-    return new DataPersisterFactory() {
-      @Override
-      public DataPersister createDataPersister(
-          WhirlpoolWalletConfig config, HD_Wallet bip44w, String walletIdentifier)
-          throws Exception {
-        // use system files (or use your own implementation of DataPersister)
-        return new FileDataPersister(config, bip44w, walletIdentifier);
-      }
-    };
-  }
-
-  // Example 1: get data from Samourai / Dojo backend
-  private DataSourceFactory computeDataSourceFactorySamourai() {
-    return new DataSourceFactory() {
-      @Override
-      public DataSource createDataSource(
-          WhirlpoolWalletConfig config,
-          HD_Wallet bip44w,
-          String walletIdentifier,
-          DataPersister dataPersister)
-          throws Exception {
-        // configure Samourai/Dojo backend
-        boolean onion = true; // use Tor onion services?
-        String backendUrl = BackendServer.TESTNET.getBackendUrl(onion);
-        IHttpClient httpClientBackend = config.getHttpClient(HttpUsage.BACKEND);
-        OAuthManager oAuthManager =
-            null; // NULL for Samourai backend, not NULL for Dojo, ie: new OAuthManagerJava()
-        BackendApi backendApi = new BackendApi(httpClientBackend, backendUrl, oAuthManager);
-
-        // enable real-time update from backend? (optional)
-        IWebsocketClient wsClient = null; // provide impl here
-        BackendWsApi backendWsApi =
-            new BackendWsApi(
-                wsClient, backendUrl, null); // or NULL to disable backend real-time sync
-
-        return new SamouraiDataSource(
-            config, bip44w, walletIdentifier, dataPersister, backendApi, backendWsApi);
-      }
-    };
-  }
-
-  // Example 2: get data from external backend
+  // Example of external backend integration
   private DataSourceFactory computeDataSourceFactoryExternal() {
     // note: when external data changed, use WalletResponseDataSource.refresh() to refresh it
     return new DataSourceFactory() {
       @Override
       public DataSource createDataSource(
-          WhirlpoolWalletConfig config,
-          HD_Wallet bip44w,
-          String walletIdentifier,
-          DataPersister dataPersister)
+          WhirlpoolWallet whirlpoolWallet, HD_Wallet bip44w, DataPersister dataPersister)
           throws Exception {
         // use WalletResponse data (or use your own implementation of DataSource)
-        return new WalletResponseDataSource(config, bip44w, walletIdentifier, dataPersister) {
+        return new WalletResponseDataSource(whirlpoolWallet, bip44w, dataPersister) {
           @Override
           protected WalletResponse fetchWalletResponse() throws Exception {
             WalletResponse walletResponse = null; // provide data here
@@ -127,16 +101,48 @@ public class JavaExample {
           public void pushTx(String txHex) throws Exception {
             // provide pushTx service here
           }
-
-          @Override
-          public TxsResponse fetchTxs(String[] zpubs, int page, int count) throws Exception {
-            TxsResponse txsResponse =
-                null; // optionnal: provide data here or NULL (only used for postmix counters
-            // resync)
-            return null;
-          }
         };
       };
+    };
+  }
+
+  // example of external persistence
+  private DataPersisterFactory computeDataPersisterFactoryExternal() {
+    return new DataPersisterFactory() {
+      @Override
+      public DataPersister createDataPersister(WhirlpoolWallet whirlpoolWallet, HD_Wallet bip44w)
+          throws Exception {
+        return new DataPersister() {
+
+          @Override
+          public void open() throws Exception {
+            // on wallet open
+          }
+
+          @Override
+          public void close() throws Exception {
+            // on wallet closed
+          }
+
+          @Override
+          public WalletStateSupplier getWalletStateSupplier() {
+            return null; // provide impl
+          }
+
+          @Override
+          public UtxoConfigSupplier getUtxoConfigSupplier() {
+            return null; // provide impl
+          }
+
+          @Override
+          public void load() throws Exception {}
+
+          @Override
+          public void persist(boolean force) throws Exception {
+            // persist data
+          }
+        };
+      }
     };
   }
 
@@ -145,11 +151,7 @@ public class JavaExample {
      * CONFIGURATION
      */
     // configure whirlpool
-    DataPersisterFactory dataPersisterFactory = computeDataPersisterFactory();
-    DataSourceFactory dataSourceFactory =
-        computeDataSourceFactorySamourai(); // or computeDataSourceFactoryExternal()
-    WhirlpoolWalletService whirlpoolWalletService =
-        new WhirlpoolWalletService(dataPersisterFactory, dataSourceFactory);
+    WhirlpoolWalletService whirlpoolWalletService = new WhirlpoolWalletService();
     WhirlpoolWalletConfig config = computeWhirlpoolWalletConfig();
 
     /*
@@ -158,13 +160,13 @@ public class JavaExample {
     // open wallet: standard way
     byte[] seed = null; // provide seed here
     String seedPassphrase = null; // provide seed passphrase here (or null if none)
-    WhirlpoolWallet whirlpoolWallet =
-        whirlpoolWalletService.openWallet(config, seed, seedPassphrase);
+    WhirlpoolWallet whirlpoolWallet = new WhirlpoolWallet(config, seed, seedPassphrase);
+    whirlpoolWallet.open();
 
     // open wallet: alternate way
     HD_Wallet bip44w = null; // provide bip44 wallet here
-    NetworkParameters params = config.getNetworkParameters();
-    whirlpoolWallet = whirlpoolWalletService.openWallet(config, bip44w);
+    whirlpoolWallet = new WhirlpoolWallet(config, bip44w);
+    whirlpoolWallet.open();
 
     // start whirlpool wallet
     whirlpoolWallet.start();
@@ -276,8 +278,8 @@ public class JavaExample {
       }
     }
 
-    // manually start mixing specific utxo and observe its progress
-    whirlpoolWallet.mix(whirlpoolUtxo).subscribe(/* ... */ );
+    // manually start mixing specific utxo
+    whirlpoolWallet.mix(whirlpoolUtxo);
 
     // stop mixing specific utxo (or remove it from mix queue)
     whirlpoolWallet.mixStop(whirlpoolUtxo);
@@ -316,7 +318,7 @@ public class JavaExample {
   }
 
   @Subscribe
-  public void onUtxosChange(UtxosChangeEvent e) {
+  public void onUtxoChanges(UtxoChangesEvent e) {
     // utxos changed
   }
 

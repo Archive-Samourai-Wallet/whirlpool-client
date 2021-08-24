@@ -1,23 +1,24 @@
 package com.samourai.whirlpool.client.wallet.data.utxo;
 
 import com.google.common.eventbus.Subscribe;
-import com.samourai.wallet.api.backend.beans.TxsResponse;
 import com.samourai.wallet.api.backend.beans.UnspentOutput;
 import com.samourai.wallet.api.backend.beans.WalletResponse;
 import com.samourai.wallet.hd.HD_Wallet;
 import com.samourai.wallet.util.MessageListener;
-import com.samourai.whirlpool.client.event.UtxosChangeEvent;
+import com.samourai.whirlpool.client.event.UtxoChangesEvent;
 import com.samourai.whirlpool.client.test.AbstractTest;
 import com.samourai.whirlpool.client.tx0.Tx0ParamService;
 import com.samourai.whirlpool.client.wallet.WhirlpoolEventService;
+import com.samourai.whirlpool.client.wallet.WhirlpoolWallet;
 import com.samourai.whirlpool.client.wallet.WhirlpoolWalletConfig;
 import com.samourai.whirlpool.client.wallet.beans.WhirlpoolAccount;
 import com.samourai.whirlpool.client.wallet.beans.WhirlpoolUtxo;
 import com.samourai.whirlpool.client.wallet.beans.WhirlpoolUtxoChanges;
-import com.samourai.whirlpool.client.wallet.data.dataPersister.FileDataPersister;
+import com.samourai.whirlpool.client.wallet.data.dataPersister.DataPersister;
+import com.samourai.whirlpool.client.wallet.data.dataPersister.FileDataPersisterFactory;
 import com.samourai.whirlpool.client.wallet.data.dataSource.WalletResponseDataSource;
 import com.samourai.whirlpool.client.wallet.data.pool.ExpirablePoolSupplier;
-import com.samourai.whirlpool.client.wallet.data.utxoConfig.PersistableUtxoConfigSupplier;
+import com.samourai.whirlpool.client.wallet.data.utxoConfig.UtxoConfigSupplier;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
@@ -30,9 +31,9 @@ import org.junit.Test;
 
 public class UtxoSupplierTest extends AbstractTest {
   protected WalletResponseDataSource dataSource;
-  protected FileDataPersister dataPersister;
+  protected DataPersister dataPersister;
   protected UtxoSupplier utxoSupplier;
-  protected PersistableUtxoConfigSupplier utxoConfigSupplier;
+  protected UtxoConfigSupplier utxoConfigSupplier;
   protected WalletResponse mockWalletResponse;
   protected boolean mockException;
 
@@ -55,24 +56,25 @@ public class UtxoSupplierTest extends AbstractTest {
   public void setup() throws Exception {
     WhirlpoolEventService.getInstance()
         .register(
-            new MessageListener<UtxosChangeEvent>() {
+            new MessageListener<UtxoChangesEvent>() {
               @Subscribe
               @Override
-              public void onMessage(UtxosChangeEvent message) {
+              public void onMessage(UtxoChangesEvent message) {
                 lastUtxoChanges = message.getUtxoData().getUtxoChanges();
               }
             });
 
-    WhirlpoolWalletConfig config = computeWhirlpoolWalletConfig();
-
     byte[] seed = hdWalletFactory.computeSeedFromWords(SEED_WORDS);
     HD_Wallet bip44w = hdWalletFactory.getBIP44(seed, SEED_PASSPHRASE, params);
 
-    String walletIdentifier = "test";
-    dataPersister = new FileDataPersister(config, bip44w, walletIdentifier);
+    WhirlpoolWalletConfig config = computeWhirlpoolWalletConfig();
+    WhirlpoolWallet whirlpoolWallet = new WhirlpoolWallet(config, bip44w, "test");
+
+    dataPersister = new FileDataPersisterFactory().createDataPersister(whirlpoolWallet, bip44w);
+    dataPersister.load();
     dataPersister.open();
     dataSource =
-        new WalletResponseDataSource(config, bip44w, walletIdentifier, dataPersister) {
+        new WalletResponseDataSource(whirlpoolWallet, bip44w, dataPersister) {
           @Override
           protected WalletResponse fetchWalletResponse() throws Exception {
             if (mockException) {
@@ -83,18 +85,13 @@ public class UtxoSupplierTest extends AbstractTest {
 
           @Override
           protected ExpirablePoolSupplier computePoolSupplier(
-              WhirlpoolWalletConfig config, Tx0ParamService tx0ParamService) {
+              WhirlpoolWallet whirlpoolWallet, Tx0ParamService tx0ParamService) {
             return mockPoolSupplier();
           }
 
           @Override
           public void pushTx(String txHex) throws Exception {
             // do nothing
-          }
-
-          @Override
-          public TxsResponse fetchTxs(String[] zpubs, int page, int count) throws Exception {
-            return null; // not available
           }
         };
 

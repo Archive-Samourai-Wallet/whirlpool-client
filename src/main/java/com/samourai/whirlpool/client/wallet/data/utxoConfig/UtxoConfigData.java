@@ -13,20 +13,23 @@ import org.slf4j.LoggerFactory;
 
 public class UtxoConfigData extends PersistableData {
   private static final Logger log = LoggerFactory.getLogger(UtxoConfigData.class);
-  private static final int FORWARDING_EXPIRATION_SECONDS = 86400; // 1d
+  private static final int EXPIRATION_SECONDS = 604800; // 7d >= mempool expiration
 
   private Map<String, UtxoConfigPersisted> utxoConfigs;
 
-  protected UtxoConfigData() {
+  // used by Sparrow
+  public UtxoConfigData() {
     this(new LinkedHashMap<String, UtxoConfigPersisted>());
   }
 
-  protected UtxoConfigData(Map<String, UtxoConfigPersisted> utxoConfigs) {
+  // used by Sparrow
+  public UtxoConfigData(Map<String, UtxoConfigPersisted> utxoConfigs) {
     super();
     this.utxoConfigs = utxoConfigs;
   }
 
-  protected Map<String, UtxoConfigPersisted> getUtxoConfigs() {
+  // used by Sparrow
+  public Map<String, UtxoConfigPersisted> getUtxoConfigs() {
     return utxoConfigs;
   }
 
@@ -36,7 +39,7 @@ public class UtxoConfigData extends PersistableData {
   }
 
   protected synchronized int cleanup(final Collection<String> validKeys) {
-    final long MIN_FORWARDING = System.currentTimeMillis() - (FORWARDING_EXPIRATION_SECONDS * 1000);
+    final long MIN_EXPIRED = System.currentTimeMillis() - (EXPIRATION_SECONDS * 1000);
 
     // remove obsolete utxoConfigs
     Map<String, UtxoConfigPersisted> newUtxoConfigs =
@@ -45,22 +48,52 @@ public class UtxoConfigData extends PersistableData {
                 new Predicate<Map.Entry<String, UtxoConfigPersisted>>() {
                   @Override
                   public boolean test(Map.Entry<String, UtxoConfigPersisted> e) {
+                    String key = e.getKey();
+                    UtxoConfigPersisted utxoConfigPersisted = e.getValue();
+
                     // keep existing utxos
-                    if (validKeys.contains(e.getKey())) {
+                    if (validKeys.contains(key)) {
+                      // mark as valid
+                      if (utxoConfigPersisted.getExpired() != null) {
+                        utxoConfigPersisted.setExpired(null);
+                        setLastChange();
+                        if (log.isDebugEnabled()) {
+                          log.debug("utxoConfig valid: " + key + ", " + utxoConfigPersisted);
+                        }
+                      }
                       return true;
                     }
-                    // keep recent forwarding utxoConfigs
-                    Long forwarding = e.getValue().getForwarding();
-                    if (forwarding != null) {
-                      if (forwarding >= MIN_FORWARDING) {
-                        return true;
-                      }
-                      // may rarely happen
+
+                    // mark as expired
+                    if (utxoConfigPersisted.getExpired() == null) {
+                      utxoConfigPersisted.setExpired(System.currentTimeMillis());
+                      setLastChange();
                       if (log.isDebugEnabled()) {
-                        log.debug(" - forwarding utxoConfig expired: " + e.getValue());
+                        log.debug("utxoConfig expired: " + key + ", " + utxoConfigPersisted);
                       }
                     }
-                    return false;
+
+                    // purge older expired
+                    if (utxoConfigPersisted.getExpired() <= MIN_EXPIRED) {
+                      if (log.isDebugEnabled()) {
+                        log.debug("utxoConfig cleaned: " + key + ", " + utxoConfigPersisted);
+                      }
+                      return false;
+                    }
+
+                    // keep the others
+                    if (log.isDebugEnabled()) {
+                      long remainingSeconds =
+                          (utxoConfigPersisted.getExpired() - MIN_EXPIRED) / 1000;
+                      log.debug(
+                          "utxoConfig awaiting expiration ("
+                              + remainingSeconds
+                              + "s): "
+                              + key
+                              + ", "
+                              + utxoConfigPersisted);
+                    }
+                    return true;
                   }
                 })
             .collect(
@@ -82,6 +115,15 @@ public class UtxoConfigData extends PersistableData {
     this.utxoConfigs = newUtxoConfigs;
     if (nbCleaned > 0) {
       setLastChange();
+    }
+    if (log.isDebugEnabled()) {
+      log.debug(
+          "cleanup: minExpired="
+              + MIN_EXPIRED
+              + ", nbCleaned="
+              + nbCleaned
+              + ", nb="
+              + newUtxoConfigs.size());
     }
     return nbCleaned;
   }

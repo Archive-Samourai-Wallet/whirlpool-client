@@ -3,25 +3,31 @@ package com.samourai.whirlpool.client.wallet.data.walletState;
 import com.samourai.wallet.client.indexHandler.IIndexHandler;
 import com.samourai.wallet.hd.AddressType;
 import com.samourai.wallet.hd.Chain;
+import com.samourai.whirlpool.client.wallet.beans.ExternalDestination;
 import com.samourai.whirlpool.client.wallet.beans.WhirlpoolAccount;
-import com.samourai.whirlpool.client.wallet.data.supplier.AbstractPersistableSupplier;
+import com.samourai.whirlpool.client.wallet.data.supplier.BasicPersistableSupplier;
+import java.util.LinkedHashMap;
+import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class PersistableWalletStateSupplier extends AbstractPersistableSupplier<WalletStateData>
+public class PersistableWalletStateSupplier extends BasicPersistableSupplier<WalletStateData>
     implements WalletStateSupplier {
   private static final Logger log = LoggerFactory.getLogger(PersistableWalletStateSupplier.class);
   private static final String EXTERNAL_INDEX_HANDLER = "external";
 
-  private final IIndexHandler externalIndexHandler;
-  private boolean synced; // postmix counters sync
+  private final IIndexHandler indexHandlerExternal;
+  private Map<String, IIndexHandler> indexHandlerWallets;
 
-  public PersistableWalletStateSupplier(WalletStatePersister persister, int externalIndexDefault)
-      throws Exception {
+  public PersistableWalletStateSupplier(
+      WalletStatePersister persister, ExternalDestination externalDestination) throws Exception {
     super(null, persister, log);
-    this.externalIndexHandler =
+
+    int externalIndexDefault =
+        externalDestination != null ? externalDestination.getStartIndex() : 0;
+    this.indexHandlerExternal =
         new WalletStateIndexHandler(this, EXTERNAL_INDEX_HANDLER, externalIndexDefault);
-    this.synced = true;
+    this.indexHandlerWallets = new LinkedHashMap<String, IIndexHandler>();
   }
 
   @Override
@@ -33,34 +39,30 @@ public class PersistableWalletStateSupplier extends AbstractPersistableSupplier<
       throw new Exception("Cannot setWalletIndex(), no value loaded yet!");
     }
 
-    String persistKey = computePersistKey(account, addressType, chain);
+    String persistKey = computePersistKeyWallet(account, addressType, chain);
     currentValue.setWalletIndex(persistKey, value);
   }
 
-  protected String computePersistKey(
+  @Override
+  public IIndexHandler getIndexHandlerWallet(
+      WhirlpoolAccount account, AddressType addressType, Chain chain) {
+    String persistKey = computePersistKeyWallet(account, addressType, chain);
+    IIndexHandler indexHandlerWallet = indexHandlerWallets.get(persistKey);
+    if (indexHandlerWallet == null) {
+      indexHandlerWallet = createIndexHandlerWallet(account, addressType, chain, persistKey);
+      indexHandlerWallets.put(persistKey, indexHandlerWallet);
+    }
+    return indexHandlerWallet;
+  }
+
+  protected IIndexHandler createIndexHandlerWallet(
+      WhirlpoolAccount account, AddressType addressType, Chain chain, String persistKey) {
+    return new WalletStateIndexHandler(this, persistKey, 0);
+  }
+
+  protected String computePersistKeyWallet(
       WhirlpoolAccount account, AddressType addressType, Chain chain) {
     return account.name() + "_" + addressType.getPurpose() + "_" + chain.getIndex();
-  }
-
-  @Override
-  public void load() throws Exception {
-    if (log.isDebugEnabled()) {
-      log.debug("load()");
-    }
-    WalletStateData currentValue = getValue();
-    if (currentValue != null) {
-      throw new Exception("Cannot load(), value already loaded!");
-    }
-
-    // FIRST LOAD
-    // read indexs from file
-    super.load();
-  }
-
-  public IIndexHandler computeIndexHandler(
-      WhirlpoolAccount account, AddressType addressType, Chain chain) {
-    String persistKey = computePersistKey(account, addressType, chain);
-    return new WalletStateIndexHandler(this, persistKey, 0);
   }
 
   protected int get(String key, int defaultValue) {
@@ -78,14 +80,6 @@ public class PersistableWalletStateSupplier extends AbstractPersistableSupplier<
     }
   }
 
-  public boolean isSynced() {
-    return synced;
-  }
-
-  public void setSynced(boolean synced) {
-    this.synced = synced;
-  }
-
   @Override
   public boolean isInitialized() {
     return getValue().isInitialized();
@@ -97,7 +91,7 @@ public class PersistableWalletStateSupplier extends AbstractPersistableSupplier<
   }
 
   @Override
-  public IIndexHandler getExternalIndexHandler() {
-    return externalIndexHandler;
+  public IIndexHandler getIndexHandlerExternal() {
+    return indexHandlerExternal;
   }
 }

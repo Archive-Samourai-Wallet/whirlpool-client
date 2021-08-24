@@ -60,6 +60,10 @@ public class MixOrchestratorData {
     return poolSupplier.getPools();
   }
 
+  public Pool findPoolById(String poolId) {
+    return poolSupplier.findPoolById(poolId);
+  }
+
   public void clear() {
     mixing.clear();
     mixingHashs.clear();
@@ -101,7 +105,7 @@ public class MixOrchestratorData {
   private Map<String, Integer> computeMixingPerPool() {
     Map<String, Integer> mixingPerPool = new HashMap<String, Integer>();
     for (Mixing mixingItem : mixing.values()) {
-      String poolId = mixingItem.getUtxo().getPoolId();
+      String poolId = mixingItem.getUtxo().getUtxoState().getPoolId();
       int currentCount = mixingPerPool.containsKey(poolId) ? mixingPerPool.get(poolId) : 0;
       mixingPerPool.put(poolId, currentCount + 1);
     }
@@ -132,7 +136,7 @@ public class MixOrchestratorData {
             new Predicate<Mixing>() {
               @Override
               public boolean test(Mixing mixing) {
-                return mixing.getUtxo().getPoolId().equals(poolId)
+                return mixing.getUtxo().getUtxoState().getPoolId().equals(poolId)
                     && mixing.getUtxo().isAccountPostmix() == liquidity;
               }
             })

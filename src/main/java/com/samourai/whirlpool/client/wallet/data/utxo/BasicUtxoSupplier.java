@@ -7,16 +7,12 @@ import com.samourai.wallet.hd.HD_Address;
 import com.samourai.wallet.send.MyTransactionOutPoint;
 import com.samourai.wallet.send.UTXO;
 import com.samourai.wallet.send.provider.UtxoProvider;
-import com.samourai.whirlpool.client.event.UtxosChangeEvent;
-import com.samourai.whirlpool.client.event.UtxosResponseEvent;
 import com.samourai.whirlpool.client.tx0.Tx0ParamService;
-import com.samourai.whirlpool.client.wallet.WhirlpoolEventService;
 import com.samourai.whirlpool.client.wallet.beans.WhirlpoolAccount;
 import com.samourai.whirlpool.client.wallet.beans.WhirlpoolUtxo;
 import com.samourai.whirlpool.client.wallet.data.chain.ChainSupplier;
 import com.samourai.whirlpool.client.wallet.data.pool.PoolSupplier;
 import com.samourai.whirlpool.client.wallet.data.supplier.BasicSupplier;
-import com.samourai.whirlpool.client.wallet.data.utxoConfig.UtxoConfigManager;
 import com.samourai.whirlpool.client.wallet.data.utxoConfig.UtxoConfigSupplier;
 import com.samourai.whirlpool.client.wallet.data.wallet.WalletSupplierImpl;
 import java.util.Collection;
@@ -34,14 +30,12 @@ public abstract class BasicUtxoSupplier extends BasicSupplier<UtxoData>
     implements UtxoProvider, UtxoSupplier {
   private static final Logger log = LoggerFactory.getLogger(BasicUtxoSupplier.class);
 
-  private final WhirlpoolEventService eventService = WhirlpoolEventService.getInstance();
   private final WalletSupplierImpl walletSupplier;
   private final UtxoConfigSupplier utxoConfigSupplier;
   private final ChainSupplier chainSupplier;
   private final PoolSupplier poolSupplier;
   private final Tx0ParamService tx0ParamService;
   private NetworkParameters params;
-  private UtxoConfigManager utxoConfigManager;
 
   private Map<String, WhirlpoolUtxo> previousUtxos;
 
@@ -61,10 +55,13 @@ public abstract class BasicUtxoSupplier extends BasicSupplier<UtxoData>
     this.poolSupplier = poolSupplier;
     this.tx0ParamService = tx0ParamService;
     this.params = params;
-    this.utxoConfigManager = new UtxoConfigManager(utxoConfigSupplier);
   }
 
   public abstract void refresh() throws Exception;
+
+  protected void onUtxoChanges(UtxoData utxoData) {
+    // overridable
+  }
 
   @Override
   public void setValue(UtxoData utxoData) throws Exception {
@@ -85,9 +82,8 @@ public abstract class BasicUtxoSupplier extends BasicSupplier<UtxoData>
     super.setValue(utxoData);
 
     // notify
-    eventService.post(new UtxosResponseEvent());
     if (!utxoData.getUtxoChanges().isEmpty()) {
-      eventService.post(new UtxosChangeEvent(utxoData));
+      onUtxoChanges(utxoData);
     }
   }
 

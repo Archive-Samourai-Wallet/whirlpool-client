@@ -58,11 +58,5 @@ public class UtxoConfigSupplierTest extends UtxoSupplierTest {
     // verify config preserved
     WhirlpoolUtxo utxoPremix1 =
         utxoSupplier.findUtxo(UTXO_PREMIX1.tx_hash, UTXO_PREMIX1.tx_output_n);
-    // verify forwarding null
-    UnspentOutput unspentOutput = utxoPremix1.getUtxo();
-    Assert.assertNull(
-        utxoConfigSupplier
-            .getUtxo(unspentOutput.tx_hash, unspentOutput.tx_output_n)
-            .getForwarding());
   }
 }

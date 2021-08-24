@@ -1,14 +1,12 @@
 package com.samourai.whirlpool.client.whirlpool.listener;
 
 import com.samourai.whirlpool.client.mix.listener.*;
-import io.reactivex.subjects.Subject;
+import com.samourai.whirlpool.protocol.beans.Utxo;
 
 public interface WhirlpoolClientListener {
-  void success(MixSuccess mixSuccess);
+  void success(Utxo receiveUtxo);
 
-  void fail(MixFail mixFail);
+  void fail(MixFailReason reason, String notifiableError);
 
-  void progress(MixProgress mixProgress);
-
-  Subject<MixProgress> getObservable();
+  void progress(MixStep mixStep);
 }

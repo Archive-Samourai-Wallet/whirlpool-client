@@ -1,22 +1,24 @@
 package com.samourai.whirlpool.client.wallet.data.utxoConfig;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
-public class UtxoConfigPersisted {
+// ignore mixsTarget & poolId for backward-compatibility
+@JsonIgnoreProperties(ignoreUnknown = true)
+public class UtxoConfigPersisted implements UtxoConfig {
   private int mixsDone;
-  private Long forwarding;
+  private Long expired;
 
   public UtxoConfigPersisted() {
     this(0, null);
   }
 
-  public UtxoConfigPersisted(int mixsDone, Long forwarding) {
+  public UtxoConfigPersisted(int mixsDone, Long expired) {
     this.mixsDone = mixsDone;
-    this.forwarding = forwarding;
+    this.expired = expired;
   }
 
   public UtxoConfigPersisted copy() {
-    UtxoConfigPersisted copy = new UtxoConfigPersisted(this.mixsDone, this.forwarding);
+    UtxoConfigPersisted copy = new UtxoConfigPersisted(this.mixsDone, this.expired);
     return copy;
   }
 
@@ -28,32 +30,16 @@ public class UtxoConfigPersisted {
     this.mixsDone = mixsDone;
   }
 
-  public void incrementMixsDone() {
-    this.mixsDone++;
+  public Long getExpired() {
+    return expired;
   }
 
-  public Long getForwarding() {
-    return forwarding;
-  }
-
-  public void setForwarding(Long forwarding) {
-    this.forwarding = forwarding;
-  }
-
-  @JsonIgnore
-  @Deprecated
-  public void setMixsTarget(Integer mixsTarget) {
-    // keep this for backward-compatibility
-  }
-
-  @JsonIgnore
-  @Deprecated
-  public void setPoolId(String poolId) {
-    // keep this for backward-compatibility
+  public void setExpired(Long expired) {
+    this.expired = expired;
   }
 
   @Override
   public String toString() {
-    return "mixsDone=" + mixsDone + ", forwarding=" + (forwarding != null ? forwarding : "null");
+    return "mixsDone=" + mixsDone + ", expired=" + (expired != null ? expired : "null");
   }
 }

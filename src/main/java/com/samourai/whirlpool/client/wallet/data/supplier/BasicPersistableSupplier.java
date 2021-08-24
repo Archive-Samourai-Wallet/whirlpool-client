@@ -1,27 +1,29 @@
 package com.samourai.whirlpool.client.wallet.data.supplier;
 
+import com.samourai.whirlpool.client.wallet.data.dataPersister.PersistableSupplier;
 import org.slf4j.Logger;
 
-public abstract class AbstractPersistableSupplier<D extends PersistableData>
-    extends BasicSupplier<D> {
+public abstract class BasicPersistableSupplier<D extends PersistableData> extends BasicSupplier<D>
+    implements PersistableSupplier {
 
   private AbstractPersister<D, ?> persister;
 
-  public AbstractPersistableSupplier(
+  public BasicPersistableSupplier(
       final D fallbackValue, AbstractPersister<D, ?> persister, Logger log) throws Exception {
     super(log, fallbackValue);
     this.persister = persister;
   }
 
   public void load() throws Exception {
-    if (log.isDebugEnabled()) {
-      log.debug("load()");
+    // load only once
+    D currentValue = getValue();
+    if (currentValue != null) {
+      throw new Exception("Cannot load(), value already loaded!");
     }
-    setValue(getPersistedValue());
-  }
 
-  protected D getPersistedValue() throws Exception {
-    return persister.load();
+    // first load
+    D initialValue = persister.read();
+    setValue(initialValue);
   }
 
   public boolean persist(boolean force) throws Exception {

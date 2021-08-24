@@ -4,19 +4,17 @@ import com.samourai.wallet.client.indexHandler.IIndexHandler;
 import com.samourai.wallet.hd.AddressType;
 import com.samourai.wallet.hd.Chain;
 import com.samourai.whirlpool.client.wallet.beans.WhirlpoolAccount;
+import com.samourai.whirlpool.client.wallet.data.dataPersister.PersistableSupplier;
 
-public interface WalletStateSupplier {
-  IIndexHandler getExternalIndexHandler();
+public interface WalletStateSupplier extends PersistableSupplier {
+  IIndexHandler getIndexHandlerExternal();
 
-  IIndexHandler computeIndexHandler(WhirlpoolAccount account, AddressType addressType, Chain chain);
+  IIndexHandler getIndexHandlerWallet(
+      WhirlpoolAccount account, AddressType addressType, Chain chain);
 
   boolean isInitialized();
 
   void setInitialized(boolean initialized);
-
-  boolean isSynced();
-
-  void setSynced(boolean synced);
 
   void setWalletIndex(WhirlpoolAccount account, AddressType addressType, Chain chain, int value)
       throws Exception;

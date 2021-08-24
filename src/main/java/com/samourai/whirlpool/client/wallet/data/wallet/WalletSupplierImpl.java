@@ -8,6 +8,7 @@ import com.samourai.wallet.hd.HD_Wallet;
 import com.samourai.whirlpool.client.wallet.beans.WhirlpoolAccount;
 import com.samourai.whirlpool.client.wallet.data.walletState.WalletStateSupplier;
 import java.util.*;
+import org.apache.commons.lang3.ArrayUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -18,7 +19,7 @@ public class WalletSupplierImpl implements WalletSupplier {
   private final Map<String, BipWalletAndAddressType> walletsByPub;
 
   public WalletSupplierImpl(HD_Wallet bip44w, WalletStateSupplier walletStateSupplier) {
-    // instanciate wallets
+    // instantiate wallets
     this.wallets = new LinkedHashMap<WhirlpoolAccount, Map<AddressType, BipWalletAndAddressType>>();
     this.walletsByPub = new LinkedHashMap<String, BipWalletAndAddressType>();
     for (WhirlpoolAccount account : WhirlpoolAccount.values()) {
@@ -27,9 +28,9 @@ public class WalletSupplierImpl implements WalletSupplier {
           new LinkedHashMap<AddressType, BipWalletAndAddressType>();
       for (AddressType addressType : account.getAddressTypes()) {
         IIndexHandler indexHandler =
-            walletStateSupplier.computeIndexHandler(account, addressType, Chain.RECEIVE);
+            walletStateSupplier.getIndexHandlerWallet(account, addressType, Chain.RECEIVE);
         IIndexHandler indexChangeHandler =
-            walletStateSupplier.computeIndexHandler(account, addressType, Chain.CHANGE);
+            walletStateSupplier.getIndexHandlerWallet(account, addressType, Chain.CHANGE);
         BipWalletAndAddressType bipWallet =
             new BipWalletAndAddressType(
                 bip44w, account, indexHandler, indexChangeHandler, addressType);
@@ -68,11 +69,18 @@ public class WalletSupplierImpl implements WalletSupplier {
 
   @Override
   public String[] getPubs(boolean withIgnoredAccounts) {
+    return getPubs(withIgnoredAccounts, (AddressType[]) null);
+  }
+
+  @Override
+  public String[] getPubs(boolean withIgnoredAccounts, AddressType... addressTypes) {
     List<String> pubs = new LinkedList<String>();
     for (BipWalletAndAddressType bipWallet : walletsByPub.values()) {
       if (withIgnoredAccounts || bipWallet.getAccount().isActive()) {
-        String pub = bipWallet.getPub();
-        pubs.add(pub);
+        if (addressTypes == null || ArrayUtils.contains(addressTypes, bipWallet.getAddressType())) {
+          String pub = bipWallet.getPub();
+          pubs.add(pub);
+        }
       }
     }
     return pubs.toArray(new String[] {});

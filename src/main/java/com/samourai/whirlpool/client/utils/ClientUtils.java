@@ -216,7 +216,9 @@ public class ClientUtils {
               whirlpoolUtxo.getPathFull(),
               utxoState.getStatus().name(),
               mixableStatusName,
-              whirlpoolUtxo.getPoolId() != null ? whirlpoolUtxo.getPoolId() : "-",
+              whirlpoolUtxo.getUtxoState().getPoolId() != null
+                  ? whirlpoolUtxo.getUtxoState().getPoolId()
+                  : "-",
               whirlpoolUtxo.getMixsDone()));
     }
     log.info("\n" + sb.toString());

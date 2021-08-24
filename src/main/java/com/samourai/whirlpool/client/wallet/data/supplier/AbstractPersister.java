@@ -30,13 +30,13 @@ public abstract class AbstractPersister<D extends PersistableData, P> {
     this.lastWrite = 0;
   }
 
-  public synchronized D load() throws Exception {
+  public synchronized D read() throws Exception {
     File file = getFile();
 
     // empty file => use initial value
     if (file.length() == 0) {
       if (log.isDebugEnabled()) {
-        log.debug("Using initial value for: " + fileName);
+        log.debug("File " + fileName + " not present => using initial value");
       }
       return getInitialValue();
     }
@@ -51,6 +51,11 @@ public abstract class AbstractPersister<D extends PersistableData, P> {
   }
 
   public synchronized void write(D data) throws Exception {
+    doWrite(data);
+    lastWrite = System.currentTimeMillis();
+  }
+
+  protected void doWrite(D data) throws Exception {
     if (log.isDebugEnabled()) {
       log.debug("Writing " + fileName + " => " + data);
     }
@@ -59,7 +64,6 @@ public abstract class AbstractPersister<D extends PersistableData, P> {
     // write json
     P persisted = toPersisted(data);
     ClientUtils.safeWriteValue(mapper, persisted, file);
-    lastWrite = System.currentTimeMillis();
   }
 
   private File getFile() throws Exception {

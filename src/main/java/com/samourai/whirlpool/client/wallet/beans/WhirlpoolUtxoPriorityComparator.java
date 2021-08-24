@@ -67,7 +67,7 @@ public class WhirlpoolUtxoPriorityComparator implements Comparator<WhirlpoolUtxo
 
   private boolean isMixingSlow(WhirlpoolUtxo whirlpoolUtxo) {
     WhirlpoolUtxoState s = whirlpoolUtxo.getUtxoState();
-    MixProgressDetail mixProgress = s.getMixProgress();
+    MixProgress mixProgress = s.getMixProgress();
     if (mixProgress == null) {
       // not mixing
       return false;

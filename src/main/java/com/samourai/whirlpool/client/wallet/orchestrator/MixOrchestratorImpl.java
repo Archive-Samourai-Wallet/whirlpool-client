@@ -1,4 +1,4 @@
-package com.samourai.whirlpool.client.wallet;
+package com.samourai.whirlpool.client.wallet.orchestrator;
 
 import com.samourai.wallet.api.backend.beans.UnspentOutput;
 import com.samourai.wallet.hd.AddressType;
@@ -8,16 +8,18 @@ import com.samourai.whirlpool.client.WhirlpoolClient;
 import com.samourai.whirlpool.client.exception.NotifiableException;
 import com.samourai.whirlpool.client.mix.MixParams;
 import com.samourai.whirlpool.client.mix.handler.*;
-import com.samourai.whirlpool.client.mix.listener.MixFail;
-import com.samourai.whirlpool.client.mix.listener.MixSuccess;
+import com.samourai.whirlpool.client.mix.listener.MixFailReason;
+import com.samourai.whirlpool.client.mix.listener.MixStep;
 import com.samourai.whirlpool.client.utils.ClientUtils;
+import com.samourai.whirlpool.client.wallet.WhirlpoolWallet;
+import com.samourai.whirlpool.client.wallet.WhirlpoolWalletConfig;
 import com.samourai.whirlpool.client.wallet.beans.*;
 import com.samourai.whirlpool.client.wallet.data.pool.PoolSupplier;
-import com.samourai.whirlpool.client.wallet.orchestrator.MixOrchestrator;
 import com.samourai.whirlpool.client.whirlpool.WhirlpoolClientConfig;
 import com.samourai.whirlpool.client.whirlpool.WhirlpoolClientImpl;
 import com.samourai.whirlpool.client.whirlpool.beans.Pool;
 import com.samourai.whirlpool.client.whirlpool.listener.WhirlpoolClientListener;
+import com.samourai.whirlpool.protocol.beans.Utxo;
 import org.bitcoinj.core.ECKey;
 import org.bitcoinj.core.NetworkParameters;
 import org.slf4j.Logger;
@@ -54,39 +56,93 @@ public class MixOrchestratorImpl extends MixOrchestrator {
   }
 
   @Override
-  protected void onMixSuccess(MixSuccess mixSuccess) {
-    super.onMixSuccess(mixSuccess);
-    whirlpoolWallet.onMixSuccess(mixSuccess);
+  protected WhirlpoolClientListener computeMixListener(final MixParams mixParams) {
+    final WhirlpoolClientListener orchestratorListener = super.computeMixListener(mixParams);
+    final WhirlpoolUtxo whirlpoolUtxo = mixParams.getWhirlpoolUtxo();
+
+    return new WhirlpoolClientListener() {
+      @Override
+      public void success(Utxo receiveUtxo) {
+        // update utxo
+        WhirlpoolUtxoState utxoState = whirlpoolUtxo.getUtxoState();
+        utxoState.setStatusMixing(
+            WhirlpoolUtxoStatus.MIX_SUCCESS, true, mixParams, MixStep.SUCCESS);
+
+        // notify
+        whirlpoolWallet.onMixSuccess(mixParams, receiveUtxo);
+
+        // manage orchestrator
+        orchestratorListener.success(receiveUtxo);
+      }
+
+      @Override
+      public void fail(MixFailReason reason, String notifiableError) {
+        // notify BEFORE updating utxo (because it erases utxoState.mixProgress)
+        whirlpoolWallet.onMixFail(mixParams, reason, notifiableError);
+
+        // update utxo
+        String error = reason.getMessage();
+        if (notifiableError != null) {
+          error += " ; " + notifiableError;
+        }
+        WhirlpoolUtxoState utxoState = whirlpoolUtxo.getUtxoState();
+        if (reason == MixFailReason.STOP) {
+          // silent stop
+          utxoState.setStatus(WhirlpoolUtxoStatus.STOP, false);
+        } else if (reason == MixFailReason.CANCEL) {
+          // silent cancel
+          utxoState.setStatus(WhirlpoolUtxoStatus.READY, false);
+        } else {
+          utxoState.setStatusMixingError(WhirlpoolUtxoStatus.MIX_FAILED, mixParams, error);
+        }
+
+        // manage orchestrator
+        orchestratorListener.fail(reason, notifiableError);
+      }
+
+      @Override
+      public void progress(MixStep mixStep) {
+        // update utxo
+        WhirlpoolUtxoState utxoState = whirlpoolUtxo.getUtxoState();
+        utxoState.setStatusMixing(utxoState.getStatus(), true, mixParams, mixStep);
+
+        // notify
+        whirlpoolWallet.onMixProgress(mixParams);
+
+        // manage orchestrator
+        orchestratorListener.progress(mixStep);
+      }
+    };
   }
 
   @Override
-  protected void onMixFail(MixFail mixFail) {
-    super.onMixFail(mixFail);
-    whirlpoolWallet.onMixFail(mixFail);
-  }
-
-  @Override
-  protected WhirlpoolClient runWhirlpoolClient(
-      WhirlpoolUtxo whirlpoolUtxo, WhirlpoolClientListener listener) throws NotifiableException {
+  protected WhirlpoolClient runWhirlpoolClient(WhirlpoolUtxo whirlpoolUtxo)
+      throws NotifiableException {
+    String poolId = whirlpoolUtxo.getUtxoState().getPoolId();
     if (log.isDebugEnabled()) {
-      log.info(
-          " • Connecting client to pool: " + whirlpoolUtxo.getPoolId() + ", utxo=" + whirlpoolUtxo);
+      log.info(" • Connecting client to pool: " + poolId + ", utxo=" + whirlpoolUtxo);
     } else {
-      log.info(" • Connecting client to pool: " + whirlpoolUtxo.getPoolId());
+      log.info(" • Connecting client to pool: " + poolId);
     }
 
     // find pool
-    String poolId = whirlpoolUtxo.getPoolId();
     Pool pool = poolSupplier.findPoolById(poolId);
     if (pool == null) {
       throw new NotifiableException("Pool not found: " + poolId);
     }
 
-    // start mixing (whirlpoolClient will start a new thread)
+    // prepare mixing
     MixParams mixParams = computeMixParams(whirlpoolUtxo, pool);
+    WhirlpoolClientListener mixListener = computeMixListener(mixParams);
 
+    // update utxo
+    whirlpoolUtxo
+        .getUtxoState()
+        .setStatusMixing(WhirlpoolUtxoStatus.MIX_STARTED, true, mixParams, MixStep.CONNECTING);
+
+    // start mixing (whirlpoolClient will start a new thread)
     WhirlpoolClient whirlpoolClient = new WhirlpoolClientImpl(config);
-    whirlpoolClient.whirlpool(mixParams, listener);
+    whirlpoolClient.whirlpool(mixParams, mixListener);
     return whirlpoolClient;
   }
 
@@ -168,7 +224,7 @@ public class MixOrchestratorImpl extends MixOrchestrator {
             log.debug("Mixing to EXTERNAL (" + whirlpoolUtxo + ")");
           }
           return new XPubPostmixHandler(
-              whirlpoolWallet.getWalletStateSupplier().getExternalIndexHandler(),
+              whirlpoolWallet.getWalletStateSupplier().getIndexHandlerExternal(),
               config.getNetworkParameters(),
               externalDestination.getXpub(),
               externalDestination.getChain(),

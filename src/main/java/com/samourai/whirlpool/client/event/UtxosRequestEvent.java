@@ -1,10 +1,10 @@
 package com.samourai.whirlpool.client.event;
 
-import com.samourai.whirlpool.client.wallet.beans.WhirlpoolEvent;
+import com.samourai.whirlpool.client.wallet.WhirlpoolWallet;
 
-public class UtxosRequestEvent extends WhirlpoolEvent {
+public class UtxosRequestEvent extends WhirlpoolWalletEvent {
 
-  public UtxosRequestEvent() {
-    super();
+  public UtxosRequestEvent(WhirlpoolWallet whirlpoolWallet) {
+    super(whirlpoolWallet);
   }
 }

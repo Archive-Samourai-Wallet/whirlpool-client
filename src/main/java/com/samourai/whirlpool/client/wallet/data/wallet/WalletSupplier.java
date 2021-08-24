@@ -13,4 +13,6 @@ public interface WalletSupplier {
   BipWalletAndAddressType getWalletByPub(String pub);
 
   String[] getPubs(boolean withIgnoredAccounts);
+
+  String[] getPubs(boolean withIgnoredAccounts, AddressType... addressTypes);
 }

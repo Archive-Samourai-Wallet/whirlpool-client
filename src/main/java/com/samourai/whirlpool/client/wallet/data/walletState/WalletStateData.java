@@ -12,11 +12,13 @@ public class WalletStateData extends PersistableData {
 
   private Map<String, Integer> items;
 
-  protected WalletStateData() {
+  // used by Sparrow
+  public WalletStateData() {
     this(new LinkedHashMap<String, Integer>());
   }
 
-  protected WalletStateData(Map<String, Integer> indexes) {
+  // used by Sparrow
+  public WalletStateData(Map<String, Integer> indexes) {
     super();
     this.items = new LinkedHashMap<String, Integer>();
     this.items.putAll(indexes);

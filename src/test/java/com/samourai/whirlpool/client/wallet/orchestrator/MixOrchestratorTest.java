@@ -13,7 +13,7 @@ public class MixOrchestratorTest extends AbstractTest {
   private static final Logger log = LoggerFactory.getLogger(MixOrchestratorTest.class);
   private MixOrchestratorData data;
   private MixOrchestrator mixOrchestrator;
-  private MixingStateEditable mixingState = new MixingStateEditable(false);
+  private MixingStateEditable mixingState = new MixingStateEditable(null, false);
   private List<WhirlpoolUtxo> utxos = new LinkedList<WhirlpoolUtxo>();
   private List<WhirlpoolUtxo> mixingHistory = new LinkedList<WhirlpoolUtxo>();
   private String POOL_001;

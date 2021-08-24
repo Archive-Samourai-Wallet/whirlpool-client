@@ -7,6 +7,7 @@ import com.samourai.wallet.hd.Chain;
 import com.samourai.wallet.hd.HD_Wallet;
 import com.samourai.wallet.util.AbstractOrchestrator;
 import com.samourai.whirlpool.client.tx0.Tx0ParamService;
+import com.samourai.whirlpool.client.wallet.WhirlpoolWallet;
 import com.samourai.whirlpool.client.wallet.WhirlpoolWalletConfig;
 import com.samourai.whirlpool.client.wallet.data.chain.BasicChainSupplier;
 import com.samourai.whirlpool.client.wallet.data.chain.ChainData;
@@ -34,7 +35,7 @@ public abstract class WalletResponseDataSource implements DataSource {
 
   private AbstractOrchestrator dataOrchestrator;
 
-  private final WhirlpoolWalletConfig config;
+  private final WhirlpoolWallet whirlpoolWallet;
   private final DataPersister dataPersister;
   private final WalletResponseSupplier walletResponseSupplier;
 
@@ -46,22 +47,21 @@ public abstract class WalletResponseDataSource implements DataSource {
   private final BasicUtxoSupplier utxoSupplier;
 
   public WalletResponseDataSource(
-      WhirlpoolWalletConfig config,
-      HD_Wallet bip44w,
-      String walletIdentifier,
-      DataPersister dataPersister)
+      WhirlpoolWallet whirlpoolWallet, HD_Wallet bip44w, DataPersister dataPersister)
       throws Exception {
-    this.config = config;
+    this.whirlpoolWallet = whirlpoolWallet;
     this.dataPersister = dataPersister;
-    this.walletResponseSupplier = new WalletResponseSupplier(config, this);
+    this.walletResponseSupplier = new WalletResponseSupplier(whirlpoolWallet, this);
 
-    this.walletSupplier = computeWalletSupplier(bip44w, dataPersister.getWalletStateSupplier());
-    this.minerFeeSupplier = computeMinerFeeSupplier(config);
-    this.tx0ParamService = new Tx0ParamService(minerFeeSupplier, config);
-    this.poolSupplier = computePoolSupplier(config, tx0ParamService);
+    this.walletSupplier =
+        computeWalletSupplier(whirlpoolWallet, bip44w, dataPersister.getWalletStateSupplier());
+    this.minerFeeSupplier = computeMinerFeeSupplier(whirlpoolWallet);
+    this.tx0ParamService = new Tx0ParamService(minerFeeSupplier, whirlpoolWallet.getConfig());
+    this.poolSupplier = computePoolSupplier(whirlpoolWallet, tx0ParamService);
     this.chainSupplier = computeChainSupplier();
     this.utxoSupplier =
         computeUtxoSupplier(
+            whirlpoolWallet,
             walletSupplier,
             dataPersister.getUtxoConfigSupplier(),
             chainSupplier,
@@ -70,18 +70,21 @@ public abstract class WalletResponseDataSource implements DataSource {
   }
 
   protected WalletSupplierImpl computeWalletSupplier(
-      HD_Wallet bip44w, WalletStateSupplier walletStateSupplier) throws Exception {
+      WhirlpoolWallet whirlpoolWallet, HD_Wallet bip44w, WalletStateSupplier walletStateSupplier)
+      throws Exception {
     return new WalletSupplierImpl(bip44w, walletStateSupplier);
   }
 
-  protected BasicMinerFeeSupplier computeMinerFeeSupplier(WhirlpoolWalletConfig config)
+  protected BasicMinerFeeSupplier computeMinerFeeSupplier(WhirlpoolWallet whirlpoolWallet)
       throws Exception {
+    WhirlpoolWalletConfig config = whirlpoolWallet.getConfig();
     return new BasicMinerFeeSupplier(
         config.getFeeMin(), config.getFeeMax(), config.getFeeFallback());
   }
 
   protected ExpirablePoolSupplier computePoolSupplier(
-      WhirlpoolWalletConfig config, Tx0ParamService tx0ParamService) throws Exception {
+      WhirlpoolWallet whirlpoolWallet, Tx0ParamService tx0ParamService) throws Exception {
+    WhirlpoolWalletConfig config = whirlpoolWallet.getConfig();
     return new ExpirablePoolSupplier(
         config.getRefreshPoolsDelay(), config.getServerApi(), tx0ParamService);
   }
@@ -91,6 +94,7 @@ public abstract class WalletResponseDataSource implements DataSource {
   }
 
   protected BasicUtxoSupplier computeUtxoSupplier(
+      final WhirlpoolWallet whirlpoolWallet,
       WalletSupplierImpl walletSupplier,
       UtxoConfigSupplier utxoConfigSupplier,
       ChainSupplier chainSupplier,
@@ -103,10 +107,16 @@ public abstract class WalletResponseDataSource implements DataSource {
         chainSupplier,
         poolSupplier,
         tx0ParamService,
-        config.getNetworkParameters()) {
+        whirlpoolWallet.getConfig().getNetworkParameters()) {
       @Override
       public void refresh() throws Exception {
         WalletResponseDataSource.this.refresh();
+      }
+
+      @Override
+      protected void onUtxoChanges(UtxoData utxoData) {
+        super.onUtxoChanges(utxoData);
+        whirlpoolWallet.onUtxoChanges(utxoData);
       }
     };
   }
@@ -191,6 +201,7 @@ public abstract class WalletResponseDataSource implements DataSource {
   }
 
   protected void runDataOrchestrator() {
+    WhirlpoolWalletConfig config = whirlpoolWallet.getConfig();
     int dataOrchestratorDelay =
         NumberUtils.min(config.getRefreshUtxoDelay(), config.getRefreshPoolsDelay());
     dataOrchestrator =
@@ -215,8 +226,8 @@ public abstract class WalletResponseDataSource implements DataSource {
     dataOrchestrator.stop();
   }
 
-  protected WhirlpoolWalletConfig getConfig() {
-    return config;
+  protected WhirlpoolWallet getWhirlpoolWallet() {
+    return whirlpoolWallet;
   }
 
   protected DataPersister getDataPersister() {

@@ -1,6 +1,5 @@
 package com.samourai.whirlpool.client.wallet.data.dataSource;
 
-import com.samourai.wallet.api.backend.beans.TxsResponse;
 import com.samourai.whirlpool.client.tx0.Tx0ParamService;
 import com.samourai.whirlpool.client.wallet.data.chain.ChainSupplier;
 import com.samourai.whirlpool.client.wallet.data.minerFee.MinerFeeSupplier;
@@ -15,8 +14,6 @@ public interface DataSource {
   void close() throws Exception;
 
   void pushTx(String txHex) throws Exception;
-
-  TxsResponse fetchTxs(String[] zpubs, int page, int count) throws Exception;
 
   WalletSupplier getWalletSupplier();
 

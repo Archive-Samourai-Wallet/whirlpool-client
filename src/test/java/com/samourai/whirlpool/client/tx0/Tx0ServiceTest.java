@@ -1,5 +1,6 @@
 package com.samourai.whirlpool.client.tx0;
 
+import com.samourai.wallet.api.backend.BackendServer;
 import com.samourai.wallet.api.backend.beans.UnspentOutput;
 import com.samourai.wallet.client.BipWallet;
 import com.samourai.wallet.client.indexHandler.MemoryIndexHandler;
@@ -11,6 +12,8 @@ import com.samourai.whirlpool.client.utils.MockUtxoKeyProvider;
 import com.samourai.whirlpool.client.wallet.WhirlpoolWalletConfig;
 import com.samourai.whirlpool.client.wallet.beans.WhirlpoolAccount;
 import com.samourai.whirlpool.client.wallet.beans.WhirlpoolServer;
+import com.samourai.whirlpool.client.wallet.data.dataSource.DataSourceFactory;
+import com.samourai.whirlpool.client.wallet.data.dataSource.SamouraiDataSourceFactory;
 import com.samourai.whirlpool.client.whirlpool.beans.Tx0Data;
 import java.util.Arrays;
 import java8.util.Lists;
@@ -26,7 +29,6 @@ public class Tx0ServiceTest extends AbstractTest {
   private Logger log = LoggerFactory.getLogger(Tx0ServiceTest.class);
 
   private static final long FEE_VALUE = 10000;
-  private static final int LATEST_BLOCK_HEIGHT = 99999999;
 
   private Tx0Service tx0Service;
 
@@ -41,7 +43,11 @@ public class Tx0ServiceTest extends AbstractTest {
   @Before
   public void setup() {
     WhirlpoolServer server = WhirlpoolServer.LOCAL_TESTNET;
-    config = new WhirlpoolWalletConfig(null, null, null, null, server.getParams(), false);
+    DataSourceFactory dataSourceFactory =
+        new SamouraiDataSourceFactory(BackendServer.TESTNET, false, null);
+    config =
+        new WhirlpoolWalletConfig(
+            dataSourceFactory, null, null, null, null, server.getParams(), false);
     config.setTx0MaxOutputs(10);
     tx0Service = new Tx0Service(config);
     utxoKeyProvider = new MockUtxoKeyProvider();

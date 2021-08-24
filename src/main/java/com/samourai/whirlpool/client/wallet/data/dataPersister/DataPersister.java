@@ -1,6 +1,6 @@
 package com.samourai.whirlpool.client.wallet.data.dataPersister;
 
-import com.samourai.whirlpool.client.wallet.data.utxoConfig.PersistableUtxoConfigSupplier;
+import com.samourai.whirlpool.client.wallet.data.utxoConfig.UtxoConfigSupplier;
 import com.samourai.whirlpool.client.wallet.data.walletState.WalletStateSupplier;
 
 public interface DataPersister {
@@ -9,7 +9,11 @@ public interface DataPersister {
 
   void close() throws Exception;
 
+  void load() throws Exception;
+
+  void persist(boolean force) throws Exception;
+
   WalletStateSupplier getWalletStateSupplier();
 
-  PersistableUtxoConfigSupplier getUtxoConfigSupplier();
+  UtxoConfigSupplier getUtxoConfigSupplier();
 }

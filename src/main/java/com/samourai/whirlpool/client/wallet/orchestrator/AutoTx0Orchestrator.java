@@ -1,15 +1,12 @@
 package com.samourai.whirlpool.client.wallet.orchestrator;
 
-import com.google.common.eventbus.Subscribe;
 import com.samourai.wallet.util.AbstractOrchestrator;
-import com.samourai.whirlpool.client.event.*;
 import com.samourai.whirlpool.client.exception.AutoTx0InsufficientBalanceException;
 import com.samourai.whirlpool.client.exception.NotifiableException;
 import com.samourai.whirlpool.client.tx0.Tx0;
 import com.samourai.whirlpool.client.tx0.Tx0Config;
 import com.samourai.whirlpool.client.tx0.Tx0ParamService;
 import com.samourai.whirlpool.client.utils.ClientUtils;
-import com.samourai.whirlpool.client.wallet.WhirlpoolEventService;
 import com.samourai.whirlpool.client.wallet.WhirlpoolWallet;
 import com.samourai.whirlpool.client.wallet.WhirlpoolWalletConfig;
 import com.samourai.whirlpool.client.wallet.beans.*;
@@ -38,13 +35,6 @@ public class AutoTx0Orchestrator extends AbstractOrchestrator {
     this.whirlpoolWallet = whirlpoolWallet;
     this.config = config;
     this.tx0ParamService = tx0ParamService;
-
-    WhirlpoolEventService.getInstance().register(this);
-  }
-
-  @Subscribe
-  public void onWalletClose(WalletCloseEvent walletCloseEvent) {
-    WhirlpoolEventService.getInstance().unregister(this);
   }
 
   @Override
@@ -150,9 +140,9 @@ public class AutoTx0Orchestrator extends AbstractOrchestrator {
     if (log.isDebugEnabled()) {
       log.debug(
           "totalUnconfirmedDeposit="
-              + totalUnconfirmedDeposit
+              + ClientUtils.satToBtc(totalUnconfirmedDeposit)
               + ", minUnconfirmedDeposit="
-              + minUnconfirmedDeposit);
+              + ClientUtils.satToBtc(minUnconfirmedDeposit));
     }
     if (totalUnconfirmedDeposit >= minUnconfirmedDeposit) {
       if (log.isDebugEnabled()) {
@@ -169,7 +159,11 @@ public class AutoTx0Orchestrator extends AbstractOrchestrator {
     long minQueueBalance = autoMixDenomination * maxClients;
     long totalPremix = whirlpoolWallet.getUtxoSupplier().getBalance(WhirlpoolAccount.PREMIX);
     if (log.isDebugEnabled()) {
-      log.debug("totalPremix=" + totalPremix + ", minQueueBalance=" + minQueueBalance);
+      log.debug(
+          "totalPremix="
+              + ClientUtils.satToBtc(totalPremix)
+              + ", minQueueBalance="
+              + ClientUtils.satToBtc(minQueueBalance));
     }
     if (totalPremix >= minQueueBalance) {
       if (log.isDebugEnabled()) {
@@ -186,7 +180,11 @@ public class AutoTx0Orchestrator extends AbstractOrchestrator {
       long minAggregateBalance = minQueueBalance * 4; // at least 4 mixs
       long totalBalance = whirlpoolWallet.getUtxoSupplier().getBalanceTotal();
       if (log.isDebugEnabled()) {
-        log.debug("totalBalance=" + totalBalance + ", minAggregateBalance=" + minAggregateBalance);
+        log.debug(
+            "totalBalance="
+                + ClientUtils.satToBtc(totalBalance)
+                + ", minAggregateBalance="
+                + ClientUtils.satToBtc(minAggregateBalance));
       }
       if (totalBalance >= minAggregateBalance) {
         // aggregate wallet
@@ -209,25 +207,11 @@ public class AutoTx0Orchestrator extends AbstractOrchestrator {
     }
   }
 
-  @Subscribe
-  public void onWalletStart(WalletStartEvent walletStartEvent) {
-    // start orchestrator
-    start(true);
-  }
-
-  @Subscribe
-  public void onWalletStop(WalletStopEvent walletStopEvent) {
-    // stop orchestrator
-    stop();
-  }
-
-  @Subscribe
-  public void onUtxosChange(UtxosChangeEvent utxosChangeEvent) {
+  public void onUtxoChanges(WhirlpoolUtxoChanges whirlpoolUtxoChanges) {
     if (!isStarted()) {
       return;
     }
 
-    WhirlpoolUtxoChanges whirlpoolUtxoChanges = utxosChangeEvent.getUtxoData().getUtxoChanges();
     boolean notify = false;
 
     // DETECTED
@@ -251,6 +235,18 @@ public class AutoTx0Orchestrator extends AbstractOrchestrator {
     if (notify) {
       if (log.isDebugEnabled()) {
         log.debug(" o AutoTx0: checking for tx0...");
+        log.debug(
+            "Balances: deposit="
+                + ClientUtils.satToBtc(
+                    whirlpoolWallet.getUtxoSupplier().getBalance(WhirlpoolAccount.DEPOSIT))
+                + ", premix="
+                + ClientUtils.satToBtc(
+                    whirlpoolWallet.getUtxoSupplier().getBalance(WhirlpoolAccount.PREMIX))
+                + ", postmix="
+                + ClientUtils.satToBtc(
+                    whirlpoolWallet.getUtxoSupplier().getBalance(WhirlpoolAccount.POSTMIX))
+                + ", total="
+                + ClientUtils.satToBtc(whirlpoolWallet.getUtxoSupplier().getBalanceTotal()));
       }
       notifyOrchestrator();
     }

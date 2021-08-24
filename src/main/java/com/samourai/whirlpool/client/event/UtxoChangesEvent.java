@@ -1,13 +1,13 @@
 package com.samourai.whirlpool.client.event;
 
-import com.samourai.whirlpool.client.wallet.beans.WhirlpoolEvent;
+import com.samourai.whirlpool.client.wallet.WhirlpoolWallet;
 import com.samourai.whirlpool.client.wallet.data.utxo.UtxoData;
 
-public class UtxosChangeEvent extends WhirlpoolEvent {
+public class UtxoChangesEvent extends WhirlpoolWalletEvent {
   private UtxoData utxoData;
 
-  public UtxosChangeEvent(UtxoData utxoData) {
-    super();
+  public UtxoChangesEvent(WhirlpoolWallet whirlpoolWallet, UtxoData utxoData) {
+    super(whirlpoolWallet);
     this.utxoData = utxoData;
   }
 
