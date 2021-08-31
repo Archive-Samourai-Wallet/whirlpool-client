@@ -8,6 +8,7 @@ import com.samourai.wallet.hd.HD_Address;
 import com.samourai.wallet.segwit.bech32.Bech32UtilGeneric;
 import com.samourai.wallet.send.SendFactoryGeneric;
 import com.samourai.wallet.send.provider.UtxoKeyProvider;
+import com.samourai.wallet.util.FeeUtil;
 import com.samourai.wallet.util.FormatsUtilGeneric;
 import com.samourai.wallet.util.RandomUtil;
 import com.samourai.whirlpool.client.exception.NotifiableException;
@@ -17,8 +18,8 @@ import com.samourai.whirlpool.client.wallet.WhirlpoolWalletConfig;
 import com.samourai.whirlpool.client.whirlpool.beans.Pool;
 import com.samourai.whirlpool.client.whirlpool.beans.Tx0Data;
 import com.samourai.whirlpool.protocol.WhirlpoolProtocol;
-import com.samourai.whirlpool.protocol.fee.WhirlpoolFee;
 import com.samourai.whirlpool.protocol.rest.Tx0DataResponse;
+import com.samourai.whirlpool.protocol.util.XorMask;
 import java.util.*;
 import java8.util.function.ToLongFunction;
 import java8.util.stream.StreamSupport;
@@ -35,13 +36,14 @@ public class Tx0Service {
 
   private final Bech32UtilGeneric bech32Util = Bech32UtilGeneric.getInstance();
   private final FormatsUtilGeneric formatsUtilGeneric = FormatsUtilGeneric.getInstance();
-  private final WhirlpoolFee whirlpoolFee;
+  private final XorMask xorMask;
+  private final FeeUtil feeUtil = FeeUtil.getInstance();
 
   private WhirlpoolWalletConfig config;
 
   public Tx0Service(WhirlpoolWalletConfig config) {
     this.config = config;
-    whirlpoolFee = WhirlpoolFee.getInstance(config.getSecretPointFactory());
+    xorMask = XorMask.getInstance(config.getSecretPointFactory());
   }
 
   private int computeNbPremixMax(
@@ -228,23 +230,15 @@ public class Tx0Service {
     Tx0Data tx0Data = tx0Preview.getTx0Data();
 
     // compute opReturnValue for feePaymentCode and feePayload
-    byte[] feePayload = tx0Data.getFeePayload();
-    int feeIndice;
     String feeOrBackAddressBech32;
     if (tx0Data.getFeeValue() > 0) {
       // pay to fee
-      feeIndice = tx0Data.getFeeIndice();
       feeOrBackAddressBech32 = tx0Data.getFeeAddress();
       if (log.isDebugEnabled()) {
-        log.debug(
-            "feeAddressDestination: samourai => "
-                + feeOrBackAddressBech32
-                + ", feeIndice="
-                + feeIndice);
+        log.debug("feeAddressDestination: samourai => " + feeOrBackAddressBech32);
       }
     } else {
       // pay to deposit
-      feeIndice = 0;
       feeOrBackAddressBech32 = bech32Util.toBech32(depositWallet.getNextChangeAddress(), params);
       if (log.isDebugEnabled()) {
         log.debug("feeAddressDestination: back to deposit => " + feeOrBackAddressBech32);
@@ -256,23 +250,20 @@ public class Tx0Service {
     sortedSpendFroms.addAll(spendFroms);
     Collections.sort(sortedSpendFroms, new BIP69InputComparatorUnspentOutput());
 
+    // compute feePayloadMasked
     UnspentOutput firstInput = sortedSpendFroms.get(0);
     ECKey firstInputKey = utxoKeyProvider._getPrivKey(firstInput.tx_hash, firstInput.tx_output_n);
     String feePaymentCode = tx0Data.getFeePaymentCode();
-    byte[] opReturnValue =
-        whirlpoolFee.encode(
-            feeIndice,
+    byte[] feePayload = tx0Data.getFeePayload();
+    byte[] feePayloadMasked =
+        xorMask.mask(
             feePayload,
             feePaymentCode,
             params,
             firstInputKey.getPrivKeyBytes(),
             firstInput.computeOutpoint(params));
     if (log.isDebugEnabled()) {
-      log.debug(
-          "computing opReturnValue for feeIndice="
-              + feeIndice
-              + ", feePayloadHex="
-              + (feePayload != null ? Hex.toHexString(feePayload) : "null"));
+      log.debug("feePayloadHex=" + (feePayload != null ? Hex.toHexString(feePayload) : "null"));
     }
     return tx0(
         sortedSpendFroms,
@@ -282,7 +273,7 @@ public class Tx0Service {
         badbankWallet,
         tx0Config,
         tx0Preview,
-        opReturnValue,
+        feePayloadMasked,
         feeOrBackAddressBech32,
         utxoKeyProvider);
   }
@@ -295,7 +286,7 @@ public class Tx0Service {
       BipWallet badbankWallet,
       Tx0Config tx0Config,
       Tx0Preview tx0Preview,
-      byte[] opReturnValue,
+      byte[] feePayloadMasked,
       String feeOrBackAddressBech32,
       UtxoKeyProvider utxoKeyProvider)
       throws Exception {
@@ -326,7 +317,7 @@ public class Tx0Service {
             sortedSpendFroms,
             premixWallet,
             tx0Preview,
-            opReturnValue,
+            feePayloadMasked,
             feeOrBackAddressBech32,
             changeWallet,
             config.getNetworkParameters(),
@@ -374,7 +365,7 @@ public class Tx0Service {
       Collection<UnspentOutput> sortedSpendFroms,
       BipWallet premixWallet,
       Tx0Preview tx0Preview,
-      byte[] opReturnValue,
+      byte[] feePayloadMasked,
       String feeOrBackAddressBech32,
       BipWallet changeWallet,
       NetworkParameters params,
@@ -496,19 +487,19 @@ public class Tx0Service {
 
     // add OP_RETURN output
     Script op_returnOutputScript =
-        new ScriptBuilder().op(ScriptOpCodes.OP_RETURN).data(opReturnValue).build();
+        new ScriptBuilder().op(ScriptOpCodes.OP_RETURN).data(feePayloadMasked).build();
     TransactionOutput txFeeOutput =
         new TransactionOutput(params, null, Coin.valueOf(0L), op_returnOutputScript.getProgram());
     outputs.add(txFeeOutput);
     if (log.isDebugEnabled()) {
-      log.debug("Tx0 out (OP_RETURN): " + opReturnValue.length + " bytes");
+      log.debug("Tx0 out (OP_RETURN): " + feePayloadMasked.length + " bytes");
     }
-    if (opReturnValue.length != WhirlpoolFee.FEE_LENGTH) {
+    if (feePayloadMasked.length != WhirlpoolProtocol.FEE_PAYLOAD_LENGTH) {
       throw new Exception(
           "Invalid opReturnValue length detected, please report this bug. opReturnValue="
-              + opReturnValue
+              + feePayloadMasked
               + " vs "
-              + WhirlpoolFee.FEE_LENGTH);
+              + WhirlpoolProtocol.FEE_PAYLOAD_LENGTH);
     }
 
     // all outputs
@@ -604,8 +595,7 @@ public class Tx0Service {
               tx0Response.feeDiscountPercent,
               // tx0Response.message,
               feePayload,
-              tx0Response.feeAddress,
-              tx0Response.feeIndice);
+              tx0Response.feeAddress);
       return tx0Data;
     } catch (HttpException e) {
       throw ClientUtils.wrapRestError(e);

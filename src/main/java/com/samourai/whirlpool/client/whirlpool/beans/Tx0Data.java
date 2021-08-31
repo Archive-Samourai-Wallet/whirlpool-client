@@ -7,7 +7,6 @@ public class Tx0Data {
   private int feeDiscountPercent;
   private byte[] feePayload;
   private String feeAddress;
-  private Integer feeIndice;
 
   public Tx0Data(
       String feePaymentCode,
@@ -15,15 +14,17 @@ public class Tx0Data {
       long feeChange,
       int feeDiscountPercent,
       byte[] feePayload,
-      String feeAddress,
-      Integer feeIndice) {
+      String feeAddress)
+      throws Exception {
+    if (feePayload == null) {
+      throw new Exception("Invalid Tx0Data.feePayload: null");
+    }
     this.feePaymentCode = feePaymentCode;
     this.feeValue = feeValue;
     this.feeChange = feeChange;
     this.feeDiscountPercent = feeDiscountPercent;
     this.feePayload = feePayload;
     this.feeAddress = feeAddress;
-    this.feeIndice = feeIndice;
   }
 
   public long computeFeeValueOrFeeChange() {
@@ -54,10 +55,6 @@ public class Tx0Data {
     return feeAddress;
   }
 
-  public Integer getFeeIndice() {
-    return feeIndice;
-  }
-
   @Override
   public String toString() {
     return "feePaymentCode="
@@ -71,8 +68,6 @@ public class Tx0Data {
         + ", feePayload="
         + feePayload
         + ", feeAddress="
-        + (feeAddress != null ? feeAddress : "null")
-        + ", feeIndice="
-        + (feeIndice != null ? feeIndice : "null");
+        + (feeAddress != null ? feeAddress : "null");
   }
 }

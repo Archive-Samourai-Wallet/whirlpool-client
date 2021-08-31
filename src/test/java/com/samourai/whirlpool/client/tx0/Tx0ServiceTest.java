@@ -15,6 +15,8 @@ import com.samourai.whirlpool.client.wallet.beans.WhirlpoolServer;
 import com.samourai.whirlpool.client.wallet.data.dataSource.DataSourceFactory;
 import com.samourai.whirlpool.client.wallet.data.dataSource.SamouraiDataSourceFactory;
 import com.samourai.whirlpool.client.whirlpool.beans.Tx0Data;
+import com.samourai.whirlpool.protocol.WhirlpoolProtocol;
+import java.nio.ByteBuffer;
 import java.util.Arrays;
 import java8.util.Lists;
 import org.bitcoinj.core.Transaction;
@@ -53,6 +55,19 @@ public class Tx0ServiceTest extends AbstractTest {
     utxoKeyProvider = new MockUtxoKeyProvider();
   }
 
+  // sync from whirlpool-server
+  private byte[] encodeFeePayload(int feeIndice, short scodePayload, short partner) {
+    // feeVersion:short(2) | indice:int(4) | scode:short(2) | feePartner:short(2)
+    short FEE_PAYLOAD_VERSION = 1;
+    ByteBuffer byteBuffer =
+        ByteBuffer.allocate(WhirlpoolProtocol.FEE_PAYLOAD_LENGTH)
+            .putShort(FEE_PAYLOAD_VERSION)
+            .putInt(feeIndice)
+            .putShort(scodePayload)
+            .putShort(partner);
+    return byteBuffer.array();
+  }
+
   @Test
   public void tx0Preview_scode_noFee() throws Exception {
     String seedWords = "all all all all all all all all all all all all";
@@ -74,7 +89,7 @@ public class Tx0ServiceTest extends AbstractTest {
     String feePaymentCode =
         "PM8TJXp19gCE6hQzqRi719FGJzF6AreRwvoQKLRnQ7dpgaakakFns22jHUqhtPQWmfevPQRCyfFbdDrKvrfw9oZv5PjaCerQMa3BKkPyUf9yN1CDR3w6";
     int feeSatPerByte = 1;
-    byte[] feePayload = null;
+    byte[] feePayload = encodeFeePayload(0, (short) 0, (short) 0);
     long feeValue = 0;
     long feeChange = FEE_VALUE;
     int feeDiscountPercent = 100;
@@ -87,8 +102,7 @@ public class Tx0ServiceTest extends AbstractTest {
             feeChange,
             feeDiscountPercent,
             feePayload,
-            "tb1qjara0278vrsr8gvaga7jpy2c9amtgvytr44xym",
-            0);
+            "tb1qjara0278vrsr8gvaga7jpy2c9amtgvytr44xym");
     Tx0Param tx0Param = new Tx0Param(params, feeSatPerByte, feeSatPerByte, pool01btc, null);
     Assert.assertEquals(1000201, tx0Param.getPremixValue());
     Tx0Preview tx0Preview =
@@ -121,7 +135,7 @@ public class Tx0ServiceTest extends AbstractTest {
     String feePaymentCode =
         "PM8TJXp19gCE6hQzqRi719FGJzF6AreRwvoQKLRnQ7dpgaakakFns22jHUqhtPQWmfevPQRCyfFbdDrKvrfw9oZv5PjaCerQMa3BKkPyUf9yN1CDR3w6";
     int feeSatPerByte = 1;
-    byte[] feePayload = null;
+    byte[] feePayload = encodeFeePayload(0, (short) 0, (short) 0);
     long feeValue = 0;
     long feeChange = FEE_VALUE;
     int feeDiscountPercent = 100;
@@ -133,8 +147,7 @@ public class Tx0ServiceTest extends AbstractTest {
             feeChange,
             feeDiscountPercent,
             feePayload,
-            "tb1qjara0278vrsr8gvaga7jpy2c9amtgvytr44xym",
-            0);
+            "tb1qjara0278vrsr8gvaga7jpy2c9amtgvytr44xym");
 
     // no overspend
     Tx0Param tx0Param = new Tx0Param(params, feeSatPerByte, feeSatPerByte, pool01btc, null);
@@ -175,7 +188,7 @@ public class Tx0ServiceTest extends AbstractTest {
     String feePaymentCode =
         "PM8TJXp19gCE6hQzqRi719FGJzF6AreRwvoQKLRnQ7dpgaakakFns22jHUqhtPQWmfevPQRCyfFbdDrKvrfw9oZv5PjaCerQMa3BKkPyUf9yN1CDR3w6";
     int feeSatPerByte = 1;
-    byte[] feePayload = null;
+    byte[] feePayload = encodeFeePayload(0, (short) 0, (short) 0);
     long feeValue = 0;
     long feeChange = FEE_VALUE;
     int feeDiscountPercent = 100;
@@ -187,8 +200,7 @@ public class Tx0ServiceTest extends AbstractTest {
             feeChange,
             feeDiscountPercent,
             feePayload,
-            "tb1qjara0278vrsr8gvaga7jpy2c9amtgvytr44xym",
-            0);
+            "tb1qjara0278vrsr8gvaga7jpy2c9amtgvytr44xym");
     Tx0Param tx0Param = new Tx0Param(params, feeSatPerByte, feeSatPerByte, pool01btc, null);
     Assert.assertEquals(1000201, tx0Param.getPremixValue());
 
@@ -233,7 +245,7 @@ public class Tx0ServiceTest extends AbstractTest {
     String feePaymentCode =
         "PM8TJXp19gCE6hQzqRi719FGJzF6AreRwvoQKLRnQ7dpgaakakFns22jHUqhtPQWmfevPQRCyfFbdDrKvrfw9oZv5PjaCerQMa3BKkPyUf9yN1CDR3w6";
     int feeSatPerByte = 1;
-    byte[] feePayload = null;
+    byte[] feePayload = encodeFeePayload(0, (short) 0, (short) 0);
     long feeValue = 0;
     long feeChange = FEE_VALUE;
     int feeDiscountPercent = 100;
@@ -245,8 +257,7 @@ public class Tx0ServiceTest extends AbstractTest {
             feeChange,
             feeDiscountPercent,
             feePayload,
-            "tb1qjara0278vrsr8gvaga7jpy2c9amtgvytr44xym",
-            0);
+            "tb1qjara0278vrsr8gvaga7jpy2c9amtgvytr44xym");
     Tx0Param tx0Param = new Tx0Param(params, feeSatPerByte, feeSatPerByte, pool01btc, null);
     Assert.assertEquals(1000201, tx0Param.getPremixValue());
 
@@ -340,7 +351,7 @@ public class Tx0ServiceTest extends AbstractTest {
     long tx0MinerFee = 1;
     long premixMinerFee = 150;
     long mixMinerFee = premixMinerFee * nbOutputsExpected;
-    byte[] feePayload = new byte[] {1, 2};
+    byte[] feePayload = encodeFeePayload(0, (short) 2, (short) 0);
     long feeValue = 0;
     long feeChange = FEE_VALUE;
     int feeDiscountPercent = 100;
@@ -352,8 +363,7 @@ public class Tx0ServiceTest extends AbstractTest {
             feeChange,
             feeDiscountPercent,
             feePayload,
-            "tb1qjara0278vrsr8gvaga7jpy2c9amtgvytr44xym",
-            0);
+            "tb1qjara0278vrsr8gvaga7jpy2c9amtgvytr44xym");
 
     Tx0Preview tx0Preview =
         new Tx0Preview(
@@ -397,9 +407,9 @@ public class Tx0ServiceTest extends AbstractTest {
     String tx0Hex = new String(Hex.encode(tx.bitcoinSerialize()));
     log.info(tx0.getTx().toString());
     Assert.assertEquals(
-        "e11e81e6238a69f5b3c77ad90c59d6c85a45a549fc03400abece68e1818684db", tx0Hash);
+        "a55c2154aa023ed127692139a29ad01d50d4cc43b8d50f029a8867da36e6e0cf", tx0Hash);
     Assert.assertEquals(
-        "01000000000101ae24e3f5dbcee7971ae0e5b83fcb1eb67057901f2d371ca494f868b3dc8c58cc0100000000ffffffff0d0000000000000000426a409ae6649a7b1fc8a917f408cbf7b41e27f3a5484650aafdf5167852bd348afa8aa8213dda856188683ab187a902923e7ec3b672a6fbb637a4063c71879f6859171027000000000000160014f6a884f18f4d7e78a4167c3e56773c3ae58e0164d6420f00000000001600141dffe6e395c95927e4a16e8e6bd6d05604447e4dd6420f00000000001600142540e8d450b7114a8b0b429709508735b4b1bbfbd6420f00000000001600145b1cdb2e6ae13f98034b84957d9e0975ad7e6da5d6420f000000000016001472df8c59071778ec20264e2aeb54dd4024bcee0ad6420f00000000001600147aca3eeaecc2ffefd434c70ed67bd579e629c29dd6420f0000000000160014833e54dd2bdc90a6d92aedbecef1ca9cdb24a4c4d6420f00000000001600148535df3b314d3191037e38c698ddb6bac83ba95ad6420f00000000001600149676ec398c2fe0736d61e09e1136958b4bf40cdad6420f0000000000160014adb93750e1ffcfcefc54c6be67bd3011878a5aa5d6420f0000000000160014ff715cbded0e6205a68a1f66a52ee56d56b44c8193a1341d000000001600141bd05eb7c9cb516fddd8187cecb2e0cb4e21ac87024730440220300bd307637ed85bef106e7dd67db7737a1bae1f167813124d36d4a13250277002207822a332bdf472ac623787ef88c76a5aa8df160a70606dcffbc0e4aae9841d0801210349baf197181fe53937d225d0e7bd14d8b5f921813c038a95d7c2648500c119b000000000",
+        "01000000000101ae24e3f5dbcee7971ae0e5b83fcb1eb67057901f2d371ca494f868b3dc8c58cc0100000000ffffffff0d0000000000000000426a409ae6649a7b1fc9a917f408cbf7b41e27f3a5484650aafdf5167852bd348afa8aa8213dda856188683ab187a902923e7ec3b672a6fbb637a4063c71879f6859171027000000000000160014f6a884f18f4d7e78a4167c3e56773c3ae58e0164d6420f00000000001600141dffe6e395c95927e4a16e8e6bd6d05604447e4dd6420f00000000001600142540e8d450b7114a8b0b429709508735b4b1bbfbd6420f00000000001600145b1cdb2e6ae13f98034b84957d9e0975ad7e6da5d6420f000000000016001472df8c59071778ec20264e2aeb54dd4024bcee0ad6420f00000000001600147aca3eeaecc2ffefd434c70ed67bd579e629c29dd6420f0000000000160014833e54dd2bdc90a6d92aedbecef1ca9cdb24a4c4d6420f00000000001600148535df3b314d3191037e38c698ddb6bac83ba95ad6420f00000000001600149676ec398c2fe0736d61e09e1136958b4bf40cdad6420f0000000000160014adb93750e1ffcfcefc54c6be67bd3011878a5aa5d6420f0000000000160014ff715cbded0e6205a68a1f66a52ee56d56b44c8193a1341d000000001600141bd05eb7c9cb516fddd8187cecb2e0cb4e21ac87024830450221008433bfd64acfe66ac039d3488955720102c34fba6627884115bd674355a81fea0220200df4e895d7392cb0bad2cccd9465e1c5a26195cef0eb1b93c97d4f083ab6c501210349baf197181fe53937d225d0e7bd14d8b5f921813c038a95d7c2648500c119b000000000",
         tx0Hex);
   }
 
@@ -607,7 +617,7 @@ public class Tx0ServiceTest extends AbstractTest {
     long tx0MinerFee = 1;
     long premixMinerFee = 150;
     long mixMinerFee = premixMinerFee * nbOutputsExpected;
-    byte[] feePayload = new byte[] {1, 2};
+    byte[] feePayload = encodeFeePayload(1, (short) 2, (short) 0);
     long feeValue = 0;
     long feeChange = FEE_VALUE;
     int feeDiscountPercent = 100;
@@ -621,8 +631,7 @@ public class Tx0ServiceTest extends AbstractTest {
             feeChange,
             feeDiscountPercent,
             feePayload,
-            "tb1qjara0278vrsr8gvaga7jpy2c9amtgvytr44xym",
-            0);
+            "tb1qjara0278vrsr8gvaga7jpy2c9amtgvytr44xym");
 
     Tx0Preview tx0Preview =
         new Tx0Preview(
@@ -666,9 +675,9 @@ public class Tx0ServiceTest extends AbstractTest {
     String tx0Hex = new String(Hex.encode(tx.bitcoinSerialize()));
     log.info(tx0.getTx().toString());
     Assert.assertEquals(
-        "54e9521a79bc1c28c608bd55b5b50cfd375c53759151c03fe795dfe8d584e254", tx0Hash);
+        "d1d42d8ffdc8f1cc93d2eb184acfb0c19c56ca501a4a2fa8753deaa1dfa8d751", tx0Hash);
     Assert.assertEquals(
-        "01000000000101ae24e3f5dbcee7971ae0e5b83fcb1eb67057901f2d371ca494f868b3dc8c58cc0100000000ffffffff040000000000000000426a409ae6649a7b1fc8a917f408cbf7b41e27f3a5484650aafdf5167852bd348afa8aa8213dda856188683ab187a902923e7ec3b672a6fbb637a4063c71879f6859171027000000000000160014f6a884f18f4d7e78a4167c3e56773c3ae58e0164ee2b0000000000001600141bd05eb7c9cb516fddd8187cecb2e0cb4e21ac87d6420f00000000001600141dffe6e395c95927e4a16e8e6bd6d05604447e4d0247304402205725d685dff73b35bf517efcc828e838a461d4658862a3addd0557d89bf27a4802206e6c0382a5e9ee103c4180e683d2f14dcd32fe70ad8f07db205a3bd554bf8e5a01210349baf197181fe53937d225d0e7bd14d8b5f921813c038a95d7c2648500c119b000000000",
+        "01000000000101ae24e3f5dbcee7971ae0e5b83fcb1eb67057901f2d371ca494f868b3dc8c58cc0100000000ffffffff040000000000000000426a409ae6649a7b1ec9a917f408cbf7b41e27f3a5484650aafdf5167852bd348afa8aa8213dda856188683ab187a902923e7ec3b672a6fbb637a4063c71879f6859171027000000000000160014f6a884f18f4d7e78a4167c3e56773c3ae58e0164ee2b0000000000001600141bd05eb7c9cb516fddd8187cecb2e0cb4e21ac87d6420f00000000001600141dffe6e395c95927e4a16e8e6bd6d05604447e4d0247304402204c4860f85d79ae2ae343209b04949025404f8b722107a845392075315b308f7a02203735f8efc3f98093bbf557a697505d3efb72102adcc2456166b2e6f0ea1c182d01210349baf197181fe53937d225d0e7bd14d8b5f921813c038a95d7c2648500c119b000000000",
         tx0Hex);
   }
 
@@ -725,7 +734,7 @@ public class Tx0ServiceTest extends AbstractTest {
     long tx0MinerFee = 1;
     long premixMinerFee = 150;
     long mixMinerFee = premixMinerFee * nbOutputsExpected;
-    byte[] feePayload = new byte[] {1, 2};
+    byte[] feePayload = encodeFeePayload(0, (short) 2, (short) 0);
     long feeValue = FEE_VALUE / 2;
     long feeChange = 0;
     int feeDiscountPercent = 50;
@@ -739,8 +748,7 @@ public class Tx0ServiceTest extends AbstractTest {
             feeChange,
             feeDiscountPercent,
             feePayload,
-            "tb1qjara0278vrsr8gvaga7jpy2c9amtgvytr44xym",
-            0);
+            "tb1qjara0278vrsr8gvaga7jpy2c9amtgvytr44xym");
 
     Tx0Preview tx0Preview =
         new Tx0Preview(
@@ -784,9 +792,9 @@ public class Tx0ServiceTest extends AbstractTest {
     String tx0Hex = new String(Hex.encode(tx.bitcoinSerialize()));
     log.info(tx0.getTx().toString());
     Assert.assertEquals(
-        "937ddf45822997a49e8844cce1dcd3cceff14d25c0f51cae99b2383a692ae6b0", tx0Hash);
+        "8e9ca87bf78ebed2c67046cc8cd9cd034549e41de3c4b28098aba29e206af023", tx0Hash);
     Assert.assertEquals(
-        "01000000000101ae24e3f5dbcee7971ae0e5b83fcb1eb67057901f2d371ca494f868b3dc8c58cc0100000000ffffffff040000000000000000426a409ae6649a7b1fc8a917f408cbf7b41e27f3a5484650aafdf5167852bd348afa8aa8213dda856188683ab187a902923e7ec3b672a6fbb637a4063c71879f68591788130000000000001600149747d7abc760e033a19d477d2091582f76b4308b763f000000000000160014f6a884f18f4d7e78a4167c3e56773c3ae58e0164d6420f00000000001600141dffe6e395c95927e4a16e8e6bd6d05604447e4d02483045022100eeaf7c07dd2bd9c81b1b9944fa5410f71425fdca1b06a5f619a913fec61c5384022047f77046ff978d7e885c0793911fed4f2a38a519c8808926541c3ada7088123401210349baf197181fe53937d225d0e7bd14d8b5f921813c038a95d7c2648500c119b000000000",
+        "01000000000101ae24e3f5dbcee7971ae0e5b83fcb1eb67057901f2d371ca494f868b3dc8c58cc0100000000ffffffff040000000000000000426a409ae6649a7b1fc9a917f408cbf7b41e27f3a5484650aafdf5167852bd348afa8aa8213dda856188683ab187a902923e7ec3b672a6fbb637a4063c71879f68591788130000000000001600149747d7abc760e033a19d477d2091582f76b4308b763f000000000000160014f6a884f18f4d7e78a4167c3e56773c3ae58e0164d6420f00000000001600141dffe6e395c95927e4a16e8e6bd6d05604447e4d0247304402202cc01cd5d92addd89a974ce5c24f54044332e6c91054074d86f0877017dbdc6f022021c0647c17ea5995b14e91dd0c31b6be847f7f458af61512694a9cf61858d40b01210349baf197181fe53937d225d0e7bd14d8b5f921813c038a95d7c2648500c119b000000000",
         tx0Hex);
   }
 
@@ -854,9 +862,8 @@ public class Tx0ServiceTest extends AbstractTest {
             feeValue,
             feeChange,
             feeDiscountPercent,
-            null,
-            "tb1qjara0278vrsr8gvaga7jpy2c9amtgvytr44xym",
-            0);
+            encodeFeePayload(0, (short) 0, (short) 0),
+            "tb1qjara0278vrsr8gvaga7jpy2c9amtgvytr44xym");
 
     Tx0Preview tx0Preview =
         new Tx0Preview(
@@ -970,9 +977,8 @@ public class Tx0ServiceTest extends AbstractTest {
             feeValue,
             feeChange,
             feeDiscountPercent,
-            null,
-            "tb1qjara0278vrsr8gvaga7jpy2c9amtgvytr44xym",
-            0);
+            encodeFeePayload(0, (short) 0, (short) 0),
+            "tb1qjara0278vrsr8gvaga7jpy2c9amtgvytr44xym");
 
     Tx0Preview tx0Preview =
         new Tx0Preview(
