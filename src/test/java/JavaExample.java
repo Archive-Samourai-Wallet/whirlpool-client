@@ -66,6 +66,17 @@ public class JavaExample {
     whirlpoolWalletConfig.setScode("foo");
     whirlpoolWalletConfig.setMaxClients(1);
     whirlpoolWalletConfig.setClientDelay(15);
+
+    // optional: configure mix to external destination
+    String xpub = "xpub..."; // external xpub
+    int chain = 0;
+    int startIndex = 0;
+    int mixs = 5; // minimum mixs to achieve
+    int mixsRandomFactor = 4; // randomness factor: 1/4 probability to mix to ExternalDestination
+    ExternalDestination externalDestination =
+        new ExternalDestination(xpub, chain, startIndex, mixs, mixsRandomFactor);
+    whirlpoolWalletConfig.setExternalDestination(externalDestination);
+
     return whirlpoolWalletConfig;
   }
 
