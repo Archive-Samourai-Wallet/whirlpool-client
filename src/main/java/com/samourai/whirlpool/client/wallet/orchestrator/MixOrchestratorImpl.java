@@ -223,6 +223,9 @@ public class MixOrchestratorImpl extends MixOrchestrator {
           if (log.isDebugEnabled()) {
             log.debug("Mixing to EXTERNAL (" + whirlpoolUtxo + ")");
           }
+          if (externalDestination.getPostmixHandler() != null) {
+            return externalDestination.getPostmixHandler();
+          }
           return new XPubPostmixHandler(
               whirlpoolWallet.getWalletStateSupplier().getIndexHandlerExternal(),
               config.getNetworkParameters(),
