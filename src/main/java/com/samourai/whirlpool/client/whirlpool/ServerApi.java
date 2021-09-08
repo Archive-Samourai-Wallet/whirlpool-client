@@ -42,9 +42,9 @@ public class ServerApi {
     return poolsResponse;
   }
 
-  public Tx0DataResponse fetchTx0Data(String poolId, String scode) throws Exception {
+  public Tx0DataResponseV2 fetchTx0Data(String poolId, String scode) throws Exception {
     String url = WhirlpoolProtocol.getUrlTx0Data(urlServer, poolId, scode);
-    Tx0DataResponse tx0Response = httpClientRest.getJson(url, Tx0DataResponse.class, null);
+    Tx0DataResponseV2 tx0Response = httpClientRest.getJson(url, Tx0DataResponseV2.class, null);
     return tx0Response;
   }
 

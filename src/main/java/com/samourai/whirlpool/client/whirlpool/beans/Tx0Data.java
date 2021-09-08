@@ -5,6 +5,7 @@ public class Tx0Data {
   private long feeValue;
   private long feeChange;
   private int feeDiscountPercent;
+  private String message;
   private byte[] feePayload;
   private String feeAddress;
 
@@ -13,6 +14,7 @@ public class Tx0Data {
       long feeValue,
       long feeChange,
       int feeDiscountPercent,
+      String message,
       byte[] feePayload,
       String feeAddress)
       throws Exception {
@@ -23,6 +25,7 @@ public class Tx0Data {
     this.feeValue = feeValue;
     this.feeChange = feeChange;
     this.feeDiscountPercent = feeDiscountPercent;
+    this.message = message;
     this.feePayload = feePayload;
     this.feeAddress = feeAddress;
   }
@@ -47,6 +50,10 @@ public class Tx0Data {
     return feeDiscountPercent;
   }
 
+  public String getMessage() {
+    return message;
+  }
+
   public byte[] getFeePayload() {
     return feePayload;
   }
@@ -65,6 +72,8 @@ public class Tx0Data {
         + feeChange
         + ", feeDiscountPercent="
         + feeDiscountPercent
+        + ", message="
+        + message
         + ", feePayload="
         + feePayload
         + ", feeAddress="

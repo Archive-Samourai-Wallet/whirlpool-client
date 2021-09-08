@@ -101,6 +101,7 @@ public class Tx0ServiceTest extends AbstractTest {
             feeValue,
             feeChange,
             feeDiscountPercent,
+            "test",
             feePayload,
             "tb1qjara0278vrsr8gvaga7jpy2c9amtgvytr44xym");
     Tx0Param tx0Param = new Tx0Param(params, feeSatPerByte, feeSatPerByte, pool01btc, null);
@@ -146,6 +147,7 @@ public class Tx0ServiceTest extends AbstractTest {
             feeValue,
             feeChange,
             feeDiscountPercent,
+            "test",
             feePayload,
             "tb1qjara0278vrsr8gvaga7jpy2c9amtgvytr44xym");
 
@@ -199,6 +201,7 @@ public class Tx0ServiceTest extends AbstractTest {
             feeValue,
             feeChange,
             feeDiscountPercent,
+            "test",
             feePayload,
             "tb1qjara0278vrsr8gvaga7jpy2c9amtgvytr44xym");
     Tx0Param tx0Param = new Tx0Param(params, feeSatPerByte, feeSatPerByte, pool01btc, null);
@@ -256,6 +259,7 @@ public class Tx0ServiceTest extends AbstractTest {
             feeValue,
             feeChange,
             feeDiscountPercent,
+            "test",
             feePayload,
             "tb1qjara0278vrsr8gvaga7jpy2c9amtgvytr44xym");
     Tx0Param tx0Param = new Tx0Param(params, feeSatPerByte, feeSatPerByte, pool01btc, null);
@@ -362,6 +366,7 @@ public class Tx0ServiceTest extends AbstractTest {
             feeValue,
             feeChange,
             feeDiscountPercent,
+            "test",
             feePayload,
             "tb1qjara0278vrsr8gvaga7jpy2c9amtgvytr44xym");
 
@@ -630,6 +635,7 @@ public class Tx0ServiceTest extends AbstractTest {
             feeValue,
             feeChange,
             feeDiscountPercent,
+            "test",
             feePayload,
             "tb1qjara0278vrsr8gvaga7jpy2c9amtgvytr44xym");
 
@@ -747,6 +753,7 @@ public class Tx0ServiceTest extends AbstractTest {
             feeValue,
             feeChange,
             feeDiscountPercent,
+            "test",
             feePayload,
             "tb1qjara0278vrsr8gvaga7jpy2c9amtgvytr44xym");
 
@@ -862,6 +869,7 @@ public class Tx0ServiceTest extends AbstractTest {
             feeValue,
             feeChange,
             feeDiscountPercent,
+            "test",
             encodeFeePayload(0, (short) 0, (short) 0),
             "tb1qjara0278vrsr8gvaga7jpy2c9amtgvytr44xym");
 
@@ -977,6 +985,7 @@ public class Tx0ServiceTest extends AbstractTest {
             feeValue,
             feeChange,
             feeDiscountPercent,
+            "test",
             encodeFeePayload(0, (short) 0, (short) 0),
             "tb1qjara0278vrsr8gvaga7jpy2c9amtgvytr44xym");
 

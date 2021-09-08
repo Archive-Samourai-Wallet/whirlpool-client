@@ -18,7 +18,7 @@ import com.samourai.whirlpool.client.wallet.WhirlpoolWalletConfig;
 import com.samourai.whirlpool.client.whirlpool.beans.Pool;
 import com.samourai.whirlpool.client.whirlpool.beans.Tx0Data;
 import com.samourai.whirlpool.protocol.WhirlpoolProtocol;
-import com.samourai.whirlpool.protocol.rest.Tx0DataResponse;
+import com.samourai.whirlpool.protocol.rest.Tx0DataResponseV2;
 import com.samourai.whirlpool.protocol.util.XorMask;
 import java.util.*;
 import java8.util.function.ToLongFunction;
@@ -263,7 +263,7 @@ public class Tx0Service {
             firstInputKey.getPrivKeyBytes(),
             firstInput.computeOutpoint(params));
     if (log.isDebugEnabled()) {
-      log.debug("feePayloadHex=" + (feePayload != null ? Hex.toHexString(feePayload) : "null"));
+      log.debug("feePayloadHex=" + Hex.toHexString(feePayload));
     }
     return tx0(
         sortedSpendFroms,
@@ -585,7 +585,7 @@ public class Tx0Service {
 
   protected Tx0Data fetchTx0Data(String poolId) throws Exception {
     try {
-      Tx0DataResponse tx0Response = config.getServerApi().fetchTx0Data(poolId, config.getScode());
+      Tx0DataResponseV2 tx0Response = config.getServerApi().fetchTx0Data(poolId, config.getScode());
       byte[] feePayload = WhirlpoolProtocol.decodeBytes(tx0Response.feePayload64);
       Tx0Data tx0Data =
           new Tx0Data(
@@ -593,7 +593,7 @@ public class Tx0Service {
               tx0Response.feeValue,
               tx0Response.feeChange,
               tx0Response.feeDiscountPercent,
-              // tx0Response.message,
+              tx0Response.message,
               feePayload,
               tx0Response.feeAddress);
       return tx0Data;
