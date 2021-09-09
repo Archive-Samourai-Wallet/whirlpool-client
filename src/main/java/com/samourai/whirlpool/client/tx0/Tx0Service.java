@@ -108,7 +108,7 @@ public class Tx0Service {
       Collection<UnspentOutput> spendFroms, Tx0Config tx0Config, Tx0Param tx0Param)
       throws Exception {
     // fetch fresh Tx0Data
-    Tx0Data tx0Data = fetchTx0Data(tx0Param.getPool().getPoolId());
+    Tx0Data tx0Data = fetchTx0Data(tx0Param.getPool().getPoolId(), config.getPartnerId());
     return tx0Preview(spendFroms, tx0Config, tx0Param, tx0Data);
   }
 
@@ -583,9 +583,10 @@ public class Tx0Service {
     SendFactoryGeneric.getInstance().signTransaction(tx, utxoKeyProvider);
   }
 
-  protected Tx0Data fetchTx0Data(String poolId) throws Exception {
+  protected Tx0Data fetchTx0Data(String poolId, String partnerId) throws Exception {
     try {
-      Tx0DataResponseV2 tx0Response = config.getServerApi().fetchTx0Data(poolId, config.getScode());
+      Tx0DataResponseV2 tx0Response =
+          config.getServerApi().fetchTx0Data(poolId, config.getScode(), partnerId);
       byte[] feePayload = WhirlpoolProtocol.decodeBytes(tx0Response.feePayload64);
       Tx0Data tx0Data =
           new Tx0Data(
