@@ -12,6 +12,7 @@ import com.samourai.wallet.util.CallbackWithArg;
 import com.samourai.wallet.util.FeeUtil;
 import com.samourai.wallet.util.FormatsUtilGeneric;
 import com.samourai.whirlpool.client.exception.NotifiableException;
+import com.samourai.whirlpool.client.wallet.beans.IndexRange;
 import com.samourai.whirlpool.client.wallet.beans.WhirlpoolUtxo;
 import com.samourai.whirlpool.client.wallet.beans.WhirlpoolUtxoState;
 import com.samourai.whirlpool.protocol.WhirlpoolProtocol;
@@ -148,9 +149,13 @@ public class ClientUtils {
   }
 
   public static int computeNextReceiveAddressIndex(
-      IIndexHandler postmixIndexHandler, boolean mobile) {
-    // Android => odd indexs, CLI => even indexs
-    int modulo = mobile ? 1 : 0;
+      IIndexHandler postmixIndexHandler, IndexRange indexRange) {
+    // full range
+    if (indexRange == IndexRange.FULL) {
+      return postmixIndexHandler.getAndIncrementUnconfirmed();
+    }
+
+    int modulo = indexRange == IndexRange.ODD ? 1 : 0;
     int index;
     do {
       index = postmixIndexHandler.getAndIncrementUnconfirmed();

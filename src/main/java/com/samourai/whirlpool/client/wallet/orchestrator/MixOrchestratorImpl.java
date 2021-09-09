@@ -247,6 +247,8 @@ public class MixOrchestratorImpl extends MixOrchestrator {
       }
     }
     return new Bip84PostmixHandler(
-        config.getNetworkParameters(), whirlpoolWallet.getWalletPostmix(), config.isMobile());
+        config.getNetworkParameters(),
+        whirlpoolWallet.getWalletPostmix(),
+        config.getIndexRangePostmix());
   }
 }

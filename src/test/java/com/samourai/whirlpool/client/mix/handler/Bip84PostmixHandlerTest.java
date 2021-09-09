@@ -5,6 +5,7 @@ import com.samourai.wallet.client.indexHandler.MemoryIndexHandler;
 import com.samourai.wallet.hd.AddressType;
 import com.samourai.wallet.hd.HD_Wallet;
 import com.samourai.whirlpool.client.test.AbstractTest;
+import com.samourai.whirlpool.client.wallet.beans.IndexRange;
 import com.samourai.whirlpool.client.wallet.beans.WhirlpoolAccount;
 import org.junit.Assert;
 import org.junit.Test;
@@ -33,8 +34,8 @@ public class Bip84PostmixHandlerTest extends AbstractTest {
 
   @Test
   public void computeNextReceiveAddressIndex() throws Exception {
-    Bip84PostmixHandler phCli = new Bip84PostmixHandler(params, bipWallet, false);
-    Bip84PostmixHandler phMobile = new Bip84PostmixHandler(params, bipWallet, true);
+    Bip84PostmixHandler phCli = new Bip84PostmixHandler(params, bipWallet, IndexRange.EVEN);
+    Bip84PostmixHandler phMobile = new Bip84PostmixHandler(params, bipWallet, IndexRange.ODD);
 
     Assert.assertEquals(0, phCli.computeDestination().getIndex());
     Assert.assertEquals(2, phCli.computeDestination().getIndex());

@@ -8,6 +8,7 @@ import com.samourai.wallet.bip47.rpc.secretPoint.ISecretPointFactory;
 import com.samourai.wallet.util.FormatsUtilGeneric;
 import com.samourai.whirlpool.client.tx0.ITx0ParamServiceConfig;
 import com.samourai.whirlpool.client.utils.ClientUtils;
+import com.samourai.whirlpool.client.wallet.beans.IndexRange;
 import com.samourai.whirlpool.client.wallet.beans.Tx0FeeTarget;
 import com.samourai.whirlpool.client.wallet.data.dataPersister.DataPersisterFactory;
 import com.samourai.whirlpool.client.wallet.data.dataPersister.FileDataPersisterFactory;
@@ -27,6 +28,7 @@ public class WhirlpoolWalletConfig extends WhirlpoolClientConfig implements ITx0
 
   private DataSourceFactory dataSourceFactory;
   private DataPersisterFactory dataPersisterFactory;
+  private boolean mobile;
 
   private int maxClients;
   private int maxClientsPerPool;
@@ -66,10 +68,19 @@ public class WhirlpoolWalletConfig extends WhirlpoolClientConfig implements ITx0
       ServerApi serverApi,
       NetworkParameters params,
       boolean mobile) {
-    super(httpClientService, stompClientService, torClientService, serverApi, null, params, mobile);
+    // Android => odd indexs, CLI => even indexs
+    super(
+        httpClientService,
+        stompClientService,
+        torClientService,
+        serverApi,
+        null,
+        params,
+        mobile ? IndexRange.ODD : IndexRange.EVEN);
 
     this.dataSourceFactory = dataSourceFactory;
     this.dataPersisterFactory = new FileDataPersisterFactory();
+    this.mobile = mobile;
 
     // default settings
     this.maxClients = mobile ? 1 : 5;
@@ -128,6 +139,14 @@ public class WhirlpoolWalletConfig extends WhirlpoolClientConfig implements ITx0
 
   public void setDataPersisterFactory(DataPersisterFactory dataPersisterFactory) {
     this.dataPersisterFactory = dataPersisterFactory;
+  }
+
+  public boolean isMobile() {
+    return mobile;
+  }
+
+  public void setMobile(boolean mobile) {
+    this.mobile = mobile;
   }
 
   public int getMaxClients() {
@@ -344,6 +363,7 @@ public class WhirlpoolWalletConfig extends WhirlpoolClientConfig implements ITx0
     configInfo.put(
         "externalDestination",
         (getExternalDestination() != null ? getExternalDestination().toString() : "null"));
+    configInfo.put("indexRangePostmix", getIndexRangePostmix().name());
     configInfo.put(
         "refreshDelay",
         "refreshUtxoDelay=" + refreshUtxoDelay + ", refreshPoolsDelay=" + refreshPoolsDelay);

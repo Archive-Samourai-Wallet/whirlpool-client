@@ -6,6 +6,7 @@ import com.samourai.http.client.IHttpClientService;
 import com.samourai.stomp.client.IStompClientService;
 import com.samourai.tor.client.TorClientService;
 import com.samourai.whirlpool.client.wallet.beans.ExternalDestination;
+import com.samourai.whirlpool.client.wallet.beans.IndexRange;
 import org.bitcoinj.core.NetworkParameters;
 
 public class WhirlpoolClientConfig {
@@ -15,7 +16,7 @@ public class WhirlpoolClientConfig {
   private ServerApi serverApi;
   private ExternalDestination externalDestination;
   private NetworkParameters networkParameters;
-  private boolean mobile;
+  private IndexRange indexRangePostmix;
 
   public WhirlpoolClientConfig(
       IHttpClientService httpClientService,
@@ -24,14 +25,14 @@ public class WhirlpoolClientConfig {
       ServerApi serverApi,
       ExternalDestination externalDestination,
       NetworkParameters networkParameters,
-      boolean mobile) {
+      IndexRange indexRangePostmix) {
     this.httpClientService = httpClientService;
     this.stompClientService = stompClientService;
     this.torClientService = torClientService;
     this.serverApi = serverApi;
     this.externalDestination = externalDestination;
     this.networkParameters = networkParameters;
-    this.mobile = mobile;
+    this.indexRangePostmix = indexRangePostmix;
   }
 
   public IHttpClientService getHttpClientService() {
@@ -74,11 +75,11 @@ public class WhirlpoolClientConfig {
     this.networkParameters = networkParameters;
   }
 
-  public boolean isMobile() {
-    return mobile;
+  public IndexRange getIndexRangePostmix() {
+    return indexRangePostmix;
   }
 
-  public void setMobile(boolean mobile) {
-    this.mobile = mobile;
+  public void setIndexRangePostmix(IndexRange indexRangePostmix) {
+    this.indexRangePostmix = indexRangePostmix;
   }
 }

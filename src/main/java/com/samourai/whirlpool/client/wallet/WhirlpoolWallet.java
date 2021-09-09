@@ -665,11 +665,13 @@ public class WhirlpoolWallet {
   private void checkPostmixIndex() throws Exception {
     IIndexHandler postmixIndexHandler = getWalletPostmix().getIndexHandler();
     int initialPostmixIndex =
-        ClientUtils.computeNextReceiveAddressIndex(postmixIndexHandler, config.isMobile());
+        ClientUtils.computeNextReceiveAddressIndex(
+            postmixIndexHandler, config.getIndexRangePostmix());
     if (log.isDebugEnabled()) {
       log.debug("checking postmixIndex: " + initialPostmixIndex);
     }
     int postmixIndex = initialPostmixIndex;
+    int incrementBy = 1;
     while (true) {
       try {
         // check next output
@@ -691,10 +693,13 @@ public class WhirlpoolWallet {
         if (restErrorMessage != null && "Output already registered".equals(restErrorMessage)) {
           log.warn("postmixIndex already used: " + postmixIndex);
 
-          // try second next index
-          ClientUtils.computeNextReceiveAddressIndex(postmixIndexHandler, config.isMobile());
-          postmixIndex =
-              ClientUtils.computeNextReceiveAddressIndex(postmixIndexHandler, config.isMobile());
+          // increment
+          for (int i = 0; i < incrementBy; i++) {
+            postmixIndex =
+                ClientUtils.computeNextReceiveAddressIndex(
+                    postmixIndexHandler, config.getIndexRangePostmix());
+          }
+          incrementBy *= 2;
 
           // avoid flooding
           try {
