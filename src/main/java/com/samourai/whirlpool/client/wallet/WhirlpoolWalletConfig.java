@@ -56,7 +56,7 @@ public class WhirlpoolWalletConfig extends WhirlpoolClientConfig implements ITx0
   private boolean resyncOnFirstRun;
   private boolean strictMode;
   private int persistDelaySeconds;
-  private String partnerId;
+  private String partner;
 
   private ISecretPointFactory secretPointFactory;
 
@@ -110,7 +110,7 @@ public class WhirlpoolWalletConfig extends WhirlpoolClientConfig implements ITx0
     this.resyncOnFirstRun = false;
     this.strictMode = true;
     this.persistDelaySeconds = 10;
-    this.partnerId = WhirlpoolProtocol.PARTNER_ID_SAMOURAI;
+    this.partner = WhirlpoolProtocol.PARTNER_ID_SAMOURAI;
 
     this.secretPointFactory = SecretPointFactoryJava.getInstance();
   }
@@ -337,12 +337,12 @@ public class WhirlpoolWalletConfig extends WhirlpoolClientConfig implements ITx0
     this.persistDelaySeconds = persistDelaySeconds;
   }
 
-  public String getPartnerId() {
-    return partnerId;
+  public String getPartner() {
+    return partner;
   }
 
-  public void setPartnerId(String partnerId) {
-    this.partnerId = partnerId;
+  public void setPartner(String partner) {
+    this.partner = partner;
   }
 
   public ISecretPointFactory getSecretPointFactory() {

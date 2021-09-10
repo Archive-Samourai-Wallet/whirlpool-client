@@ -20,8 +20,12 @@ public class XManagerClient {
   private boolean testnet;
   private IHttpClient httpClient;
 
-  public XManagerClient(boolean testnet, boolean onion, IHttpClient httpClient) {
-    this.serverUrl = XManagerEnv.get(testnet).getUrl(onion);
+  public XManagerClient(IHttpClient httpClient, boolean testnet, boolean onion) {
+    this(httpClient, testnet, XManagerEnv.get(testnet).getUrl(onion));
+  }
+
+  public XManagerClient(IHttpClient httpClient, boolean testnet, String serverUrl) {
+    this.serverUrl = serverUrl;
     this.testnet = testnet;
     this.httpClient = httpClient;
   }

@@ -73,10 +73,13 @@ public class JavaExample {
             mobile);
 
     // optional - SCODE
-    whirlpoolWalletConfig.setScode("foo");
+    // whirlpoolWalletConfig.setScode("foo");
 
     // optional - external persistence
     whirlpoolWalletConfig.setDataPersisterFactory(computeDataPersisterFactoryExternal());
+
+    // optional - external partner
+    // whirlpoolWalletConfig.setPartner("SPARROW");
 
     return whirlpoolWalletConfig;
   }

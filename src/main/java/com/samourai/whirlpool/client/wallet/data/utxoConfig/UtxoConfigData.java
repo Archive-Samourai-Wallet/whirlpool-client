@@ -82,10 +82,10 @@ public class UtxoConfigData extends PersistableData {
                     }
 
                     // keep the others
-                    if (log.isDebugEnabled()) {
+                    if (log.isTraceEnabled()) {
                       long remainingSeconds =
                           (utxoConfigPersisted.getExpired() - MIN_EXPIRED) / 1000;
-                      log.debug(
+                      log.trace(
                           "utxoConfig awaiting expiration ("
                               + remainingSeconds
                               + "s): "

@@ -108,7 +108,7 @@ public class Tx0Service {
       Collection<UnspentOutput> spendFroms, Tx0Config tx0Config, Tx0Param tx0Param)
       throws Exception {
     // fetch fresh Tx0Data
-    Tx0Data tx0Data = fetchTx0Data(tx0Param.getPool().getPoolId(), config.getPartnerId());
+    Tx0Data tx0Data = fetchTx0Data(tx0Param.getPool().getPoolId(), config.getPartner());
     return tx0Preview(spendFroms, tx0Config, tx0Param, tx0Data);
   }
 

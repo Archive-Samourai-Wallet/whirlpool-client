@@ -12,7 +12,7 @@ public class XManagerClientExample {
     IHttpClient httpClient = null; // TODO provide AndroidHttpClient or CliHttpClient
 
     // instantiation
-    XManagerClient xManagerClient = new XManagerClient(testnet, onion, httpClient);
+    XManagerClient xManagerClient = new XManagerClient(httpClient, testnet, onion);
     XManagerEnv xManagerEnv = XManagerEnv.get(testnet);
 
     // get address (or default when server unavailable)
