@@ -3,6 +3,7 @@ import com.samourai.http.client.IHttpClientService;
 import com.samourai.stomp.client.IStompClientService;
 import com.samourai.tor.client.TorClientService;
 import com.samourai.wallet.api.backend.BackendServer;
+import com.samourai.wallet.api.backend.beans.UnspentOutput;
 import com.samourai.wallet.api.backend.beans.WalletResponse;
 import com.samourai.wallet.hd.HD_Wallet;
 import com.samourai.websocket.client.IWebsocketClient;
@@ -10,6 +11,7 @@ import com.samourai.whirlpool.client.event.*;
 import com.samourai.whirlpool.client.tx0.Tx0;
 import com.samourai.whirlpool.client.tx0.Tx0Config;
 import com.samourai.whirlpool.client.tx0.Tx0Preview;
+import com.samourai.whirlpool.client.tx0.Tx0Previews;
 import com.samourai.whirlpool.client.wallet.WhirlpoolEventService;
 import com.samourai.whirlpool.client.wallet.WhirlpoolWallet;
 import com.samourai.whirlpool.client.wallet.WhirlpoolWalletConfig;
@@ -223,15 +225,20 @@ public class JavaExample {
       Collection<WhirlpoolUtxo> utxos = Lists.of(whirlpoolUtxo);
 
       // configure tx0
-      Tx0Config tx0Config =
-          whirlpoolWallet.getTx0Config().setChangeWallet(WhirlpoolAccount.BADBANK);
       Tx0FeeTarget tx0FeeTarget = Tx0FeeTarget.BLOCKS_4;
       Tx0FeeTarget mixFeeTarget = Tx0FeeTarget.BLOCKS_4;
+      Tx0Config tx0Config =
+          whirlpoolWallet
+              .getTx0Config(tx0FeeTarget, mixFeeTarget)
+              .setChangeWallet(WhirlpoolAccount.BADBANK);
 
       // preview tx0
       try {
-        Tx0Preview tx0Preview =
-            whirlpoolWallet.tx0Preview(pool05btc, utxos, tx0Config, tx0FeeTarget, mixFeeTarget);
+        // preview all pools
+        Tx0Previews tx0Previews = whirlpoolWallet.tx0Previews(utxos, tx0Config);
+
+        // pool preview
+        Tx0Preview tx0Preview = tx0Previews.getTx0Preview("0.5btc");
         long minerFee =
             tx0Preview
                 .getTx0MinerFee(); // get minerFee, poolFee, premixValue, changeValue, nbPremix...
@@ -241,7 +248,7 @@ public class JavaExample {
 
       // execute tx0
       try {
-        Tx0 tx0 = whirlpoolWallet.tx0(utxos, pool05btc, tx0FeeTarget, mixFeeTarget, tx0Config);
+        Tx0 tx0 = whirlpoolWallet.tx0(utxos, pool05btc, tx0Config);
         String txid = tx0.getTx().getHashAsString(); // get txid
       } catch (Exception e) {
         // tx0 failed
@@ -251,19 +258,25 @@ public class JavaExample {
     // tx0 method 2: spending an external utxo
     {
       // external utxo for tx0
-      WhirlpoolUtxo spendFrom = null; // provide utxo outpoint
-      Collection<WhirlpoolUtxo> utxos = Lists.of(spendFrom);
+      UnspentOutput spendFrom = null; // provide utxo outpoint
+      Collection<UnspentOutput> utxos = Lists.of(spendFrom);
 
       // configure tx0
-      Tx0Config tx0Config =
-          whirlpoolWallet.getTx0Config().setChangeWallet(WhirlpoolAccount.BADBANK);
       Tx0FeeTarget tx0FeeTarget = Tx0FeeTarget.BLOCKS_4;
       Tx0FeeTarget mixFeeTarget = Tx0FeeTarget.BLOCKS_4;
+      Tx0Config tx0Config =
+          whirlpoolWallet
+              .getTx0Config(tx0FeeTarget, mixFeeTarget)
+              .setChangeWallet(WhirlpoolAccount.BADBANK);
 
       // preview tx0
       try {
-        Tx0Preview tx0Preview =
-            whirlpoolWallet.tx0Preview(pool05btc, utxos, tx0Config, tx0FeeTarget, mixFeeTarget);
+        // preview all pools
+        Tx0Previews tx0Previews = whirlpoolWallet.tx0Previews(tx0Config, utxos);
+
+        // pool preview
+        Tx0Preview tx0Preview = tx0Previews.getTx0Preview("0.5btc");
+
         long minerFee =
             tx0Preview
                 .getTx0MinerFee(); // get minerFee, poolFee, premixValue, changeValue, nbPremix...
@@ -273,7 +286,7 @@ public class JavaExample {
 
       // execute tx0
       try {
-        Tx0 tx0 = whirlpoolWallet.tx0(utxos, pool05btc, tx0Config, tx0FeeTarget, mixFeeTarget);
+        Tx0 tx0 = whirlpoolWallet.tx0(utxos, tx0Config, pool05btc);
         String txid = tx0.getTx().getHashAsString(); // get txid
         // mixing will start automatically when tx0 gets confirmed
       } catch (Exception e) {

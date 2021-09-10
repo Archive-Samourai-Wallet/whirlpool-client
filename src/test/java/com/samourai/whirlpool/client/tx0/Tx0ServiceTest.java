@@ -10,6 +10,7 @@ import com.samourai.wallet.hd.HD_Wallet;
 import com.samourai.whirlpool.client.test.AbstractTest;
 import com.samourai.whirlpool.client.utils.MockUtxoKeyProvider;
 import com.samourai.whirlpool.client.wallet.WhirlpoolWalletConfig;
+import com.samourai.whirlpool.client.wallet.beans.Tx0FeeTarget;
 import com.samourai.whirlpool.client.wallet.beans.WhirlpoolAccount;
 import com.samourai.whirlpool.client.wallet.beans.WhirlpoolServer;
 import com.samourai.whirlpool.client.wallet.data.dataSource.DataSourceFactory;
@@ -83,7 +84,13 @@ public class Tx0ServiceTest extends AbstractTest {
             500000000,
             address);
 
-    Tx0Config tx0Config = new Tx0Config();
+    Tx0Config tx0Config =
+        new Tx0Config(
+            mockTx0ParamService(),
+            mockPoolSupplier(),
+            Tx0FeeTarget.BLOCKS_24,
+            Tx0FeeTarget.BLOCKS_24,
+            WhirlpoolAccount.DEPOSIT);
     int nbOutputsExpected = 10;
     long premixValue = 1000201;
     String feePaymentCode =
@@ -97,6 +104,7 @@ public class Tx0ServiceTest extends AbstractTest {
 
     Tx0Data tx0Data =
         new Tx0Data(
+            pool01btc.getPoolId(),
             feePaymentCode,
             feeValue,
             feeChange,
@@ -132,7 +140,13 @@ public class Tx0ServiceTest extends AbstractTest {
             500000000,
             address);
 
-    Tx0Config tx0Config = new Tx0Config();
+    Tx0Config tx0Config =
+        new Tx0Config(
+            mockTx0ParamService(),
+            mockPoolSupplier(),
+            Tx0FeeTarget.BLOCKS_24,
+            Tx0FeeTarget.BLOCKS_24,
+            WhirlpoolAccount.DEPOSIT);
     String feePaymentCode =
         "PM8TJXp19gCE6hQzqRi719FGJzF6AreRwvoQKLRnQ7dpgaakakFns22jHUqhtPQWmfevPQRCyfFbdDrKvrfw9oZv5PjaCerQMa3BKkPyUf9yN1CDR3w6";
     int feeSatPerByte = 1;
@@ -143,6 +157,7 @@ public class Tx0ServiceTest extends AbstractTest {
 
     Tx0Data tx0Data =
         new Tx0Data(
+            pool01btc.getPoolId(),
             feePaymentCode,
             feeValue,
             feeChange,
@@ -186,7 +201,13 @@ public class Tx0ServiceTest extends AbstractTest {
             500000000,
             address);
 
-    Tx0Config tx0Config = new Tx0Config();
+    Tx0Config tx0Config =
+        new Tx0Config(
+            mockTx0ParamService(),
+            mockPoolSupplier(),
+            Tx0FeeTarget.BLOCKS_24,
+            Tx0FeeTarget.BLOCKS_24,
+            WhirlpoolAccount.DEPOSIT);
     String feePaymentCode =
         "PM8TJXp19gCE6hQzqRi719FGJzF6AreRwvoQKLRnQ7dpgaakakFns22jHUqhtPQWmfevPQRCyfFbdDrKvrfw9oZv5PjaCerQMa3BKkPyUf9yN1CDR3w6";
     int feeSatPerByte = 1;
@@ -197,6 +218,7 @@ public class Tx0ServiceTest extends AbstractTest {
 
     Tx0Data tx0Data =
         new Tx0Data(
+            pool01btc.getPoolId(),
             feePaymentCode,
             feeValue,
             feeChange,
@@ -244,7 +266,13 @@ public class Tx0ServiceTest extends AbstractTest {
             500000000,
             address);
 
-    Tx0Config tx0Config = new Tx0Config();
+    Tx0Config tx0Config =
+        new Tx0Config(
+            mockTx0ParamService(),
+            mockPoolSupplier(),
+            Tx0FeeTarget.BLOCKS_24,
+            Tx0FeeTarget.BLOCKS_24,
+            WhirlpoolAccount.DEPOSIT);
     String feePaymentCode =
         "PM8TJXp19gCE6hQzqRi719FGJzF6AreRwvoQKLRnQ7dpgaakakFns22jHUqhtPQWmfevPQRCyfFbdDrKvrfw9oZv5PjaCerQMa3BKkPyUf9yN1CDR3w6";
     int feeSatPerByte = 1;
@@ -255,6 +283,7 @@ public class Tx0ServiceTest extends AbstractTest {
 
     Tx0Data tx0Data =
         new Tx0Data(
+            pool01btc.getPoolId(),
             feePaymentCode,
             feeValue,
             feeChange,
@@ -347,7 +376,13 @@ public class Tx0ServiceTest extends AbstractTest {
             new MemoryIndexHandler(),
             new MemoryIndexHandler(),
             AddressType.SEGWIT_NATIVE);
-    Tx0Config tx0Config = new Tx0Config();
+    Tx0Config tx0Config =
+        new Tx0Config(
+            mockTx0ParamService(),
+            mockPoolSupplier(),
+            Tx0FeeTarget.BLOCKS_24,
+            Tx0FeeTarget.BLOCKS_24,
+            WhirlpoolAccount.DEPOSIT);
     int nbOutputsExpected = 10;
     long premixValue = 1000150;
     String feePaymentCode =
@@ -362,6 +397,7 @@ public class Tx0ServiceTest extends AbstractTest {
     long changeValue = 489988499;
     Tx0Data tx0Data =
         new Tx0Data(
+            pool01btc.getPoolId(),
             feePaymentCode,
             feeValue,
             feeChange,
@@ -614,7 +650,13 @@ public class Tx0ServiceTest extends AbstractTest {
             new MemoryIndexHandler(),
             new MemoryIndexHandler(),
             AddressType.SEGWIT_NATIVE);
-    Tx0Config tx0Config = new Tx0Config();
+    Tx0Config tx0Config =
+        new Tx0Config(
+            mockTx0ParamService(),
+            mockPoolSupplier(),
+            Tx0FeeTarget.BLOCKS_24,
+            Tx0FeeTarget.BLOCKS_24,
+            WhirlpoolAccount.DEPOSIT);
     int nbOutputsExpected = 1;
     long premixValue = 1000150;
     String feePaymentCode =
@@ -631,6 +673,7 @@ public class Tx0ServiceTest extends AbstractTest {
     // SCODE 0% => deposit
     Tx0Data tx0Data =
         new Tx0Data(
+            pool01btc.getPoolId(),
             feePaymentCode,
             feeValue,
             feeChange,
@@ -732,7 +775,13 @@ public class Tx0ServiceTest extends AbstractTest {
             new MemoryIndexHandler(),
             new MemoryIndexHandler(),
             AddressType.SEGWIT_NATIVE);
-    Tx0Config tx0Config = new Tx0Config();
+    Tx0Config tx0Config =
+        new Tx0Config(
+            mockTx0ParamService(),
+            mockPoolSupplier(),
+            Tx0FeeTarget.BLOCKS_24,
+            Tx0FeeTarget.BLOCKS_24,
+            WhirlpoolAccount.DEPOSIT);
     int nbOutputsExpected = 1;
     long premixValue = 1000150;
     String feePaymentCode =
@@ -749,6 +798,7 @@ public class Tx0ServiceTest extends AbstractTest {
     // SCODE 50% => samouraiFee
     Tx0Data tx0Data =
         new Tx0Data(
+            pool01btc.getPoolId(),
             feePaymentCode,
             feeValue,
             feeChange,
@@ -849,7 +899,13 @@ public class Tx0ServiceTest extends AbstractTest {
             new MemoryIndexHandler(),
             new MemoryIndexHandler(),
             AddressType.SEGWIT_NATIVE);
-    Tx0Config tx0Config = new Tx0Config();
+    Tx0Config tx0Config =
+        new Tx0Config(
+            mockTx0ParamService(),
+            mockPoolSupplier(),
+            Tx0FeeTarget.BLOCKS_24,
+            Tx0FeeTarget.BLOCKS_24,
+            WhirlpoolAccount.DEPOSIT);
     int nbOutputsExpected = 1;
     long premixValue = 1000150;
     String feePaymentCode =
@@ -865,6 +921,7 @@ public class Tx0ServiceTest extends AbstractTest {
     // no SCODE => samouraiFee
     Tx0Data tx0Data =
         new Tx0Data(
+            pool01btc.getPoolId(),
             feePaymentCode,
             feeValue,
             feeChange,
@@ -965,7 +1022,13 @@ public class Tx0ServiceTest extends AbstractTest {
             new MemoryIndexHandler(),
             new MemoryIndexHandler(),
             AddressType.SEGWIT_NATIVE);
-    Tx0Config tx0Config = new Tx0Config().setChangeWallet(WhirlpoolAccount.POSTMIX);
+    Tx0Config tx0Config =
+        new Tx0Config(
+            mockTx0ParamService(),
+            mockPoolSupplier(),
+            Tx0FeeTarget.BLOCKS_24,
+            Tx0FeeTarget.BLOCKS_24,
+            WhirlpoolAccount.POSTMIX);
     int nbOutputsExpected = 1;
     long premixValue = 1000150;
     String feePaymentCode =
@@ -981,6 +1044,7 @@ public class Tx0ServiceTest extends AbstractTest {
     // no SCODE => samouraiFee
     Tx0Data tx0Data =
         new Tx0Data(
+            pool01btc.getPoolId(),
             feePaymentCode,
             feeValue,
             feeChange,

@@ -1,6 +1,10 @@
 package com.samourai.whirlpool.client.whirlpool.beans;
 
+import com.samourai.whirlpool.protocol.WhirlpoolProtocol;
+import com.samourai.whirlpool.protocol.rest.Tx0DataResponseV2;
+
 public class Tx0Data {
+  private String poolId;
   private String feePaymentCode;
   private long feeValue;
   private long feeChange;
@@ -9,7 +13,20 @@ public class Tx0Data {
   private byte[] feePayload;
   private String feeAddress;
 
+  public Tx0Data(Tx0DataResponseV2.Tx0Data tx0DataItem) throws Exception {
+    this(
+        tx0DataItem.poolId,
+        tx0DataItem.feePaymentCode,
+        tx0DataItem.feeValue,
+        tx0DataItem.feeChange,
+        tx0DataItem.feeDiscountPercent,
+        tx0DataItem.message,
+        WhirlpoolProtocol.decodeBytes(tx0DataItem.feePayload64),
+        tx0DataItem.feeAddress);
+  }
+
   public Tx0Data(
+      String poolId,
       String feePaymentCode,
       long feeValue,
       long feeChange,
@@ -21,6 +38,7 @@ public class Tx0Data {
     if (feePayload == null) {
       throw new Exception("Invalid Tx0Data.feePayload: null");
     }
+    this.poolId = poolId;
     this.feePaymentCode = feePaymentCode;
     this.feeValue = feeValue;
     this.feeChange = feeChange;
@@ -32,6 +50,10 @@ public class Tx0Data {
 
   public long computeFeeValueOrFeeChange() {
     return feeValue > 0 ? feeValue : feeChange;
+  }
+
+  public String getPoolId() {
+    return poolId;
   }
 
   public String getFeePaymentCode() {
@@ -64,7 +86,9 @@ public class Tx0Data {
 
   @Override
   public String toString() {
-    return "feePaymentCode="
+    return "poolId="
+        + poolId
+        + ", feePaymentCode="
         + feePaymentCode
         + ", feeValue="
         + feeValue

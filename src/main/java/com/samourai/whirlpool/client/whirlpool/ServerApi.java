@@ -42,11 +42,15 @@ public class ServerApi {
     return poolsResponse;
   }
 
-  public Tx0DataResponseV2 fetchTx0Data(String poolId, String scode, String partnerId)
+  public Observable<Optional<Tx0DataResponseV2>> fetchTx0Data(Tx0DataRequestV2 tx0DataRequest)
       throws Exception {
-    String url = WhirlpoolProtocol.getUrlTx0Data(urlServer, poolId, scode, partnerId);
-    Tx0DataResponseV2 tx0Response = httpClientRest.getJson(url, Tx0DataResponseV2.class, null);
-    return tx0Response;
+    String url = WhirlpoolProtocol.getUrlTx0Data(urlServer);
+    if (log.isDebugEnabled()) {
+      log.debug("POST " + url + ": " + ClientUtils.toJsonString(tx0DataRequest));
+    }
+    Observable<Optional<Tx0DataResponseV2>> tx0DataResponse =
+        httpClientRest.postJson(url, Tx0DataResponseV2.class, null, tx0DataRequest);
+    return tx0DataResponse;
   }
 
   public String getWsUrlConnect() {

@@ -18,6 +18,7 @@ import com.samourai.whirlpool.client.wallet.WhirlpoolWalletConfig;
 import com.samourai.whirlpool.client.whirlpool.beans.Pool;
 import com.samourai.whirlpool.client.whirlpool.beans.Tx0Data;
 import com.samourai.whirlpool.protocol.WhirlpoolProtocol;
+import com.samourai.whirlpool.protocol.rest.Tx0DataRequestV2;
 import com.samourai.whirlpool.protocol.rest.Tx0DataResponseV2;
 import com.samourai.whirlpool.protocol.util.XorMask;
 import java.util.*;
@@ -104,12 +105,30 @@ public class Tx0Service {
     return tx0SpendValue + tx0Preview.getChangeValue();
   }
 
-  public Tx0Preview tx0Preview(
-      Collection<UnspentOutput> spendFroms, Tx0Config tx0Config, Tx0Param tx0Param)
+  public Tx0Previews tx0Previews(Collection<UnspentOutput> spendFroms, Tx0Config tx0Config)
       throws Exception {
+
     // fetch fresh Tx0Data
-    Tx0Data tx0Data = fetchTx0Data(tx0Param.getPool().getPoolId(), config.getPartner());
-    return tx0Preview(spendFroms, tx0Config, tx0Param, tx0Data);
+    Map<String, Tx0Preview> tx0PreviewsByPoolId = new LinkedHashMap<String, Tx0Preview>();
+    Collection<Tx0Data> tx0Datas = fetchTx0Data(config.getPartner());
+    for (Tx0Data tx0Data : tx0Datas) {
+      String poolId = tx0Data.getPoolId();
+      try {
+        Pool pool = tx0Config.getPoolSupplier().findPoolById(poolId);
+        Tx0Param tx0Param =
+            tx0Config
+                .getTx0ParamService()
+                .getTx0Param(pool, tx0Config.getTx0FeeTarget(), tx0Config.getMixFeeTarget());
+
+        Tx0Preview tx0Preview = tx0Preview(spendFroms, tx0Config, tx0Param, tx0Data);
+        tx0PreviewsByPoolId.put(poolId, tx0Preview);
+      } catch (Exception e) {
+        if (log.isDebugEnabled()) {
+          log.debug("Pool not eligible for tx0: " + poolId, e.getMessage());
+        }
+      }
+    }
+    return new Tx0Previews(tx0PreviewsByPoolId);
   }
 
   protected Tx0Preview tx0Preview(
@@ -185,24 +204,26 @@ public class Tx0Service {
       BipWallet premixWallet,
       BipWallet postmixWallet,
       BipWallet badbankWallet,
+      Pool pool,
       Tx0Config tx0Config,
-      Tx0Param tx0Param,
       UtxoKeyProvider utxoKeyProvider)
       throws Exception {
 
     // compute & preview
-    Tx0Preview tx0Preview = tx0Preview(spendFroms, tx0Config, tx0Param);
+    Tx0Previews tx0Previews = tx0Previews(spendFroms, tx0Config);
+    Tx0Preview tx0Preview = tx0Previews.getTx0Preview(pool.getPoolId());
+    if (tx0Preview == null) {
+      throw new NotifiableException("Tx0 not possible for pool: " + pool.getPoolId());
+    }
 
     log.info(
         " • Tx0: spendFrom="
             + spendFroms
-            + ", tx0Param=["
-            + tx0Param
-            + "], changeWallet="
+            + ", changeWallet="
             + tx0Config.getChangeWallet().name()
-            + ", tx0Preview=["
+            + ", tx0Preview={"
             + tx0Preview
-            + "]");
+            + "}");
 
     return tx0(
         spendFroms,
@@ -583,21 +604,17 @@ public class Tx0Service {
     SendFactoryGeneric.getInstance().signTransaction(tx, utxoKeyProvider);
   }
 
-  protected Tx0Data fetchTx0Data(String poolId, String partnerId) throws Exception {
+  protected Collection<Tx0Data> fetchTx0Data(String partnerId) throws Exception {
+    Collection<Tx0Data> tx0Datas = new LinkedList<Tx0Data>();
     try {
-      Tx0DataResponseV2 tx0Response =
-          config.getServerApi().fetchTx0Data(poolId, config.getScode(), partnerId);
-      byte[] feePayload = WhirlpoolProtocol.decodeBytes(tx0Response.feePayload64);
-      Tx0Data tx0Data =
-          new Tx0Data(
-              tx0Response.feePaymentCode,
-              tx0Response.feeValue,
-              tx0Response.feeChange,
-              tx0Response.feeDiscountPercent,
-              tx0Response.message,
-              feePayload,
-              tx0Response.feeAddress);
-      return tx0Data;
+      Tx0DataRequestV2 tx0DataRequest = new Tx0DataRequestV2(config.getScode(), partnerId);
+      Tx0DataResponseV2 tx0DatasResponse =
+          config.getServerApi().fetchTx0Data(tx0DataRequest).blockingFirst().get();
+      for (Tx0DataResponseV2.Tx0Data tx0DataItem : tx0DatasResponse.tx0Datas) {
+        Tx0Data tx0Data = new Tx0Data(tx0DataItem);
+        tx0Datas.add(tx0Data);
+      }
+      return tx0Datas;
     } catch (HttpException e) {
       throw ClientUtils.wrapRestError(e);
     }

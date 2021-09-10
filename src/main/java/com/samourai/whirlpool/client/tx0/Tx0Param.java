@@ -94,10 +94,15 @@ public class Tx0Param {
   }
 
   private long computeSpendFromBalanceMin() {
+    return computeSpendFromBalanceMin(
+        getFeeTx0(), getPool().getFeeValue(), getPremixValue(), params);
+  }
+
+  public static long computeSpendFromBalanceMin(
+      long feeTx0, long poolFee, long premixValue, NetworkParameters params) {
     int nbPremix = 1;
-    long tx0MinerFee = ClientUtils.computeTx0MinerFee(nbPremix, getFeeTx0(), null, params);
-    long samouraiFee = getPool().getFeeValue();
-    return ClientUtils.computeTx0SpendValue(getPremixValue(), nbPremix, samouraiFee, tx0MinerFee);
+    long tx0MinerFee = ClientUtils.computeTx0MinerFee(nbPremix, feeTx0, null, params);
+    return ClientUtils.computeTx0SpendValue(premixValue, nbPremix, poolFee, tx0MinerFee);
   }
 
   public int getFeeTx0() {

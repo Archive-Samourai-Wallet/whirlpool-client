@@ -135,34 +135,17 @@ public class WhirlpoolWallet {
     return tx0Param.getSpendFromBalanceMin();
   }
 
-  public Tx0Preview tx0Preview(
-      Pool pool,
-      Collection<WhirlpoolUtxo> whirlpoolUtxos,
-      Tx0Config tx0Config,
-      Tx0FeeTarget tx0FeeTarget,
-      Tx0FeeTarget mixFeeTarget)
+  public Tx0Previews tx0Previews(Collection<WhirlpoolUtxo> whirlpoolUtxos, Tx0Config tx0Config)
       throws Exception {
-    return tx0Preview(
-        pool, tx0Config, toUnspentOutputs(whirlpoolUtxos), tx0FeeTarget, mixFeeTarget);
+    return tx0Previews(tx0Config, toUnspentOutputs(whirlpoolUtxos));
   }
 
-  public Tx0Preview tx0Preview(
-      Pool pool,
-      Tx0Config tx0Config,
-      Collection<UnspentOutput> whirlpoolUtxos,
-      Tx0FeeTarget tx0FeeTarget,
-      Tx0FeeTarget mixFeeTarget)
+  public Tx0Previews tx0Previews(Tx0Config tx0Config, Collection<UnspentOutput> whirlpoolUtxos)
       throws Exception {
-    Tx0Param tx0Param = getTx0ParamService().getTx0Param(pool, tx0FeeTarget, mixFeeTarget);
-    return tx0Service.tx0Preview(whirlpoolUtxos, tx0Config, tx0Param);
+    return tx0Service.tx0Previews(whirlpoolUtxos, tx0Config);
   }
 
-  public Tx0 tx0(
-      Collection<WhirlpoolUtxo> whirlpoolUtxos,
-      Pool pool,
-      Tx0FeeTarget tx0FeeTarget,
-      Tx0FeeTarget mixFeeTarget,
-      Tx0Config tx0Config)
+  public Tx0 tx0(Collection<WhirlpoolUtxo> whirlpoolUtxos, Pool pool, Tx0Config tx0Config)
       throws Exception {
 
     // verify utxos
@@ -185,7 +168,7 @@ public class WhirlpoolWallet {
     }
     try {
       // run
-      Tx0 tx0 = tx0(whirlpoolUtxos, pool, tx0Config, tx0FeeTarget, mixFeeTarget);
+      Tx0 tx0 = tx0(toUnspentOutputs(whirlpoolUtxos), tx0Config, pool);
 
       // success
       for (WhirlpoolUtxo whirlpoolUtxo : whirlpoolUtxos) {
@@ -205,38 +188,29 @@ public class WhirlpoolWallet {
     }
   }
 
-  public Tx0 tx0(
-      Collection<WhirlpoolUtxo> spendFroms,
-      Pool pool,
-      Tx0Config tx0Config,
-      Tx0FeeTarget tx0FeeTarget,
-      Tx0FeeTarget mixFeeTarget)
+  public Tx0 tx0(Collection<UnspentOutput> spendFroms, Tx0Config tx0Config, Pool pool)
       throws Exception {
 
     // check confirmations
-    for (WhirlpoolUtxo spendFrom : spendFroms) {
-      int latestBlockHeight = getChainSupplier().getLatestBlock().height;
-      int confirmations = spendFrom.computeConfirmations(latestBlockHeight);
-      if (confirmations < config.getTx0MinConfirmations()) {
+    for (UnspentOutput spendFrom : spendFroms) {
+      if (spendFrom.confirmations < config.getTx0MinConfirmations()) {
         log.error("Minimum confirmation(s) for tx0: " + config.getTx0MinConfirmations());
         throw new UnconfirmedUtxoException(spendFrom);
       }
     }
-
-    Tx0Param tx0Param = getTx0ParamService().getTx0Param(pool, tx0FeeTarget, mixFeeTarget);
 
     // run tx0
     int initialPremixIndex = getWalletPremix().getIndexHandler().get();
     try {
       Tx0 tx0 =
           tx0Service.tx0(
-              toUnspentOutputs(spendFroms),
+              spendFroms,
               getWalletDeposit(),
               getWalletPremix(),
               getWalletPostmix(),
               getWalletBadbank(),
+              pool,
               tx0Config,
-              tx0Param,
               getUtxoSupplier());
 
       log.info(
@@ -300,8 +274,14 @@ public class WhirlpoolWallet {
         .start();
   }
 
-  public Tx0Config getTx0Config() {
-    Tx0Config tx0Config = new Tx0Config();
+  public Tx0Config getTx0Config(Tx0FeeTarget tx0FeeTarget, Tx0FeeTarget mixFeeTarget) {
+    Tx0Config tx0Config =
+        new Tx0Config(
+            getTx0ParamService(),
+            getPoolSupplier(),
+            tx0FeeTarget,
+            mixFeeTarget,
+            WhirlpoolAccount.DEPOSIT);
     return tx0Config;
   }
 

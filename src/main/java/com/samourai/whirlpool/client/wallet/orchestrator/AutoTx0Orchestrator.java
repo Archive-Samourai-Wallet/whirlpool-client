@@ -68,8 +68,8 @@ public class AutoTx0Orchestrator extends AbstractOrchestrator {
         findAutoTx0SpendFrom(
             pool, tx0FeeTarget, mixFeeTarget); // throws AutoMixInsufficientBalanceException
 
-    Tx0Config tx0Config = whirlpoolWallet.getTx0Config();
-    return whirlpoolWallet.tx0(spendFroms, pool, tx0FeeTarget, mixFeeTarget, tx0Config);
+    Tx0Config tx0Config = whirlpoolWallet.getTx0Config(tx0FeeTarget, mixFeeTarget);
+    return whirlpoolWallet.tx0(spendFroms, pool, tx0Config);
   }
 
   private Collection<WhirlpoolUtxo> findAutoTx0SpendFrom(

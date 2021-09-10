@@ -4,9 +4,7 @@ import com.samourai.whirlpool.client.wallet.beans.Tx0FeeTarget;
 import com.samourai.whirlpool.client.wallet.beans.WhirlpoolUtxo;
 import com.samourai.whirlpool.client.wallet.data.minerFee.MinerFeeSupplier;
 import com.samourai.whirlpool.client.whirlpool.beans.Pool;
-import java.util.Collection;
-import java.util.LinkedList;
-import java.util.List;
+import java.util.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
