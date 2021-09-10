@@ -564,6 +564,13 @@ public class WhirlpoolWallet {
     WhirlpoolEventService.getInstance()
         .post(new MixFailEvent(this, mixParams, failReason, notifiableError));
 
+    try {
+      checkPostmixIndex();
+    } catch (Exception e) {
+      log.error(e.getMessage());
+      stop();
+    }
+
     switch (failReason) {
       case PROTOCOL_MISMATCH:
         // stop mixing on protocol mismatch
