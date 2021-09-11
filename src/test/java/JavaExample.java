@@ -38,7 +38,7 @@ public class JavaExample {
     boolean onion = true; // use Tor onion services?
     IWebsocketClient wsClient = null; // provide impl, or null to disable real-time sync backend
     DataSourceFactory dataSourceFactory =
-        new SamouraiDataSourceFactory(backendServer, onion, wsClient);
+            new SamouraiDataSourceFactory(backendServer, onion, wsClient);
 
     // option 2 - use Dojo backend
     String dojoUrl = ""; // provide Dojo onion URL
@@ -48,10 +48,10 @@ public class JavaExample {
 
     // option 3 - use external backend
     dataSourceFactory =
-        computeDataSourceFactoryExternal(); // example of external backend integration
+            computeDataSourceFactoryExternal(); // example of external backend integration
 
     IStompClientService stompClientService =
-        null; // provide impl here, ie: AndroidStompClientService or
+            null; // provide impl here, ie: AndroidStompClientService or
     // https://code.samourai.io/whirlpool/whirlpool-client-cli/-/blob/develop/src/main/java/com/samourai/stomp/client/JavaStompClient.java
 
     WhirlpoolServer whirlpoolServer = WhirlpoolServer.TESTNET;
@@ -65,14 +65,14 @@ public class JavaExample {
     NetworkParameters params = whirlpoolServer.getParams();
     boolean mobile = false; // true for mobile configuration, false for desktop/CLI
     WhirlpoolWalletConfig whirlpoolWalletConfig =
-        new WhirlpoolWalletConfig(
-            dataSourceFactory,
-            httpClientService,
-            stompClientService,
-            torClientService,
-            serverApi,
-            params,
-            mobile);
+            new WhirlpoolWalletConfig(
+                    dataSourceFactory,
+                    httpClientService,
+                    stompClientService,
+                    torClientService,
+                    serverApi,
+                    params,
+                    mobile);
 
     // optional - SCODE
     // whirlpoolWalletConfig.setScode("foo");
@@ -83,6 +83,16 @@ public class JavaExample {
     // optional - external partner
     // whirlpoolWalletConfig.setPartner("SPARROW");
 
+    // optional: configure mix to external destination
+    String xpub = "xpub..."; // external xpub
+    int chain = 0;
+    int startIndex = 0;
+    int mixs = 5; // minimum mixs to achieve
+    int mixsRandomFactor = 4; // randomness factor: 1/4 probability to mix to ExternalDestination
+    ExternalDestination externalDestination =
+            new ExternalDestination(xpub, chain, startIndex, mixs, mixsRandomFactor);
+    whirlpoolWalletConfig.setExternalDestination(externalDestination);
+
     return whirlpoolWalletConfig;
   }
 
@@ -92,8 +102,8 @@ public class JavaExample {
     return new DataSourceFactory() {
       @Override
       public DataSource createDataSource(
-          WhirlpoolWallet whirlpoolWallet, HD_Wallet bip44w, DataPersister dataPersister)
-          throws Exception {
+              WhirlpoolWallet whirlpoolWallet, HD_Wallet bip44w, DataPersister dataPersister)
+              throws Exception {
         // use WalletResponse data (or use your own implementation of DataSource)
         return new WalletResponseDataSource(whirlpoolWallet, bip44w, dataPersister) {
           @Override
@@ -116,7 +126,7 @@ public class JavaExample {
     return new DataPersisterFactory() {
       @Override
       public DataPersister createDataPersister(WhirlpoolWallet whirlpoolWallet, HD_Wallet bip44w)
-          throws Exception {
+              throws Exception {
         return new DataPersister() {
 
           @Override
@@ -203,8 +213,8 @@ public class JavaExample {
 
     // get specific utxo
     WhirlpoolUtxo whirlpoolUtxo =
-        utxoSupplier.findUtxo(
-            "040df121854c7db49e38b6fcb61c2b0953c8b234ce53c1b2a2fb122a4e1c3d2e", 1);
+            utxoSupplier.findUtxo(
+                    "040df121854c7db49e38b6fcb61c2b0953c8b234ce53c1b2a2fb122a4e1c3d2e", 1);
 
     // get utxo state (status, mixStep, mixableStatus, progressPercent, message, error...)
     WhirlpoolUtxoState utxoState = whirlpoolUtxo.getUtxoState();
@@ -228,9 +238,9 @@ public class JavaExample {
       Tx0FeeTarget tx0FeeTarget = Tx0FeeTarget.BLOCKS_4;
       Tx0FeeTarget mixFeeTarget = Tx0FeeTarget.BLOCKS_4;
       Tx0Config tx0Config =
-          whirlpoolWallet
-              .getTx0Config(tx0FeeTarget, mixFeeTarget)
-              .setChangeWallet(WhirlpoolAccount.BADBANK);
+              whirlpoolWallet
+                      .getTx0Config(tx0FeeTarget, mixFeeTarget)
+                      .setChangeWallet(WhirlpoolAccount.BADBANK);
 
       // preview tx0
       try {
@@ -240,8 +250,8 @@ public class JavaExample {
         // pool preview
         Tx0Preview tx0Preview = tx0Previews.getTx0Preview("0.5btc");
         long minerFee =
-            tx0Preview
-                .getTx0MinerFee(); // get minerFee, poolFee, premixValue, changeValue, nbPremix...
+                tx0Preview
+                        .getTx0MinerFee(); // get minerFee, poolFee, premixValue, changeValue, nbPremix...
       } catch (Exception e) {
         // preview tx0 failed
       }
@@ -265,9 +275,9 @@ public class JavaExample {
       Tx0FeeTarget tx0FeeTarget = Tx0FeeTarget.BLOCKS_4;
       Tx0FeeTarget mixFeeTarget = Tx0FeeTarget.BLOCKS_4;
       Tx0Config tx0Config =
-          whirlpoolWallet
-              .getTx0Config(tx0FeeTarget, mixFeeTarget)
-              .setChangeWallet(WhirlpoolAccount.BADBANK);
+              whirlpoolWallet
+                      .getTx0Config(tx0FeeTarget, mixFeeTarget)
+                      .setChangeWallet(WhirlpoolAccount.BADBANK);
 
       // preview tx0
       try {
@@ -278,8 +288,8 @@ public class JavaExample {
         Tx0Preview tx0Preview = tx0Previews.getTx0Preview("0.5btc");
 
         long minerFee =
-            tx0Preview
-                .getTx0MinerFee(); // get minerFee, poolFee, premixValue, changeValue, nbPremix...
+                tx0Preview
+                        .getTx0MinerFee(); // get minerFee, poolFee, premixValue, changeValue, nbPremix...
       } catch (Exception e) {
         // preview tx0 failed
       }
