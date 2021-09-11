@@ -16,8 +16,8 @@ public class UtxoConfigPersistedSupplier extends BasicPersistableSupplier<UtxoCo
     implements UtxoConfigSupplier {
   private static final Logger log = LoggerFactory.getLogger(UtxoConfigPersistedSupplier.class);
 
-  public UtxoConfigPersistedSupplier(UtxoConfigPersister persister) throws Exception {
-    super(null, persister, log);
+  public UtxoConfigPersistedSupplier(UtxoConfigPersister persister) {
+    super(persister, log);
   }
 
   @Override

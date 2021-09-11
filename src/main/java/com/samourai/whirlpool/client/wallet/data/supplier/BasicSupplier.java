@@ -8,13 +8,10 @@ public abstract class BasicSupplier<D> {
   private D value;
   private Long lastUpdate;
 
-  public BasicSupplier(final Logger log, D initialValue) throws Exception {
+  public BasicSupplier(final Logger log) {
     this.log = log;
     this.value = null;
     this.lastUpdate = null;
-    if (initialValue != null) {
-      setValue(initialValue);
-    }
   }
 
   protected void setValue(D value) throws Exception {

@@ -47,7 +47,7 @@ public abstract class BasicUtxoSupplier extends BasicSupplier<UtxoData>
       Tx0ParamService tx0ParamService,
       NetworkParameters params)
       throws Exception {
-    super(log, null);
+    super(log);
     this.previousUtxos = null;
     this.walletSupplier = walletSupplier;
     this.utxoConfigSupplier = utxoConfigSupplier;

@@ -8,9 +8,8 @@ public abstract class BasicPersistableSupplier<D extends PersistableData> extend
 
   private AbstractPersister<D, ?> persister;
 
-  public BasicPersistableSupplier(
-      final D fallbackValue, AbstractPersister<D, ?> persister, Logger log) throws Exception {
-    super(log, fallbackValue);
+  public BasicPersistableSupplier(AbstractPersister<D, ?> persister, Logger log) {
+    super(log);
     this.persister = persister;
   }
 

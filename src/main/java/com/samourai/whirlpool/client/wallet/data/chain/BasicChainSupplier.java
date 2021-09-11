@@ -11,8 +11,8 @@ import org.slf4j.LoggerFactory;
 public class BasicChainSupplier extends BasicSupplier<ChainData> implements ChainSupplier {
   private static final Logger log = LoggerFactory.getLogger(BasicChainSupplier.class);
 
-  public BasicChainSupplier() throws Exception {
-    super(log, null);
+  public BasicChainSupplier() {
+    super(log);
   }
 
   @Override

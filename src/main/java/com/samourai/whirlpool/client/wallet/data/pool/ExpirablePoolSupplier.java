@@ -23,9 +23,8 @@ public class ExpirablePoolSupplier extends ExpirableSupplier<PoolData> implement
   private final Tx0ParamService tx0ParamService;
 
   public ExpirablePoolSupplier(
-      int refreshPoolsDelay, ServerApi serverApi, Tx0ParamService tx0ParamService)
-      throws Exception {
-    super(refreshPoolsDelay, null, log);
+      int refreshPoolsDelay, ServerApi serverApi, Tx0ParamService tx0ParamService) {
+    super(refreshPoolsDelay, log);
     this.serverApi = serverApi;
     this.tx0ParamService = tx0ParamService;
   }

@@ -17,10 +17,8 @@ public abstract class ExpirableSupplier<D> extends BasicSupplier<D> {
 
   protected abstract D fetch() throws Exception;
 
-  public ExpirableSupplier(
-      Integer refreshDelaySeconds, final D initialValueFallback, final Logger log)
-      throws Exception {
-    super(log, initialValueFallback);
+  public ExpirableSupplier(Integer refreshDelaySeconds, final Logger log) {
+    super(log);
     this.refreshDelaySeconds = refreshDelaySeconds;
     this.throwingSupplier =
         new ThrowingSupplier<D, Exception>() {

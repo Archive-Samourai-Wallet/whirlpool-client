@@ -16,14 +16,15 @@ public class BasicMinerFeeSupplier extends BasicSupplier<MinerFee> implements Mi
   protected int feeMin;
   protected int feeMax;
 
-  public BasicMinerFeeSupplier(int feeMin, int feeMax, int initialValue) throws Exception {
-    this(feeMin, feeMax, mockMinerFee(initialValue));
-  }
-
-  public BasicMinerFeeSupplier(int feeMin, int feeMax, MinerFee initialValue) throws Exception {
-    super(log, initialValue);
+  public BasicMinerFeeSupplier(int feeMin, int feeMax) {
+    super(log);
     this.feeMin = feeMin;
     this.feeMax = feeMax;
+  }
+
+  public void setValue(int value) throws Exception {
+    MinerFee minerFee = mockMinerFee(value);
+    setValue(minerFee);
   }
 
   @Override

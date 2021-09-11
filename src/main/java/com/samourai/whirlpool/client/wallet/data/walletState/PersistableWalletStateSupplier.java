@@ -20,8 +20,8 @@ public class PersistableWalletStateSupplier extends BasicPersistableSupplier<Wal
   private Map<String, IIndexHandler> indexHandlerWallets;
 
   public PersistableWalletStateSupplier(
-      WalletStatePersister persister, ExternalDestination externalDestination) throws Exception {
-    super(null, persister, log);
+      WalletStatePersister persister, ExternalDestination externalDestination) {
+    super(persister, log);
 
     int externalIndexDefault =
         externalDestination != null ? externalDestination.getStartIndex() : 0;

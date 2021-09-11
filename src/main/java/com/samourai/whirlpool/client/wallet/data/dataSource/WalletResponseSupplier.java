@@ -17,7 +17,7 @@ public class WalletResponseSupplier extends ExpirableSupplier<WalletResponse> {
 
   public WalletResponseSupplier(
       WhirlpoolWallet whirlpoolWallet, WalletResponseDataSource dataSource) throws Exception {
-    super(whirlpoolWallet.getConfig().getRefreshUtxoDelay(), null, log);
+    super(whirlpoolWallet.getConfig().getRefreshUtxoDelay(), log);
     this.whirlpoolWallet = whirlpoolWallet;
     this.dataSource = dataSource;
   }

@@ -78,8 +78,10 @@ public abstract class WalletResponseDataSource implements DataSource {
   protected BasicMinerFeeSupplier computeMinerFeeSupplier(WhirlpoolWallet whirlpoolWallet)
       throws Exception {
     WhirlpoolWalletConfig config = whirlpoolWallet.getConfig();
-    return new BasicMinerFeeSupplier(
-        config.getFeeMin(), config.getFeeMax(), config.getFeeFallback());
+    BasicMinerFeeSupplier minerFeeSupplier =
+        new BasicMinerFeeSupplier(config.getFeeMin(), config.getFeeMax());
+    minerFeeSupplier.setValue(config.getFeeFallback());
+    return minerFeeSupplier;
   }
 
   protected ExpirablePoolSupplier computePoolSupplier(

@@ -129,7 +129,9 @@ public class AbstractTest {
   }
 
   protected MinerFeeSupplier mockMinerFeeSupplier() throws Exception {
-    return new BasicMinerFeeSupplier(1, 100, 1);
+    BasicMinerFeeSupplier minerFeeSupplier = new BasicMinerFeeSupplier(1, 100);
+    minerFeeSupplier.setValue(1);
+    return minerFeeSupplier;
   }
 
   protected Collection<Pool> getPools() {
