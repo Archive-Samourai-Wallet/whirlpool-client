@@ -49,7 +49,8 @@ public class DojoDataSourceFactory implements DataSourceFactory {
 
     // configure Samourai/Dojo backend
     BackendApi backendApi = new BackendApi(httpClientBackend, dojoUrl, oAuthManager);
-    BackendWsApi backendWsApi = new BackendWsApi(wsClient, dojoUrl, oAuthManager);
+    BackendWsApi backendWsApi =
+        wsClient != null ? new BackendWsApi(wsClient, dojoUrl, oAuthManager) : null;
     checkConnectivity(backendApi, backendWsApi);
 
     return new SamouraiDataSource(whirlpoolWallet, bip44w, dataPersister, backendApi, backendWsApi);

@@ -14,7 +14,7 @@ import com.samourai.whirlpool.client.wallet.data.chain.ChainSupplier;
 import com.samourai.whirlpool.client.wallet.data.pool.PoolSupplier;
 import com.samourai.whirlpool.client.wallet.data.supplier.BasicSupplier;
 import com.samourai.whirlpool.client.wallet.data.utxoConfig.UtxoConfigSupplier;
-import com.samourai.whirlpool.client.wallet.data.wallet.WalletSupplierImpl;
+import com.samourai.whirlpool.client.wallet.data.wallet.WalletSupplier;
 import java.util.Collection;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -30,7 +30,7 @@ public abstract class BasicUtxoSupplier extends BasicSupplier<UtxoData>
     implements UtxoProvider, UtxoSupplier {
   private static final Logger log = LoggerFactory.getLogger(BasicUtxoSupplier.class);
 
-  private final WalletSupplierImpl walletSupplier;
+  private final WalletSupplier walletSupplier;
   private final UtxoConfigSupplier utxoConfigSupplier;
   private final ChainSupplier chainSupplier;
   private final PoolSupplier poolSupplier;
@@ -40,7 +40,7 @@ public abstract class BasicUtxoSupplier extends BasicSupplier<UtxoData>
   private Map<String, WhirlpoolUtxo> previousUtxos;
 
   public BasicUtxoSupplier(
-      WalletSupplierImpl walletSupplier,
+      WalletSupplier walletSupplier,
       UtxoConfigSupplier utxoConfigSupplier,
       ChainSupplier chainSupplier,
       PoolSupplier poolSupplier,
@@ -199,5 +199,9 @@ public abstract class BasicUtxoSupplier extends BasicSupplier<UtxoData>
       }
     }
     return utxoByScript.values();
+  }
+
+  protected WalletSupplier getWalletSupplier() {
+    return walletSupplier;
   }
 }

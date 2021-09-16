@@ -24,34 +24,6 @@ public class WalletStateData extends PersistableData {
     this.items.putAll(indexes);
   }
 
-  protected synchronized void setWalletIndex(String key, int value) {
-    Integer currentIndex = items.get(key);
-    if (currentIndex == null || currentIndex < value) {
-      // update index
-      if (log.isDebugEnabled()) {
-        log.debug(
-            key
-                + ": apiIndex="
-                + value
-                + ", localIndex="
-                + (currentIndex != null ? currentIndex : "null")
-                + " => updating");
-      }
-      set(key, value);
-    } else {
-      // index unchanged
-      if (log.isTraceEnabled()) {
-        log.trace(
-            key
-                + ": apiIndex="
-                + value
-                + ", localIndex="
-                + (currentIndex != null ? currentIndex : "null")
-                + " => unchanged");
-      }
-    }
-  }
-
   public boolean isInitialized() {
     return get(INDEX_INITIALIZED, 0) == 1;
   }
@@ -78,6 +50,11 @@ public class WalletStateData extends PersistableData {
   }
 
   protected synchronized void set(String key, int value) {
+    int currentIndex = get(key, 0);
+    if (currentIndex > value) {
+      log.warn("Rollbacking index: " + currentIndex + " => " + value);
+    }
+
     items.put(key, value);
     setLastChange();
   }

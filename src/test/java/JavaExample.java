@@ -307,6 +307,9 @@ public class JavaExample {
     // manually start mixing specific utxo
     whirlpoolWallet.mix(whirlpoolUtxo);
 
+    // manually refresh utxos
+    whirlpoolWallet.refreshUtxos();
+
     // stop mixing specific utxo (or remove it from mix queue)
     whirlpoolWallet.mixStop(whirlpoolUtxo);
 

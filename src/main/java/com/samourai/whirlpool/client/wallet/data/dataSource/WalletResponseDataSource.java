@@ -39,7 +39,7 @@ public abstract class WalletResponseDataSource implements DataSource {
   private final DataPersister dataPersister;
   private final WalletResponseSupplier walletResponseSupplier;
 
-  private final WalletSupplierImpl walletSupplier;
+  private final WalletSupplier walletSupplier;
   private final BasicMinerFeeSupplier minerFeeSupplier;
   protected final Tx0ParamService tx0ParamService;
   protected final ExpirablePoolSupplier poolSupplier;
@@ -97,7 +97,7 @@ public abstract class WalletResponseDataSource implements DataSource {
 
   protected BasicUtxoSupplier computeUtxoSupplier(
       final WhirlpoolWallet whirlpoolWallet,
-      WalletSupplierImpl walletSupplier,
+      WalletSupplier walletSupplier,
       UtxoConfigSupplier utxoConfigSupplier,
       ChainSupplier chainSupplier,
       PoolSupplier poolSupplier,
@@ -164,21 +164,20 @@ public abstract class WalletResponseDataSource implements DataSource {
     setWalletStateValue(walletResponse.getAddressesMap());
   }
 
-  private void setWalletStateValue(Map<String, WalletResponse.Address> addressesMap)
-      throws Exception {
+  private void setWalletStateValue(Map<String, WalletResponse.Address> addressesMap) {
     // update indexs from wallet backend
     WalletStateSupplier walletStateSupplier = dataPersister.getWalletStateSupplier();
     for (String pub : addressesMap.keySet()) {
       WalletResponse.Address address = addressesMap.get(pub);
       BipWalletAndAddressType bipWallet = walletSupplier.getWalletByPub(pub);
       if (bipWallet != null) {
-        walletStateSupplier.setWalletIndex(
-            bipWallet.getAccount(),
-            bipWallet.getAddressType(),
-            Chain.RECEIVE,
-            address.account_index);
-        walletStateSupplier.setWalletIndex(
-            bipWallet.getAccount(), bipWallet.getAddressType(), Chain.CHANGE, address.change_index);
+        walletStateSupplier
+            .getIndexHandlerWallet(
+                bipWallet.getAccount(), bipWallet.getAddressType(), Chain.RECEIVE)
+            .set(address.account_index);
+        walletStateSupplier
+            .getIndexHandlerWallet(bipWallet.getAccount(), bipWallet.getAddressType(), Chain.CHANGE)
+            .set(address.change_index);
       } else {
         log.error("No wallet found for: " + pub);
       }

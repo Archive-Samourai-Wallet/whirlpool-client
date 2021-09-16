@@ -11,7 +11,7 @@ import com.samourai.whirlpool.client.wallet.beans.WhirlpoolUtxo;
 import com.samourai.whirlpool.client.wallet.beans.WhirlpoolUtxoChanges;
 import com.samourai.whirlpool.client.wallet.data.pool.PoolSupplier;
 import com.samourai.whirlpool.client.wallet.data.utxoConfig.UtxoConfigSupplier;
-import com.samourai.whirlpool.client.wallet.data.wallet.WalletSupplierImpl;
+import com.samourai.whirlpool.client.wallet.data.wallet.WalletSupplier;
 import com.samourai.whirlpool.client.whirlpool.beans.Pool;
 import java.util.*;
 import java8.util.function.Predicate;
@@ -41,7 +41,7 @@ public class UtxoData {
   }
 
   protected void init(
-      WalletSupplierImpl walletSupplier,
+      WalletSupplier walletSupplier,
       UtxoConfigSupplier utxoConfigSupplier,
       PoolSupplier poolSupplier,
       Tx0ParamService tx0ParamService,
@@ -135,7 +135,7 @@ public class UtxoData {
           utxoChanges.getUtxosAdded().add(whirlpoolUtxo);
           addUtxo(whirlpoolUtxo);
         } catch (Exception ee) {
-          log.error("error loading new utxo", ee);
+          log.error("error loading new utxo: " + utxo, ee);
         }
       }
     }
@@ -205,7 +205,7 @@ public class UtxoData {
   }
 
   private Collection<WhirlpoolAccount> findTxAccounts(
-      WalletResponse.Tx tx, WalletSupplierImpl walletSupplier) {
+      WalletResponse.Tx tx, WalletSupplier walletSupplier) {
     Set<WhirlpoolAccount> accounts = new LinkedHashSet<WhirlpoolAccount>();
     // verify inputs
     for (WalletResponse.TxInput input : tx.inputs) {

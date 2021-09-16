@@ -15,7 +15,4 @@ public interface WalletStateSupplier extends PersistableSupplier {
   boolean isInitialized();
 
   void setInitialized(boolean initialized);
-
-  void setWalletIndex(WhirlpoolAccount account, AddressType addressType, Chain chain, int value)
-      throws Exception;
 }
