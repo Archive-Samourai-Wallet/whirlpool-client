@@ -19,6 +19,7 @@ import com.samourai.whirlpool.client.wallet.data.minerFee.BasicMinerFeeSupplier;
 import com.samourai.whirlpool.client.wallet.data.minerFee.MinerFeeSupplier;
 import com.samourai.whirlpool.client.wallet.data.pool.ExpirablePoolSupplier;
 import com.samourai.whirlpool.client.wallet.data.pool.MockPoolSupplier;
+import com.samourai.whirlpool.client.whirlpool.ServerApi;
 import com.samourai.whirlpool.client.whirlpool.beans.Pool;
 import com.samourai.whirlpool.protocol.rest.PoolsResponse;
 import com.samourai.whirlpool.protocol.websocket.notifications.MixStatus;
@@ -134,6 +135,15 @@ public class AbstractTest {
     return minerFeeSupplier;
   }
 
+  protected IHttpClientService mockHttpClientService() {
+    return new IHttpClientService() {
+      @Override
+      public IHttpClient getHttpClient(HttpUsage httpUsage) {
+        return null;
+      }
+    };
+  }
+
   protected Collection<Pool> getPools() {
     return Lists.of(pool001btc, pool01btc, pool05btc);
   }
@@ -155,7 +165,7 @@ public class AbstractTest {
     return spendFrom;
   }
 
-  protected WhirlpoolWalletConfig computeWhirlpoolWalletConfig() {
+  protected WhirlpoolWalletConfig computeWhirlpoolWalletConfig(ServerApi serverApi) {
     DataSourceFactory dataSourceFactory =
         new SamouraiDataSourceFactory(BackendServer.TESTNET, false, null);
     IHttpClientService httpClientService =
@@ -167,7 +177,13 @@ public class AbstractTest {
         };
     WhirlpoolWalletConfig config =
         new WhirlpoolWalletConfig(
-            dataSourceFactory, httpClientService, null, null, null, TestNet3Params.get(), false);
+            dataSourceFactory,
+            httpClientService,
+            null,
+            null,
+            serverApi,
+            TestNet3Params.get(),
+            false);
     return config;
   }
 

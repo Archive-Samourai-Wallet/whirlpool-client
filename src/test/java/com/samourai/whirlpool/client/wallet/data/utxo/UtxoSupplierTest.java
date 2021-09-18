@@ -67,7 +67,7 @@ public class UtxoSupplierTest extends AbstractTest {
     byte[] seed = hdWalletFactory.computeSeedFromWords(SEED_WORDS);
     HD_Wallet bip44w = hdWalletFactory.getBIP44(seed, SEED_PASSPHRASE, params);
 
-    WhirlpoolWalletConfig config = computeWhirlpoolWalletConfig();
+    WhirlpoolWalletConfig config = computeWhirlpoolWalletConfig(null);
     WhirlpoolWallet whirlpoolWallet = new WhirlpoolWallet(config, bip44w, "test");
 
     dataPersister = new FileDataPersisterFactory().createDataPersister(whirlpoolWallet, bip44w);

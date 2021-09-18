@@ -3,8 +3,9 @@ package com.samourai.whirlpool.client.wallet;
 import com.google.common.primitives.Bytes;
 import com.samourai.wallet.api.backend.beans.UnspentOutput;
 import com.samourai.wallet.client.BipWalletAndAddressType;
-import com.samourai.wallet.client.indexHandler.IIndexHandler;
-import com.samourai.wallet.hd.*;
+import com.samourai.wallet.hd.AddressType;
+import com.samourai.wallet.hd.HD_Wallet;
+import com.samourai.wallet.hd.HD_WalletFactoryGeneric;
 import com.samourai.wallet.segwit.bech32.Bech32UtilGeneric;
 import com.samourai.wallet.send.spend.SpendBuilder;
 import com.samourai.whirlpool.client.event.*;
@@ -31,7 +32,6 @@ import com.samourai.whirlpool.client.wallet.orchestrator.AutoTx0Orchestrator;
 import com.samourai.whirlpool.client.wallet.orchestrator.MixOrchestratorImpl;
 import com.samourai.whirlpool.client.whirlpool.beans.Pool;
 import com.samourai.whirlpool.protocol.beans.Utxo;
-import com.samourai.whirlpool.protocol.rest.CheckOutputRequest;
 import com.samourai.whirlpool.protocol.rest.Tx0NotifyRequest;
 import io.reactivex.Observable;
 import java.util.Collection;
@@ -46,7 +46,6 @@ import org.slf4j.LoggerFactory;
 
 public class WhirlpoolWallet {
   private final Logger log = LoggerFactory.getLogger(WhirlpoolWallet.class);
-  private static final int CHECK_POSTMIX_INDEX_MAX = 30;
 
   private Bech32UtilGeneric bech32Util;
 
@@ -54,6 +53,7 @@ public class WhirlpoolWallet {
   private WhirlpoolWalletConfig config;
   private Tx0Service tx0Service;
   private WalletAggregateService walletAggregateService;
+  private PostmixIndexService postmixIndexService;
 
   private HD_Wallet bip44w;
   private DataSource dataSource;
@@ -113,6 +113,7 @@ public class WhirlpoolWallet {
     this.tx0Service = new Tx0Service(config);
     this.walletAggregateService =
         new WalletAggregateService(config.getNetworkParameters(), bech32Util, this);
+    this.postmixIndexService = new PostmixIndexService(config, bech32Util);
 
     this.bip44w = bip44w;
     this.dataPersister = null;
@@ -649,68 +650,8 @@ public class WhirlpoolWallet {
     }
   }
 
-  private void checkPostmixIndex() throws Exception {
-    IIndexHandler postmixIndexHandler = getWalletPostmix().getIndexHandler();
-    int initialPostmixIndex =
-        ClientUtils.computeNextReceiveAddressIndex(
-            postmixIndexHandler, config.getIndexRangePostmix());
-    if (log.isDebugEnabled()) {
-      log.debug("checking postmixIndex: " + initialPostmixIndex);
-    }
-    int postmixIndex = initialPostmixIndex;
-    int incrementBy = 1;
-    while (true) {
-      try {
-        // check next output
-        checkPostmixIndex(postmixIndex).blockingSingle().get();
-
-        // success!
-        if (postmixIndex != initialPostmixIndex) {
-          if (log.isDebugEnabled()) {
-            log.debug("fixing postmixIndex: " + initialPostmixIndex + " -> " + postmixIndex);
-          }
-          postmixIndexHandler.confirmUnconfirmed(postmixIndex);
-        } else {
-          postmixIndexHandler.cancelUnconfirmed(initialPostmixIndex);
-        }
-        return;
-      } catch (RuntimeException runtimeException) { // blockingGet wraps errors in RuntimeException
-        Throwable e = runtimeException.getCause();
-        String restErrorMessage = ClientUtils.parseRestErrorMessage(e);
-        if (restErrorMessage != null && "Output already registered".equals(restErrorMessage)) {
-          log.warn("postmixIndex already used: " + postmixIndex);
-
-          // increment
-          for (int i = 0; i < incrementBy; i++) {
-            postmixIndex =
-                ClientUtils.computeNextReceiveAddressIndex(
-                    postmixIndexHandler, config.getIndexRangePostmix());
-          }
-          incrementBy *= 2;
-
-          // avoid flooding
-          try {
-            Thread.sleep(500);
-          } catch (InterruptedException ee) {
-          }
-        } else {
-          throw new Exception(
-              "checkPostmixIndex failed when checking postmixIndex=" + postmixIndex, e);
-        }
-        if ((postmixIndex - initialPostmixIndex) > CHECK_POSTMIX_INDEX_MAX) {
-          throw new NotifiableException(
-              "PostmixIndex error - please resync your wallet or contact support");
-        }
-      }
-    }
-  }
-
-  private Observable<Optional<String>> checkPostmixIndex(int postmixIndex) throws Exception {
-    HD_Address hdAddress = getWalletPostmix().getAddressAt(Chain.RECEIVE.getIndex(), postmixIndex);
-    String outputAddress = bech32Util.toBech32(hdAddress, config.getNetworkParameters());
-    String signature = hdAddress.getECKey().signMessage(outputAddress);
-    CheckOutputRequest checkOutputRequest = new CheckOutputRequest(outputAddress, signature);
-    return config.getServerApi().checkOutput(checkOutputRequest);
+  public void checkPostmixIndex() throws Exception {
+    postmixIndexService.checkPostmixIndex(getWalletPostmix());
   }
 
   public void aggregate() throws Exception {
