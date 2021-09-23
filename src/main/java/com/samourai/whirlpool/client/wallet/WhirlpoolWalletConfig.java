@@ -54,6 +54,7 @@ public class WhirlpoolWalletConfig extends WhirlpoolClientConfig implements ITx0
   private int feeFallback;
 
   private boolean resyncOnFirstRun;
+  private boolean postmixIndexAutoFix;
   private boolean strictMode;
   private int persistDelaySeconds;
   private String partner;
@@ -108,6 +109,7 @@ public class WhirlpoolWalletConfig extends WhirlpoolClientConfig implements ITx0
     this.feeFallback = 75;
 
     this.resyncOnFirstRun = false;
+    this.postmixIndexAutoFix = true;
     this.strictMode = true;
     this.persistDelaySeconds = 10;
     this.partner = WhirlpoolProtocol.PARTNER_ID_SAMOURAI;
@@ -321,6 +323,14 @@ public class WhirlpoolWalletConfig extends WhirlpoolClientConfig implements ITx0
     this.resyncOnFirstRun = resyncOnFirstRun;
   }
 
+  public boolean isPostmixIndexAutoFix() {
+    return postmixIndexAutoFix;
+  }
+
+  public void setPostmixIndexAutoFix(boolean postmixIndexAutoFix) {
+    this.postmixIndexAutoFix = postmixIndexAutoFix;
+  }
+
   public boolean isStrictMode() {
     return strictMode;
   }
@@ -402,6 +412,7 @@ public class WhirlpoolWalletConfig extends WhirlpoolClientConfig implements ITx0
     configInfo.put(
         "fee", "fallback=" + getFeeFallback() + ", min=" + getFeeMin() + ", max=" + getFeeMax());
     configInfo.put("resyncOnFirstRun", Boolean.toString(resyncOnFirstRun));
+    configInfo.put("autoFixPostmixIndex", Boolean.toString(postmixIndexAutoFix));
     configInfo.put("strictMode", Boolean.toString(strictMode));
     configInfo.put("persistDelaySeconds", Integer.toString(persistDelaySeconds));
     return configInfo;

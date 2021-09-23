@@ -651,7 +651,24 @@ public class WhirlpoolWallet {
   }
 
   public void checkPostmixIndex() throws Exception {
-    postmixIndexService.checkPostmixIndex(getWalletPostmix());
+    try {
+      // check
+      postmixIndexService.checkPostmixIndex(getWalletPostmix());
+    } catch (Exception e) {
+      // postmix index is desynchronized
+      WhirlpoolEventService.getInstance().post(new PostmixIndexAlreadyUsedEvent(this));
+      if (config.isPostmixIndexAutoFix()) {
+        // autofix
+        try {
+          WhirlpoolEventService.getInstance().post(new PostmixIndexFixProgressEvent(this));
+          postmixIndexService.fixPostmixIndex(getWalletPostmix());
+          WhirlpoolEventService.getInstance().post(new PostmixIndexFixSuccessEvent(this));
+        } catch (Exception ee) {
+          WhirlpoolEventService.getInstance().post(new PostmixIndexFixFailEvent(this));
+          throw ee;
+        }
+      }
+    }
   }
 
   public void aggregate() throws Exception {

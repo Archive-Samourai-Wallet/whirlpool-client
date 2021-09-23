@@ -14,13 +14,14 @@ import com.samourai.whirlpool.client.whirlpool.ServerApi;
 import com.samourai.whirlpool.protocol.rest.CheckOutputRequest;
 import com.samourai.whirlpool.protocol.rest.RestErrorResponse;
 import io.reactivex.Observable;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.concurrent.Callable;
 import java8.util.Optional;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
+
+import java.util.LinkedList;
+import java.util.List;
+import java.util.concurrent.Callable;
 
 public class PostmixIndexServiceTest extends AbstractTest {
   private PostmixIndexService postmixIndexService;
@@ -43,6 +44,9 @@ public class PostmixIndexServiceTest extends AbstractTest {
 
   @Test
   public void checkPostmixIndex() throws Exception {
+    doCheckPostmixIndex(0);
+    doCheckPostmixIndex(0);
+
     doCheckPostmixIndex(2598);
     doCheckPostmixIndex(11251);
   }
@@ -53,8 +57,13 @@ public class PostmixIndexServiceTest extends AbstractTest {
     WhirlpoolWalletConfig config = computeWhirlpoolWalletConfig(serverApi);
     postmixIndexService = new PostmixIndexService(config, bech32Util);
 
-    // test
-    postmixIndexService.checkPostmixIndex(walletPostmix);
+    try {
+      // check
+      postmixIndexService.checkPostmixIndex(walletPostmix);
+    } catch (Exception e) {
+      // postmix index is desynchronized
+      postmixIndexService.fixPostmixIndex(walletPostmix);
+    }
 
     // verify
     int postmixIndex = walletPostmix.getIndexHandler().get();

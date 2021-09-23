@@ -32,23 +32,31 @@ public class PostmixIndexService {
   public void checkPostmixIndex(BipWalletAndAddressType walletPostmix) throws Exception {
     IIndexHandler postmixIndexHandler = walletPostmix.getIndexHandler();
 
+    // check next output
     int postmixIndex =
         ClientUtils.computeNextReceiveAddressIndex(
             postmixIndexHandler, config.getIndexRangePostmix());
 
     try {
-      // check next output
-      checkPostmixIndex(walletPostmix, postmixIndex).blockingSingle().get();
-
-      // success!
+      checkPostmixIndex(walletPostmix, postmixIndex).blockingSingle().get(); // throws on error
+    } finally {
       postmixIndexHandler.cancelUnconfirmed(postmixIndex);
-      return;
-    } catch (Exception e) {
-      fixPostmixIndex(walletPostmix);
     }
   }
 
-  private void fixPostmixIndex(BipWalletAndAddressType walletPostmix) throws Exception {
+  private Observable<Optional<String>> checkPostmixIndex(
+          BipWalletAndAddressType walletPostmix, int postmixIndex) throws Exception {
+    if (log.isDebugEnabled()) {
+      log.debug("checking postmixIndex: " + postmixIndex);
+    }
+    HD_Address hdAddress = walletPostmix.getAddressAt(Chain.RECEIVE.getIndex(), postmixIndex);
+    String outputAddress = bech32Util.toBech32(hdAddress, config.getNetworkParameters());
+    String signature = hdAddress.getECKey().signMessage(outputAddress);
+    CheckOutputRequest checkOutputRequest = new CheckOutputRequest(outputAddress, signature);
+    return config.getServerApi().checkOutput(checkOutputRequest);
+  }
+
+  public void fixPostmixIndex(BipWalletAndAddressType walletPostmix) throws Exception {
     IIndexHandler postmixIndexHandler = walletPostmix.getIndexHandler();
 
     int leftIndex = 0;
@@ -146,17 +154,5 @@ public class PostmixIndexService {
     throw new NotifiableException(
         "PostmixIndex error - please resync your wallet or contact support. PostmixIndex="
             + postmixIndex);
-  }
-
-  private Observable<Optional<String>> checkPostmixIndex(
-      BipWalletAndAddressType walletPostmix, int postmixIndex) throws Exception {
-    if (log.isDebugEnabled()) {
-      log.debug("checking postmixIndex: " + postmixIndex);
-    }
-    HD_Address hdAddress = walletPostmix.getAddressAt(Chain.RECEIVE.getIndex(), postmixIndex);
-    String outputAddress = bech32Util.toBech32(hdAddress, config.getNetworkParameters());
-    String signature = hdAddress.getECKey().signMessage(outputAddress);
-    CheckOutputRequest checkOutputRequest = new CheckOutputRequest(outputAddress, signature);
-    return config.getServerApi().checkOutput(checkOutputRequest);
   }
 }

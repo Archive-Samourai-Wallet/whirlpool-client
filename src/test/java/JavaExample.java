@@ -332,6 +332,11 @@ public class JavaExample {
   }
 
   @Subscribe
+  public void onMixProgress(MixProgress e) {
+    // mix progress
+  }
+
+  @Subscribe
   public void onChainBlockChange(MixFailEvent e) {
     // mix failed
   }
@@ -379,5 +384,25 @@ public class JavaExample {
   @Subscribe
   public void onWalletStop(WalletStopEvent e) {
     // wallet stopped
+  }
+
+  @Subscribe
+  public void onPostmixIndexAlreadyUsedEvent(PostmixIndexAlreadyUsedEvent e) {
+    // postmix index problem detected (will be automatically fixed)
+  }
+
+  @Subscribe
+  public void onPostmixIndexFixProgressEvent(PostmixIndexFixProgressEvent e) {
+    // postmix index problem is being fixed
+  }
+
+  @Subscribe
+  public void onPostmixIndexFixSuccessEvent(PostmixIndexFixSuccessEvent e) {
+    // postmix index problem fixed successfully
+  }
+
+  @Subscribe
+  public void onPostmixIndexFixFailEvent(PostmixIndexFixFailEvent e) {
+    // postmix index problem could not be fixed
   }
 }
