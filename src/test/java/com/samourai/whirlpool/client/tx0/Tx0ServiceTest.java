@@ -76,7 +76,7 @@ public class Tx0ServiceTest extends AbstractTest {
     byte[] seed = hdWalletFactory.computeSeedFromWords(seedWords);
     HD_Wallet bip84w = hdWalletFactory.getBIP84(seed, passphrase, params);
 
-    HD_Address address = bip84w.getAccountAt(0).getChain(0).getAddressAt(61);
+    HD_Address address = bip84w.getAccount(0).getChain(0).getAddressAt(61);
     UnspentOutput spendFromUtxo =
         newUnspentOutput(
             "cc588cdcb368f894a41c372d1f905770b61ecb3fb8e5e01a97e7cedbf5e324ae",
@@ -132,7 +132,7 @@ public class Tx0ServiceTest extends AbstractTest {
     byte[] seed = hdWalletFactory.computeSeedFromWords(seedWords);
     HD_Wallet bip84w = hdWalletFactory.getBIP84(seed, passphrase, params);
 
-    HD_Address address = bip84w.getAccountAt(0).getChain(0).getAddressAt(61);
+    HD_Address address = bip84w.getAccount(0).getChain(0).getAddressAt(61);
     UnspentOutput spendFromUtxo =
         newUnspentOutput(
             "cc588cdcb368f894a41c372d1f905770b61ecb3fb8e5e01a97e7cedbf5e324ae",
@@ -193,7 +193,7 @@ public class Tx0ServiceTest extends AbstractTest {
     byte[] seed = hdWalletFactory.computeSeedFromWords(seedWords);
     HD_Wallet bip84w = hdWalletFactory.getBIP84(seed, passphrase, params);
 
-    HD_Address address = bip84w.getAccountAt(0).getChain(0).getAddressAt(61);
+    HD_Address address = bip84w.getAccount(0).getChain(0).getAddressAt(61);
     UnspentOutput spendFromUtxo =
         newUnspentOutput(
             "cc588cdcb368f894a41c372d1f905770b61ecb3fb8e5e01a97e7cedbf5e324ae",
@@ -258,7 +258,7 @@ public class Tx0ServiceTest extends AbstractTest {
     byte[] seed = hdWalletFactory.computeSeedFromWords(seedWords);
     HD_Wallet bip84w = hdWalletFactory.getBIP84(seed, passphrase, params);
 
-    HD_Address address = bip84w.getAccountAt(0).getChain(0).getAddressAt(61);
+    HD_Address address = bip84w.getAccount(0).getChain(0).getAddressAt(61);
     UnspentOutput spendFromUtxo =
         newUnspentOutput(
             "cc588cdcb368f894a41c372d1f905770b61ecb3fb8e5e01a97e7cedbf5e324ae",
@@ -339,7 +339,7 @@ public class Tx0ServiceTest extends AbstractTest {
     byte[] seed = hdWalletFactory.computeSeedFromWords(seedWords);
     HD_Wallet bip84w = hdWalletFactory.getBIP84(seed, passphrase, params);
 
-    HD_Address address = bip84w.getAccountAt(0).getChain(0).getAddressAt(61);
+    HD_Address address = bip84w.getAccount(0).getChain(0).getAddressAt(61);
     UnspentOutput spendFromUtxo =
         newUnspentOutput(
             "cc588cdcb368f894a41c372d1f905770b61ecb3fb8e5e01a97e7cedbf5e324ae",
@@ -462,7 +462,7 @@ public class Tx0ServiceTest extends AbstractTest {
     byte[] seed = hdWalletFactory.computeSeedFromWords(seedWords);
     HD_Wallet bip84w = hdWalletFactory.getBIP84(seed, passphrase, params);
 
-    HD_Address address = bip84w.getAccountAt(0).getChain(0).getAddressAt(61);
+    HD_Address address = bip84w.getAccount(0).getChain(0).getAddressAt(61);
     ECKey spendFromKey = address.getECKey();
     UnspentOutput spendFrom =
         newUnspentOutput(
@@ -558,7 +558,7 @@ public class Tx0ServiceTest extends AbstractTest {
     byte[] seed = hdWalletFactory.computeSeedFromWords(seedWords);
     HD_Wallet bip84w = hdWalletFactory.getBIP84(seed, passphrase, params);
 
-    ECKey spendFromKey = bip84w.getAccountAt(0).getChain(0).getAddressAt(61).getECKey();
+    ECKey spendFromKey = bip84w.getAccount(0).getChain(0).getAddressAt(61).getECKey();
     TransactionOutPoint spendFromOutpoint =
         new TransactionOutPoint(
             params,
@@ -613,7 +613,7 @@ public class Tx0ServiceTest extends AbstractTest {
     byte[] seed = hdWalletFactory.computeSeedFromWords(seedWords);
     HD_Wallet bip84w = hdWalletFactory.getBIP84(seed, passphrase, params);
 
-    HD_Address address = bip84w.getAccountAt(0).getChain(0).getAddressAt(61);
+    HD_Address address = bip84w.getAccount(0).getChain(0).getAddressAt(61);
     UnspentOutput spendFromUtxo =
         newUnspentOutput(
             "cc588cdcb368f894a41c372d1f905770b61ecb3fb8e5e01a97e7cedbf5e324ae",
@@ -737,7 +737,7 @@ public class Tx0ServiceTest extends AbstractTest {
     byte[] seed = hdWalletFactory.computeSeedFromWords(seedWords);
     HD_Wallet bip84w = hdWalletFactory.getBIP84(seed, passphrase, params);
 
-    HD_Address address = bip84w.getAccountAt(0).getChain(0).getAddressAt(61);
+    HD_Address address = bip84w.getAccount(0).getChain(0).getAddressAt(61);
     UnspentOutput spendFromUtxo =
         newUnspentOutput(
             "cc588cdcb368f894a41c372d1f905770b61ecb3fb8e5e01a97e7cedbf5e324ae",
@@ -862,7 +862,7 @@ public class Tx0ServiceTest extends AbstractTest {
     byte[] seed = hdWalletFactory.computeSeedFromWords(seedWords);
     HD_Wallet bip84w = hdWalletFactory.getBIP84(seed, passphrase, params);
 
-    HD_Address address = bip84w.getAccountAt(0).getChain(0).getAddressAt(61);
+    HD_Address address = bip84w.getAccount(0).getChain(0).getAddressAt(61);
     UnspentOutput spendFromUtxo =
         newUnspentOutput(
             "cc588cdcb368f894a41c372d1f905770b61ecb3fb8e5e01a97e7cedbf5e324ae",
@@ -985,7 +985,7 @@ public class Tx0ServiceTest extends AbstractTest {
     byte[] seed = hdWalletFactory.computeSeedFromWords(seedWords);
     HD_Wallet bip84w = hdWalletFactory.getBIP84(seed, passphrase, params);
 
-    HD_Address address = bip84w.getAccountAt(0).getChain(0).getAddressAt(61);
+    HD_Address address = bip84w.getAccount(0).getChain(0).getAddressAt(61);
     UnspentOutput spendFromUtxo =
         newUnspentOutput(
             "cc588cdcb368f894a41c372d1f905770b61ecb3fb8e5e01a97e7cedbf5e324ae",

@@ -45,7 +45,7 @@ public class PostmixIndexService {
   }
 
   private Observable<Optional<String>> checkPostmixIndex(
-          BipWalletAndAddressType walletPostmix, int postmixIndex) throws Exception {
+      BipWalletAndAddressType walletPostmix, int postmixIndex) throws Exception {
     if (log.isDebugEnabled()) {
       log.debug("checking postmixIndex: " + postmixIndex);
     }

@@ -14,14 +14,13 @@ import com.samourai.whirlpool.client.whirlpool.ServerApi;
 import com.samourai.whirlpool.protocol.rest.CheckOutputRequest;
 import com.samourai.whirlpool.protocol.rest.RestErrorResponse;
 import io.reactivex.Observable;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.concurrent.Callable;
 import java8.util.Optional;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
-
-import java.util.LinkedList;
-import java.util.List;
-import java.util.concurrent.Callable;
 
 public class PostmixIndexServiceTest extends AbstractTest {
   private PostmixIndexService postmixIndexService;
