@@ -45,9 +45,9 @@ public class PostmixIndexServiceTest extends AbstractTest {
   public void checkPostmixIndex() throws Exception {
     doCheckPostmixIndex(0);
     doCheckPostmixIndex(0);
-
-    doCheckPostmixIndex(2598);
-    doCheckPostmixIndex(11251);
+    doCheckPostmixIndex(15);
+    //doCheckPostmixIndex(2598);
+    //doCheckPostmixIndex(11251);
   }
 
   private void doCheckPostmixIndex(int validPostmixIndex) throws Exception {

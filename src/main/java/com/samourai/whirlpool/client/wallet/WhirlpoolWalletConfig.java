@@ -41,8 +41,6 @@ public class WhirlpoolWalletConfig extends WhirlpoolClientConfig implements ITx0
   private boolean autoMix;
   private String scode;
   private int tx0MaxOutputs;
-  private int tx0FakeOutputRandomFactor;
-  private int tx0FakeOutputMinValue;
   private Map<String, Long> overspend;
 
   private int tx0MinConfirmations;
@@ -95,8 +93,6 @@ public class WhirlpoolWalletConfig extends WhirlpoolClientConfig implements ITx0
     this.autoMix = true;
     this.scode = null;
     this.tx0MaxOutputs = 0;
-    this.tx0FakeOutputRandomFactor = 0;
-    this.tx0FakeOutputMinValue = 10000;
     this.overspend = new LinkedHashMap<String, Long>();
 
     // technical settings
@@ -243,22 +239,6 @@ public class WhirlpoolWalletConfig extends WhirlpoolClientConfig implements ITx0
     this.tx0MaxOutputs = tx0MaxOutputs;
   }
 
-  public int getTx0FakeOutputRandomFactor() {
-    return tx0FakeOutputRandomFactor;
-  }
-
-  public void setTx0FakeOutputRandomFactor(int tx0FakeOutputRandomFactor) {
-    this.tx0FakeOutputRandomFactor = tx0FakeOutputRandomFactor;
-  }
-
-  public int getTx0FakeOutputMinValue() {
-    return tx0FakeOutputMinValue;
-  }
-
-  public void setTx0FakeOutputMinValue(int tx0FakeOutputMinValue) {
-    this.tx0FakeOutputMinValue = tx0FakeOutputMinValue;
-  }
-
   public Long getOverspend(String poolId) {
     return overspend != null ? overspend.get(poolId) : null;
   }
@@ -403,10 +383,6 @@ public class WhirlpoolWalletConfig extends WhirlpoolClientConfig implements ITx0
             + (scode != null ? ClientUtils.maskString(scode) : "null")
             + ", tx0MaxOutputs="
             + tx0MaxOutputs
-            + ", tx0FakeOutputRandomFactor="
-            + tx0FakeOutputRandomFactor
-            + ", tx0FakeOutputMinValue="
-            + tx0FakeOutputMinValue
             + ", overspend="
             + (overspend != null ? overspend.toString() : "null"));
     configInfo.put(

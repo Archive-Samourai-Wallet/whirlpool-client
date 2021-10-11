@@ -438,14 +438,6 @@ public class ClientUtils {
     return spendValue;
   }
 
-  public static int countPrevTxs(Collection<UnspentOutput> spendFroms) {
-    Map<String, Boolean> mapByPrevTx = new LinkedHashMap<String, Boolean>();
-    for (UnspentOutput spendFrom : spendFroms) {
-      mapByPrevTx.put(spendFrom.tx_hash, true);
-    }
-    return mapByPrevTx.size();
-  }
-
   public static void createFile(File f) throws NotifiableException {
     if (!f.exists()) {
       if (log.isDebugEnabled()) {

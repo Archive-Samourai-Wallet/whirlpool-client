@@ -10,7 +10,6 @@ import com.samourai.wallet.send.SendFactoryGeneric;
 import com.samourai.wallet.send.provider.UtxoKeyProvider;
 import com.samourai.wallet.util.FeeUtil;
 import com.samourai.wallet.util.FormatsUtilGeneric;
-import com.samourai.wallet.util.RandomUtil;
 import com.samourai.whirlpool.client.exception.NotifiableException;
 import com.samourai.whirlpool.client.utils.BIP69InputComparatorUnspentOutput;
 import com.samourai.whirlpool.client.utils.ClientUtils;
@@ -405,7 +404,7 @@ public class Tx0Service {
     }
 
     if (feeValueOrFeeChange <= 0) {
-      throw new IllegalArgumentException("samouraiFeeOrBack should be > 0");
+      throw new IllegalArgumentException("feeValueOrFeeChange should be > 0");
     }
 
     // at least 1 premix
@@ -463,25 +462,21 @@ public class Tx0Service {
     //
     List<TransactionOutput> changeOutputs = new LinkedList<TransactionOutput>();
     if (changeValueTotal > 0) {
-      boolean useFakeOutputs = useFakeOutput(sortedSpendFroms);
-      long[] changeValues = computeChangeValues(changeValueTotal, useFakeOutputs);
-      for (long changeValue : changeValues) {
-        HD_Address changeAddress = changeWallet.getNextChangeAddress();
-        String changeAddressBech32 = bech32Util.toBech32(changeAddress, params);
-        TransactionOutput changeOutput =
-            bech32Util.getTransactionOutput(changeAddressBech32, changeValue, params);
-        outputs.add(changeOutput);
-        changeOutputs.add(changeOutput);
-        if (log.isDebugEnabled()) {
-          log.debug(
-              "Tx0 out (change): address="
-                  + changeAddressBech32
-                  + ", path="
-                  + changeAddress.toJSON().get("path")
-                  + " ("
-                  + changeValue
-                  + " sats)");
-        }
+      HD_Address changeAddress = changeWallet.getNextChangeAddress();
+      String changeAddressBech32 = bech32Util.toBech32(changeAddress, params);
+      TransactionOutput changeOutput =
+          bech32Util.getTransactionOutput(changeAddressBech32, changeValueTotal, params);
+      outputs.add(changeOutput);
+      changeOutputs.add(changeOutput);
+      if (log.isDebugEnabled()) {
+        log.debug(
+            "Tx0 out (change): address="
+                + changeAddressBech32
+                + ", path="
+                + changeAddress.toJSON().get("path")
+                + " ("
+                + changeValueTotal
+                + " sats)");
       }
     } else {
       if (log.isDebugEnabled()) {
@@ -543,61 +538,6 @@ public class Tx0Service {
 
     Tx0 tx0 = new Tx0(tx0Preview, tx, premixOutputs, changeOutputs);
     return tx0;
-  }
-
-  private boolean useFakeOutput(Collection<UnspentOutput> spendFroms) {
-    // experimental feature reserved for testnet
-    if (!FormatsUtilGeneric.getInstance().isTestNet(config.getNetworkParameters())) {
-      return false;
-    }
-
-    // single prev-tx => never
-    int nbPrevTxs = ClientUtils.countPrevTxs(spendFroms);
-    if (nbPrevTxs == 1) {
-      if (log.isDebugEnabled()) {
-        log.debug("useFakeOutput => false (nbPrevTxs=" + nbPrevTxs + ")");
-      }
-      return false;
-    }
-
-    int randomFactor = config.getTx0FakeOutputRandomFactor();
-    // 0 => never
-    if (randomFactor == 0) {
-      if (log.isDebugEnabled()) {
-        log.debug("useFakeOutput => false (randomFactor=" + randomFactor + ")");
-      }
-      return false;
-    }
-    // 1 => always
-    if (randomFactor == 1) {
-      if (log.isDebugEnabled()) {
-        log.debug("useFakeOutput => true (randomFactor=" + randomFactor + ")");
-      }
-      return true;
-    }
-    // random
-    boolean result = RandomUtil.getInstance().random(1, randomFactor) == 1;
-    if (log.isDebugEnabled()) {
-      log.debug("useFakeOutput => " + result + " (randomFactor=" + randomFactor + ")");
-    }
-    return result;
-  }
-
-  protected long[] computeChangeValues(long changeValueTotal, boolean useFakeOutput) {
-    final int VALUE_MIN = config.getTx0FakeOutputMinValue();
-    if (changeValueTotal < (2 * VALUE_MIN + 1)) {
-      // changeValueTotal too low for fake output
-      useFakeOutput = false;
-    }
-    if (useFakeOutput) {
-      // 2 change outputs
-      long changeValue1 = RandomUtil.getInstance().random(VALUE_MIN, changeValueTotal - VALUE_MIN);
-      long changeValue2 = changeValueTotal - changeValue1;
-      return new long[] {changeValue1, changeValue2};
-    } else {
-      // 1 change output
-      return new long[] {changeValueTotal};
-    }
   }
 
   protected void signTx0(Transaction tx, UtxoKeyProvider utxoKeyProvider) throws Exception {
