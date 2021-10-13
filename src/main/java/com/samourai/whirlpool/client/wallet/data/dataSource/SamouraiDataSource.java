@@ -16,6 +16,7 @@ import com.samourai.whirlpool.client.wallet.data.dataPersister.DataPersister;
 import com.samourai.whirlpool.client.wallet.data.walletState.WalletStateSupplier;
 import java.util.Collection;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java8.util.function.Predicate;
 import java8.util.stream.Collectors;
@@ -24,7 +25,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /** DataSource for Samourai/Dojo backend. */
-public class SamouraiDataSource extends WalletResponseDataSource {
+public class SamouraiDataSource extends WalletResponseDataSource
+    implements DataSourceWithStrictMode {
   private static final Logger log = LoggerFactory.getLogger(SamouraiDataSource.class);
 
   private static final int INITWALLET_RETRY = 3;
@@ -223,6 +225,11 @@ public class SamouraiDataSource extends WalletResponseDataSource {
   @Override
   public void pushTx(String txHex) throws Exception {
     backendApi.pushTx(txHex);
+  }
+
+  @Override
+  public void pushTx(String txHex, List<Integer> strictModeVouts) throws Exception {
+    backendApi.pushTx(txHex, strictModeVouts);
   }
 
   public BackendApi getBackendApi() {

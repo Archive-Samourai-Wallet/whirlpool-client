@@ -30,6 +30,9 @@ import java.security.interfaces.RSAPublicKey;
 import java.security.spec.X509EncodedKeySpec;
 import java.util.*;
 import java8.util.Optional;
+import java8.util.function.Function;
+import java8.util.stream.Collectors;
+import java8.util.stream.StreamSupport;
 import org.bitcoinj.core.*;
 import org.bouncycastle.crypto.params.RSAKeyParameters;
 import org.slf4j.Logger;
@@ -465,5 +468,24 @@ public class ClientUtils {
       }
     }
     return list;
+  }
+
+  public static Collection<Integer> getOutputIndexs(Collection<TransactionOutput> outputs) {
+    return StreamSupport.stream(outputs)
+        .map(
+            new Function<TransactionOutput, Integer>() {
+              @Override
+              public Integer apply(TransactionOutput output) {
+                return output.getIndex();
+              }
+            })
+        .collect(Collectors.<Integer>toList());
+  }
+
+  public static <B> Collection<B> intersect(Collection<B> a1, Collection<B> a2) {
+    Set<B> s1 = new HashSet<B>(a1);
+    Set<B> s2 = new HashSet<B>(a2);
+    s1.retainAll(s2);
+    return s1;
   }
 }

@@ -1,6 +1,7 @@
 package com.samourai.whirlpool.client.wallet;
 
 import com.google.common.primitives.Bytes;
+import com.samourai.wallet.api.backend.beans.PushTxAddressReuseException;
 import com.samourai.wallet.api.backend.beans.UnspentOutput;
 import com.samourai.wallet.client.BipWalletAndAddressType;
 import com.samourai.wallet.hd.AddressType;
@@ -21,6 +22,7 @@ import com.samourai.whirlpool.client.wallet.beans.*;
 import com.samourai.whirlpool.client.wallet.data.chain.ChainSupplier;
 import com.samourai.whirlpool.client.wallet.data.dataPersister.DataPersister;
 import com.samourai.whirlpool.client.wallet.data.dataSource.DataSource;
+import com.samourai.whirlpool.client.wallet.data.dataSource.DataSourceWithStrictMode;
 import com.samourai.whirlpool.client.wallet.data.minerFee.MinerFeeSupplier;
 import com.samourai.whirlpool.client.wallet.data.pool.PoolSupplier;
 import com.samourai.whirlpool.client.wallet.data.utxo.UtxoData;
@@ -35,12 +37,15 @@ import com.samourai.whirlpool.protocol.beans.Utxo;
 import com.samourai.whirlpool.protocol.rest.Tx0NotifyRequest;
 import io.reactivex.Observable;
 import java.util.Collection;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.Map;
 import java8.util.Optional;
 import java8.util.function.Function;
 import java8.util.stream.Collectors;
 import java8.util.stream.StreamSupport;
 import org.bitcoinj.core.NetworkParameters;
+import org.bitcoinj.core.TransactionOutput;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -200,36 +205,11 @@ public class WhirlpoolWallet {
       }
     }
 
-    // run tx0
     int initialPremixIndex = getWalletPremix().getIndexHandler().get();
+    int initialChangeIndex = getWalletDeposit().getIndexChangeHandler().get();
     try {
-      Tx0 tx0 =
-          tx0Service.tx0(
-              spendFroms,
-              getWalletDeposit(),
-              getWalletPremix(),
-              getWalletPostmix(),
-              getWalletBadbank(),
-              pool,
-              tx0Config,
-              getUtxoSupplier());
-
-      log.info(
-          " • Tx0 result: txid="
-              + tx0.getTx().getHashAsString()
-              + ", nbPremixs="
-              + tx0.getPremixOutputs().size());
-      if (log.isDebugEnabled()) {
-        log.debug(tx0.getTx().toString());
-      }
-
-      // pushTx
-      try {
-        pushTx(ClientUtils.getTxHex(tx0.getTx()));
-      } catch (Exception e) {
-        // preserve pushTx message
-        throw new NotifiableException(e.getMessage());
-      }
+      // run tx0
+      Tx0 tx0 = doTx0(spendFroms, tx0Config, pool);
 
       // notify
       WhirlpoolEventService.getInstance().post(new Tx0Event(this, tx0));
@@ -241,8 +221,106 @@ public class WhirlpoolWallet {
     } catch (Exception e) {
       // revert index
       getWalletPremix().getIndexHandler().set(initialPremixIndex);
+      getWalletDeposit().getIndexChangeHandler().set(initialChangeIndex);
       throw e;
     }
+  }
+
+  private Tx0 doTx0(Collection<UnspentOutput> spendFroms, Tx0Config tx0Config, Pool pool)
+      throws Exception {
+    Exception tx0Exception = null;
+
+    for (int i = 0; i < config.getTx0MaxRetry(); i++) {
+      int premixIndex = getWalletPremix().getIndexHandler().get();
+      int changeIndex = getWalletDeposit().getIndexChangeHandler().get();
+
+      Tx0 tx0 =
+          tx0Service.tx0(
+              spendFroms,
+              getWalletDeposit(),
+              getWalletPremix(),
+              getWalletPostmix(),
+              getWalletBadbank(),
+              pool,
+              tx0Config,
+              getUtxoSupplier());
+      try {
+        log.info(
+            " • Tx0 result: txid="
+                + tx0.getTx().getHashAsString()
+                + ", nbPremixs="
+                + tx0.getPremixOutputs().size());
+        if (log.isDebugEnabled()) {
+          log.debug(tx0.getTx().toString());
+        }
+
+        // pushTx with strict mode and retry on address reuse
+        pushTx0(tx0);
+        return tx0;
+      } catch (PushTxAddressReuseException e) {
+        List<Integer> addressReuseOutputIndexs = e.getAdressReuseOutputIndexs();
+
+        // manage premix address reuses
+        Collection<Integer> premixOutputIndexs =
+            ClientUtils.getOutputIndexs(tx0.getPremixOutputs());
+        boolean isPremixReuse =
+            !ClientUtils.intersect(addressReuseOutputIndexs, premixOutputIndexs).isEmpty();
+
+        // manage change address reuses
+        Collection<Integer> changeOutputIndexs =
+            ClientUtils.getOutputIndexs(tx0.getChangeOutputs());
+        boolean isChangeReuse =
+            !ClientUtils.intersect(addressReuseOutputIndexs, changeOutputIndexs).isEmpty();
+
+        // preserve pushTx message and retry with next index
+        log.warn(
+            "tx0 failed: "
+                + e.getMessage()
+                + ", attempt="
+                + i
+                + "/"
+                + config.getTx0MaxRetry()
+                + ", premixIndex="
+                + premixIndex
+                + ", changeIndex="
+                + changeIndex
+                + ", isPremixReuse="
+                + isPremixReuse
+                + ", isChangeReuse="
+                + isChangeReuse);
+
+        if (!isPremixReuse) {
+          getWalletPremix().getIndexHandler().set(premixIndex);
+        }
+        if (!isChangeReuse) {
+          getWalletDeposit().getIndexChangeHandler().set(changeIndex);
+        }
+
+        tx0Exception = new NotifiableException(e.getMessage());
+      }
+    }
+    throw tx0Exception;
+  }
+
+  private void pushTx0(Tx0 tx0) throws Exception {
+    String tx0Hex = ClientUtils.getTxHex(tx0.getTx());
+
+    if (!config.isTx0StrictMode() || !(dataSource instanceof DataSourceWithStrictMode)) {
+      // strict mode disabled
+      pushTx(tx0Hex);
+      return;
+    }
+
+    List<Integer> strictModeVouts = new LinkedList<Integer>();
+    // strict mode on premix
+    for (TransactionOutput premixOutput : tx0.getPremixOutputs()) {
+      strictModeVouts.add(premixOutput.getIndex());
+    }
+    // strict mode on change
+    for (TransactionOutput changeOutput : tx0.getChangeOutputs()) {
+      strictModeVouts.add(changeOutput.getIndex());
+    }
+    ((DataSourceWithStrictMode) dataSource).pushTx(tx0Hex, strictModeVouts);
   }
 
   private Collection<UnspentOutput> toUnspentOutputs(Collection<WhirlpoolUtxo> whirlpoolUtxos) {

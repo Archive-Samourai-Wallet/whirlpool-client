@@ -19,6 +19,7 @@ import com.samourai.whirlpool.protocol.WhirlpoolProtocol;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import org.apache.commons.lang3.StringUtils;
+import org.bitcoinj.core.ECKey;
 import org.bitcoinj.core.NetworkParameters;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -41,6 +42,8 @@ public class WhirlpoolWalletConfig extends WhirlpoolClientConfig implements ITx0
   private boolean autoMix;
   private String scode;
   private int tx0MaxOutputs;
+  private int tx0MaxRetry;
+  private boolean tx0StrictMode;
   private Map<String, Long> overspend;
 
   private int tx0MinConfirmations;
@@ -53,7 +56,6 @@ public class WhirlpoolWalletConfig extends WhirlpoolClientConfig implements ITx0
 
   private boolean resyncOnFirstRun;
   private boolean postmixIndexAutoFix;
-  private boolean strictMode;
   private int persistDelaySeconds;
   private String partner;
 
@@ -93,6 +95,8 @@ public class WhirlpoolWalletConfig extends WhirlpoolClientConfig implements ITx0
     this.autoMix = true;
     this.scode = null;
     this.tx0MaxOutputs = 0;
+    this.tx0MaxRetry = 5;
+    this.tx0StrictMode = true;
     this.overspend = new LinkedHashMap<String, Long>();
 
     // technical settings
@@ -106,7 +110,6 @@ public class WhirlpoolWalletConfig extends WhirlpoolClientConfig implements ITx0
 
     this.resyncOnFirstRun = false;
     this.postmixIndexAutoFix = true;
-    this.strictMode = true;
     this.persistDelaySeconds = 10;
     this.partner = WhirlpoolProtocol.PARTNER_ID_SAMOURAI;
 
@@ -125,6 +128,12 @@ public class WhirlpoolWalletConfig extends WhirlpoolClientConfig implements ITx0
     if (autoTx0Aggregate && StringUtils.isEmpty(autoTx0PoolId)) {
       throw new RuntimeException("--auto-tx0 is required for --auto-tx0-aggregate");
     }
+
+    // verify JCE provider doesn't throw any exception
+    ECKey ecKey = new ECKey();
+    secretPointFactory
+        .newSecretPoint(ecKey.getPrivKeyBytes(), ecKey.getPubKey())
+        .ECDHSecretAsBytes();
   }
 
   public DataSourceFactory getDataSourceFactory() {
@@ -239,6 +248,22 @@ public class WhirlpoolWalletConfig extends WhirlpoolClientConfig implements ITx0
     this.tx0MaxOutputs = tx0MaxOutputs;
   }
 
+  public int getTx0MaxRetry() {
+    return tx0MaxRetry;
+  }
+
+  public void setTx0MaxRetry(int tx0MaxRetry) {
+    this.tx0MaxRetry = tx0MaxRetry;
+  }
+
+  public boolean isTx0StrictMode() {
+    return tx0StrictMode;
+  }
+
+  public void setTx0StrictMode(boolean tx0StrictMode) {
+    this.tx0StrictMode = tx0StrictMode;
+  }
+
   public Long getOverspend(String poolId) {
     return overspend != null ? overspend.get(poolId) : null;
   }
@@ -311,14 +336,6 @@ public class WhirlpoolWalletConfig extends WhirlpoolClientConfig implements ITx0
     this.postmixIndexAutoFix = postmixIndexAutoFix;
   }
 
-  public boolean isStrictMode() {
-    return strictMode;
-  }
-
-  public void setStrictMode(boolean strictMode) {
-    this.strictMode = strictMode;
-  }
-
   public int getPersistDelaySeconds() {
     return persistDelaySeconds;
   }
@@ -381,15 +398,20 @@ public class WhirlpoolWalletConfig extends WhirlpoolClientConfig implements ITx0
             + isAutoMix()
             + ", scode="
             + (scode != null ? ClientUtils.maskString(scode) : "null")
-            + ", tx0MaxOutputs="
-            + tx0MaxOutputs
             + ", overspend="
             + (overspend != null ? overspend.toString() : "null"));
+    configInfo.put(
+        "tx0",
+        "tx0MaxOutputs="
+            + tx0MaxOutputs
+            + ", tx0MaxRetry="
+            + tx0MaxRetry
+            + ", tx0StrictMode="
+            + tx0StrictMode);
     configInfo.put(
         "fee", "fallback=" + getFeeFallback() + ", min=" + getFeeMin() + ", max=" + getFeeMax());
     configInfo.put("resyncOnFirstRun", Boolean.toString(resyncOnFirstRun));
     configInfo.put("autoFixPostmixIndex", Boolean.toString(postmixIndexAutoFix));
-    configInfo.put("strictMode", Boolean.toString(strictMode));
     configInfo.put("persistDelaySeconds", Integer.toString(persistDelaySeconds));
     return configInfo;
   }
