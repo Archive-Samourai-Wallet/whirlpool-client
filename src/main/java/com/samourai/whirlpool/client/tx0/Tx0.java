@@ -1,19 +1,19 @@
 package com.samourai.whirlpool.client.tx0;
 
-import java.util.Collection;
+import java.util.List;
 import org.bitcoinj.core.Transaction;
 import org.bitcoinj.core.TransactionOutput;
 
 public class Tx0 extends Tx0Preview {
   private Transaction tx;
-  private Collection<TransactionOutput> premixOutputs;
-  private Collection<TransactionOutput> changeOutputs;
+  private List<TransactionOutput> premixOutputs;
+  private List<TransactionOutput> changeOutputs;
 
   public Tx0(
       Tx0Preview tx0Preview,
       Transaction tx,
-      Collection<TransactionOutput> premixOutputs,
-      Collection<TransactionOutput> changeOutputs) {
+      List<TransactionOutput> premixOutputs,
+      List<TransactionOutput> changeOutputs) {
     super(tx0Preview);
     this.tx = tx;
     this.premixOutputs = premixOutputs;
@@ -24,11 +24,11 @@ public class Tx0 extends Tx0Preview {
     return tx;
   }
 
-  public Collection<TransactionOutput> getPremixOutputs() {
+  public List<TransactionOutput> getPremixOutputs() {
     return premixOutputs;
   }
 
-  public Collection<TransactionOutput> getChangeOutputs() {
+  public List<TransactionOutput> getChangeOutputs() {
     return changeOutputs;
   }
 }

@@ -244,18 +244,26 @@ public class WhirlpoolWallet {
               pool,
               tx0Config,
               getUtxoSupplier());
-      try {
-        log.info(
-            " • Tx0 result: txid="
-                + tx0.getTx().getHashAsString()
-                + ", nbPremixs="
-                + tx0.getPremixOutputs().size());
-        if (log.isDebugEnabled()) {
-          log.debug(tx0.getTx().toString());
-        }
 
-        // pushTx with strict mode and retry on address reuse
-        pushTx0(tx0);
+      log.info(
+              " • Tx0 result: txid="
+                      + tx0.getTx().getHashAsString()
+                      + ", nbPremixs="
+                      + tx0.getPremixOutputs().size());
+      if (log.isDebugEnabled()) {
+        log.debug(tx0.getTx().toString());
+      }
+
+      // standard pushTx
+      if (!config.isTx0StrictMode() || !(dataSource instanceof DataSourceWithStrictMode)) {
+        String tx0Hex = ClientUtils.getTxHex(tx0.getTx());
+        pushTx(tx0Hex);
+        return tx0;
+      }
+
+      // pushTx with strict mode and retry on address reuse
+      try {
+        pushTx0StrictMode(tx0);
         return tx0;
       } catch (PushTxAddressReuseException e) {
         List<Integer> addressReuseOutputIndexs = e.getAdressReuseOutputIndexs();
@@ -289,6 +297,7 @@ public class WhirlpoolWallet {
                 + ", isChangeReuse="
                 + isChangeReuse);
 
+        // revert non-reused indexs for next retry
         if (!isPremixReuse) {
           getWalletPremix().getIndexHandler().set(premixIndex);
         }
@@ -302,14 +311,8 @@ public class WhirlpoolWallet {
     throw tx0Exception;
   }
 
-  private void pushTx0(Tx0 tx0) throws Exception {
+  private void pushTx0StrictMode(Tx0 tx0) throws Exception {
     String tx0Hex = ClientUtils.getTxHex(tx0.getTx());
-
-    if (!config.isTx0StrictMode() || !(dataSource instanceof DataSourceWithStrictMode)) {
-      // strict mode disabled
-      pushTx(tx0Hex);
-      return;
-    }
 
     List<Integer> strictModeVouts = new LinkedList<Integer>();
     // strict mode on premix
