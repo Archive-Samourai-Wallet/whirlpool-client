@@ -6,6 +6,7 @@ import com.samourai.tor.client.TorClientService;
 import com.samourai.wallet.bip47.rpc.java.SecretPointFactoryJava;
 import com.samourai.wallet.bip47.rpc.secretPoint.ISecretPointFactory;
 import com.samourai.wallet.util.FormatsUtilGeneric;
+import com.samourai.whirlpool.client.exception.NotifiableException;
 import com.samourai.whirlpool.client.tx0.ITx0ParamServiceConfig;
 import com.samourai.whirlpool.client.utils.ClientUtils;
 import com.samourai.whirlpool.client.wallet.beans.IndexRange;
@@ -130,10 +131,19 @@ public class WhirlpoolWalletConfig extends WhirlpoolClientConfig implements ITx0
     }
 
     // verify JCE provider doesn't throw any exception
-    ECKey ecKey = new ECKey();
-    secretPointFactory
-        .newSecretPoint(ecKey.getPrivKeyBytes(), ecKey.getPubKey())
-        .ECDHSecretAsBytes();
+    try {
+      ECKey ecKey = new ECKey();
+      secretPointFactory
+          .newSecretPoint(ecKey.getPrivKeyBytes(), ecKey.getPubKey())
+          .ECDHSecretAsBytes();
+    } catch (Exception e) {
+      log.error("secretPointFactory not supported", e);
+      String javaVersion = System.getProperty("java.version");
+      throw new NotifiableException(
+          "Java version not supported, please use a another Java runtime (current: "
+              + javaVersion
+              + ", recommended: OpenJDK 8-11).");
+    }
   }
 
   public DataSourceFactory getDataSourceFactory() {
