@@ -121,6 +121,9 @@ public class ClientUtils {
   }
 
   public static String getHttpResponseBody(Throwable e) {
+    if (!(e instanceof HttpException) && e.getCause() != null) {
+      e = e.getCause(); // blockingGet from CLI wraps errors in RuntimeException
+    }
     if (e instanceof HttpException) {
       return ((HttpException) e).getResponseBody();
     }

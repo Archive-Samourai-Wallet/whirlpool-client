@@ -131,8 +131,7 @@ public class PostmixIndexService {
         // => return inclusive range
         return Pair.of(leftIndex, postmixIndex);
 
-      } catch (RuntimeException runtimeException) { // blockingGet wraps errors in RuntimeException
-        Throwable e = runtimeException.getCause();
+      } catch (Exception e) {
         String restErrorMessage = ClientUtils.parseRestErrorMessage(e);
         if (restErrorMessage != null
             && CHECKOUTPUT_ERROR_OUTPUT_ALREADY_REGISTERED.equals(restErrorMessage)) {
@@ -147,7 +146,7 @@ public class PostmixIndexService {
           } catch (InterruptedException ee) {
           }
         } else {
-          throw runtimeException;
+          throw e;
         }
       }
     }

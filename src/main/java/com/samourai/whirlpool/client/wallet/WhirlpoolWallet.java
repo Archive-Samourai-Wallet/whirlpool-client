@@ -246,10 +246,10 @@ public class WhirlpoolWallet {
               getUtxoSupplier());
 
       log.info(
-              " • Tx0 result: txid="
-                      + tx0.getTx().getHashAsString()
-                      + ", nbPremixs="
-                      + tx0.getPremixOutputs().size());
+          " • Tx0 result: txid="
+              + tx0.getTx().getHashAsString()
+              + ", nbPremixs="
+              + tx0.getPremixOutputs().size());
       if (log.isDebugEnabled()) {
         log.debug(tx0.getTx().toString());
       }
