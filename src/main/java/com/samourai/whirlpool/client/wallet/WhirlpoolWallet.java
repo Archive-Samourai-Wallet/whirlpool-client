@@ -673,10 +673,16 @@ public class WhirlpoolWallet {
 
       case INPUT_REJECTED:
       case INTERNAL_ERROR:
-      case STOP:
-      case CANCEL:
         // not retrying
         log.warn("onMixFail(" + failReason + "): won't retry");
+        break;
+
+      case STOP:
+      case CANCEL:
+        // not retrying, silently
+        if (log.isDebugEnabled()) {
+          log.debug("onMixFail(" + failReason + "): won't retry");
+        }
         break;
 
       default:
