@@ -174,10 +174,10 @@ public abstract class WalletResponseDataSource implements DataSource {
         walletStateSupplier
             .getIndexHandlerWallet(
                 bipWallet.getAccount(), bipWallet.getAddressType(), Chain.RECEIVE)
-            .set(address.account_index);
+            .set(address.account_index, false);
         walletStateSupplier
             .getIndexHandlerWallet(bipWallet.getAccount(), bipWallet.getAddressType(), Chain.CHANGE)
-            .set(address.change_index);
+            .set(address.change_index, false);
       } else {
         log.error("No wallet found for: " + pub);
       }

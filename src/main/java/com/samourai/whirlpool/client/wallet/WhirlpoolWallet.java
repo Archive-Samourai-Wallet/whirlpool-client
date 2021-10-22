@@ -220,8 +220,8 @@ public class WhirlpoolWallet {
       return tx0;
     } catch (Exception e) {
       // revert index
-      getWalletPremix().getIndexHandler().set(initialPremixIndex);
-      getWalletDeposit().getIndexChangeHandler().set(initialChangeIndex);
+      getWalletPremix().getIndexHandler().set(initialPremixIndex, true);
+      getWalletDeposit().getIndexChangeHandler().set(initialChangeIndex, true);
       throw e;
     }
   }
@@ -299,10 +299,10 @@ public class WhirlpoolWallet {
 
         // revert non-reused indexs for next retry
         if (!isPremixReuse) {
-          getWalletPremix().getIndexHandler().set(premixIndex);
+          getWalletPremix().getIndexHandler().set(premixIndex, true);
         }
         if (!isChangeReuse) {
-          getWalletDeposit().getIndexChangeHandler().set(changeIndex);
+          getWalletDeposit().getIndexChangeHandler().set(changeIndex, true);
         }
 
         tx0Exception = new NotifiableException(e.getMessage());

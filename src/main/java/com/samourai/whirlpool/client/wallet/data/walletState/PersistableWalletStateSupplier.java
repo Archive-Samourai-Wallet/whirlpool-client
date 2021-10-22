@@ -55,7 +55,7 @@ public class PersistableWalletStateSupplier extends BasicPersistableSupplier<Wal
       }
 
       @Override
-      public void set(int value) {
+      protected void set(int value) {
         getValue().set(persistKey, value);
         if (log.isDebugEnabled()) {
           log.debug("set: [" + persistKey + "]=" + value);
