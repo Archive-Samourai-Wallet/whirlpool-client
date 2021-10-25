@@ -68,18 +68,15 @@ public class MixOrchestratorImpl extends MixOrchestrator {
         utxoState.setStatusMixing(
             WhirlpoolUtxoStatus.MIX_SUCCESS, true, mixParams, MixStep.SUCCESS);
 
+        // remove from mixings
+        orchestratorListener.success(receiveUtxo);
+
         // notify
         whirlpoolWallet.onMixSuccess(mixParams, receiveUtxo);
-
-        // manage orchestrator
-        orchestratorListener.success(receiveUtxo);
       }
 
       @Override
       public void fail(MixFailReason reason, String notifiableError) {
-        // notify BEFORE updating utxo (because it erases utxoState.mixProgress)
-        whirlpoolWallet.onMixFail(mixParams, reason, notifiableError);
-
         // update utxo
         String error = reason.getMessage();
         if (notifiableError != null) {
@@ -93,11 +90,15 @@ public class MixOrchestratorImpl extends MixOrchestrator {
           // silent cancel
           utxoState.setStatus(WhirlpoolUtxoStatus.READY, false);
         } else {
+          // mix failure
           utxoState.setStatusMixingError(WhirlpoolUtxoStatus.MIX_FAILED, mixParams, error);
         }
 
-        // manage orchestrator
+        // remove from mixings
         orchestratorListener.fail(reason, notifiableError);
+
+        // notify & re-add to mixQueue...
+        whirlpoolWallet.onMixFail(mixParams, reason, notifiableError);
       }
 
       @Override
@@ -106,11 +107,11 @@ public class MixOrchestratorImpl extends MixOrchestrator {
         WhirlpoolUtxoState utxoState = whirlpoolUtxo.getUtxoState();
         utxoState.setStatusMixing(utxoState.getStatus(), true, mixParams, mixStep);
 
-        // notify
-        whirlpoolWallet.onMixProgress(mixParams);
-
         // manage orchestrator
         orchestratorListener.progress(mixStep);
+
+        // notify
+        whirlpoolWallet.onMixProgress(mixParams);
       }
     };
   }

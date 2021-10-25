@@ -663,6 +663,8 @@ public class WhirlpoolWallet {
 
       case DISCONNECTED:
       case MIX_FAILED:
+      case INPUT_REJECTED:
+      case INTERNAL_ERROR:
         // retry later
         log.info("onMixFail(" + failReason + "): will retry later");
         try {
@@ -670,12 +672,6 @@ public class WhirlpoolWallet {
         } catch (Exception e) {
           log.error("", e);
         }
-        break;
-
-      case INPUT_REJECTED:
-      case INTERNAL_ERROR:
-        // not retrying
-        log.warn("onMixFail(" + failReason + "): won't retry");
         break;
 
       case STOP:
