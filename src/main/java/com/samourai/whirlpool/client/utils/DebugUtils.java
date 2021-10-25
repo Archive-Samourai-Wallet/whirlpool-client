@@ -150,7 +150,8 @@ public class DebugUtils {
   }
 
   public static String getDebugUtxos(Collection<WhirlpoolUtxo> utxos, int latestBlockHeight) {
-    String lineFormat = "| %10s | %7s | %68s | %45s | %13s | %27s | %14s | %8s | %8s | %4s |\n";
+    String lineFormat =
+        "| %10s | %7s | %68s | %45s | %13s | %27s | %14s | %8s | %8s | %4s | %19s | %19s |\n";
     StringBuilder sb = new StringBuilder().append("\n");
     sb.append(
         String.format(
@@ -164,9 +165,12 @@ public class DebugUtils {
                 "STATUS",
                 "MIXABLE",
                 "POOL",
-                "MIXS")
+                "MIXS",
+                "ACTIVITY",
+                "ERROR")
             + "\n");
-    sb.append(String.format(lineFormat, "(btc)", "", "", "", "", "", "", "", "", "") + "\n");
+    sb.append(
+        String.format(lineFormat, "(btc)", "", "", "", "", "", "", "", "", "", "", "") + "\n");
     Iterator var3 = utxos.iterator();
 
     while (var3.hasNext()) {
@@ -176,6 +180,18 @@ public class DebugUtils {
       String utxo = o.tx_hash + ":" + o.tx_output_n;
       String mixableStatusName =
           utxoState.getMixableStatus() != null ? utxoState.getMixableStatus().name() : "-";
+      Long lastActivity = whirlpoolUtxo.getUtxoState().getLastActivity();
+      String activity =
+          (lastActivity != null ? ClientUtils.dateToString(lastActivity) + " " : "")
+              + (whirlpoolUtxo.getUtxoState().getMessage() != null
+                  ? whirlpoolUtxo.getUtxoState().getMessage()
+                  : "");
+      Long lastError = whirlpoolUtxo.getUtxoState().getLastError();
+      String error =
+          (lastError != null ? ClientUtils.dateToString(lastError) + " " : "")
+              + (whirlpoolUtxo.getUtxoState().getError() != null
+                  ? whirlpoolUtxo.getUtxoState().getError()
+                  : "");
       sb.append(
           String.format(
               lineFormat,
@@ -190,7 +206,9 @@ public class DebugUtils {
               whirlpoolUtxo.getUtxoState().getPoolId() != null
                   ? whirlpoolUtxo.getUtxoState().getPoolId()
                   : "-",
-              whirlpoolUtxo.getMixsDone()));
+              whirlpoolUtxo.getMixsDone(),
+              activity,
+              error));
     }
     return sb.toString();
   }
@@ -299,18 +317,17 @@ public class DebugUtils {
         UnspentOutput o = whirlpoolUtxo.getUtxo();
         String utxo = o.tx_hash + ":" + o.tx_output_n;
         Long lastActivity = whirlpoolUtxo.getUtxoState().getLastActivity();
-        String message =
-            (whirlpoolUtxo.getUtxoState().getMessage() != null
+        String activity =
+            (lastActivity != null ? ClientUtils.dateToString(lastActivity) + " " : "")
+                + (whirlpoolUtxo.getUtxoState().getMessage() != null
                     ? whirlpoolUtxo.getUtxoState().getMessage()
-                    : "")
-                + " "
-                + (lastActivity != null ? ClientUtils.dateToString(lastActivity) : "");
+                    : "");
+        Long lastError = whirlpoolUtxo.getUtxoState().getLastError();
         String error =
-            whirlpoolUtxo.getUtxoState().getError() != null
-                ? whirlpoolUtxo.getUtxoState().getError()
-                    + " "
-                    + ClientUtils.dateToString(whirlpoolUtxo.getUtxoState().getLastError())
-                : "";
+            (lastError != null ? ClientUtils.dateToString(lastError) + " " : "")
+                + (whirlpoolUtxo.getUtxoState().getError() != null
+                    ? whirlpoolUtxo.getUtxoState().getError()
+                    : "");
         sb.append(
             String.format(
                     lineFormat,
@@ -323,7 +340,7 @@ public class DebugUtils {
                     o.getPath(),
                     mixProgress.getPoolId() != null ? mixProgress.getPoolId() : "-",
                     whirlpoolUtxo.getMixsDone(),
-                    message,
+                    activity,
                     error)
                 + "\n");
       }

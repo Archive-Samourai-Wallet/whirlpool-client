@@ -425,7 +425,7 @@ public class ClientUtils {
   }
 
   public static String dateToString(long timestamp) {
-    return new SimpleDateFormat("yyyy-mm-dd HH:mm:ss").format(timestamp);
+    return new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(timestamp);
   }
 
   public static long bytesToMB(long bytes) {

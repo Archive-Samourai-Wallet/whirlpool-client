@@ -121,7 +121,7 @@ public abstract class MixOrchestrator extends AbstractOrchestrator {
             new Consumer<WhirlpoolUtxo>() {
               @Override
               public void accept(WhirlpoolUtxo whirlpoolUtxo) {
-                whirlpoolUtxo.getUtxoState().setStatus(WhirlpoolUtxoStatus.READY, false);
+                whirlpoolUtxo.getUtxoState().setStatus(WhirlpoolUtxoStatus.READY, false, false);
               }
             });
   }
@@ -390,7 +390,7 @@ public abstract class MixOrchestrator extends AbstractOrchestrator {
     }
 
     // add to queue
-    utxoState.setStatus(WhirlpoolUtxoStatus.MIX_QUEUE, false);
+    utxoState.setStatus(WhirlpoolUtxoStatus.MIX_QUEUE, false, false);
     data.getMixingState().incrementUtxoQueued(whirlpoolUtxo);
     if (notify) {
       notifyOrchestrator();
@@ -426,7 +426,7 @@ public abstract class MixOrchestrator extends AbstractOrchestrator {
       boolean wasQueued = WhirlpoolUtxoStatus.MIX_QUEUE.equals(utxoState.getStatus());
       WhirlpoolUtxoStatus utxoStatus =
           cancel ? WhirlpoolUtxoStatus.READY : WhirlpoolUtxoStatus.STOP;
-      utxoState.setStatus(utxoStatus, false);
+      utxoState.setStatus(utxoStatus, false, false);
 
       // recount QUEUE if it was queued
       if (wasQueued) {

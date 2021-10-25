@@ -85,10 +85,10 @@ public class MixOrchestratorImpl extends MixOrchestrator {
         WhirlpoolUtxoState utxoState = whirlpoolUtxo.getUtxoState();
         if (reason == MixFailReason.STOP) {
           // silent stop
-          utxoState.setStatus(WhirlpoolUtxoStatus.STOP, false);
+          utxoState.setStatus(WhirlpoolUtxoStatus.STOP, false, false);
         } else if (reason == MixFailReason.CANCEL) {
           // silent cancel
-          utxoState.setStatus(WhirlpoolUtxoStatus.READY, false);
+          utxoState.setStatus(WhirlpoolUtxoStatus.READY, false, false);
         } else {
           // mix failure
           utxoState.setStatusMixingError(WhirlpoolUtxoStatus.MIX_FAILED, mixParams, error);

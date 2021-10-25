@@ -171,7 +171,7 @@ public class WhirlpoolWallet {
 
     // set utxos status
     for (WhirlpoolUtxo whirlpoolUtxo : whirlpoolUtxos) {
-      whirlpoolUtxo.getUtxoState().setStatus(WhirlpoolUtxoStatus.TX0, true);
+      whirlpoolUtxo.getUtxoState().setStatus(WhirlpoolUtxoStatus.TX0, true, true);
     }
     try {
       // run
@@ -180,7 +180,7 @@ public class WhirlpoolWallet {
       // success
       for (WhirlpoolUtxo whirlpoolUtxo : whirlpoolUtxos) {
         WhirlpoolUtxoState utxoState = whirlpoolUtxo.getUtxoState();
-        utxoState.setStatus(WhirlpoolUtxoStatus.TX0_SUCCESS, true);
+        utxoState.setStatus(WhirlpoolUtxoStatus.TX0_SUCCESS, true, true);
       }
 
       return tx0;
