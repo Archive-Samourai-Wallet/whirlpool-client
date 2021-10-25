@@ -84,7 +84,9 @@ public class SamouraiDataSource extends WalletResponseDataSource
       }
       try {
         Map<String, TxsResponse.Tx> postmixTxs = fetchTxsPostmix();
-        new MixsDoneResyncManager().resync(postmixUtxos, postmixTxs);
+        int adjustCounter =
+            1; // first mix only appears in PREMIX txs instead of POSTMIX for SamouraiDataSource
+        new MixsDoneResyncManager().resync(postmixUtxos, postmixTxs, adjustCounter);
       } catch (Exception e) {
         log.error("", e);
       }
@@ -92,7 +94,11 @@ public class SamouraiDataSource extends WalletResponseDataSource
   }
 
   private Map<String, TxsResponse.Tx> fetchTxsPostmix() throws Exception {
-    String[] zpubs = new String[] {getWhirlpoolWallet().getWalletPostmix().getPub()};
+    String[] zpubs =
+        new String[] {
+          getWhirlpoolWallet().getWalletPremix().getPub(),
+          getWhirlpoolWallet().getWalletPostmix().getPub()
+        };
 
     Map<String, TxsResponse.Tx> txs = new LinkedHashMap<String, TxsResponse.Tx>();
     int page = -1;

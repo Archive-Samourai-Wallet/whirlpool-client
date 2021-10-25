@@ -13,9 +13,14 @@ public class MixsDoneResyncManager {
   public MixsDoneResyncManager() {}
 
   public void resync(Collection<WhirlpoolUtxo> postmixUtxos, Map<String, TxsResponse.Tx> txs) {
+    resync(postmixUtxos, txs, 0);
+  }
+
+  public void resync(
+      Collection<WhirlpoolUtxo> postmixUtxos, Map<String, TxsResponse.Tx> txs, int adjustCounter) {
     log.info("Resynchronizing mix counters...");
 
-    int fixedUtxos = 0;
+    int fixedUtxos = adjustCounter;
     for (WhirlpoolUtxo whirlpoolUtxo : postmixUtxos) {
       int mixsDone = recountMixsDone(whirlpoolUtxo, txs);
       if (mixsDone != whirlpoolUtxo.getMixsDone()) {
@@ -37,15 +42,14 @@ public class MixsDoneResyncManager {
 
   private int recountMixsDone(WhirlpoolUtxo whirlpoolUtxo, Map<String, TxsResponse.Tx> txs) {
     int mixsDone = 0;
-
     String txid = whirlpoolUtxo.getUtxo().tx_hash;
     while (true) {
       TxsResponse.Tx tx = txs.get(txid);
-      mixsDone++;
       if (tx == null || tx.inputs == null || tx.inputs.length == 0) {
         return mixsDone;
       }
       txid = tx.inputs[0].prev_out.txid;
+      mixsDone++;
     }
   }
 }
