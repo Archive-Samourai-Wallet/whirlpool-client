@@ -318,6 +318,9 @@ public class JavaExample {
 
     // subscribe events for this class (see @Subscribe methods below)
     WhirlpoolEventService.getInstance().register(this);
+
+    // get debug info
+    String debug = whirlpoolWallet.getDebug();
   }
 
   // OBSERVE EVENTS

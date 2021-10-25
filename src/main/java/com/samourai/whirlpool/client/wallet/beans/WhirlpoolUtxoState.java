@@ -2,6 +2,7 @@ package com.samourai.whirlpool.client.wallet.beans;
 
 import com.samourai.whirlpool.client.mix.MixParams;
 import com.samourai.whirlpool.client.mix.listener.MixStep;
+import com.samourai.whirlpool.client.utils.ClientUtils;
 import io.reactivex.Observable;
 import io.reactivex.subjects.BehaviorSubject;
 import io.reactivex.subjects.Subject;
@@ -151,6 +152,7 @@ public class WhirlpoolUtxoState {
         + (mixableStatus != null ? mixableStatus : "null")
         + (hasMessage() ? ", message=" + message : "")
         + (hasError() ? ", error=" + error : "")
-        + (lastError != null ? ", lastError=" + lastError : "");
+        + (lastActivity != null ? ", lastActivity=" + ClientUtils.dateToString(lastActivity) : "")
+        + (lastError != null ? ", lastError=" + ClientUtils.dateToString(lastError) : "");
   }
 }

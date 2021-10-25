@@ -11,6 +11,7 @@ import com.samourai.wallet.util.FeeUtil;
 import com.samourai.wallet.util.FormatsUtilGeneric;
 import com.samourai.whirlpool.client.exception.NotifiableException;
 import com.samourai.whirlpool.client.utils.ClientUtils;
+import com.samourai.whirlpool.client.utils.DebugUtils;
 import com.samourai.whirlpool.client.wallet.beans.WhirlpoolAccount;
 import com.samourai.whirlpool.client.wallet.beans.WhirlpoolUtxo;
 import java.util.ArrayList;
@@ -97,8 +98,9 @@ public class WalletAggregateService {
               + ":"
               + destinationWallet.getAddressType()
               + "):");
-      ClientUtils.logWhirlpoolUtxos(
-          utxos, whirlpoolWallet.getChainSupplier().getLatestBlock().height);
+      log.info(
+          DebugUtils.getDebugUtxos(
+              utxos, whirlpoolWallet.getChainSupplier().getLatestBlock().height));
     }
 
     boolean success = false;

@@ -150,10 +150,23 @@ public class WhirlpoolUtxo {
         + ": "
         + utxo.toString()
         + ", blockHeight="
-        + (blockHeight != null ? blockHeight : "unconfirmed")
+        + (blockHeight != null ? blockHeight : "null")
+        + ", state={"
         + utxoState
-        + ", utxoConfig={"
+        + "}, utxoConfig={"
         + utxoConfig
         + "}";
+  }
+
+  public String getDebug() {
+    StringBuilder sb = new StringBuilder();
+    sb.append(toString());
+    sb.append(", path=").append(getPathFull());
+
+    String poolId = getUtxoState().getPoolId();
+    sb.append(", poolId=").append((poolId != null ? poolId : "null"));
+    sb.append(", mixsDone=").append(getMixsDone());
+    sb.append(", state={").append(getUtxoState().toString()).append("}");
+    return sb.toString();
   }
 }

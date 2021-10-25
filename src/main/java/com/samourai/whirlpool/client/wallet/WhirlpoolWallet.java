@@ -18,6 +18,7 @@ import com.samourai.whirlpool.client.mix.listener.MixFailReason;
 import com.samourai.whirlpool.client.mix.listener.MixStep;
 import com.samourai.whirlpool.client.tx0.*;
 import com.samourai.whirlpool.client.utils.ClientUtils;
+import com.samourai.whirlpool.client.utils.DebugUtils;
 import com.samourai.whirlpool.client.wallet.beans.*;
 import com.samourai.whirlpool.client.wallet.data.chain.ChainSupplier;
 import com.samourai.whirlpool.client.wallet.data.dataPersister.DataPersister;
@@ -784,6 +785,10 @@ public class WhirlpoolWallet {
 
     // refresh
     getUtxoSupplier().refresh();
+  }
+
+  public String getDebug() {
+    return DebugUtils.getDebug(this);
   }
 
   public MixingState getMixingState() {

@@ -6,15 +6,12 @@ import com.google.common.io.Files;
 import com.samourai.wallet.api.backend.beans.HttpException;
 import com.samourai.wallet.api.backend.beans.UnspentOutput;
 import com.samourai.wallet.client.indexHandler.IIndexHandler;
-import com.samourai.wallet.hd.AddressType;
 import com.samourai.wallet.segwit.bech32.Bech32UtilGeneric;
 import com.samourai.wallet.util.CallbackWithArg;
 import com.samourai.wallet.util.FeeUtil;
 import com.samourai.wallet.util.FormatsUtilGeneric;
 import com.samourai.whirlpool.client.exception.NotifiableException;
 import com.samourai.whirlpool.client.wallet.beans.IndexRange;
-import com.samourai.whirlpool.client.wallet.beans.WhirlpoolUtxo;
-import com.samourai.whirlpool.client.wallet.beans.WhirlpoolUtxoState;
 import com.samourai.whirlpool.protocol.WhirlpoolProtocol;
 import com.samourai.whirlpool.protocol.beans.Utxo;
 import com.samourai.whirlpool.protocol.rest.RestErrorResponse;
@@ -28,6 +25,7 @@ import java.security.KeyFactory;
 import java.security.SecureRandom;
 import java.security.interfaces.RSAPublicKey;
 import java.security.spec.X509EncodedKeySpec;
+import java.text.SimpleDateFormat;
 import java.util.*;
 import java8.util.Optional;
 import java8.util.function.Function;
@@ -167,72 +165,6 @@ public class ClientUtils {
       index = postmixIndexHandler.getAndIncrementUnconfirmed();
     } while (index % 2 != modulo);
     return index;
-  }
-
-  public static void logUtxos(
-      Collection<UnspentOutput> utxos, int purpose, int accountIndex, NetworkParameters params) {
-    String lineFormat = "| %10s | %7s | %68s | %45s | %18s |\n";
-    StringBuilder sb = new StringBuilder();
-    sb.append(String.format(lineFormat, "BALANCE", "CONFIRM", "UTXO", "ADDRESS", "TYPE", "PATH"));
-    sb.append(String.format(lineFormat, "(btc)", "", "", "", "", ""));
-    for (UnspentOutput o : utxos) {
-      String utxo = o.tx_hash + ":" + o.tx_output_n;
-      sb.append(
-          String.format(
-              lineFormat,
-              satToBtc(o.value),
-              o.confirmations,
-              utxo,
-              o.addr,
-              AddressType.findByAddress(o.addr, params),
-              o.getPathFull(purpose, accountIndex)));
-    }
-    log.info("\n" + sb.toString());
-  }
-
-  public static void logWhirlpoolUtxos(Collection<WhirlpoolUtxo> utxos, int latestBlockHeight) {
-    String lineFormat = "| %10s | %7s | %68s | %45s | %13s | %27s | %14s | %8s | %8s | %4s |\n";
-    StringBuilder sb = new StringBuilder();
-    sb.append(
-        String.format(
-            lineFormat,
-            "BALANCE",
-            "CONFIRM",
-            "UTXO",
-            "ADDRESS",
-            "TYPE",
-            "PATH",
-            "STATUS",
-            "MIXABLE",
-            "POOL",
-            "MIXS"));
-    sb.append(String.format(lineFormat, "(btc)", "", "", "", "", "", "", "", "", ""));
-    Iterator var3 = utxos.iterator();
-
-    while (var3.hasNext()) {
-      WhirlpoolUtxo whirlpoolUtxo = (WhirlpoolUtxo) var3.next();
-      WhirlpoolUtxoState utxoState = whirlpoolUtxo.getUtxoState();
-      UnspentOutput o = whirlpoolUtxo.getUtxo();
-      String utxo = o.tx_hash + ":" + o.tx_output_n;
-      String mixableStatusName =
-          utxoState.getMixableStatus() != null ? utxoState.getMixableStatus().name() : "-";
-      sb.append(
-          String.format(
-              lineFormat,
-              ClientUtils.satToBtc(o.value),
-              whirlpoolUtxo.computeConfirmations(latestBlockHeight),
-              utxo,
-              o.addr,
-              whirlpoolUtxo.getAddressType(),
-              whirlpoolUtxo.getPathFull(),
-              utxoState.getStatus().name(),
-              mixableStatusName,
-              whirlpoolUtxo.getUtxoState().getPoolId() != null
-                  ? whirlpoolUtxo.getUtxoState().getPoolId()
-                  : "-",
-              whirlpoolUtxo.getMixsDone()));
-    }
-    log.info("\n" + sb.toString());
   }
 
   public static double satToBtc(long sat) {
@@ -490,5 +422,13 @@ public class ClientUtils {
     Set<B> s2 = new HashSet<B>(a2);
     s1.retainAll(s2);
     return s1;
+  }
+
+  public static String dateToString(long timestamp) {
+    return new SimpleDateFormat("yyyy-mm-dd HH:mm:ss").format(timestamp);
+  }
+
+  public static long bytesToMB(long bytes) {
+    return Math.round(bytes / (1024L * 1024L));
   }
 }

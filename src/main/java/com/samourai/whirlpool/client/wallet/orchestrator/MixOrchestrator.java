@@ -368,12 +368,16 @@ public abstract class MixOrchestrator extends AbstractOrchestrator {
     WhirlpoolUtxoStatus utxoStatus = utxoState.getStatus();
     if (WhirlpoolUtxoStatus.MIX_QUEUE.equals(utxoStatus)) {
       // already queued
-      log.warn("mixQueue ignored: utxo already queued for " + whirlpoolUtxo);
+      if (log.isDebugEnabled()) {
+        log.debug("mixQueue ignored: utxo already queued for " + whirlpoolUtxo);
+      }
       return;
     }
     if (data.getMixing(whirlpoolUtxo.getUtxo()) != null
         || WhirlpoolUtxoStatus.MIX_SUCCESS.equals(utxoStatus)) {
-      log.warn("mixQueue ignored: utxo already mixing for " + whirlpoolUtxo);
+      if (log.isDebugEnabled()) {
+        log.debug("mixQueue ignored: utxo already mixing for " + whirlpoolUtxo);
+      }
       return;
     }
     if (!WhirlpoolUtxoStatus.MIX_FAILED.equals(utxoStatus)
