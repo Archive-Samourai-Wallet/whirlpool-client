@@ -5,7 +5,6 @@ import com.samourai.whirlpool.client.exception.AutoTx0InsufficientBalanceExcepti
 import com.samourai.whirlpool.client.exception.NotifiableException;
 import com.samourai.whirlpool.client.tx0.Tx0;
 import com.samourai.whirlpool.client.tx0.Tx0Config;
-import com.samourai.whirlpool.client.tx0.Tx0ParamService;
 import com.samourai.whirlpool.client.utils.ClientUtils;
 import com.samourai.whirlpool.client.wallet.WhirlpoolWallet;
 import com.samourai.whirlpool.client.wallet.WhirlpoolWalletConfig;
@@ -25,16 +24,11 @@ public class AutoTx0Orchestrator extends AbstractOrchestrator {
 
   private WhirlpoolWallet whirlpoolWallet;
   private WhirlpoolWalletConfig config;
-  private Tx0ParamService tx0ParamService;
 
-  public AutoTx0Orchestrator(
-      WhirlpoolWallet whirlpoolWallet,
-      WhirlpoolWalletConfig config,
-      Tx0ParamService tx0ParamService) {
+  public AutoTx0Orchestrator(WhirlpoolWallet whirlpoolWallet, WhirlpoolWalletConfig config) {
     super(config.getAutoTx0Delay() * 1000, START_DELAY, config.getAutoTx0Delay());
     this.whirlpoolWallet = whirlpoolWallet;
     this.config = config;
-    this.tx0ParamService = tx0ParamService;
   }
 
   @Override
@@ -104,8 +98,7 @@ public class AutoTx0Orchestrator extends AbstractOrchestrator {
     }
 
     // check tx0 possible
-    if (tx0ParamService.isTx0Possible(
-        pool, tx0FeeTarget, mixFeeTarget, WhirlpoolUtxo.sumValue(readyUtxos))) {
+    if (pool.isTx0Possible(WhirlpoolUtxo.sumValue(readyUtxos))) {
       return readyUtxos;
     } else {
       throw new AutoTx0InsufficientBalanceException();

@@ -4,7 +4,6 @@ import com.samourai.wallet.api.backend.beans.UnspentOutput;
 import com.samourai.wallet.api.backend.beans.WalletResponse;
 import com.samourai.wallet.client.BipWallet;
 import com.samourai.wallet.client.BipWalletAndAddressType;
-import com.samourai.whirlpool.client.tx0.Tx0ParamService;
 import com.samourai.whirlpool.client.utils.ClientUtils;
 import com.samourai.whirlpool.client.wallet.beans.WhirlpoolAccount;
 import com.samourai.whirlpool.client.wallet.beans.WhirlpoolUtxo;
@@ -44,7 +43,6 @@ public class UtxoData {
       WalletSupplier walletSupplier,
       UtxoConfigSupplier utxoConfigSupplier,
       PoolSupplier poolSupplier,
-      Tx0ParamService tx0ParamService,
       Map<String, WhirlpoolUtxo> previousUtxos,
       int latestBlockHeight) {
     // txs
@@ -112,9 +110,7 @@ public class UtxoData {
           }
 
           // auto-assign pool when possible
-          String poolId =
-              computeAutoAssignPoolId(
-                  bipWallet.getAccount(), utxo.value, poolSupplier, tx0ParamService);
+          String poolId = computeAutoAssignPoolId(bipWallet.getAccount(), utxo.value, poolSupplier);
 
           // add missing
           WhirlpoolUtxo whirlpoolUtxo =
@@ -164,17 +160,13 @@ public class UtxoData {
   }
 
   private String computeAutoAssignPoolId(
-      WhirlpoolAccount account,
-      long value,
-      PoolSupplier poolSupplier,
-      Tx0ParamService tx0ParamService) {
+      WhirlpoolAccount account, long value, PoolSupplier poolSupplier) {
     Collection<Pool> eligiblePools = new LinkedList<Pool>();
 
     // find eligible pools for tx0/premix/postmix
     switch (account) {
       case DEPOSIT:
-        Collection<Pool> pools = poolSupplier.getPools();
-        eligiblePools = tx0ParamService.findPools(pools, value);
+        eligiblePools = poolSupplier.findPoolsForTx0(value);
         break;
 
       case PREMIX:

@@ -201,7 +201,14 @@ public class JavaExample {
     Pool pool05btc = poolSupplier.findPoolById("0.5btc");
 
     // get min deposit for pool
-    long minDeposit = pool05btc.getSpendFromBalanceMin();
+    long minDeposit = pool05btc.getTx0PreviewMinSpendValue();
+
+    // check spend amount for tx0
+    long spendValue = 100000;
+    boolean isTx0Possible = pool05btc.isTx0Possible(spendValue);
+
+    // preview smallest possible tx0 for pool (without taking SCODE into account)
+    Tx0Preview txOPreviewMin = pool05btc.getTx0PreviewMin();
 
     /*
      * UTXOS

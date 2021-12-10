@@ -9,4 +9,6 @@ public interface PoolSupplier {
   Pool findPoolById(String poolId);
 
   Collection<Pool> findPoolsForPremix(long utxoValue, boolean liquidity);
+
+  Collection<Pool> findPoolsForTx0(long utxoValue);
 }

@@ -33,6 +33,7 @@ public class Tx0ServiceTest extends AbstractTest {
   private static final long FEE_VALUE = 10000;
 
   private Tx0Service tx0Service;
+  private Tx0PreviewService tx0PreviewService;
 
   private WhirlpoolWalletConfig config;
 
@@ -43,7 +44,7 @@ public class Tx0ServiceTest extends AbstractTest {
   }
 
   @Before
-  public void setup() {
+  public void setup() throws Exception {
     WhirlpoolServer server = WhirlpoolServer.LOCAL_TESTNET;
     DataSourceFactory dataSourceFactory =
         new SamouraiDataSourceFactory(BackendServer.TESTNET, false, null);
@@ -51,7 +52,8 @@ public class Tx0ServiceTest extends AbstractTest {
         new WhirlpoolWalletConfig(
             dataSourceFactory, null, null, null, null, server.getParams(), false);
     config.setTx0MaxOutputs(10);
-    tx0Service = new Tx0Service(config);
+    tx0PreviewService = new Tx0PreviewService(mockMinerFeeSupplier(), config);
+    tx0Service = new Tx0Service(config, tx0PreviewService);
     utxoKeyProvider = new MockUtxoKeyProvider();
   }
 
@@ -85,8 +87,8 @@ public class Tx0ServiceTest extends AbstractTest {
 
     Tx0Config tx0Config =
         new Tx0Config(
-            mockTx0ParamService(),
-            mockPoolSupplier(),
+            mockTx0PreviewService(),
+            mockPoolSupplier().getPools(),
             Tx0FeeTarget.BLOCKS_24,
             Tx0FeeTarget.BLOCKS_24,
             WhirlpoolAccount.DEPOSIT);
@@ -111,10 +113,10 @@ public class Tx0ServiceTest extends AbstractTest {
             "test",
             feePayload,
             "tb1qjara0278vrsr8gvaga7jpy2c9amtgvytr44xym");
-    Tx0Param tx0Param = new Tx0Param(params, feeSatPerByte, feeSatPerByte, pool01btc, null);
+    Tx0Param tx0Param = new Tx0Param(feeSatPerByte, feeSatPerByte, pool01btc, null);
     Assert.assertEquals(1000201, tx0Param.getPremixValue());
     Tx0Preview tx0Preview =
-        tx0Service.tx0Preview(Lists.of(spendFromUtxo), tx0Config, tx0Param, tx0Data);
+        tx0PreviewService.tx0Preview(tx0Param, tx0Data, Lists.of(spendFromUtxo));
     Assert.assertEquals(572, tx0Preview.getTx0MinerFee());
     Assert.assertEquals(feeValue, tx0Preview.getFeeValue());
     Assert.assertEquals(feeChange, tx0Preview.getFeeChange());
@@ -141,8 +143,8 @@ public class Tx0ServiceTest extends AbstractTest {
 
     Tx0Config tx0Config =
         new Tx0Config(
-            mockTx0ParamService(),
-            mockPoolSupplier(),
+            mockTx0PreviewService(),
+            mockPoolSupplier().getPools(),
             Tx0FeeTarget.BLOCKS_24,
             Tx0FeeTarget.BLOCKS_24,
             WhirlpoolAccount.DEPOSIT);
@@ -166,22 +168,22 @@ public class Tx0ServiceTest extends AbstractTest {
             "tb1qjara0278vrsr8gvaga7jpy2c9amtgvytr44xym");
 
     // no overspend
-    Tx0Param tx0Param = new Tx0Param(params, feeSatPerByte, feeSatPerByte, pool01btc, null);
+    Tx0Param tx0Param = new Tx0Param(feeSatPerByte, feeSatPerByte, pool01btc, null);
     Assert.assertEquals(1000201, tx0Param.getPremixValue());
     Tx0Preview tx0Preview =
-        tx0Service.tx0Preview(Lists.of(spendFromUtxo), tx0Config, tx0Param, tx0Data);
+        tx0PreviewService.tx0Preview(tx0Param, tx0Data, Lists.of(spendFromUtxo));
     Assert.assertEquals(1000201, tx0Preview.getPremixValue());
 
     // overspend too low => min
-    tx0Param = new Tx0Param(params, feeSatPerByte, feeSatPerByte, pool01btc, 1L);
+    tx0Param = new Tx0Param(feeSatPerByte, feeSatPerByte, pool01btc, 1L);
     Assert.assertEquals(pool01btc.getMustMixBalanceMin(), tx0Param.getPremixValue());
-    tx0Preview = tx0Service.tx0Preview(Lists.of(spendFromUtxo), tx0Config, tx0Param, tx0Data);
+    tx0Preview = tx0PreviewService.tx0Preview(tx0Param, tx0Data, Lists.of(spendFromUtxo));
     Assert.assertEquals(pool01btc.getMustMixBalanceMin(), tx0Preview.getPremixValue());
 
     // overspend too high => max
-    tx0Param = new Tx0Param(params, feeSatPerByte, feeSatPerByte, pool01btc, 999999999L);
+    tx0Param = new Tx0Param(feeSatPerByte, feeSatPerByte, pool01btc, 999999999L);
     Assert.assertEquals(pool01btc.getMustMixBalanceCap(), tx0Param.getPremixValue());
-    tx0Preview = tx0Service.tx0Preview(Lists.of(spendFromUtxo), tx0Config, tx0Param, tx0Data);
+    tx0Preview = tx0PreviewService.tx0Preview(tx0Param, tx0Data, Lists.of(spendFromUtxo));
     Assert.assertEquals(pool01btc.getMustMixBalanceCap(), tx0Preview.getPremixValue());
   }
 
@@ -202,8 +204,8 @@ public class Tx0ServiceTest extends AbstractTest {
 
     Tx0Config tx0Config =
         new Tx0Config(
-            mockTx0ParamService(),
-            mockPoolSupplier(),
+            mockTx0PreviewService(),
+            mockPoolSupplier().getPools(),
             Tx0FeeTarget.BLOCKS_24,
             Tx0FeeTarget.BLOCKS_24,
             WhirlpoolAccount.DEPOSIT);
@@ -225,28 +227,28 @@ public class Tx0ServiceTest extends AbstractTest {
             "test",
             feePayload,
             "tb1qjara0278vrsr8gvaga7jpy2c9amtgvytr44xym");
-    Tx0Param tx0Param = new Tx0Param(params, feeSatPerByte, feeSatPerByte, pool01btc, null);
+    Tx0Param tx0Param = new Tx0Param(feeSatPerByte, feeSatPerByte, pool01btc, null);
     Assert.assertEquals(1000201, tx0Param.getPremixValue());
 
     int TX0_SIZE = 572;
 
     // feeTx0
     int feeTx0 = 1;
-    tx0Param = new Tx0Param(params, feeTx0, feeSatPerByte, pool01btc, null);
+    tx0Param = new Tx0Param(feeTx0, feeSatPerByte, pool01btc, null);
     Tx0Preview tx0Preview =
-        tx0Service.tx0Preview(Lists.of(spendFromUtxo), tx0Config, tx0Param, tx0Data);
+        tx0PreviewService.tx0Preview(tx0Param, tx0Data, Lists.of(spendFromUtxo));
     Assert.assertEquals(TX0_SIZE * feeTx0, tx0Preview.getTx0MinerFee());
 
     // feeTx0
     feeTx0 = 5;
-    tx0Param = new Tx0Param(params, feeTx0, feeSatPerByte, pool01btc, null);
-    tx0Preview = tx0Service.tx0Preview(Lists.of(spendFromUtxo), tx0Config, tx0Param, tx0Data);
+    tx0Param = new Tx0Param(feeTx0, feeSatPerByte, pool01btc, null);
+    tx0Preview = tx0PreviewService.tx0Preview(tx0Param, tx0Data, Lists.of(spendFromUtxo));
     Assert.assertEquals(TX0_SIZE * feeTx0, tx0Preview.getTx0MinerFee());
 
     // feeTx0
     feeTx0 = 50;
-    tx0Param = new Tx0Param(params, feeTx0, feeSatPerByte, pool01btc, null);
-    tx0Preview = tx0Service.tx0Preview(Lists.of(spendFromUtxo), tx0Config, tx0Param, tx0Data);
+    tx0Param = new Tx0Param(feeTx0, feeSatPerByte, pool01btc, null);
+    tx0Preview = tx0PreviewService.tx0Preview(tx0Param, tx0Data, Lists.of(spendFromUtxo));
     Assert.assertEquals(TX0_SIZE * feeTx0, tx0Preview.getTx0MinerFee());
   }
 
@@ -267,8 +269,8 @@ public class Tx0ServiceTest extends AbstractTest {
 
     Tx0Config tx0Config =
         new Tx0Config(
-            mockTx0ParamService(),
-            mockPoolSupplier(),
+            mockTx0PreviewService(),
+            mockPoolSupplier().getPools(),
             Tx0FeeTarget.BLOCKS_24,
             Tx0FeeTarget.BLOCKS_24,
             WhirlpoolAccount.DEPOSIT);
@@ -290,34 +292,34 @@ public class Tx0ServiceTest extends AbstractTest {
             "test",
             feePayload,
             "tb1qjara0278vrsr8gvaga7jpy2c9amtgvytr44xym");
-    Tx0Param tx0Param = new Tx0Param(params, feeSatPerByte, feeSatPerByte, pool01btc, null);
+    Tx0Param tx0Param = new Tx0Param(feeSatPerByte, feeSatPerByte, pool01btc, null);
     Assert.assertEquals(1000201, tx0Param.getPremixValue());
 
     int TX0_SIZE = 572;
 
     // feePremix
     int feePremix = 1;
-    tx0Param = new Tx0Param(params, feeSatPerByte, feePremix, pool01btc, null);
+    tx0Param = new Tx0Param(feeSatPerByte, feePremix, pool01btc, null);
     Tx0Preview tx0Preview =
-        tx0Service.tx0Preview(Lists.of(spendFromUtxo), tx0Config, tx0Param, tx0Data);
+        tx0PreviewService.tx0Preview(tx0Param, tx0Data, Lists.of(spendFromUtxo));
     Assert.assertEquals(1000201, tx0Preview.getPremixValue());
 
     // feePremix
     feePremix = 5;
-    tx0Param = new Tx0Param(params, feeSatPerByte, feePremix, pool01btc, null);
-    tx0Preview = tx0Service.tx0Preview(Lists.of(spendFromUtxo), tx0Config, tx0Param, tx0Data);
+    tx0Param = new Tx0Param(feeSatPerByte, feePremix, pool01btc, null);
+    tx0Preview = tx0PreviewService.tx0Preview(tx0Param, tx0Data, Lists.of(spendFromUtxo));
     Assert.assertEquals(1001008, tx0Preview.getPremixValue());
 
     // feePremix
     feePremix = 20;
-    tx0Param = new Tx0Param(params, feeSatPerByte, feePremix, pool01btc, null);
-    tx0Preview = tx0Service.tx0Preview(Lists.of(spendFromUtxo), tx0Config, tx0Param, tx0Data);
+    tx0Param = new Tx0Param(feeSatPerByte, feePremix, pool01btc, null);
+    tx0Preview = tx0PreviewService.tx0Preview(tx0Param, tx0Data, Lists.of(spendFromUtxo));
     Assert.assertEquals(1004033, tx0Preview.getPremixValue());
 
     // feePremix max
     feePremix = 99999;
-    tx0Param = new Tx0Param(params, feeSatPerByte, feePremix, pool01btc, null);
-    tx0Preview = tx0Service.tx0Preview(Lists.of(spendFromUtxo), tx0Config, tx0Param, tx0Data);
+    tx0Param = new Tx0Param(feeSatPerByte, feePremix, pool01btc, null);
+    tx0Preview = tx0PreviewService.tx0Preview(tx0Param, tx0Data, Lists.of(spendFromUtxo));
     Assert.assertEquals(1009500, tx0Preview.getPremixValue());
   }
 
@@ -377,8 +379,8 @@ public class Tx0ServiceTest extends AbstractTest {
             AddressType.SEGWIT_NATIVE);
     Tx0Config tx0Config =
         new Tx0Config(
-            mockTx0ParamService(),
-            mockPoolSupplier(),
+            mockTx0PreviewService(),
+            mockPoolSupplier().getPools(),
             Tx0FeeTarget.BLOCKS_24,
             Tx0FeeTarget.BLOCKS_24,
             WhirlpoolAccount.DEPOSIT);
@@ -409,6 +411,7 @@ public class Tx0ServiceTest extends AbstractTest {
         new Tx0Preview(
             pool01btc,
             tx0Data,
+            12345,
             tx0MinerFee,
             mixMinerFee,
             premixMinerFee,
@@ -651,8 +654,8 @@ public class Tx0ServiceTest extends AbstractTest {
             AddressType.SEGWIT_NATIVE);
     Tx0Config tx0Config =
         new Tx0Config(
-            mockTx0ParamService(),
-            mockPoolSupplier(),
+            mockTx0PreviewService(),
+            mockPoolSupplier().getPools(),
             Tx0FeeTarget.BLOCKS_24,
             Tx0FeeTarget.BLOCKS_24,
             WhirlpoolAccount.DEPOSIT);
@@ -685,6 +688,7 @@ public class Tx0ServiceTest extends AbstractTest {
         new Tx0Preview(
             pool01btc,
             tx0Data,
+            12345,
             tx0MinerFee,
             premixMinerFee,
             mixMinerFee,
@@ -776,8 +780,8 @@ public class Tx0ServiceTest extends AbstractTest {
             AddressType.SEGWIT_NATIVE);
     Tx0Config tx0Config =
         new Tx0Config(
-            mockTx0ParamService(),
-            mockPoolSupplier(),
+            mockTx0PreviewService(),
+            mockPoolSupplier().getPools(),
             Tx0FeeTarget.BLOCKS_24,
             Tx0FeeTarget.BLOCKS_24,
             WhirlpoolAccount.DEPOSIT);
@@ -810,6 +814,7 @@ public class Tx0ServiceTest extends AbstractTest {
         new Tx0Preview(
             pool01btc,
             tx0Data,
+            12345,
             tx0MinerFee,
             mixMinerFee,
             premixMinerFee,
@@ -900,8 +905,8 @@ public class Tx0ServiceTest extends AbstractTest {
             AddressType.SEGWIT_NATIVE);
     Tx0Config tx0Config =
         new Tx0Config(
-            mockTx0ParamService(),
-            mockPoolSupplier(),
+            mockTx0PreviewService(),
+            mockPoolSupplier().getPools(),
             Tx0FeeTarget.BLOCKS_24,
             Tx0FeeTarget.BLOCKS_24,
             WhirlpoolAccount.DEPOSIT);
@@ -933,6 +938,7 @@ public class Tx0ServiceTest extends AbstractTest {
         new Tx0Preview(
             pool01btc,
             tx0Data,
+            12345,
             tx0MinerFee,
             mixMinerFee,
             premixMinerFee,
@@ -1023,8 +1029,8 @@ public class Tx0ServiceTest extends AbstractTest {
             AddressType.SEGWIT_NATIVE);
     Tx0Config tx0Config =
         new Tx0Config(
-            mockTx0ParamService(),
-            mockPoolSupplier(),
+            mockTx0PreviewService(),
+            mockPoolSupplier().getPools(),
             Tx0FeeTarget.BLOCKS_24,
             Tx0FeeTarget.BLOCKS_24,
             WhirlpoolAccount.POSTMIX);
@@ -1056,6 +1062,7 @@ public class Tx0ServiceTest extends AbstractTest {
         new Tx0Preview(
             pool01btc,
             tx0Data,
+            12345,
             tx0MinerFee,
             mixMinerFee,
             premixMinerFee,

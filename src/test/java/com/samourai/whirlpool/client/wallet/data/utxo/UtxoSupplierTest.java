@@ -7,7 +7,7 @@ import com.samourai.wallet.hd.HD_Wallet;
 import com.samourai.wallet.util.MessageListener;
 import com.samourai.whirlpool.client.event.UtxoChangesEvent;
 import com.samourai.whirlpool.client.test.AbstractTest;
-import com.samourai.whirlpool.client.tx0.Tx0ParamService;
+import com.samourai.whirlpool.client.tx0.Tx0PreviewService;
 import com.samourai.whirlpool.client.wallet.WhirlpoolEventService;
 import com.samourai.whirlpool.client.wallet.WhirlpoolWallet;
 import com.samourai.whirlpool.client.wallet.WhirlpoolWalletConfig;
@@ -85,7 +85,7 @@ public class UtxoSupplierTest extends AbstractTest {
 
           @Override
           protected ExpirablePoolSupplier computePoolSupplier(
-              WhirlpoolWallet whirlpoolWallet, Tx0ParamService tx0ParamService) {
+              WhirlpoolWallet whirlpoolWallet, Tx0PreviewService tx0PreviewService) {
             return mockPoolSupplier();
           }
 

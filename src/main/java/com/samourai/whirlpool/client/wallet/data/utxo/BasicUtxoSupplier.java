@@ -7,7 +7,6 @@ import com.samourai.wallet.hd.HD_Address;
 import com.samourai.wallet.send.MyTransactionOutPoint;
 import com.samourai.wallet.send.UTXO;
 import com.samourai.wallet.send.provider.UtxoProvider;
-import com.samourai.whirlpool.client.tx0.Tx0ParamService;
 import com.samourai.whirlpool.client.wallet.beans.WhirlpoolAccount;
 import com.samourai.whirlpool.client.wallet.beans.WhirlpoolUtxo;
 import com.samourai.whirlpool.client.wallet.data.chain.ChainSupplier;
@@ -34,7 +33,6 @@ public abstract class BasicUtxoSupplier extends BasicSupplier<UtxoData>
   private final UtxoConfigSupplier utxoConfigSupplier;
   private final ChainSupplier chainSupplier;
   private final PoolSupplier poolSupplier;
-  private final Tx0ParamService tx0ParamService;
   private NetworkParameters params;
 
   private Map<String, WhirlpoolUtxo> previousUtxos;
@@ -44,7 +42,6 @@ public abstract class BasicUtxoSupplier extends BasicSupplier<UtxoData>
       UtxoConfigSupplier utxoConfigSupplier,
       ChainSupplier chainSupplier,
       PoolSupplier poolSupplier,
-      Tx0ParamService tx0ParamService,
       NetworkParameters params)
       throws Exception {
     super(log);
@@ -53,7 +50,6 @@ public abstract class BasicUtxoSupplier extends BasicSupplier<UtxoData>
     this.utxoConfigSupplier = utxoConfigSupplier;
     this.chainSupplier = chainSupplier;
     this.poolSupplier = poolSupplier;
-    this.tx0ParamService = tx0ParamService;
     this.params = params;
   }
 
@@ -69,7 +65,6 @@ public abstract class BasicUtxoSupplier extends BasicSupplier<UtxoData>
         walletSupplier,
         utxoConfigSupplier,
         poolSupplier,
-        tx0ParamService,
         previousUtxos,
         chainSupplier.getLatestBlock().height);
 

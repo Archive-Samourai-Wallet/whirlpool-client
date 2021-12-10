@@ -331,16 +331,25 @@ public class ClientUtils {
 
   public static long computeTx0MinerFee(
       int nbPremix,
-      long feeTx0,
+      long tx0FeePerB,
       Collection<? extends UnspentOutput> spendFroms,
+      NetworkParameters params) {
+    int tx0Size = computeTx0Size(nbPremix, spendFroms, params);
+    long tx0MinerFee = FeeUtil.getInstance().calculateFee(tx0Size, tx0FeePerB);
+    return tx0MinerFee;
+  }
+
+  public static int computeTx0Size(
+      int nbPremix,
+      Collection<? extends UnspentOutput> spendFromsOrNull,
       NetworkParameters params) {
     int nbOutputsNonOpReturn = nbPremix + 2; // outputs + change + fee
 
     int nbP2PKH = 0;
     int nbP2SH = 0;
     int nbP2WPKH = 0;
-    if (spendFroms != null) { // spendFroms can be NULL (for fee simulation)
-      for (UnspentOutput uo : spendFroms) {
+    if (spendFromsOrNull != null) { // spendFroms can be NULL (for fee simulation)
+      for (UnspentOutput uo : spendFromsOrNull) {
 
         if (bech32Util.isP2WPKHScript(uo.script)) {
           nbP2WPKH++;
@@ -353,21 +362,12 @@ public class ClientUtils {
           }
         }
       }
+    } else {
+      // estimate with 1 P2WPKH
+      nbP2WPKH++;
     }
-    long tx0MinerFee =
-        feeUtil.estimatedFeeSegwit(nbP2PKH, nbP2SH, nbP2WPKH, nbOutputsNonOpReturn, 1, feeTx0);
-
-    if (log.isTraceEnabled()) {
-      log.trace(
-          "tx0 minerFee: "
-              + tx0MinerFee
-              + "sats, totalBytes="
-              + "b for nbPremix="
-              + nbPremix
-              + ", feeTx0="
-              + feeTx0);
-    }
-    return tx0MinerFee;
+    int tx0Size = feeUtil.estimatedSizeSegwit(nbP2PKH, nbP2SH, nbP2WPKH, nbOutputsNonOpReturn, 1);
+    return tx0Size;
   }
 
   public static long computeTx0SpendValue(

@@ -1,6 +1,7 @@
 package com.samourai.whirlpool.client.wallet.data.pool;
 
-import com.samourai.whirlpool.client.tx0.Tx0ParamService;
+import com.samourai.whirlpool.client.tx0.*;
+import com.samourai.whirlpool.client.wallet.beans.Tx0FeeTarget;
 import com.samourai.whirlpool.client.wallet.beans.WhirlpoolPoolByBalanceMinDescComparator;
 import com.samourai.whirlpool.client.whirlpool.beans.Pool;
 import com.samourai.whirlpool.protocol.rest.PoolInfo;
@@ -17,12 +18,14 @@ public class PoolData {
 
   private final Map<String, Pool> poolsById;
 
-  public PoolData(PoolsResponse poolsResponse, Tx0ParamService tx0ParamService) {
-    this.poolsById = computePools(poolsResponse, tx0ParamService);
+  public PoolData(PoolsResponse poolsResponse, Tx0PreviewService tx0PreviewService)
+      throws Exception {
+    this.poolsById = computePools(poolsResponse, tx0PreviewService);
   }
 
   private static Map<String, Pool> computePools(
-      PoolsResponse poolsResponse, final Tx0ParamService tx0ParamService) {
+      PoolsResponse poolsResponse, final Tx0PreviewService tx0PreviewService) throws Exception {
+
     // biggest balanceMin first
     List<Pool> poolsOrdered =
         StreamSupport.stream(Arrays.asList(poolsResponse.pools))
@@ -46,13 +49,20 @@ public class PoolData {
                     pool.setMixStatus(poolInfo.mixStatus);
                     pool.setElapsedTime(poolInfo.elapsedTime);
                     pool.setNbConfirmed(poolInfo.nbConfirmed);
-
-                    pool.setPremixValueMinAndDepositMin(tx0ParamService);
                     return pool;
                   }
                 })
             .sorted(new WhirlpoolPoolByBalanceMinDescComparator())
             .collect(Collectors.<Pool>toList());
+
+    // compute & set tx0PreviewMin
+    Tx0PreviewConfig tx0PreviewConfig =
+        new Tx0PreviewConfig(tx0PreviewService, poolsOrdered, Tx0FeeTarget.MIN, Tx0FeeTarget.MIN);
+    final Tx0Previews tx0PreviewsMin = tx0PreviewService.tx0PreviewsMinimal(tx0PreviewConfig);
+    for (Pool pool : poolsOrdered) {
+      Tx0Preview tx0PreviewMin = tx0PreviewsMin.getTx0Preview(pool.getPoolId());
+      pool.setTx0PreviewMin(tx0PreviewMin);
+    }
 
     // map by id
     Map<String, Pool> poolsById = new LinkedHashMap<String, Pool>();

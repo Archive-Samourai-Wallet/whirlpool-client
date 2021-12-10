@@ -9,8 +9,8 @@ import com.samourai.wallet.api.backend.beans.WalletResponse;
 import com.samourai.wallet.hd.HD_Address;
 import com.samourai.wallet.hd.HD_WalletFactoryGeneric;
 import com.samourai.wallet.segwit.bech32.Bech32UtilGeneric;
-import com.samourai.whirlpool.client.tx0.ITx0ParamServiceConfig;
-import com.samourai.whirlpool.client.tx0.Tx0ParamService;
+import com.samourai.whirlpool.client.tx0.ITx0PreviewServiceConfig;
+import com.samourai.whirlpool.client.tx0.Tx0PreviewService;
 import com.samourai.whirlpool.client.utils.ClientUtils;
 import com.samourai.whirlpool.client.wallet.WhirlpoolWalletConfig;
 import com.samourai.whirlpool.client.wallet.data.dataSource.DataSourceFactory;
@@ -103,11 +103,11 @@ public class AbstractTest {
     return ClientUtils.fromJson(WALLET_RESPONSE, WalletResponse.class);
   }
 
-  protected Tx0ParamService mockTx0ParamService() throws Exception {
+  protected Tx0PreviewService mockTx0PreviewService() throws Exception {
     MinerFeeSupplier minerFeeSupplier = mockMinerFeeSupplier();
-    return new Tx0ParamService(
+    return new Tx0PreviewService(
         minerFeeSupplier,
-        new ITx0ParamServiceConfig() {
+        new ITx0PreviewServiceConfig() {
           @Override
           public NetworkParameters getNetworkParameters() {
             return params;
@@ -117,13 +117,43 @@ public class AbstractTest {
           public Long getOverspend(String poolId) {
             return null;
           }
+
+          @Override
+          public int getFeeMin() {
+            return 1;
+          }
+
+          @Override
+          public int getFeeMax() {
+            return 9999;
+          }
+
+          @Override
+          public int getTx0MaxOutputs() {
+            return 70;
+          }
+
+          @Override
+          public ServerApi getServerApi() {
+            return null;
+          }
+
+          @Override
+          public String getPartner() {
+            return null;
+          }
+
+          @Override
+          public String getScode() {
+            return null;
+          }
         });
   }
 
   protected ExpirablePoolSupplier mockPoolSupplier() {
     try {
       PoolsResponse poolsResponse = ClientUtils.fromJson(POOLS_RESPONSE, PoolsResponse.class);
-      return new MockPoolSupplier(mockTx0ParamService(), poolsResponse.pools);
+      return new MockPoolSupplier(mockTx0PreviewService(), poolsResponse.pools);
     } catch (Exception e) {
       throw new RuntimeException(e);
     }
@@ -141,6 +171,9 @@ public class AbstractTest {
       public IHttpClient getHttpClient(HttpUsage httpUsage) {
         return null;
       }
+
+      @Override
+      public void stop() {}
     };
   }
 
@@ -174,6 +207,9 @@ public class AbstractTest {
           public IHttpClient getHttpClient(HttpUsage httpUsage) {
             return null;
           }
+
+          @Override
+          public void stop() {}
         };
     WhirlpoolWalletConfig config =
         new WhirlpoolWalletConfig(

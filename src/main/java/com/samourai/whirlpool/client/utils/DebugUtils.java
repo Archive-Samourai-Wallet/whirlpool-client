@@ -10,6 +10,8 @@ import com.samourai.wallet.hd.Chain;
 import com.samourai.wallet.hd.HD_Address;
 import com.samourai.whirlpool.client.wallet.WhirlpoolWallet;
 import com.samourai.whirlpool.client.wallet.beans.*;
+import com.samourai.whirlpool.client.wallet.data.pool.PoolSupplier;
+import com.samourai.whirlpool.client.whirlpool.beans.Pool;
 import java.util.Collection;
 import java.util.Iterator;
 import java8.util.Comparators;
@@ -32,6 +34,7 @@ public class DebugUtils {
       sb.append(getDebugWallet(whirlpoolWallet));
       sb.append(getDebugUtxos(whirlpoolWallet));
       sb.append(getDebugMixingThreads(whirlpoolWallet));
+      sb.append(getDebugPools(whirlpoolWallet.getPoolSupplier()));
     } else {
       sb.append("WhirlpoolWallet is closed.\n");
     }
@@ -53,30 +56,35 @@ public class DebugUtils {
     sb.append("⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿" + "\n");
     sb.append("⣿ RECEIVE ADDRESS" + "\n");
     sb.append(" • Address: " + receiveAddress + "\n");
-    sb.append(" • Path: " + receivePath + "\n");
+    sb.append(" • Path: " + receivePath + "\n\n");
 
     // balance
     sb.append("⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿" + "\n");
-    sb.append("⣿ WALLET BALANCE:" + "\n");
+    sb.append("⣿ WALLET:" + "\n");
     for (WhirlpoolAccount account : WhirlpoolAccount.values()) {
       Collection<WhirlpoolUtxo> utxos = whirlpoolWallet.getUtxoSupplier().findUtxos(account);
-      sb.append(" • " + account + ": " + utxos.size() + " utxos\n");
+      sb.append(
+          " • "
+              + account
+              + ": "
+              + utxos.size()
+              + " utxos, "
+              + ClientUtils.satToBtc(WhirlpoolUtxo.sumValue(utxos))
+              + " BTC\n");
 
       for (AddressType addressType : account.getAddressTypes()) {
         utxos = whirlpoolWallet.getUtxoSupplier().findUtxos(addressType, account);
         BipWalletAndAddressType wallet =
             whirlpoolWallet.getWalletSupplier().getWallet(account, addressType);
         sb.append(
-            "___"
-                + account
+            account
                 + "/"
                 + addressType
                 + ": "
                 + utxos.size()
                 + " utxos"
                 + ", pub="
-                + ClientUtils.maskString(wallet.getPub())
-                + "\n");
+                + ClientUtils.maskString(wallet.getPub()));
 
         for (Chain chain : Chain.values()) {
           IIndexHandler indexHandler =
@@ -84,16 +92,16 @@ public class DebugUtils {
                   .getWalletStateSupplier()
                   .getIndexHandlerWallet(account, addressType, chain);
           int index = indexHandler.get();
-          sb.append("______.index[" + chain + "] = " + index + "\n");
+          sb.append(", " + chain.name().toLowerCase() + "Index=" + index);
         }
+        sb.append("\n");
       }
     }
     sb.append(
         " • TOTAL = "
             + ClientUtils.satToBtc(whirlpoolWallet.getUtxoSupplier().getBalanceTotal())
             + " BTC"
-            + "\n");
-    sb.append("");
+            + "\n\n");
 
     // chain status
     WalletResponse.InfoBlock latestBlock = whirlpoolWallet.getChainSupplier().getLatestBlock();
@@ -101,8 +109,7 @@ public class DebugUtils {
     sb.append("⣿ LATEST BLOCK:" + "\n");
     sb.append(" • Height: " + latestBlock.height + "\n");
     sb.append(" • Hash: " + latestBlock.hash + "\n");
-    sb.append(" • Time: " + ClientUtils.dateToString(latestBlock.time * 1000) + "\n");
-    sb.append("");
+    sb.append(" • Time: " + ClientUtils.dateToString(latestBlock.time * 1000) + "\n\n");
 
     // chain
     sb.append("⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿" + "\n");
@@ -155,22 +162,20 @@ public class DebugUtils {
     StringBuilder sb = new StringBuilder().append("\n");
     sb.append(
         String.format(
-                lineFormat,
-                "BALANCE",
-                "CONFIRM",
-                "UTXO",
-                "ADDRESS",
-                "TYPE",
-                "PATH",
-                "STATUS",
-                "MIXABLE",
-                "POOL",
-                "MIXS",
-                "ACTIVITY",
-                "ERROR")
-            + "\n");
-    sb.append(
-        String.format(lineFormat, "(btc)", "", "", "", "", "", "", "", "", "", "", "") + "\n");
+            lineFormat,
+            "BALANCE",
+            "CONFIRM",
+            "UTXO",
+            "ADDRESS",
+            "TYPE",
+            "PATH",
+            "STATUS",
+            "MIXABLE",
+            "POOL",
+            "MIXS",
+            "ACTIVITY",
+            "ERROR"));
+    sb.append(String.format(lineFormat, "(btc)", "", "", "", "", "", "", "", "", "", "", ""));
     Iterator var3 = utxos.iterator();
 
     while (var3.hasNext()) {
@@ -217,9 +222,8 @@ public class DebugUtils {
       Collection<UnspentOutput> utxos, int purpose, int accountIndex, NetworkParameters params) {
     String lineFormat = "| %10s | %7s | %68s | %45s | %18s |\n";
     StringBuilder sb = new StringBuilder().append("\n");
-    sb.append(
-        String.format(lineFormat, "BALANCE", "CONFIRM", "UTXO", "ADDRESS", "TYPE", "PATH") + "\n");
-    sb.append(String.format(lineFormat, "(btc)", "", "", "", "", "") + "\n");
+    sb.append(String.format(lineFormat, "BALANCE", "CONFIRM", "UTXO", "ADDRESS", "TYPE", "PATH"));
+    sb.append(String.format(lineFormat, "(btc)", "", "", "", "", ""));
     for (UnspentOutput o : utxos) {
       String utxo = o.tx_hash + ":" + o.tx_output_n;
       sb.append(
@@ -295,19 +299,18 @@ public class DebugUtils {
           "| %25s | %8s | %10s | %10s | %8s | %68s | %14s | %8s | %6s | %19s | %19s |\n";
       sb.append(
           String.format(
-                  lineFormat,
-                  "STATUS",
-                  "SINCE",
-                  "ACCOUNT",
-                  "BALANCE",
-                  "CONFIRMS",
-                  "UTXO",
-                  "PATH",
-                  "POOL",
-                  "MIXS",
-                  "ACTIVITY",
-                  "ERROR")
-              + "\n");
+              lineFormat,
+              "STATUS",
+              "SINCE",
+              "ACCOUNT",
+              "BALANCE",
+              "CONFIRMS",
+              "UTXO",
+              "PATH",
+              "POOL",
+              "MIXS",
+              "ACTIVITY",
+              "ERROR"));
 
       long now = System.currentTimeMillis();
       for (WhirlpoolUtxo whirlpoolUtxo : mixingState.getUtxosMixing()) {
@@ -330,19 +333,18 @@ public class DebugUtils {
                     : "");
         sb.append(
             String.format(
-                    lineFormat,
-                    progress,
-                    since,
-                    whirlpoolUtxo.getAccount().name(),
-                    ClientUtils.satToBtc(o.value),
-                    o.confirmations,
-                    utxo,
-                    o.getPath(),
-                    mixProgress.getPoolId() != null ? mixProgress.getPoolId() : "-",
-                    whirlpoolUtxo.getMixsDone(),
-                    activity,
-                    error)
-                + "\n");
+                lineFormat,
+                progress,
+                since,
+                whirlpoolUtxo.getAccount().name(),
+                ClientUtils.satToBtc(o.value),
+                o.confirmations,
+                utxo,
+                o.getPath(),
+                mixProgress.getPoolId() != null ? mixProgress.getPoolId() : "-",
+                whirlpoolUtxo.getMixsDone(),
+                activity,
+                error));
       }
     } catch (Exception e) {
       log.error("", e);
@@ -363,6 +365,40 @@ public class DebugUtils {
             + "+"
             + mixingState.getNbQueuedLiquidity()
             + ")\n");
+    return sb.toString();
+  }
+
+  public static String getDebugPools(PoolSupplier poolSupplier) {
+    StringBuilder sb = new StringBuilder().append("\n");
+    try {
+      sb.append("⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿" + "\n");
+      sb.append("⣿ POOLS:" + "\n");
+
+      String lineFormat = "| %15s | %15s | %15s | %18s | %20s | %15s |\n";
+      sb.append(
+          String.format(
+              lineFormat,
+              "NAME",
+              "DENOMINATION",
+              "MIN. DEPOSIT",
+              "ANON. SET PER MIX",
+              "MAX. PREMIXS PER TX0",
+              "FLAT ENTRY FEE"));
+
+      for (Pool pool : poolSupplier.getPools()) {
+        sb.append(
+            String.format(
+                lineFormat,
+                pool.getPoolId(),
+                ClientUtils.satToBtc(pool.getDenomination()),
+                ClientUtils.satToBtc(pool.getTx0PreviewMinSpendValue()),
+                pool.getMinAnonymitySet(),
+                pool.getTx0MaxOutputs(),
+                ClientUtils.satToBtc(pool.getFeeValue())));
+      }
+    } catch (Exception e) {
+      log.error("", e);
+    }
     return sb.toString();
   }
 }

@@ -2,16 +2,17 @@ package com.samourai.whirlpool.client.wallet.data.pool;
 
 import com.samourai.wallet.api.backend.beans.HttpException;
 import com.samourai.whirlpool.client.event.PoolsChangeEvent;
-import com.samourai.whirlpool.client.tx0.Tx0ParamService;
+import com.samourai.whirlpool.client.tx0.Tx0PreviewService;
 import com.samourai.whirlpool.client.utils.ClientUtils;
 import com.samourai.whirlpool.client.wallet.WhirlpoolEventService;
 import com.samourai.whirlpool.client.wallet.data.supplier.ExpirableSupplier;
 import com.samourai.whirlpool.client.whirlpool.ServerApi;
 import com.samourai.whirlpool.client.whirlpool.beans.Pool;
 import com.samourai.whirlpool.protocol.rest.PoolsResponse;
-import java.util.ArrayList;
 import java.util.Collection;
-import java.util.List;
+import java8.util.function.Predicate;
+import java8.util.stream.Collectors;
+import java8.util.stream.StreamSupport;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -20,13 +21,13 @@ public class ExpirablePoolSupplier extends ExpirableSupplier<PoolData> implement
 
   private final WhirlpoolEventService eventService = WhirlpoolEventService.getInstance();
   private final ServerApi serverApi;
-  private final Tx0ParamService tx0ParamService;
+  protected final Tx0PreviewService tx0PreviewService;
 
   public ExpirablePoolSupplier(
-      int refreshPoolsDelay, ServerApi serverApi, Tx0ParamService tx0ParamService) {
+      int refreshPoolsDelay, ServerApi serverApi, Tx0PreviewService tx0PreviewService) {
     super(refreshPoolsDelay, log);
     this.serverApi = serverApi;
-    this.tx0ParamService = tx0ParamService;
+    this.tx0PreviewService = tx0PreviewService;
   }
 
   @Override
@@ -36,7 +37,7 @@ public class ExpirablePoolSupplier extends ExpirableSupplier<PoolData> implement
     }
     try {
       PoolsResponse poolsResponse = serverApi.fetchPools();
-      return new PoolData(poolsResponse, tx0ParamService);
+      return new PoolData(poolsResponse, tx0PreviewService);
     } catch (HttpException e) {
       throw ClientUtils.wrapRestError(e);
     }
@@ -61,14 +62,28 @@ public class ExpirablePoolSupplier extends ExpirableSupplier<PoolData> implement
   }
 
   @Override
-  public Collection<Pool> findPoolsForPremix(long utxoValue, boolean liquidity) {
-    // find eligible pools
-    List<Pool> poolsAccepted = new ArrayList<Pool>();
-    for (Pool pool : getPools()) {
-      if (pool.checkInputBalance(utxoValue, liquidity)) {
-        poolsAccepted.add(pool);
-      }
-    }
-    return poolsAccepted;
+  public Collection<Pool> findPoolsForPremix(final long utxoValue, final boolean liquidity) {
+    return StreamSupport.stream(getPools())
+        .filter(
+            new Predicate<Pool>() {
+              @Override
+              public boolean test(Pool pool) {
+                return pool.isPremix(utxoValue, liquidity);
+              }
+            })
+        .collect(Collectors.<Pool>toList());
+  }
+
+  @Override
+  public Collection<Pool> findPoolsForTx0(final long utxoValue) {
+    return StreamSupport.stream(getPools())
+        .filter(
+            new Predicate<Pool>() {
+              @Override
+              public boolean test(Pool pool) {
+                return pool.isTx0Possible(utxoValue);
+              }
+            })
+        .collect(Collectors.<Pool>toList());
   }
 }

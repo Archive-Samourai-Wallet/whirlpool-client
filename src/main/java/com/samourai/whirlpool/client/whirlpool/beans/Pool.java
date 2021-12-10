@@ -1,12 +1,14 @@
 package com.samourai.whirlpool.client.whirlpool.beans;
 
-import com.samourai.whirlpool.client.tx0.Tx0Param;
-import com.samourai.whirlpool.client.tx0.Tx0ParamService;
-import com.samourai.whirlpool.client.wallet.beans.Tx0FeeTarget;
+import com.samourai.whirlpool.client.tx0.Tx0Preview;
 import com.samourai.whirlpool.protocol.WhirlpoolProtocol;
 import com.samourai.whirlpool.protocol.websocket.notifications.MixStatus;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class Pool {
+  private final Logger log = LoggerFactory.getLogger(Pool.class);
+
   private String poolId;
   private long denomination;
   private long feeValue;
@@ -22,24 +24,26 @@ public class Pool {
   private MixStatus mixStatus;
   private long elapsedTime;
   private int nbConfirmed;
-
-  // computed for min feeTarget
-  private long premixValueMin;
-  private long spendFromBalanceMin;
+  private Tx0Preview tx0PreviewMin;
 
   public Pool() {}
 
-  public void setPremixValueMinAndDepositMin(Tx0ParamService tx0ParamService) {
-    // compute for min feeTarget
-    Tx0Param tx0Param = tx0ParamService.getTx0Param(this, Tx0FeeTarget.MIN, Tx0FeeTarget.MIN);
-    this.premixValueMin = tx0Param.getPremixValue();
-    this.spendFromBalanceMin = tx0Param.getSpendFromBalanceMin();
-  }
-
-  public boolean checkInputBalance(long inputBalance, boolean liquidity) {
+  public boolean isPremix(long inputBalance, boolean liquidity) {
     long minBalance = computePremixBalanceMin(liquidity);
     long maxBalance = computePremixBalanceMax(liquidity);
     return inputBalance >= minBalance && inputBalance <= maxBalance;
+  }
+
+  public boolean isTx0Possible(long inputBalance) {
+    return tx0PreviewMin != null && inputBalance >= tx0PreviewMin.getSpendValue();
+  }
+
+  public long getTx0PreviewMinSpendValue() {
+    if (tx0PreviewMin == null) {
+      log.error("getTx0MinSpendValue() failed: tx0PreviewMin is NULL!");
+      return 0; // shouldn't happen
+    }
+    return tx0PreviewMin.getSpendValue();
   }
 
   public long computePremixBalanceMin(boolean liquidity) {
@@ -166,11 +170,12 @@ public class Pool {
     this.nbConfirmed = nbConfirmed;
   }
 
-  public long getPremixValueMin() {
-    return premixValueMin;
+  /** @return smallest possible Tx0Preview for pool (without taking SCODE into account) */
+  public Tx0Preview getTx0PreviewMin() {
+    return tx0PreviewMin;
   }
 
-  public long getSpendFromBalanceMin() {
-    return spendFromBalanceMin;
+  public void setTx0PreviewMin(Tx0Preview tx0Min) {
+    this.tx0PreviewMin = tx0Min;
   }
 }

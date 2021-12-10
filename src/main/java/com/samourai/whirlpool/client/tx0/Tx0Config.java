@@ -2,51 +2,20 @@ package com.samourai.whirlpool.client.tx0;
 
 import com.samourai.whirlpool.client.wallet.beans.Tx0FeeTarget;
 import com.samourai.whirlpool.client.wallet.beans.WhirlpoolAccount;
-import com.samourai.whirlpool.client.wallet.data.pool.PoolSupplier;
+import com.samourai.whirlpool.client.whirlpool.beans.Pool;
+import java.util.Collection;
 
-public class Tx0Config {
-  private Tx0ParamService tx0ParamService;
-  private PoolSupplier poolSupplier;
-
-  private Tx0FeeTarget tx0FeeTarget;
-  private Tx0FeeTarget mixFeeTarget;
+public class Tx0Config extends Tx0PreviewConfig {
   private WhirlpoolAccount changeWallet;
 
   public Tx0Config(
-      Tx0ParamService tx0ParamService,
-      PoolSupplier poolSupplier,
+      Tx0PreviewService tx0PreviewService,
+      Collection<Pool> pools,
       Tx0FeeTarget tx0FeeTarget,
       Tx0FeeTarget mixFeeTarget,
       WhirlpoolAccount changeWallet) {
-    this.tx0ParamService = tx0ParamService;
-    this.poolSupplier = poolSupplier;
-    this.tx0FeeTarget = tx0FeeTarget;
-    this.mixFeeTarget = mixFeeTarget;
+    super(tx0PreviewService, pools, tx0FeeTarget, mixFeeTarget);
     this.changeWallet = changeWallet;
-  }
-
-  public Tx0ParamService getTx0ParamService() {
-    return tx0ParamService;
-  }
-
-  public PoolSupplier getPoolSupplier() {
-    return poolSupplier;
-  }
-
-  public Tx0FeeTarget getTx0FeeTarget() {
-    return tx0FeeTarget;
-  }
-
-  public void setTx0FeeTarget(Tx0FeeTarget tx0FeeTarget) {
-    this.tx0FeeTarget = tx0FeeTarget;
-  }
-
-  public Tx0FeeTarget getMixFeeTarget() {
-    return mixFeeTarget;
-  }
-
-  public void setMixFeeTarget(Tx0FeeTarget mixFeeTarget) {
-    this.mixFeeTarget = mixFeeTarget;
   }
 
   public WhirlpoolAccount getChangeWallet() {

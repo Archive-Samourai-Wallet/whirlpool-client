@@ -20,8 +20,8 @@ public class WhirlpoolEventService {
   }
 
   public void post(WhirlpoolEvent event) {
-    if (log.isDebugEnabled()) {
-      log.debug(" -> " + event.getClass().getSimpleName());
+    if (log.isTraceEnabled()) {
+      log.trace(" -> " + event.getClass().getSimpleName());
     }
     eventBus.post(event);
   }

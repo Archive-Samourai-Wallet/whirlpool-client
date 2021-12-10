@@ -1,11 +1,13 @@
 package com.samourai.whirlpool.client.tx0;
 
+import com.samourai.whirlpool.client.utils.ClientUtils;
 import com.samourai.whirlpool.client.whirlpool.beans.Pool;
 import com.samourai.whirlpool.client.whirlpool.beans.Tx0Data;
 
 public class Tx0Preview {
   private Pool pool;
-  private Tx0Data tx0Data;
+  private Tx0Data tx0Data; // may be null
+  private int tx0Size;
   private long tx0MinerFee;
   private long mixMinerFee;
   private long premixMinerFee;
@@ -17,11 +19,14 @@ public class Tx0Preview {
   private long premixValue;
   private long changeValue;
   private int nbPremix;
+  private long spendValue; // all except change
+  private long totalValue; // with change
 
   public Tx0Preview(Tx0Preview tx0Preview) {
     this(
         tx0Preview.pool,
         tx0Preview.tx0Data,
+        tx0Preview.tx0Size,
         tx0Preview.tx0MinerFee,
         tx0Preview.mixMinerFee,
         tx0Preview.premixMinerFee,
@@ -35,6 +40,7 @@ public class Tx0Preview {
   public Tx0Preview(
       Pool pool,
       Tx0Data tx0Data,
+      int tx0Size,
       long tx0MinerFee,
       long mixMinerFee,
       long premixMinerFee,
@@ -45,21 +51,23 @@ public class Tx0Preview {
       int nbPremix) {
     this.pool = pool;
     this.tx0Data = tx0Data;
+    this.tx0Size = tx0Size;
     this.tx0MinerFee = tx0MinerFee;
     this.mixMinerFee = mixMinerFee;
     this.premixMinerFee = premixMinerFee;
     this.tx0MinerFeePrice = tx0MinerFeePrice;
     this.mixMinerFeePrice = mixMinerFeePrice;
-    this.feeValue = tx0Data.getFeeValue();
-    this.feeChange = tx0Data.getFeeChange();
-    this.feeDiscountPercent = tx0Data.getFeeDiscountPercent();
+    this.feeValue = tx0Data != null ? tx0Data.getFeeValue() : pool.getFeeValue();
+    this.feeChange = tx0Data != null ? tx0Data.getFeeChange() : 0;
+    this.feeDiscountPercent = tx0Data != null ? tx0Data.getFeeDiscountPercent() : 0;
     this.premixValue = premixValue;
     this.changeValue = changeValue;
     this.nbPremix = nbPremix;
-  }
-
-  public long computeFeeValueOrFeeChange() {
-    return tx0Data.computeFeeValueOrFeeChange();
+    long feeValueOrFeeChange =
+        tx0Data != null ? tx0Data.computeFeeValueOrFeeChange() : pool.getFeeValue();
+    this.spendValue =
+        ClientUtils.computeTx0SpendValue(premixValue, nbPremix, feeValueOrFeeChange, tx0MinerFee);
+    this.totalValue = spendValue + changeValue;
   }
 
   public Pool getPool() {
@@ -73,6 +81,10 @@ public class Tx0Preview {
   // used by Sparrow
   public Tx0Data getTx0Data() {
     return tx0Data;
+  }
+
+  public int getTx0Size() {
+    return tx0Size;
   }
 
   public long getTx0MinerFee() {
@@ -119,6 +131,14 @@ public class Tx0Preview {
     return nbPremix;
   }
 
+  public long getSpendValue() {
+    return spendValue;
+  }
+
+  public long getTotalValue() {
+    return totalValue;
+  }
+
   @Override
   public String toString() {
     return "poolId="
@@ -140,6 +160,10 @@ public class Tx0Preview {
         + ", changeValue="
         + changeValue
         + ", nbPremix="
-        + nbPremix;
+        + nbPremix
+        + ", spendValue="
+        + spendValue
+        + ", totalValue="
+        + totalValue;
   }
 }

@@ -57,12 +57,12 @@ public class WhirlpoolWallet {
 
   private String walletIdentifier;
   private WhirlpoolWalletConfig config;
-  private Tx0Service tx0Service;
   private WalletAggregateService walletAggregateService;
   private PostmixIndexService postmixIndexService;
 
   private HD_Wallet bip44w;
   private DataSource dataSource;
+  private Tx0Service tx0Service;
   private DataPersister dataPersister;
 
   protected MixOrchestratorImpl mixOrchestrator;
@@ -116,7 +116,6 @@ public class WhirlpoolWallet {
 
     this.walletIdentifier = walletIdentifier;
     this.config = config;
-    this.tx0Service = new Tx0Service(config);
     this.walletAggregateService =
         new WalletAggregateService(config.getNetworkParameters(), bech32Util, this);
     this.postmixIndexService = new PostmixIndexService(config, bech32Util);
@@ -124,6 +123,7 @@ public class WhirlpoolWallet {
     this.bip44w = bip44w;
     this.dataPersister = null;
     this.dataSource = null;
+    this.tx0Service = null; // will be set with datasource
 
     this.mixOrchestrator = null;
     this.autoTx0Orchestrator = Optional.empty();
@@ -136,12 +136,6 @@ public class WhirlpoolWallet {
         Bytes.concat(seed, seedPassphrase.getBytes(), params.getId().getBytes()));
   }
 
-  public long computeTx0SpendFromBalanceMin(
-      Pool pool, Tx0FeeTarget tx0FeeTarget, Tx0FeeTarget mixFeeTarget) {
-    Tx0Param tx0Param = getTx0ParamService().getTx0Param(pool, tx0FeeTarget, mixFeeTarget);
-    return tx0Param.getSpendFromBalanceMin();
-  }
-
   public Tx0Previews tx0Previews(Collection<WhirlpoolUtxo> whirlpoolUtxos, Tx0Config tx0Config)
       throws Exception {
     return tx0Previews(tx0Config, toUnspentOutputs(whirlpoolUtxos));
@@ -149,7 +143,7 @@ public class WhirlpoolWallet {
 
   public Tx0Previews tx0Previews(Tx0Config tx0Config, Collection<UnspentOutput> whirlpoolUtxos)
       throws Exception {
-    return tx0Service.tx0Previews(whirlpoolUtxos, tx0Config);
+    return dataSource.getTx0PreviewService().tx0Previews(tx0Config, whirlpoolUtxos);
   }
 
   public Tx0 tx0(Collection<WhirlpoolUtxo> whirlpoolUtxos, Pool pool, Tx0Config tx0Config)
@@ -360,8 +354,8 @@ public class WhirlpoolWallet {
   public Tx0Config getTx0Config(Tx0FeeTarget tx0FeeTarget, Tx0FeeTarget mixFeeTarget) {
     Tx0Config tx0Config =
         new Tx0Config(
-            getTx0ParamService(),
-            getPoolSupplier(),
+            getTx0PreviewService(),
+            getPoolSupplier().getPools(),
             tx0FeeTarget,
             mixFeeTarget,
             WhirlpoolAccount.DEPOSIT);
@@ -380,6 +374,7 @@ public class WhirlpoolWallet {
     // instanciate data
     this.dataPersister = config.getDataPersisterFactory().createDataPersister(this, bip44w);
     this.dataSource = config.getDataSourceFactory().createDataSource(this, bip44w, dataPersister);
+    this.tx0Service = new Tx0Service(config, dataSource.getTx0PreviewService());
 
     // start orchestrators
     int loopDelay = config.getRefreshUtxoDelay() * 1000;
@@ -387,8 +382,7 @@ public class WhirlpoolWallet {
         new MixOrchestratorImpl(mixingState, loopDelay, config, getPoolSupplier(), this);
 
     if (config.isAutoTx0()) {
-      this.autoTx0Orchestrator =
-          Optional.of(new AutoTx0Orchestrator(this, config, getTx0ParamService()));
+      this.autoTx0Orchestrator = Optional.of(new AutoTx0Orchestrator(this, config));
     } else {
       this.autoTx0Orchestrator = Optional.empty();
     }
@@ -563,8 +557,8 @@ public class WhirlpoolWallet {
     return dataSource.getPoolSupplier();
   }
 
-  public Tx0ParamService getTx0ParamService() {
-    return dataSource.getTx0ParamService();
+  public Tx0PreviewService getTx0PreviewService() {
+    return dataSource.getTx0PreviewService();
   }
 
   // used by Sparrow

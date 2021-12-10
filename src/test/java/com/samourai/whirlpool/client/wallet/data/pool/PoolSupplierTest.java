@@ -1,6 +1,7 @@
 package com.samourai.whirlpool.client.wallet.data.pool;
 
 import com.samourai.whirlpool.client.test.AbstractTest;
+import com.samourai.whirlpool.client.tx0.Tx0Preview;
 import com.samourai.whirlpool.client.whirlpool.beans.Pool;
 import com.samourai.whirlpool.protocol.websocket.notifications.MixStatus;
 import java.util.Collection;
@@ -49,7 +50,21 @@ public class PoolSupplierTest extends AbstractTest {
     Assert.assertEquals(672969, pool01.getElapsedTime());
     Assert.assertEquals(2, pool01.getNbConfirmed());
 
-    Assert.assertEquals(1000302, pool01.getPremixValueMin());
-    Assert.assertEquals(1050491, pool01.getSpendFromBalanceMin());
+    // verify getTx0PreviewMin
+    Tx0Preview tx0Preview = pool01.getTx0PreviewMin();
+    Assert.assertEquals(1050577, tx0Preview.getTotalValue());
+    Assert.assertEquals(1050577, tx0Preview.getSpendValue());
+    Assert.assertEquals(1000302, tx0Preview.getPremixValue());
+    Assert.assertEquals(50000, tx0Preview.getFeeValue());
+    Assert.assertEquals(0, tx0Preview.getFeeChange());
+    Assert.assertEquals(275, tx0Preview.getTx0Size());
+    Assert.assertEquals(1, tx0Preview.getNbPremix());
+    Assert.assertEquals(302, tx0Preview.getMixMinerFee());
+    Assert.assertEquals(1, tx0Preview.getMixMinerFeePrice());
+    Assert.assertEquals(275, tx0Preview.getTx0MinerFee());
+    Assert.assertEquals(1, tx0Preview.getTx0MinerFeePrice());
+    Assert.assertEquals(0, tx0Preview.getChangeValue());
+    Assert.assertEquals("0.01btc", tx0Preview.getPool().getPoolId());
+    Assert.assertEquals(1050577, pool01.getTx0PreviewMinSpendValue());
   }
 }
