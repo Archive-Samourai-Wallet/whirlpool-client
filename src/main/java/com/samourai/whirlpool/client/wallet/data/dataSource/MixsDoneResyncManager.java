@@ -12,17 +12,16 @@ public class MixsDoneResyncManager {
 
   public MixsDoneResyncManager() {}
 
-  public void resync(Collection<WhirlpoolUtxo> postmixUtxos, Map<String, TxsResponse.Tx> txs) {
-    resync(postmixUtxos, txs, 0);
-  }
-
   public void resync(
-      Collection<WhirlpoolUtxo> postmixUtxos, Map<String, TxsResponse.Tx> txs, int adjustCounter) {
+      Collection<WhirlpoolUtxo> postmixUtxos, Map<String, TxsResponse.Tx> postmixTxs) {
     log.info("Resynchronizing mix counters...");
 
-    int fixedUtxos = adjustCounter;
+    int fixedUtxos = 0;
     for (WhirlpoolUtxo whirlpoolUtxo : postmixUtxos) {
-      int mixsDone = recountMixsDone(whirlpoolUtxo, txs);
+      if (log.isDebugEnabled()) {
+        log.debug("resynchronizing: " + whirlpoolUtxo.getUtxo().tx_hash);
+      }
+      int mixsDone = recountMixsDone(whirlpoolUtxo, postmixTxs);
       if (mixsDone != whirlpoolUtxo.getMixsDone()) {
         log.info(
             "Fixed "
@@ -40,16 +39,24 @@ public class MixsDoneResyncManager {
     log.info("Resync success: " + fixedUtxos + "/" + postmixUtxos.size() + " utxos updated.");
   }
 
-  private int recountMixsDone(WhirlpoolUtxo whirlpoolUtxo, Map<String, TxsResponse.Tx> txs) {
+  private int recountMixsDone(WhirlpoolUtxo whirlpoolUtxo, Map<String, TxsResponse.Tx> postmixTxs) {
     int mixsDone = 0;
-    String txid = whirlpoolUtxo.getUtxo().tx_hash;
-    while (true) {
-      TxsResponse.Tx tx = txs.get(txid);
-      if (tx == null || tx.inputs == null || tx.inputs.length == 0) {
+    TxsResponse.Tx tx = postmixTxs.get(whirlpoolUtxo.getUtxo().tx_hash);
+    while (tx != null) {
+      if (tx == null || tx.inputs == null) {
         return mixsDone;
       }
-      txid = tx.inputs[0].prev_out.txid;
+      // find previous tx
+      TxsResponse.Tx prevTx = null;
+      for (TxsResponse.TxInput txInput : tx.inputs) {
+        prevTx = postmixTxs.get(txInput.prev_out.txid);
+        if (prevTx != null) {
+          break;
+        }
+      }
+      tx = prevTx;
       mixsDone++;
     }
+    return mixsDone;
   }
 }

@@ -84,9 +84,7 @@ public class SamouraiDataSource extends WalletResponseDataSource
       }
       try {
         Map<String, TxsResponse.Tx> postmixTxs = fetchTxsPostmix();
-        int adjustCounter =
-            1; // first mix only appears in PREMIX txs instead of POSTMIX for SamouraiDataSource
-        new MixsDoneResyncManager().resync(postmixUtxos, postmixTxs, adjustCounter);
+        new MixsDoneResyncManager().resync(postmixUtxos, postmixTxs);
       } catch (Exception e) {
         log.error("", e);
       }
