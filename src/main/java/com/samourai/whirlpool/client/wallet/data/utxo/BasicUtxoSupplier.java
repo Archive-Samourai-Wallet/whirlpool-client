@@ -2,7 +2,9 @@ package com.samourai.whirlpool.client.wallet.data.utxo;
 
 import com.samourai.wallet.api.backend.beans.UnspentOutput;
 import com.samourai.wallet.api.backend.beans.WalletResponse;
+import com.samourai.wallet.client.BipWalletAndAddressType;
 import com.samourai.wallet.hd.AddressType;
+import com.samourai.wallet.hd.Chain;
 import com.samourai.wallet.hd.HD_Address;
 import com.samourai.wallet.send.MyTransactionOutPoint;
 import com.samourai.wallet.send.UTXO;
@@ -68,6 +70,7 @@ public abstract class BasicUtxoSupplier extends BasicSupplier<UtxoData>
     utxoData.init(
         walletSupplier,
         utxoConfigSupplier,
+        this,
         poolSupplier,
         tx0ParamService,
         previousUtxos,
@@ -166,6 +169,36 @@ public abstract class BasicUtxoSupplier extends BasicSupplier<UtxoData>
     }
     HD_Address premixAddress = getAddress(whirlpoolUtxo);
     return premixAddress.getECKey();
+  }
+
+  @Override
+  public boolean isMixableUtxo(
+      UnspentOutput unspentOutput, BipWalletAndAddressType bipWalletAndAddressType) {
+    WhirlpoolAccount whirlpoolAccount = bipWalletAndAddressType.getAccount();
+
+    // don't mix BADBANK utxos
+    if (WhirlpoolAccount.BADBANK.equals(whirlpoolAccount)) {
+      if (log.isDebugEnabled()) {
+        log.debug("Ignoring non-mixable utxo (BADBANK): " + unspentOutput);
+      }
+      return false;
+    }
+
+    // don't mix PREMIX/POSTMIX changes
+    if (WhirlpoolAccount.PREMIX.equals(whirlpoolAccount)
+        || WhirlpoolAccount.POSTMIX.equals(whirlpoolAccount)) {
+      // ignore change utxos
+      if (unspentOutput.xpub != null && unspentOutput.xpub.path != null) {
+        int chainIndex = unspentOutput.computePathChainIndex();
+        if (chainIndex == Chain.CHANGE.getIndex()) {
+          if (log.isDebugEnabled()) {
+            log.debug("Ignoring non-mixable utxo (PREMIX/POSTMIX change): " + unspentOutput);
+          }
+          return false;
+        }
+      }
+    }
+    return true;
   }
 
   private HD_Address getAddress(WhirlpoolUtxo whirlpoolUtxo) {
