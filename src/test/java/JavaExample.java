@@ -184,7 +184,7 @@ public class JavaExample {
     whirlpoolWallet.open();
 
     // start whirlpool wallet
-    whirlpoolWallet.start();
+    whirlpoolWallet.startAsync().subscribe();
 
     // get mixing state (started, utxosMixing, nbMixing, nbQueued...)
     MixingState mixingState = whirlpoolWallet.getMixingState();
@@ -315,7 +315,7 @@ public class JavaExample {
     whirlpoolWallet.mix(whirlpoolUtxo);
 
     // manually refresh utxos
-    whirlpoolWallet.refreshUtxos();
+    whirlpoolWallet.refreshUtxosAsync().subscribe();
 
     // stop mixing specific utxo (or remove it from mix queue)
     whirlpoolWallet.mixStop(whirlpoolUtxo);

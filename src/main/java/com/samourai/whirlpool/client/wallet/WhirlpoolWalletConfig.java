@@ -27,7 +27,7 @@ import org.slf4j.LoggerFactory;
 
 public class WhirlpoolWalletConfig extends WhirlpoolClientConfig
     implements ITx0PreviewServiceConfig {
-  private final Logger log = LoggerFactory.getLogger(WhirlpoolWalletConfig.class);
+  private static final Logger log = LoggerFactory.getLogger(WhirlpoolWalletConfig.class);
 
   private DataSourceFactory dataSourceFactory;
   private DataPersisterFactory dataPersisterFactory;
@@ -57,6 +57,7 @@ public class WhirlpoolWalletConfig extends WhirlpoolClientConfig
   private int feeFallback;
 
   private boolean resyncOnFirstRun;
+  private boolean postmixIndexCheck;
   private boolean postmixIndexAutoFix;
   private int persistDelaySeconds;
   private String partner;
@@ -111,6 +112,7 @@ public class WhirlpoolWalletConfig extends WhirlpoolClientConfig
     this.feeFallback = 75;
 
     this.resyncOnFirstRun = false;
+    this.postmixIndexCheck = true;
     this.postmixIndexAutoFix = true;
     this.persistDelaySeconds = 10;
     this.partner = WhirlpoolProtocol.PARTNER_ID_SAMOURAI;
@@ -339,6 +341,14 @@ public class WhirlpoolWalletConfig extends WhirlpoolClientConfig
     this.resyncOnFirstRun = resyncOnFirstRun;
   }
 
+  public boolean isPostmixIndexCheck() {
+    return postmixIndexCheck;
+  }
+
+  public void setPostmixIndexCheck(boolean postmixIndexCheck) {
+    this.postmixIndexCheck = postmixIndexCheck;
+  }
+
   public boolean isPostmixIndexAutoFix() {
     return postmixIndexAutoFix;
   }
@@ -422,8 +432,10 @@ public class WhirlpoolWalletConfig extends WhirlpoolClientConfig
     configInfo.put(
         "fee", "fallback=" + getFeeFallback() + ", min=" + getFeeMin() + ", max=" + getFeeMax());
     configInfo.put("resyncOnFirstRun", Boolean.toString(resyncOnFirstRun));
+    configInfo.put("postmixIndexCheck", Boolean.toString(postmixIndexCheck));
     configInfo.put("postmixIndexAutoFix", Boolean.toString(postmixIndexAutoFix));
     configInfo.put("persistDelaySeconds", Integer.toString(persistDelaySeconds));
+    configInfo.put("secretPointFactory", secretPointFactory.getClass().getName());
     return configInfo;
   }
 }

@@ -29,7 +29,8 @@ public class PostmixIndexService {
     this.bech32Util = bech32Util;
   }
 
-  public void checkPostmixIndex(BipWalletAndAddressType walletPostmix) throws Exception {
+  public synchronized void checkPostmixIndex(BipWalletAndAddressType walletPostmix)
+      throws Exception {
     IIndexHandler postmixIndexHandler = walletPostmix.getIndexHandler();
 
     // check next output
@@ -38,13 +39,13 @@ public class PostmixIndexService {
             postmixIndexHandler, config.getIndexRangePostmix());
 
     try {
-      checkPostmixIndex(walletPostmix, postmixIndex).blockingSingle().get(); // throws on error
+      checkPostmixIndexAsync(walletPostmix, postmixIndex).blockingFirst().get(); // throws on error
     } finally {
       postmixIndexHandler.cancelUnconfirmed(postmixIndex);
     }
   }
 
-  private Observable<Optional<String>> checkPostmixIndex(
+  private Observable<Optional<String>> checkPostmixIndexAsync(
       BipWalletAndAddressType walletPostmix, int postmixIndex) throws Exception {
     if (log.isDebugEnabled()) {
       log.debug("checking postmixIndex: " + postmixIndex);
@@ -56,7 +57,7 @@ public class PostmixIndexService {
     return config.getServerApi().checkOutput(checkOutputRequest);
   }
 
-  public void fixPostmixIndex(BipWalletAndAddressType walletPostmix) throws Exception {
+  public synchronized void fixPostmixIndex(BipWalletAndAddressType walletPostmix) throws Exception {
     IIndexHandler postmixIndexHandler = walletPostmix.getIndexHandler();
 
     int leftIndex = 0;
@@ -111,7 +112,7 @@ public class PostmixIndexService {
         }
 
         // check next output
-        checkPostmixIndex(walletPostmix, postmixIndex).blockingSingle().get();
+        checkPostmixIndexAsync(walletPostmix, postmixIndex).blockingFirst().get();
 
         // success!
         if (log.isDebugEnabled()) {

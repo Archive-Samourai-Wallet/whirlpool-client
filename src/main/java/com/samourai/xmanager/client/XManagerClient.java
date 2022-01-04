@@ -40,7 +40,7 @@ public class XManagerClient {
     String address = null;
     try {
       Observable<Optional<AddressResponse>> responseObservable = getAddressResponse(service);
-      address = responseObservable.blockingSingle().get().address;
+      address = responseObservable.blockingFirst().get().address;
     } catch (Exception e) {
       log.error("getAddressResponse(" + service.name() + ") failed", e);
     }
@@ -68,7 +68,7 @@ public class XManagerClient {
     try {
       Observable<Optional<AddressIndexResponse>> responseObservable =
           getAddressIndexResponse(service);
-      response = responseObservable.blockingSingle().get();
+      response = responseObservable.blockingFirst().get();
     } catch (Exception e) {
       log.error("getAddressIndexResponse(" + service.name() + ") failed", e);
     }
@@ -102,7 +102,7 @@ public class XManagerClient {
     try {
       Observable<Optional<VerifyAddressIndexResponse>> responseObservable =
           verifyAddressIndexResponse(service, address, index);
-      return responseObservable.blockingSingle().get().valid;
+      return responseObservable.blockingFirst().get().valid;
     } catch (Exception e) {
       log.error("verifyAddressIndexResponse(" + service.name() + ") failed", e);
       throw e;

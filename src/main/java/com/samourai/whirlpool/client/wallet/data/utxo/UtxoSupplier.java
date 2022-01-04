@@ -1,6 +1,8 @@
 package com.samourai.whirlpool.client.wallet.data.utxo;
 
+import com.samourai.wallet.api.backend.beans.UnspentOutput;
 import com.samourai.wallet.api.backend.beans.WalletResponse;
+import com.samourai.wallet.client.BipWalletAndAddressType;
 import com.samourai.wallet.hd.AddressType;
 import com.samourai.wallet.send.provider.UtxoProvider;
 import com.samourai.whirlpool.client.wallet.beans.WhirlpoolAccount;
@@ -29,4 +31,7 @@ public interface UtxoSupplier extends UtxoProvider {
   Long getLastUpdate();
 
   void refresh() throws Exception;
+
+  boolean isMixableUtxo(
+      UnspentOutput unspentOutput, BipWalletAndAddressType bipWalletAndAddressType);
 }

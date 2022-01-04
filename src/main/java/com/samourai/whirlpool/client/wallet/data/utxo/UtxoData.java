@@ -42,6 +42,7 @@ public class UtxoData {
   protected void init(
       WalletSupplier walletSupplier,
       UtxoConfigSupplier utxoConfigSupplier,
+      UtxoSupplier utxoSupplier,
       PoolSupplier poolSupplier,
       Map<String, WhirlpoolUtxo> previousUtxos,
       int latestBlockHeight) {
@@ -108,15 +109,19 @@ public class UtxoData {
           if (bipWallet == null) {
             throw new Exception("Unknown wallet for: " + pub);
           }
+          WhirlpoolAccount whirlpoolAccount = bipWallet.getAccount();
 
-          // auto-assign pool when possible
-          String poolId = computeAutoAssignPoolId(bipWallet.getAccount(), utxo.value, poolSupplier);
+          // auto-assign pool for mixable utxos
+          String poolId = null;
+          if (utxoSupplier.isMixableUtxo(utxo, bipWallet)) { //  exclude premix/postmix change
+            poolId = computeAutoAssignPoolId(whirlpoolAccount, utxo.value, poolSupplier);
+          }
 
           // add missing
           WhirlpoolUtxo whirlpoolUtxo =
               new WhirlpoolUtxo(
                   utxo,
-                  bipWallet.getAccount(),
+                  whirlpoolAccount,
                   bipWallet.getAddressType(),
                   poolId,
                   utxoConfigSupplier,

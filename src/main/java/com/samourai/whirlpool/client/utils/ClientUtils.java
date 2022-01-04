@@ -15,10 +15,12 @@ import com.samourai.whirlpool.client.wallet.beans.IndexRange;
 import com.samourai.whirlpool.protocol.WhirlpoolProtocol;
 import com.samourai.whirlpool.protocol.beans.Utxo;
 import com.samourai.whirlpool.protocol.rest.RestErrorResponse;
-import io.reactivex.Observable;
-import io.reactivex.subjects.BehaviorSubject;
-import io.reactivex.subjects.Subject;
-import java.io.*;
+import io.reactivex.Completable;
+import io.reactivex.functions.Action;
+import io.reactivex.functions.Consumer;
+import io.reactivex.schedulers.Schedulers;
+import java.io.File;
+import java.io.RandomAccessFile;
 import java.nio.channels.FileChannel;
 import java.nio.channels.FileLock;
 import java.security.KeyFactory;
@@ -27,7 +29,6 @@ import java.security.interfaces.RSAPublicKey;
 import java.security.spec.X509EncodedKeySpec;
 import java.text.SimpleDateFormat;
 import java.util.*;
-import java8.util.Optional;
 import java8.util.function.Function;
 import java8.util.stream.Collectors;
 import java8.util.stream.StreamSupport;
@@ -188,40 +189,21 @@ public class ClientUtils {
     return txHex;
   }
 
-  public static Observable<Optional<Void>> sleepUtxosDelay(final NetworkParameters params) {
-    return sleepUtxosDelay(params, null);
-  }
-
-  public static Observable<Optional<Void>> sleepUtxosDelay(
-      final NetworkParameters params, final Runnable runnable) {
-    final Subject<Optional<Void>> observable = BehaviorSubject.create();
-    // delayed refresh utxos
-    new Thread(
-            new Runnable() {
-              @Override
-              public void run() {
-                // wait for delay
-                boolean isTestnet = FormatsUtilGeneric.getInstance().isTestNet(params);
-                int sleepDelay =
-                    isTestnet ? SLEEP_REFRESH_UTXOS_TESTNET : SLEEP_REFRESH_UTXOS_MAINNET;
-                try {
-                  Thread.sleep(sleepDelay);
-                } catch (InterruptedException e) {
-                }
-
-                // run callback
-                if (runnable != null) {
-                  runnable.run();
-                }
-
-                // notify
-                observable.onNext(Optional.<Void>empty());
-                observable.onComplete();
-              }
-            },
-            "refreshUtxos")
-        .start();
-    return observable;
+  public static Completable sleepUtxosDelayAsync(final NetworkParameters params) {
+    return runAsync(
+        new Action() {
+          @Override
+          public void run() {
+            // wait for delay
+            boolean isTestnet = FormatsUtilGeneric.getInstance().isTestNet(params);
+            int sleepDelay = isTestnet ? SLEEP_REFRESH_UTXOS_TESTNET : SLEEP_REFRESH_UTXOS_MAINNET;
+            try {
+              Thread.sleep(sleepDelay);
+            } catch (InterruptedException e) {
+            }
+          }
+        },
+        "sleepUtxosDelay");
   }
 
   public static String sha256Hash(String str) {
@@ -319,6 +301,7 @@ public class ClientUtils {
     LogbackUtils.setLogLevel("com.samourai.stomp.client", subLevel.toString());
     LogbackUtils.setLogLevel("com.samourai.wallet.util.FeeUtil", subLevel.toString());
 
+    LogbackUtils.setLogLevel("com.samourai.whirlpool.client.utils", mainLevel.toString());
     LogbackUtils.setLogLevel("com.samourai.whirlpool.client.wallet", mainLevel.toString());
     LogbackUtils.setLogLevel(
         "com.samourai.whirlpool.client.wallet.orchestrator", mainLevel.toString());
@@ -430,5 +413,37 @@ public class ClientUtils {
 
   public static long bytesToMB(long bytes) {
     return Math.round(bytes / (1024L * 1024L));
+  }
+
+  public static Completable runAsync(final Action action, final String taskName) {
+    Completable completable =
+        Completable.fromAction(
+                new Action() {
+                  @Override
+                  public void run() throws Exception {
+                    if (log.isDebugEnabled()) {
+                      log.debug("=> runAsync starting " + taskName);
+                    }
+                    action.run();
+                  }
+                })
+            .subscribeOn(Schedulers.io())
+            .doOnComplete(
+                new Action() {
+                  @Override
+                  public void run() {
+                    if (log.isDebugEnabled()) {
+                      log.debug("<= runAsync completed " + taskName);
+                    }
+                  }
+                })
+            .doOnError(
+                new Consumer<Throwable>() {
+                  @Override
+                  public void accept(Throwable e) {
+                    log.error("<= runAsync failed " + taskName, e);
+                  }
+                });
+    return completable;
   }
 }

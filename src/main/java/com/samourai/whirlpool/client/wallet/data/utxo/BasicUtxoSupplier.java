@@ -2,11 +2,14 @@ package com.samourai.whirlpool.client.wallet.data.utxo;
 
 import com.samourai.wallet.api.backend.beans.UnspentOutput;
 import com.samourai.wallet.api.backend.beans.WalletResponse;
+import com.samourai.wallet.client.BipWalletAndAddressType;
 import com.samourai.wallet.hd.AddressType;
+import com.samourai.wallet.hd.Chain;
 import com.samourai.wallet.hd.HD_Address;
 import com.samourai.wallet.send.MyTransactionOutPoint;
 import com.samourai.wallet.send.UTXO;
 import com.samourai.wallet.send.provider.UtxoProvider;
+import com.samourai.whirlpool.client.exception.NotifiableException;
 import com.samourai.whirlpool.client.wallet.beans.WhirlpoolAccount;
 import com.samourai.whirlpool.client.wallet.beans.WhirlpoolUtxo;
 import com.samourai.whirlpool.client.wallet.data.chain.ChainSupplier;
@@ -64,6 +67,7 @@ public abstract class BasicUtxoSupplier extends BasicSupplier<UtxoData>
     utxoData.init(
         walletSupplier,
         utxoConfigSupplier,
+        this,
         poolSupplier,
         previousUtxos,
         chainSupplier.getLatestBlock().height);
@@ -153,17 +157,59 @@ public abstract class BasicUtxoSupplier extends BasicSupplier<UtxoData>
     return toUTXOs(findUtxos(account));
   }
 
+  public ECKey _getPrivKeyBip47(WhirlpoolUtxo whirlpoolUtxo) throws Exception {
+    // override this to support bip47
+    throw new NotifiableException("No privkey found for utxo: " + whirlpoolUtxo);
+  }
+
   @Override
   public ECKey _getPrivKey(String utxoHash, int utxoIndex) throws Exception {
     WhirlpoolUtxo whirlpoolUtxo = findUtxo(utxoHash, utxoIndex);
     if (whirlpoolUtxo == null) {
       throw new Exception("Utxo not found: " + utxoHash + ":" + utxoIndex);
     }
+    if (!whirlpoolUtxo.getUtxo().hasPath()) {
+      // bip47
+      return _getPrivKeyBip47(whirlpoolUtxo);
+    }
     HD_Address premixAddress = getAddress(whirlpoolUtxo);
+    if (premixAddress == null) {
+      throw new NotifiableException("No privkey found for utxo: " + whirlpoolUtxo);
+    }
     return premixAddress.getECKey();
   }
 
-  private HD_Address getAddress(WhirlpoolUtxo whirlpoolUtxo) {
+  @Override
+  public boolean isMixableUtxo(
+      UnspentOutput unspentOutput, BipWalletAndAddressType bipWalletAndAddressType) {
+    WhirlpoolAccount whirlpoolAccount = bipWalletAndAddressType.getAccount();
+
+    // don't mix BADBANK utxos
+    if (WhirlpoolAccount.BADBANK.equals(whirlpoolAccount)) {
+      if (log.isDebugEnabled()) {
+        log.debug("Ignoring non-mixable utxo (BADBANK): " + unspentOutput);
+      }
+      return false;
+    }
+
+    // don't mix PREMIX/POSTMIX changes
+    if (WhirlpoolAccount.PREMIX.equals(whirlpoolAccount)
+        || WhirlpoolAccount.POSTMIX.equals(whirlpoolAccount)) {
+      // ignore change utxos
+      if (unspentOutput.xpub != null && unspentOutput.xpub.path != null) {
+        int chainIndex = unspentOutput.computePathChainIndex();
+        if (chainIndex == Chain.CHANGE.getIndex()) {
+          if (log.isDebugEnabled()) {
+            log.debug("Ignoring non-mixable utxo (PREMIX/POSTMIX change): " + unspentOutput);
+          }
+          return false;
+        }
+      }
+    }
+    return true;
+  }
+
+  protected HD_Address getAddress(WhirlpoolUtxo whirlpoolUtxo) {
     UnspentOutput utxo = whirlpoolUtxo.getUtxo();
     AddressType addressType = AddressType.findByAddress(utxo.addr, params);
     return walletSupplier.getWallet(whirlpoolUtxo.getAccount(), addressType).getAddressAt(utxo);
