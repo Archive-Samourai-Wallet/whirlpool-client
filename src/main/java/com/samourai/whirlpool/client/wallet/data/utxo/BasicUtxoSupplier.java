@@ -9,6 +9,7 @@ import com.samourai.wallet.hd.HD_Address;
 import com.samourai.wallet.send.MyTransactionOutPoint;
 import com.samourai.wallet.send.UTXO;
 import com.samourai.wallet.send.provider.UtxoProvider;
+import com.samourai.whirlpool.client.exception.NotifiableException;
 import com.samourai.whirlpool.client.tx0.Tx0ParamService;
 import com.samourai.whirlpool.client.wallet.beans.WhirlpoolAccount;
 import com.samourai.whirlpool.client.wallet.beans.WhirlpoolUtxo;
@@ -161,13 +162,25 @@ public abstract class BasicUtxoSupplier extends BasicSupplier<UtxoData>
     return toUTXOs(findUtxos(account));
   }
 
+  public ECKey _getPrivKeyBip47(WhirlpoolUtxo whirlpoolUtxo) throws Exception {
+    // override this to support bip47
+    throw new NotifiableException("No privkey found for utxo: " + whirlpoolUtxo);
+  }
+
   @Override
   public ECKey _getPrivKey(String utxoHash, int utxoIndex) throws Exception {
     WhirlpoolUtxo whirlpoolUtxo = findUtxo(utxoHash, utxoIndex);
     if (whirlpoolUtxo == null) {
       throw new Exception("Utxo not found: " + utxoHash + ":" + utxoIndex);
     }
+    if (!whirlpoolUtxo.getUtxo().hasPath()) {
+      // bip47
+      return _getPrivKeyBip47(whirlpoolUtxo);
+    }
     HD_Address premixAddress = getAddress(whirlpoolUtxo);
+    if (premixAddress == null) {
+      throw new NotifiableException("No privkey found for utxo: " + whirlpoolUtxo);
+    }
     return premixAddress.getECKey();
   }
 
@@ -201,7 +214,7 @@ public abstract class BasicUtxoSupplier extends BasicSupplier<UtxoData>
     return true;
   }
 
-  private HD_Address getAddress(WhirlpoolUtxo whirlpoolUtxo) {
+  protected HD_Address getAddress(WhirlpoolUtxo whirlpoolUtxo) {
     UnspentOutput utxo = whirlpoolUtxo.getUtxo();
     AddressType addressType = AddressType.findByAddress(utxo.addr, params);
     return walletSupplier.getWallet(whirlpoolUtxo.getAccount(), addressType).getAddressAt(utxo);
