@@ -26,10 +26,16 @@ public class StompTransport {
     this.log = LoggerFactory.getLogger(StompTransport.class + "[" + logPrefix + "]");
     this.stompClient = stompClient;
     this.listener = listener;
+    this.done = false;
   }
 
   public synchronized void connect(String wsUrl, Map<String, String> connectHeaders) {
-    done = false;
+    if (done) {
+      if (log.isDebugEnabled()) {
+        log.debug("connect() aborted: done");
+      }
+      return;
+    }
     stompClient.connect(
         wsUrl,
         connectHeaders,
