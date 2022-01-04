@@ -222,7 +222,7 @@ public class WalletAggregateService {
       return false;
     }
 
-    ClientUtils.sleepUtxosDelay(params);
+    ClientUtils.sleepUtxosDelayAsync(params).blockingAwait();
     log.info(" • Consolidating deposit...");
     boolean success = toWallet(depositWallet, depositWallet, feeSatPerByte);
     return success;

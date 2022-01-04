@@ -14,6 +14,8 @@ import com.samourai.whirlpool.protocol.WhirlpoolProtocol;
 import com.samourai.whirlpool.protocol.websocket.MixMessage;
 import com.samourai.whirlpool.protocol.websocket.messages.RegisterInputRequest;
 import com.samourai.whirlpool.protocol.websocket.messages.SubscribePoolResponse;
+import io.reactivex.Completable;
+import io.reactivex.functions.Action;
 import java.util.HashMap;
 import java.util.Map;
 import org.slf4j.Logger;
@@ -63,6 +65,12 @@ public class MixSession {
   }
 
   public synchronized void connect() {
+    if (done) {
+      if (log.isDebugEnabled()) {
+        log.debug("connect() aborted: done");
+      }
+      return;
+    }
     if (connectBeginTime == null) {
       connectBeginTime = System.currentTimeMillis();
     }
@@ -290,33 +298,30 @@ public class MixSession {
         }
 
         if (reconnectDelay > 0) {
-          // reconnect after delay. use a new thread to avoid waiting on android's mainThread
-          final long waitDelay = reconnectDelay;
-          Thread reconnectThread =
-              new Thread(
-                  new Runnable() {
-                    @Override
-                    public synchronized void run() {
-                      try {
-                        wait(waitDelay);
-                      } catch (Exception e) {
-                        log.error("", e);
-                      }
-                      if (done) {
-                        return;
-                      }
-                      connect();
-                    }
-                  },
-                  "mixSession-reconnect-" + logPrefix);
-          reconnectThread.setDaemon(true);
-          reconnectThread.start();
+          waitAndReconnectAsync(reconnectDelay).subscribe();
         } else {
           // reconnect now
           connect();
         }
       }
     };
+  }
+
+  protected Completable waitAndReconnectAsync(final int reconnectDelay) {
+    // reconnect after delay
+    return ClientUtils.runAsync(
+        new Action() {
+          @Override
+          public synchronized void run() {
+            try {
+              wait(reconnectDelay);
+            } catch (Exception e) {
+              log.error("", e);
+            }
+            connect();
+          }
+        },
+        "mixSession.waitAndReconnectAsync");
   }
 
   //

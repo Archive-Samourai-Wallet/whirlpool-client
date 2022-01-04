@@ -36,7 +36,9 @@ import com.samourai.whirlpool.client.wallet.orchestrator.MixOrchestratorImpl;
 import com.samourai.whirlpool.client.whirlpool.beans.Pool;
 import com.samourai.whirlpool.protocol.beans.Utxo;
 import com.samourai.whirlpool.protocol.rest.Tx0NotifyRequest;
-import io.reactivex.Observable;
+import io.reactivex.Completable;
+import io.reactivex.functions.Action;
+import io.reactivex.functions.Consumer;
 import java.util.Collection;
 import java.util.LinkedList;
 import java.util.List;
@@ -214,10 +216,10 @@ public class WhirlpoolWallet {
 
       // notify
       WhirlpoolEventService.getInstance().post(new Tx0Event(this, tx0));
-      notifyCoordinatorTx0(tx0.getTx().getHashAsString(), pool.getPoolId());
+      notifyCoordinatorTx0Async(tx0.getTx().getHashAsString(), pool.getPoolId()).subscribe();
 
       // refresh new utxos in background
-      refreshUtxosDelay();
+      refreshUtxosDelayAsync().subscribe();
       return tx0;
     } catch (Exception e) {
       // revert index
@@ -339,22 +341,16 @@ public class WhirlpoolWallet {
         .collect(Collectors.<UnspentOutput>toList());
   }
 
-  private void notifyCoordinatorTx0(final String txid, final String poolId) {
-    new Thread(
-            new Runnable() {
-              @Override
-              public void run() {
-                try {
-                  Tx0NotifyRequest tx0NotifyRequest = new Tx0NotifyRequest(txid, poolId);
-                  config.getServerApi().tx0Notify(tx0NotifyRequest).blockingSingle().get();
-                } catch (Exception e) {
-                  // ignore failures
-                  log.warn("notifyCoordinatorTx0 failed", e);
-                }
-              }
-            },
-            "notifyCoordinatorTx0")
-        .start();
+  private Completable notifyCoordinatorTx0Async(final String txid, final String poolId) {
+    return ClientUtils.runAsync(
+        new Action() {
+          @Override
+          public void run() throws Exception {
+            Tx0NotifyRequest tx0NotifyRequest = new Tx0NotifyRequest(txid, poolId);
+            config.getServerApi().tx0Notify(tx0NotifyRequest).blockingFirst().get();
+          }
+        },
+        "whirlpoolWallet.notifyCoordinatorTx0 " + txid);
   }
 
   public Tx0Config getTx0Config(Tx0FeeTarget tx0FeeTarget, Tx0FeeTarget mixFeeTarget) {
@@ -424,9 +420,6 @@ public class WhirlpoolWallet {
               + pub);
     }
 
-    // check postmix index against coordinator
-    checkPostmixIndex();
-
     // notify
     WhirlpoolEventService.getInstance().post(new WalletOpenEvent(this));
   }
@@ -460,7 +453,20 @@ public class WhirlpoolWallet {
     WhirlpoolEventService.getInstance().post(new WalletCloseEvent(this));
   }
 
-  public synchronized void start() {
+  public synchronized Completable startAsync() {
+    // check postmix index against coordinator
+    return checkPostmixIndexAsync()
+        .doOnComplete(
+            new Action() {
+              @Override
+              public void run() throws Exception {
+                // start mixing on success
+                doStart();
+              }
+            });
+  }
+
+  protected synchronized void doStart() {
     if (isStarted()) {
       if (log.isDebugEnabled()) {
         log.debug("NOT starting WhirlpoolWallet: already started");
@@ -610,7 +616,7 @@ public class WhirlpoolWallet {
     config.getTorClientService().changeIdentity();
 
     // refresh new utxos in background
-    refreshUtxosDelay();
+    refreshUtxosDelayAsync().subscribe();
 
     // notify
     WhirlpoolEventService.getInstance().post(new MixSuccessEvent(this, mixParams, receiveUtxo));
@@ -647,17 +653,9 @@ public class WhirlpoolWallet {
     WhirlpoolEventService.getInstance()
         .post(new MixFailEvent(this, mixParams, failReason, notifiableError));
 
-    try {
-      checkPostmixIndex();
-    } catch (Exception e) {
-      log.error(e.getMessage());
-      stop();
-    }
-
     switch (failReason) {
       case PROTOCOL_MISMATCH:
         // stop mixing on protocol mismatch
-        log.error("onMixFail(" + failReason + "): stopping mixing");
         stop();
         break;
 
@@ -666,25 +664,30 @@ public class WhirlpoolWallet {
       case INPUT_REJECTED:
       case INTERNAL_ERROR:
         // retry later
-        log.info("onMixFail(" + failReason + "): will retry later");
         try {
           mixQueue(whirlpoolUtxo);
         } catch (Exception e) {
           log.error("", e);
         }
+
+        // check postmixIndex
+        checkPostmixIndexAsync()
+            .doOnError(
+                new Consumer<Throwable>() {
+                  @Override
+                  public void accept(Throwable e) {
+                    // stop mixing on postmixIndex error
+                    log.error(e.getMessage());
+                    stop();
+                  }
+                })
+            .subscribe();
         break;
 
       case STOP:
       case CANCEL:
-        // not retrying, silently
-        if (log.isDebugEnabled()) {
-          log.debug("onMixFail(" + failReason + "): won't retry");
-        }
-        break;
-
       default:
         // not retrying
-        log.warn("onMixFail(" + failReason + "): unknown reason");
         break;
     }
   }
@@ -713,32 +716,54 @@ public class WhirlpoolWallet {
     return progress.toString();
   }
 
-  /** Refresh utxos after utxosDelay (in a new thread). */
-  public Observable<Optional<Void>> refreshUtxosDelay() {
-    return ClientUtils.sleepUtxosDelay(
-        config.getNetworkParameters(),
-        new Runnable() {
+  /** Refresh utxos in background after utxosDelay */
+  public Completable refreshUtxosDelayAsync() {
+    return ClientUtils.sleepUtxosDelayAsync(config.getNetworkParameters())
+        .doOnComplete(
+            new Action() {
+              @Override
+              public void run() {
+                refreshUtxosAsync().blockingAwait();
+              }
+            });
+  }
+
+  /** Refresh utxos now */
+  public Completable refreshUtxosAsync() {
+    return ClientUtils.runAsync(
+        new Action() {
           @Override
-          public void run() {
-            refreshUtxos();
+          public void run() throws Exception {
+            getUtxoSupplier().refresh();
           }
-        });
+        },
+        "whirlpoolWallet.refreshUtxosAsync");
   }
 
-  /** Refresh utxos now. */
-  public void refreshUtxos() {
-    try {
-      getUtxoSupplier().refresh();
-    } catch (Exception e) {
-      log.error("", e);
-    }
+  public synchronized Completable checkPostmixIndexAsync() {
+    return ClientUtils.runAsync(
+        new Action() {
+          @Override
+          public void run() throws Exception {
+            if (!config.isPostmixIndexCheck()) {
+              // check disabled
+              log.warn("postmixIndexCheck is disabled");
+              return;
+            }
+
+            doCheckPostmixIndex();
+          }
+        },
+        "whirlpoolWallet.checkPostmixIndex");
   }
 
-  public void checkPostmixIndex() throws Exception {
+  protected void doCheckPostmixIndex() throws Exception {
     try {
       // check
       postmixIndexService.checkPostmixIndex(getWalletPostmix());
     } catch (Exception e) {
+      log.error(
+          "postmixIndex is desynchronized: " + e.getClass().getSimpleName() + " " + e.getMessage());
       // postmix index is desynchronized
       WhirlpoolEventService.getInstance().post(new PostmixIndexAlreadyUsedEvent(this));
       if (config.isPostmixIndexAutoFix()) {
