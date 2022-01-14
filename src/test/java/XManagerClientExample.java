@@ -29,7 +29,7 @@ public class XManagerClientExample {
     int indexToValidate = 0;
     try {
       boolean valid =
-          xManagerClient.verifyAddressIndexResponseOrException(
+          xManagerClient.verifyAddressIndexResponse(
               XManagerService.RICOCHET, addressToValidate, indexToValidate);
     } catch (Exception e) {
       // server not available

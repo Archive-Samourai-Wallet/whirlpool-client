@@ -89,7 +89,7 @@ public class XManagerClient {
     return response;
   }
 
-  public Observable<Optional<VerifyAddressIndexResponse>> verifyAddressIndexResponse(
+  public Observable<Optional<VerifyAddressIndexResponse>> verifyAddressIndexResponseAsync(
       XManagerService service, String address, int index) {
     String url = protocol.getUrlVerifyAddressIndex(serverUrl);
     VerifyAddressIndexRequest request =
@@ -97,11 +97,11 @@ public class XManagerClient {
     return httpClient.postJson(url, VerifyAddressIndexResponse.class, null, request);
   }
 
-  public boolean verifyAddressIndexResponseOrException(
-      XManagerService service, String address, int index) throws Exception {
+  public boolean verifyAddressIndexResponse(XManagerService service, String address, int index)
+      throws Exception {
     try {
       Observable<Optional<VerifyAddressIndexResponse>> responseObservable =
-          verifyAddressIndexResponse(service, address, index);
+          verifyAddressIndexResponseAsync(service, address, index);
       return responseObservable.blockingFirst().get().valid;
     } catch (Exception e) {
       log.error("verifyAddressIndexResponse(" + service.name() + ") failed", e);
