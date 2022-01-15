@@ -125,12 +125,12 @@ public class WhirlpoolWalletConfig extends WhirlpoolClientConfig
 
     // require testnet for autoTx0Aggregate
     if (autoTx0Aggregate && !isTestnet) {
-      throw new RuntimeException("--auto-tx0 is required for --auto-tx0-aggregate");
+      throw new RuntimeException("autoTx0Aggregate is only available for testnet");
     }
 
     // require autoTx0PoolId for autoTx0Aggregate
     if (autoTx0Aggregate && StringUtils.isEmpty(autoTx0PoolId)) {
-      throw new RuntimeException("--auto-tx0 is required for --auto-tx0-aggregate");
+      throw new RuntimeException("autoTx0Aggregate requires autoTx0PoolId");
     }
 
     // verify JCE provider doesn't throw any exception

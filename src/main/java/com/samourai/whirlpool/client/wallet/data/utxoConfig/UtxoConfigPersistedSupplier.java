@@ -27,7 +27,7 @@ public class UtxoConfigPersistedSupplier extends BasicPersistableSupplier<UtxoCo
   }
 
   @Override
-  public void setUtxo(String hash, int index, int mixsDone) {
+  public synchronized void setUtxo(String hash, int index, int mixsDone) {
     String key = computeUtxoConfigKey(hash, index);
     UtxoConfigPersisted utxoConfigPersisted = getUtxo(hash, index);
     if (utxoConfigPersisted == null) {
@@ -42,7 +42,7 @@ public class UtxoConfigPersistedSupplier extends BasicPersistableSupplier<UtxoCo
   }
 
   @Override
-  public void clean(Collection<WhirlpoolUtxo> existingUtxos) {
+  public synchronized void clean(Collection<WhirlpoolUtxo> existingUtxos) {
     List<String> validKeys =
         StreamSupport.stream(existingUtxos)
             .map(
@@ -55,6 +55,12 @@ public class UtxoConfigPersistedSupplier extends BasicPersistableSupplier<UtxoCo
                 })
             .collect(Collectors.<String>toList());
     getValue().cleanup(validKeys);
+  }
+
+  @Override
+  public synchronized boolean persist(boolean force) throws Exception {
+    // synchronized to avoid ConcurrentModificationException with setUtxo()
+    return super.persist(force);
   }
 
   protected String computeUtxoConfigKey(String hash, int index) {
