@@ -296,7 +296,7 @@ public class DebugUtils {
       sb.append("⣿ MIXING THREADS:" + "\n");
 
       String lineFormat =
-          "| %25s | %8s | %10s | %10s | %8s | %68s | %14s | %8s | %6s | %19s | %19s |\n";
+          "| %25s | %8s | %10s | %10s | %8s | %68s | %14s | %8s | %6s | %20s | %19s |\n";
       sb.append(
           String.format(
               lineFormat,
