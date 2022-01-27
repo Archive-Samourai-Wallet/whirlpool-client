@@ -2,8 +2,8 @@ package com.samourai.whirlpool.client.wallet.data.utxo;
 
 import com.samourai.wallet.api.backend.beans.UnspentOutput;
 import com.samourai.wallet.api.backend.beans.WalletResponse;
-import com.samourai.wallet.client.BipWalletAndAddressType;
-import com.samourai.wallet.hd.AddressType;
+import com.samourai.wallet.bipFormat.BipFormat;
+import com.samourai.wallet.bipWallet.BipWallet;
 import com.samourai.wallet.send.provider.UtxoProvider;
 import com.samourai.whirlpool.client.wallet.beans.WhirlpoolAccount;
 import com.samourai.whirlpool.client.wallet.beans.WhirlpoolUtxo;
@@ -11,10 +11,10 @@ import java.util.Collection;
 
 public interface UtxoSupplier extends UtxoProvider {
 
-  Collection<WhirlpoolUtxo> findUtxos(final WhirlpoolAccount... whirlpoolAccounts);
+  Collection<WhirlpoolUtxo> findUtxos(WhirlpoolAccount... whirlpoolAccounts);
 
   Collection<WhirlpoolUtxo> findUtxos(
-      final AddressType addressType, final WhirlpoolAccount... whirlpoolAccounts);
+      BipFormat bipFormat, final WhirlpoolAccount... whirlpoolAccounts);
 
   Collection<WhirlpoolUtxo> findUtxosByAddress(String address);
 
@@ -32,6 +32,5 @@ public interface UtxoSupplier extends UtxoProvider {
 
   void refresh() throws Exception;
 
-  boolean isMixableUtxo(
-      UnspentOutput unspentOutput, BipWalletAndAddressType bipWalletAndAddressType);
+  boolean isMixableUtxo(UnspentOutput unspentOutput, BipWallet bipWallet);
 }

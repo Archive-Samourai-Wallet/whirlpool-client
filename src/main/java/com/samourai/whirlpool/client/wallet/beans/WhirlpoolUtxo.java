@@ -1,7 +1,8 @@
 package com.samourai.whirlpool.client.wallet.beans;
 
 import com.samourai.wallet.api.backend.beans.UnspentOutput;
-import com.samourai.wallet.hd.AddressType;
+import com.samourai.wallet.bipWallet.BipWallet;
+import com.samourai.wallet.hd.BipAddress;
 import com.samourai.whirlpool.client.wallet.data.utxoConfig.UtxoConfig;
 import com.samourai.whirlpool.client.wallet.data.utxoConfig.UtxoConfigPersisted;
 import com.samourai.whirlpool.client.wallet.data.utxoConfig.UtxoConfigSupplier;
@@ -15,28 +16,28 @@ public class WhirlpoolUtxo {
 
   private UnspentOutput utxo;
   private Integer blockHeight; // null when unconfirmed
-  private WhirlpoolAccount account;
-  private AddressType addressType;
+  private BipWallet bipWallet;
   private WhirlpoolUtxoState utxoState;
-
   private UtxoConfigSupplier utxoConfigSupplier;
 
   public WhirlpoolUtxo(
       UnspentOutput utxo,
-      WhirlpoolAccount account,
-      AddressType addressType,
+      BipWallet bipWallet,
       String poolId,
       UtxoConfigSupplier utxoConfigSupplier,
       int latestBlockHeight) {
     super();
     this.utxo = utxo;
     this.blockHeight = computeBlockHeight(utxo.confirmations, latestBlockHeight);
-    this.account = account;
-    this.addressType = addressType;
+    this.bipWallet = bipWallet;
     this.utxoState = new WhirlpoolUtxoState(poolId);
     this.utxoConfigSupplier = utxoConfigSupplier;
 
     this.setMixableStatus(latestBlockHeight);
+  }
+
+  public BipAddress getBipAddress() {
+    return bipWallet.getAddressAt(utxo);
   }
 
   private Integer computeBlockHeight(int utxoConfirmations, int latestBlockHeight) {
@@ -91,7 +92,7 @@ public class WhirlpoolUtxo {
   public UtxoConfig getUtxoConfigOrDefault() {
     UtxoConfig utxoConfig = utxoConfigSupplier.getUtxo(utxo.tx_hash, utxo.tx_output_n);
     if (utxoConfig == null) {
-      int mixsDone = account == WhirlpoolAccount.POSTMIX ? 1 : 0;
+      int mixsDone = WhirlpoolAccount.POSTMIX.equals(getAccount()) ? 1 : 0;
       utxoConfig = new UtxoConfigPersisted(mixsDone, null);
     }
     return utxoConfig;
@@ -113,12 +114,12 @@ public class WhirlpoolUtxo {
     return blockHeight;
   }
 
-  public WhirlpoolAccount getAccount() {
-    return account;
+  public BipWallet getBipWallet() {
+    return bipWallet;
   }
 
-  public AddressType getAddressType() {
-    return addressType;
+  public WhirlpoolAccount getAccount() {
+    return bipWallet.getAccount();
   }
 
   public WhirlpoolUtxoState getUtxoState() {
@@ -126,27 +127,27 @@ public class WhirlpoolUtxo {
   }
 
   public boolean isAccountDeposit() {
-    return WhirlpoolAccount.DEPOSIT.equals(account);
+    return WhirlpoolAccount.DEPOSIT.equals(getAccount());
   }
 
   public boolean isAccountPremix() {
-    return WhirlpoolAccount.PREMIX.equals(account);
+    return WhirlpoolAccount.PREMIX.equals(getAccount());
   }
 
   public boolean isAccountPostmix() {
-    return WhirlpoolAccount.POSTMIX.equals(account);
+    return WhirlpoolAccount.POSTMIX.equals(getAccount());
   }
 
-  public String getPathFull() {
-    return utxo.getPathFull(addressType.getPurpose(), account.getAccountIndex());
+  public String getPathAddress() {
+    return bipWallet.getDerivation().getPathAddress(utxo);
   }
 
   @Override
   public String toString() {
     UtxoConfig utxoConfig = getUtxoConfigOrDefault();
-    return account
+    return getAccount()
         + " / "
-        + addressType
+        + bipWallet.getId()
         + ": "
         + utxo.toString()
         + ", blockHeight="
@@ -161,7 +162,7 @@ public class WhirlpoolUtxo {
   public String getDebug() {
     StringBuilder sb = new StringBuilder();
     sb.append(toString());
-    sb.append(", path=").append(getPathFull());
+    sb.append(", path=").append(getPathAddress());
 
     String poolId = getUtxoState().getPoolId();
     sb.append(", poolId=").append((poolId != null ? poolId : "null"));

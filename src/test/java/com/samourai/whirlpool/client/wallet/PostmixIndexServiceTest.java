@@ -1,15 +1,14 @@
 package com.samourai.whirlpool.client.wallet;
 
 import com.samourai.wallet.api.backend.beans.HttpException;
-import com.samourai.wallet.client.BipWalletAndAddressType;
-import com.samourai.wallet.client.indexHandler.MemoryIndexHandler;
-import com.samourai.wallet.hd.AddressType;
+import com.samourai.wallet.bipWallet.BipWallet;
+import com.samourai.wallet.client.indexHandler.MemoryIndexHandlerSupplier;
+import com.samourai.wallet.hd.BIP_WALLET;
 import com.samourai.wallet.hd.HD_Wallet;
 import com.samourai.wallet.hd.HD_WalletFactoryGeneric;
 import com.samourai.wallet.segwit.bech32.Bech32UtilGeneric;
 import com.samourai.whirlpool.client.test.AbstractTest;
 import com.samourai.whirlpool.client.utils.ClientUtils;
-import com.samourai.whirlpool.client.wallet.beans.WhirlpoolAccount;
 import com.samourai.whirlpool.client.whirlpool.ServerApi;
 import com.samourai.whirlpool.protocol.rest.CheckOutputRequest;
 import com.samourai.whirlpool.protocol.rest.RestErrorResponse;
@@ -24,7 +23,7 @@ import org.junit.Test;
 
 public class PostmixIndexServiceTest extends AbstractTest {
   private PostmixIndexService postmixIndexService;
-  private BipWalletAndAddressType walletPostmix;
+  private BipWallet walletPostmix;
   private Bech32UtilGeneric bech32Util = Bech32UtilGeneric.getInstance();
 
   @Before
@@ -33,12 +32,7 @@ public class PostmixIndexServiceTest extends AbstractTest {
     HD_Wallet bip44w =
         HD_WalletFactoryGeneric.getInstance().getBIP44(seed, SEED_PASSPHRASE, params);
     walletPostmix =
-        new BipWalletAndAddressType(
-            bip44w,
-            WhirlpoolAccount.POSTMIX,
-            new MemoryIndexHandler(),
-            new MemoryIndexHandler(),
-            AddressType.SEGWIT_NATIVE);
+        new BipWallet(bip44w, new MemoryIndexHandlerSupplier(), BIP_WALLET.POSTMIX_BIP84);
   }
 
   @Test
@@ -65,16 +59,16 @@ public class PostmixIndexServiceTest extends AbstractTest {
     }
 
     // verify
-    int postmixIndex = walletPostmix.getIndexHandler().get();
+    int postmixIndex = walletPostmix.getIndexHandlerReceive().get();
     int minAcceptable = validPostmixIndex - PostmixIndexService.POSTMIX_INDEX_RANGE_ACCEPTABLE_GAP;
     int maxAcceptable = validPostmixIndex + PostmixIndexService.POSTMIX_INDEX_RANGE_ACCEPTABLE_GAP;
     Assert.assertTrue(postmixIndex >= minAcceptable && postmixIndex <= maxAcceptable);
   }
 
-  private ServerApi mockServerApi(int validPostmixIndex, BipWalletAndAddressType walletPostmix) {
+  private ServerApi mockServerApi(int validPostmixIndex, BipWallet walletPostmix) {
     final List<String> alreadyUsedAddresses = new LinkedList<String>();
     for (int i = 0; i < validPostmixIndex; i++) {
-      String address = bech32Util.toBech32(walletPostmix.getAddressAt(0, i), params);
+      String address = walletPostmix.getAddressAt(0, i).getAddressString();
       alreadyUsedAddresses.add(address);
     }
 

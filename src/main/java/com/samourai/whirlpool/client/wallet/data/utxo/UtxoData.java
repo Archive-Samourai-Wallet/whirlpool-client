@@ -2,15 +2,14 @@ package com.samourai.whirlpool.client.wallet.data.utxo;
 
 import com.samourai.wallet.api.backend.beans.UnspentOutput;
 import com.samourai.wallet.api.backend.beans.WalletResponse;
-import com.samourai.wallet.client.BipWallet;
-import com.samourai.wallet.client.BipWalletAndAddressType;
+import com.samourai.wallet.bipWallet.BipWallet;
+import com.samourai.wallet.bipWallet.WalletSupplier;
 import com.samourai.whirlpool.client.utils.ClientUtils;
 import com.samourai.whirlpool.client.wallet.beans.WhirlpoolAccount;
 import com.samourai.whirlpool.client.wallet.beans.WhirlpoolUtxo;
 import com.samourai.whirlpool.client.wallet.beans.WhirlpoolUtxoChanges;
 import com.samourai.whirlpool.client.wallet.data.pool.PoolSupplier;
 import com.samourai.whirlpool.client.wallet.data.utxoConfig.UtxoConfigSupplier;
-import com.samourai.whirlpool.client.wallet.data.wallet.WalletSupplier;
 import com.samourai.whirlpool.client.whirlpool.beans.Pool;
 import java.util.*;
 import java8.util.function.Predicate;
@@ -105,7 +104,7 @@ public class UtxoData {
         try {
           // find account
           String pub = utxo.xpub.m;
-          BipWalletAndAddressType bipWallet = walletSupplier.getWalletByPub(pub);
+          BipWallet bipWallet = walletSupplier.getWalletByPub(pub);
           if (bipWallet == null) {
             throw new Exception("Unknown wallet for: " + pub);
           }
@@ -119,13 +118,7 @@ public class UtxoData {
 
           // add missing
           WhirlpoolUtxo whirlpoolUtxo =
-              new WhirlpoolUtxo(
-                  utxo,
-                  whirlpoolAccount,
-                  bipWallet.getAddressType(),
-                  poolId,
-                  utxoConfigSupplier,
-                  latestBlockHeight);
+              new WhirlpoolUtxo(utxo, bipWallet, poolId, utxoConfigSupplier, latestBlockHeight);
           if (!isFirstFetch) {
             // set lastActivity when utxo is detected but ignore on first fetch
             whirlpoolUtxo.getUtxoState().setLastActivity();

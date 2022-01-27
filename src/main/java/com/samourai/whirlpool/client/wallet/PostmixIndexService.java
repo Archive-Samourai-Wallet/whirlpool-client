@@ -1,9 +1,9 @@
 package com.samourai.whirlpool.client.wallet;
 
-import com.samourai.wallet.client.BipWalletAndAddressType;
+import com.samourai.wallet.bipWallet.BipWallet;
 import com.samourai.wallet.client.indexHandler.IIndexHandler;
+import com.samourai.wallet.hd.BipAddress;
 import com.samourai.wallet.hd.Chain;
-import com.samourai.wallet.hd.HD_Address;
 import com.samourai.wallet.segwit.bech32.Bech32UtilGeneric;
 import com.samourai.whirlpool.client.exception.NotifiableException;
 import com.samourai.whirlpool.client.utils.ClientUtils;
@@ -29,9 +29,8 @@ public class PostmixIndexService {
     this.bech32Util = bech32Util;
   }
 
-  public synchronized void checkPostmixIndex(BipWalletAndAddressType walletPostmix)
-      throws Exception {
-    IIndexHandler postmixIndexHandler = walletPostmix.getIndexHandler();
+  public synchronized void checkPostmixIndex(BipWallet walletPostmix) throws Exception {
+    IIndexHandler postmixIndexHandler = walletPostmix.getIndexHandlerReceive();
 
     // check next output
     int postmixIndex =
@@ -46,19 +45,19 @@ public class PostmixIndexService {
   }
 
   private Observable<Optional<String>> checkPostmixIndexAsync(
-      BipWalletAndAddressType walletPostmix, int postmixIndex) throws Exception {
+      BipWallet walletPostmix, int postmixIndex) throws Exception {
     if (log.isDebugEnabled()) {
       log.debug("checking postmixIndex: " + postmixIndex);
     }
-    HD_Address hdAddress = walletPostmix.getAddressAt(Chain.RECEIVE.getIndex(), postmixIndex);
-    String outputAddress = bech32Util.toBech32(hdAddress, config.getNetworkParameters());
-    String signature = hdAddress.getECKey().signMessage(outputAddress);
+    BipAddress bipAddress = walletPostmix.getAddressAt(Chain.RECEIVE.getIndex(), postmixIndex);
+    String outputAddress = bipAddress.getAddressString();
+    String signature = bipAddress.getHdAddress().getECKey().signMessage(outputAddress);
     CheckOutputRequest checkOutputRequest = new CheckOutputRequest(outputAddress, signature);
     return config.getServerApi().checkOutput(checkOutputRequest);
   }
 
-  public synchronized void fixPostmixIndex(BipWalletAndAddressType walletPostmix) throws Exception {
-    IIndexHandler postmixIndexHandler = walletPostmix.getIndexHandler();
+  public synchronized void fixPostmixIndex(BipWallet walletPostmix) throws Exception {
+    IIndexHandler postmixIndexHandler = walletPostmix.getIndexHandlerReceive();
 
     int leftIndex = 0;
     int rightIndex = 0;
@@ -90,9 +89,8 @@ public class PostmixIndexService {
             + "]");
   }
 
-  private Pair<Integer, Integer> findPostmixIndexRange(BipWalletAndAddressType walletPostmix)
-      throws Exception {
-    IIndexHandler postmixIndexHandler = walletPostmix.getIndexHandler();
+  private Pair<Integer, Integer> findPostmixIndexRange(BipWallet walletPostmix) throws Exception {
+    IIndexHandler postmixIndexHandler = walletPostmix.getIndexHandlerReceive();
 
     int postmixIndex = 0;
     int incrementGap = 1;

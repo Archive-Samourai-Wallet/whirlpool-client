@@ -5,6 +5,11 @@ import com.samourai.tor.client.TorClientService;
 import com.samourai.wallet.api.backend.BackendServer;
 import com.samourai.wallet.api.backend.beans.UnspentOutput;
 import com.samourai.wallet.api.backend.beans.WalletResponse;
+import com.samourai.wallet.bipFormat.BIP_FORMAT;
+import com.samourai.wallet.bipFormat.BipFormat;
+import com.samourai.wallet.bipWallet.BipDerivation;
+import com.samourai.wallet.bipWallet.BipWallet;
+import com.samourai.wallet.bipWallet.WalletSupplierImpl;
 import com.samourai.wallet.hd.HD_Wallet;
 import com.samourai.websocket.client.IWebsocketClient;
 import com.samourai.whirlpool.client.event.*;
@@ -110,6 +115,31 @@ public class JavaExample {
           protected WalletResponse fetchWalletResponse() throws Exception {
             WalletResponse walletResponse = null; // provide data here
             return walletResponse;
+          }
+
+          @Override
+          protected WalletSupplierImpl computeWalletSupplier(
+              WhirlpoolWallet whirlpoolWallet,
+              HD_Wallet bip44w,
+              WalletStateSupplier walletStateSupplier)
+              throws Exception {
+            WalletSupplierImpl walletSupplier =
+                super.computeWalletSupplier(whirlpoolWallet, bip44w, walletStateSupplier);
+
+            // register additional custom wallet for DEPOSIT
+            int purpose = 84;
+            int acountIndex = 4;
+            BipDerivation derivation = new BipDerivation(purpose, acountIndex);
+            BipFormat bipFormat = BIP_FORMAT.SEGWIT_NATIVE; // or define your own BipFormat
+            walletSupplier.register(
+                new BipWallet(
+                    "DEPOSIT_ACCOUNT_4_SEGWIT_NATIVE",
+                    bip44w,
+                    walletStateSupplier,
+                    WhirlpoolAccount.DEPOSIT,
+                    derivation,
+                    bipFormat));
+            return walletSupplier;
           }
 
           @Override

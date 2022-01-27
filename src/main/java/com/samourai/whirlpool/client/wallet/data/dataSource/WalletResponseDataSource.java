@@ -2,8 +2,11 @@ package com.samourai.whirlpool.client.wallet.data.dataSource;
 
 import com.samourai.wallet.api.backend.MinerFee;
 import com.samourai.wallet.api.backend.beans.WalletResponse;
-import com.samourai.wallet.client.BipWalletAndAddressType;
-import com.samourai.wallet.hd.Chain;
+import com.samourai.wallet.bipFormat.BipFormatSupplier;
+import com.samourai.wallet.bipFormat.BipFormatSupplierImpl;
+import com.samourai.wallet.bipWallet.BipWallet;
+import com.samourai.wallet.bipWallet.WalletSupplier;
+import com.samourai.wallet.bipWallet.WalletSupplierImpl;
 import com.samourai.wallet.hd.HD_Wallet;
 import com.samourai.wallet.util.AbstractOrchestrator;
 import com.samourai.whirlpool.client.tx0.Tx0PreviewService;
@@ -21,8 +24,6 @@ import com.samourai.whirlpool.client.wallet.data.utxo.BasicUtxoSupplier;
 import com.samourai.whirlpool.client.wallet.data.utxo.UtxoData;
 import com.samourai.whirlpool.client.wallet.data.utxo.UtxoSupplier;
 import com.samourai.whirlpool.client.wallet.data.utxoConfig.UtxoConfigSupplier;
-import com.samourai.whirlpool.client.wallet.data.wallet.WalletSupplier;
-import com.samourai.whirlpool.client.wallet.data.wallet.WalletSupplierImpl;
 import com.samourai.whirlpool.client.wallet.data.walletState.WalletStateSupplier;
 import java.util.Map;
 import org.apache.commons.lang3.math.NumberUtils;
@@ -45,6 +46,7 @@ public abstract class WalletResponseDataSource implements DataSource {
   protected final ExpirablePoolSupplier poolSupplier;
   private final BasicChainSupplier chainSupplier;
   private final BasicUtxoSupplier utxoSupplier;
+  private final BipFormatSupplier bipFormatSupplier;
 
   public WalletResponseDataSource(
       WhirlpoolWallet whirlpoolWallet, HD_Wallet bip44w, DataPersister dataPersister)
@@ -59,19 +61,21 @@ public abstract class WalletResponseDataSource implements DataSource {
     this.tx0PreviewService = new Tx0PreviewService(minerFeeSupplier, whirlpoolWallet.getConfig());
     this.poolSupplier = computePoolSupplier(whirlpoolWallet, tx0PreviewService);
     this.chainSupplier = computeChainSupplier();
+    this.bipFormatSupplier = computeBipFormatSupplier();
     this.utxoSupplier =
         computeUtxoSupplier(
             whirlpoolWallet,
             walletSupplier,
             dataPersister.getUtxoConfigSupplier(),
             chainSupplier,
-            poolSupplier);
+            poolSupplier,
+            bipFormatSupplier);
   }
 
   protected WalletSupplierImpl computeWalletSupplier(
       WhirlpoolWallet whirlpoolWallet, HD_Wallet bip44w, WalletStateSupplier walletStateSupplier)
       throws Exception {
-    return new WalletSupplierImpl(bip44w, walletStateSupplier);
+    return new WalletSupplierImpl(walletStateSupplier, bip44w);
   }
 
   protected BasicMinerFeeSupplier computeMinerFeeSupplier(WhirlpoolWallet whirlpoolWallet)
@@ -94,18 +98,24 @@ public abstract class WalletResponseDataSource implements DataSource {
     return new BasicChainSupplier();
   }
 
+  protected BipFormatSupplier computeBipFormatSupplier() throws Exception {
+    return new BipFormatSupplierImpl();
+  }
+
   protected BasicUtxoSupplier computeUtxoSupplier(
       final WhirlpoolWallet whirlpoolWallet,
       WalletSupplier walletSupplier,
       UtxoConfigSupplier utxoConfigSupplier,
       ChainSupplier chainSupplier,
-      PoolSupplier poolSupplier)
+      PoolSupplier poolSupplier,
+      BipFormatSupplier bipFormatSupplier)
       throws Exception {
     return new BasicUtxoSupplier(
         walletSupplier,
         utxoConfigSupplier,
         chainSupplier,
         poolSupplier,
+        bipFormatSupplier,
         whirlpoolWallet.getConfig().getNetworkParameters()) {
       @Override
       public void refresh() throws Exception {
@@ -166,15 +176,10 @@ public abstract class WalletResponseDataSource implements DataSource {
     WalletStateSupplier walletStateSupplier = dataPersister.getWalletStateSupplier();
     for (String pub : addressesMap.keySet()) {
       WalletResponse.Address address = addressesMap.get(pub);
-      BipWalletAndAddressType bipWallet = walletSupplier.getWalletByPub(pub);
+      BipWallet bipWallet = walletSupplier.getWalletByPub(pub);
       if (bipWallet != null) {
-        walletStateSupplier
-            .getIndexHandlerWallet(
-                bipWallet.getAccount(), bipWallet.getAddressType(), Chain.RECEIVE)
-            .set(address.account_index, false);
-        walletStateSupplier
-            .getIndexHandlerWallet(bipWallet.getAccount(), bipWallet.getAddressType(), Chain.CHANGE)
-            .set(address.change_index, false);
+        bipWallet.getIndexHandlerReceive().set(address.account_index, false);
+        bipWallet.getIndexHandlerChange().set(address.change_index, false);
       } else {
         log.error("No wallet found for: " + pub);
       }

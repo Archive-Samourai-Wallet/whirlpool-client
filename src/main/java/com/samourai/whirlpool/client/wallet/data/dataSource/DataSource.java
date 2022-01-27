@@ -1,11 +1,11 @@
 package com.samourai.whirlpool.client.wallet.data.dataSource;
 
+import com.samourai.wallet.bipWallet.WalletSupplier;
 import com.samourai.whirlpool.client.tx0.Tx0PreviewService;
 import com.samourai.whirlpool.client.wallet.data.chain.ChainSupplier;
 import com.samourai.whirlpool.client.wallet.data.minerFee.MinerFeeSupplier;
 import com.samourai.whirlpool.client.wallet.data.pool.PoolSupplier;
 import com.samourai.whirlpool.client.wallet.data.utxo.UtxoSupplier;
-import com.samourai.whirlpool.client.wallet.data.wallet.WalletSupplier;
 
 public interface DataSource {
 

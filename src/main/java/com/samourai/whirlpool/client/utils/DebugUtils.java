@@ -3,11 +3,11 @@ package com.samourai.whirlpool.client.utils;
 import com.samourai.wallet.api.backend.MinerFeeTarget;
 import com.samourai.wallet.api.backend.beans.UnspentOutput;
 import com.samourai.wallet.api.backend.beans.WalletResponse;
-import com.samourai.wallet.client.BipWalletAndAddressType;
-import com.samourai.wallet.client.indexHandler.IIndexHandler;
-import com.samourai.wallet.hd.AddressType;
+import com.samourai.wallet.bipFormat.BipFormat;
+import com.samourai.wallet.bipFormat.BipFormatSupplier;
+import com.samourai.wallet.bipWallet.BipWallet;
+import com.samourai.wallet.hd.BipAddress;
 import com.samourai.wallet.hd.Chain;
-import com.samourai.wallet.hd.HD_Address;
 import com.samourai.whirlpool.client.wallet.WhirlpoolWallet;
 import com.samourai.whirlpool.client.wallet.beans.*;
 import com.samourai.whirlpool.client.wallet.data.pool.PoolSupplier;
@@ -46,17 +46,12 @@ public class DebugUtils {
     StringBuilder sb = new StringBuilder().append("\n");
 
     // receive address
-    AddressType depositAddressType = AddressType.SEGWIT_NATIVE;
-    BipWalletAndAddressType receiveWallet =
-        whirlpoolWallet.getWalletSupplier().getWallet(WhirlpoolAccount.DEPOSIT, depositAddressType);
-    HD_Address hdAddress = receiveWallet.getNextAddress(false);
-    String receiveAddress = hdAddress.getAddressString(depositAddressType);
-    String receivePath = hdAddress.getPathFull(depositAddressType);
+    BipAddress depositAddress = whirlpoolWallet.getWalletDeposit().getNextAddress(false);
 
     sb.append("⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿" + "\n");
     sb.append("⣿ RECEIVE ADDRESS" + "\n");
-    sb.append(" • Address: " + receiveAddress + "\n");
-    sb.append(" • Path: " + receivePath + "\n\n");
+    sb.append(" • Address: " + depositAddress.getAddressString() + "\n");
+    sb.append(" • Path: " + depositAddress.getPathAddress() + "\n\n");
 
     // balance
     sb.append("⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿" + "\n");
@@ -72,26 +67,32 @@ public class DebugUtils {
               + ClientUtils.satToBtc(WhirlpoolUtxo.sumValue(utxos))
               + " BTC\n");
 
-      for (AddressType addressType : account.getAddressTypes()) {
-        utxos = whirlpoolWallet.getUtxoSupplier().findUtxos(addressType, account);
-        BipWalletAndAddressType wallet =
-            whirlpoolWallet.getWalletSupplier().getWallet(account, addressType);
+      for (BipWallet wallet : whirlpoolWallet.getWalletSupplier().getWallets(account)) {
+        utxos = whirlpoolWallet.getUtxoSupplier().findUtxos(wallet.getBipFormat(), account);
+        String nextAddressReceive =
+            whirlpoolWallet.getWalletDeposit().getNextAddress(false).getAddressString();
+        String nextAddressChange =
+            whirlpoolWallet.getWalletDeposit().getNextChangeAddress(false).getAddressString();
         sb.append(
-            account
-                + "/"
-                + addressType
+            wallet.getId()
+                + ": path="
+                + wallet.getDerivation().getPathAccount()
+                + ", bipFormat="
+                + wallet.getBipFormat().getId()
+                + ", "
+                + ", pub="
+                + ClientUtils.maskString(
+                    wallet.getPub()
+                        + ", nextAddressReceive="
+                        + nextAddressReceive
+                        + ", nextAddressChange="
+                        + nextAddressChange)
                 + ": "
                 + utxos.size()
-                + " utxos"
-                + ", pub="
-                + ClientUtils.maskString(wallet.getPub()));
+                + " utxos");
 
         for (Chain chain : Chain.values()) {
-          IIndexHandler indexHandler =
-              whirlpoolWallet
-                  .getWalletStateSupplier()
-                  .getIndexHandlerWallet(account, addressType, chain);
-          int index = indexHandler.get();
+          int index = wallet.getIndexHandler(chain).get();
           sb.append(", " + chain.name().toLowerCase() + "Index=" + index);
         }
         sb.append("\n");
@@ -204,8 +205,8 @@ public class DebugUtils {
               whirlpoolUtxo.computeConfirmations(latestBlockHeight),
               utxo,
               o.addr,
-              whirlpoolUtxo.getAddressType(),
-              whirlpoolUtxo.getPathFull(),
+              whirlpoolUtxo.getBipWallet().getBipFormat().getId(),
+              whirlpoolUtxo.getPathAddress(),
               utxoState.getStatus().name(),
               mixableStatusName,
               whirlpoolUtxo.getUtxoState().getPoolId() != null
@@ -219,13 +220,18 @@ public class DebugUtils {
   }
 
   public static String getDebugUtxos(
-      Collection<UnspentOutput> utxos, int purpose, int accountIndex, NetworkParameters params) {
+      Collection<UnspentOutput> utxos,
+      int purpose,
+      int accountIndex,
+      NetworkParameters params,
+      BipFormatSupplier bipFormatSupplier) {
     String lineFormat = "| %10s | %7s | %68s | %45s | %18s |\n";
     StringBuilder sb = new StringBuilder().append("\n");
     sb.append(String.format(lineFormat, "BALANCE", "CONFIRM", "UTXO", "ADDRESS", "TYPE", "PATH"));
     sb.append(String.format(lineFormat, "(btc)", "", "", "", "", ""));
     for (UnspentOutput o : utxos) {
       String utxo = o.tx_hash + ":" + o.tx_output_n;
+      BipFormat bipFormat = bipFormatSupplier.findByAddress(o.addr, params);
       sb.append(
           String.format(
               lineFormat,
@@ -233,8 +239,8 @@ public class DebugUtils {
               o.confirmations,
               utxo,
               o.addr,
-              AddressType.findByAddress(o.addr, params),
-              o.getPathFull(purpose, accountIndex)));
+              bipFormat.getId(),
+              o.getPathAddress(purpose, accountIndex)));
     }
     return sb.toString();
   }

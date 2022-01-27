@@ -3,8 +3,7 @@ package com.samourai.whirlpool.client.wallet;
 import com.samourai.wallet.api.backend.MinerFeeTarget;
 import com.samourai.wallet.api.backend.beans.UnspentOutput;
 import com.samourai.wallet.bip69.BIP69InputComparator;
-import com.samourai.wallet.client.BipWalletAndAddressType;
-import com.samourai.wallet.hd.AddressType;
+import com.samourai.wallet.bipWallet.BipWallet;
 import com.samourai.wallet.segwit.bech32.Bech32UtilGeneric;
 import com.samourai.wallet.send.SendFactoryGeneric;
 import com.samourai.wallet.util.FeeUtil;
@@ -43,23 +42,21 @@ public class WalletAggregateService {
   }
 
   private boolean toWallet(
-      BipWalletAndAddressType sourceWallet,
-      BipWalletAndAddressType destinationWallet,
-      int feeSatPerByte)
+      WhirlpoolAccount sourceAccount, BipWallet destinationWallet, int feeSatPerByte)
       throws Exception {
-    return doAggregate(sourceWallet, null, destinationWallet, feeSatPerByte);
+    return doAggregate(sourceAccount, null, destinationWallet, feeSatPerByte);
   }
 
-  public boolean toAddress(BipWalletAndAddressType sourceWallet, String destinationAddress)
+  public boolean toAddress(WhirlpoolAccount sourceAccount, String destinationAddress)
       throws Exception {
     int feeSatPerByte = whirlpoolWallet.getMinerFeeSupplier().getFee(MinerFeeTarget.BLOCKS_2);
-    return doAggregate(sourceWallet, destinationAddress, null, feeSatPerByte);
+    return doAggregate(sourceAccount, destinationAddress, null, feeSatPerByte);
   }
 
   private boolean doAggregate(
-      BipWalletAndAddressType sourceWallet,
+      WhirlpoolAccount sourceAccount,
       String destinationAddress,
-      BipWalletAndAddressType destinationWallet,
+      BipWallet destinationWallet,
       int feeSatPerByte)
       throws Exception {
     if (!formatUtils.isTestNet(params)) {
@@ -67,22 +64,11 @@ public class WalletAggregateService {
           "Wallet aggregation is disabled on mainnet for security reasons.");
     }
     whirlpoolWallet.getUtxoSupplier().refresh();
-    Collection<WhirlpoolUtxo> utxos =
-        whirlpoolWallet
-            .getUtxoSupplier()
-            .findUtxos(sourceWallet.getAddressType(), sourceWallet.getAccount());
-    if (utxos.isEmpty() || (utxos.size() == 1 && sourceWallet == destinationWallet)) {
+    Collection<WhirlpoolUtxo> utxos = whirlpoolWallet.getUtxoSupplier().findUtxos(sourceAccount);
+    if (utxos.isEmpty() || (utxos.size() == 1 && sourceAccount == destinationWallet.getAccount())) {
       // maybe you need to declare zpub as bip84 with /multiaddr?bip84=
       log.info(
-          " -> no utxo to aggregate ("
-              + sourceWallet.getAccount()
-              + ":"
-              + sourceWallet.getAddressType()
-              + " -> "
-              + destinationWallet.getAccount()
-              + ":"
-              + destinationWallet.getAddressType()
-              + ")");
+          " -> no utxo to aggregate (" + sourceAccount + " -> " + destinationWallet.getId() + ")");
       return false;
     }
     if (log.isDebugEnabled()) {
@@ -90,13 +76,9 @@ public class WalletAggregateService {
           "Found "
               + utxos.size()
               + " utxo to aggregate ("
-              + sourceWallet.getAccount()
-              + ":"
-              + sourceWallet.getAddressType()
+              + sourceAccount
               + " -> "
-              + destinationWallet.getAccount()
-              + ":"
-              + destinationWallet.getAddressType()
+              + destinationWallet.getId()
               + "):");
       log.info(
           DebugUtils.getDebugUtxos(
@@ -116,7 +98,7 @@ public class WalletAggregateService {
       if (!subsetUtxos.isEmpty()) {
         String toAddress = destinationAddress;
         if (toAddress == null) {
-          toAddress = bech32Util.toBech32(destinationWallet.getNextAddress(), params);
+          toAddress = destinationWallet.getNextAddress().getAddressString();
         }
 
         log.info(" -> aggregating " + subsetUtxos.size() + " utxos (pass #" + round + ")");
@@ -193,27 +175,15 @@ public class WalletAggregateService {
   }
 
   public boolean consolidateWallet() throws Exception {
-    BipWalletAndAddressType depositWallet = whirlpoolWallet.getWalletDeposit();
+    BipWallet destinationWallet = whirlpoolWallet.getWalletDeposit();
+    boolean success = false;
 
-    // consolidate each wallet to deposit
+    // consolidate each account to deposit
     int feeSatPerByte = whirlpoolWallet.getMinerFeeSupplier().getFee(MinerFeeTarget.BLOCKS_2);
     for (WhirlpoolAccount account : WhirlpoolAccount.values()) {
-      if (account != WhirlpoolAccount.DEPOSIT) {
-        for (AddressType addressType : account.getAddressTypes()) {
-          BipWalletAndAddressType sourceWallet =
-              whirlpoolWallet.getWalletSupplier().getWallet(account, addressType);
-          log.info(
-              " • Consolidating "
-                  + account
-                  + "/"
-                  + addressType
-                  + " -> "
-                  + depositWallet.getAccount()
-                  + "/"
-                  + depositWallet.getAddressType()
-                  + "...");
-          toWallet(sourceWallet, depositWallet, feeSatPerByte);
-        }
+      log.info(" • Consolidating " + account + " -> " + destinationWallet.getId() + "...");
+      if (toWallet(account, destinationWallet, feeSatPerByte)) {
+        success = true;
       }
     }
 
@@ -223,8 +193,6 @@ public class WalletAggregateService {
     }
 
     ClientUtils.sleepUtxosDelayAsync(params).blockingAwait();
-    log.info(" • Consolidating deposit...");
-    boolean success = toWallet(depositWallet, depositWallet, feeSatPerByte);
     return success;
   }
 }

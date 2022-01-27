@@ -2,10 +2,11 @@ package com.samourai.whirlpool.client.wallet.data.utxo;
 
 import com.samourai.wallet.api.backend.beans.UnspentOutput;
 import com.samourai.wallet.api.backend.beans.WalletResponse;
-import com.samourai.wallet.client.BipWalletAndAddressType;
-import com.samourai.wallet.hd.AddressType;
+import com.samourai.wallet.bipFormat.BipFormat;
+import com.samourai.wallet.bipFormat.BipFormatSupplier;
+import com.samourai.wallet.bipWallet.BipWallet;
+import com.samourai.wallet.bipWallet.WalletSupplier;
 import com.samourai.wallet.hd.Chain;
-import com.samourai.wallet.hd.HD_Address;
 import com.samourai.wallet.send.MyTransactionOutPoint;
 import com.samourai.wallet.send.UTXO;
 import com.samourai.wallet.send.provider.UtxoProvider;
@@ -16,7 +17,6 @@ import com.samourai.whirlpool.client.wallet.data.chain.ChainSupplier;
 import com.samourai.whirlpool.client.wallet.data.pool.PoolSupplier;
 import com.samourai.whirlpool.client.wallet.data.supplier.BasicSupplier;
 import com.samourai.whirlpool.client.wallet.data.utxoConfig.UtxoConfigSupplier;
-import com.samourai.whirlpool.client.wallet.data.wallet.WalletSupplier;
 import java.util.Collection;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -36,6 +36,7 @@ public abstract class BasicUtxoSupplier extends BasicSupplier<UtxoData>
   private final UtxoConfigSupplier utxoConfigSupplier;
   private final ChainSupplier chainSupplier;
   private final PoolSupplier poolSupplier;
+  private final BipFormatSupplier bipFormatSupplier;
   private NetworkParameters params;
 
   private Map<String, WhirlpoolUtxo> previousUtxos;
@@ -45,6 +46,7 @@ public abstract class BasicUtxoSupplier extends BasicSupplier<UtxoData>
       UtxoConfigSupplier utxoConfigSupplier,
       ChainSupplier chainSupplier,
       PoolSupplier poolSupplier,
+      BipFormatSupplier bipFormatSupplier,
       NetworkParameters params)
       throws Exception {
     super(log);
@@ -53,6 +55,7 @@ public abstract class BasicUtxoSupplier extends BasicSupplier<UtxoData>
     this.utxoConfigSupplier = utxoConfigSupplier;
     this.chainSupplier = chainSupplier;
     this.poolSupplier = poolSupplier;
+    this.bipFormatSupplier = bipFormatSupplier;
     this.params = params;
   }
 
@@ -93,13 +96,13 @@ public abstract class BasicUtxoSupplier extends BasicSupplier<UtxoData>
 
   @Override
   public Collection<WhirlpoolUtxo> findUtxos(
-      final AddressType addressType, final WhirlpoolAccount... whirlpoolAccounts) {
+      final BipFormat bipFormat, final WhirlpoolAccount... whirlpoolAccounts) {
     return StreamSupport.stream(findUtxos(whirlpoolAccounts))
         .filter(
             new Predicate<WhirlpoolUtxo>() {
               @Override
               public boolean test(WhirlpoolUtxo whirlpoolUtxo) {
-                return whirlpoolUtxo.getAddressType() == addressType;
+                return whirlpoolUtxo.getBipWallet().getBipFormat() == bipFormat;
               }
             })
         .collect(Collectors.<WhirlpoolUtxo>toList());
@@ -139,17 +142,15 @@ public abstract class BasicUtxoSupplier extends BasicSupplier<UtxoData>
   // UtxoSupplier
 
   @Override
-  public String getChangeAddress(WhirlpoolAccount account, AddressType addressType) {
+  public String getChangeAddress(WhirlpoolAccount account, BipFormat bipFormat) {
     // TODO zeroleak revert change index
-    return walletSupplier
-        .getWallet(account, addressType)
-        .getNextChangeAddress()
-        .getAddressString(addressType);
+    BipWallet bipWallet = walletSupplier.getWallet(account, bipFormat);
+    return bipWallet.getNextChangeAddress().getAddressString();
   }
 
   @Override
-  public Collection<UTXO> getUtxos(WhirlpoolAccount account, AddressType addressType) {
-    return toUTXOs(findUtxos(addressType, account));
+  public Collection<UTXO> getUtxos(WhirlpoolAccount account, BipFormat bipFormat) {
+    return toUTXOs(findUtxos(bipFormat, account));
   }
 
   @Override
@@ -172,17 +173,12 @@ public abstract class BasicUtxoSupplier extends BasicSupplier<UtxoData>
       // bip47
       return _getPrivKeyBip47(whirlpoolUtxo);
     }
-    HD_Address premixAddress = getAddress(whirlpoolUtxo);
-    if (premixAddress == null) {
-      throw new NotifiableException("No privkey found for utxo: " + whirlpoolUtxo);
-    }
-    return premixAddress.getECKey();
+    return whirlpoolUtxo.getBipAddress().getHdAddress().getECKey();
   }
 
   @Override
-  public boolean isMixableUtxo(
-      UnspentOutput unspentOutput, BipWalletAndAddressType bipWalletAndAddressType) {
-    WhirlpoolAccount whirlpoolAccount = bipWalletAndAddressType.getAccount();
+  public boolean isMixableUtxo(UnspentOutput unspentOutput, BipWallet bipWallet) {
+    WhirlpoolAccount whirlpoolAccount = bipWallet.getAccount();
 
     // don't mix BADBANK utxos
     if (WhirlpoolAccount.BADBANK.equals(whirlpoolAccount)) {
@@ -207,12 +203,6 @@ public abstract class BasicUtxoSupplier extends BasicSupplier<UtxoData>
       }
     }
     return true;
-  }
-
-  protected HD_Address getAddress(WhirlpoolUtxo whirlpoolUtxo) {
-    UnspentOutput utxo = whirlpoolUtxo.getUtxo();
-    AddressType addressType = AddressType.findByAddress(utxo.addr, params);
-    return walletSupplier.getWallet(whirlpoolUtxo.getAccount(), addressType).getAddressAt(utxo);
   }
 
   private Collection<UTXO> toUTXOs(Collection<WhirlpoolUtxo> whirlpoolUtxos) {
@@ -244,5 +234,10 @@ public abstract class BasicUtxoSupplier extends BasicSupplier<UtxoData>
 
   protected WalletSupplier getWalletSupplier() {
     return walletSupplier;
+  }
+
+  @Override
+  public BipFormatSupplier getBipFormatSupplier() {
+    return bipFormatSupplier;
   }
 }

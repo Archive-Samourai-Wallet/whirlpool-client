@@ -1,12 +1,11 @@
 package com.samourai.whirlpool.client.mix.handler;
 
-import com.samourai.wallet.client.BipWalletAndAddressType;
-import com.samourai.wallet.client.indexHandler.MemoryIndexHandler;
-import com.samourai.wallet.hd.AddressType;
+import com.samourai.wallet.bipWallet.BipWallet;
+import com.samourai.wallet.client.indexHandler.MemoryIndexHandlerSupplier;
+import com.samourai.wallet.hd.BIP_WALLET;
 import com.samourai.wallet.hd.HD_Wallet;
 import com.samourai.whirlpool.client.test.AbstractTest;
 import com.samourai.whirlpool.client.wallet.beans.IndexRange;
-import com.samourai.whirlpool.client.wallet.beans.WhirlpoolAccount;
 import org.junit.Assert;
 import org.junit.Test;
 import org.slf4j.Logger;
@@ -15,7 +14,7 @@ import org.slf4j.LoggerFactory;
 public class Bip84PostmixHandlerTest extends AbstractTest {
   private Logger log = LoggerFactory.getLogger(Bip84PostmixHandlerTest.class);
 
-  private BipWalletAndAddressType bipWallet;
+  private BipWallet bipWallet;
 
   public Bip84PostmixHandlerTest() throws Exception {
     super();
@@ -23,13 +22,7 @@ public class Bip84PostmixHandlerTest extends AbstractTest {
     String passphrase = "whirlpool";
     byte[] seed = hdWalletFactory.computeSeedFromWords(seedWords);
     HD_Wallet bip84w = hdWalletFactory.getBIP84(seed, passphrase, params);
-    bipWallet =
-        new BipWalletAndAddressType(
-            bip84w,
-            WhirlpoolAccount.POSTMIX,
-            new MemoryIndexHandler(),
-            new MemoryIndexHandler(),
-            AddressType.SEGWIT_NATIVE);
+    bipWallet = new BipWallet(bip84w, new MemoryIndexHandlerSupplier(), BIP_WALLET.POSTMIX_BIP84);
   }
 
   @Test

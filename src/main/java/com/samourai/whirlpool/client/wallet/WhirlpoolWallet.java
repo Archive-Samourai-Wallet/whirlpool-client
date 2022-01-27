@@ -3,8 +3,9 @@ package com.samourai.whirlpool.client.wallet;
 import com.google.common.primitives.Bytes;
 import com.samourai.wallet.api.backend.beans.PushTxAddressReuseException;
 import com.samourai.wallet.api.backend.beans.UnspentOutput;
-import com.samourai.wallet.client.BipWalletAndAddressType;
-import com.samourai.wallet.hd.AddressType;
+import com.samourai.wallet.bipFormat.BIP_FORMAT;
+import com.samourai.wallet.bipWallet.BipWallet;
+import com.samourai.wallet.bipWallet.WalletSupplier;
 import com.samourai.wallet.hd.HD_Wallet;
 import com.samourai.wallet.hd.HD_WalletFactoryGeneric;
 import com.samourai.wallet.segwit.bech32.Bech32UtilGeneric;
@@ -29,7 +30,6 @@ import com.samourai.whirlpool.client.wallet.data.pool.PoolSupplier;
 import com.samourai.whirlpool.client.wallet.data.utxo.UtxoData;
 import com.samourai.whirlpool.client.wallet.data.utxo.UtxoSupplier;
 import com.samourai.whirlpool.client.wallet.data.utxoConfig.UtxoConfigSupplier;
-import com.samourai.whirlpool.client.wallet.data.wallet.WalletSupplier;
 import com.samourai.whirlpool.client.wallet.data.walletState.WalletStateSupplier;
 import com.samourai.whirlpool.client.wallet.orchestrator.AutoTx0Orchestrator;
 import com.samourai.whirlpool.client.wallet.orchestrator.MixOrchestratorImpl;
@@ -54,8 +54,6 @@ import org.slf4j.LoggerFactory;
 
 public class WhirlpoolWallet {
   private final Logger log = LoggerFactory.getLogger(WhirlpoolWallet.class);
-
-  private Bech32UtilGeneric bech32Util;
 
   private String walletIdentifier;
   private WhirlpoolWalletConfig config;
@@ -114,10 +112,10 @@ public class WhirlpoolWallet {
     // verify config
     config.verify();
 
-    this.bech32Util = Bech32UtilGeneric.getInstance();
-
     this.walletIdentifier = walletIdentifier;
     this.config = config;
+
+    Bech32UtilGeneric bech32Util = Bech32UtilGeneric.getInstance();
     this.walletAggregateService =
         new WalletAggregateService(config.getNetworkParameters(), bech32Util, this);
     this.postmixIndexService = new PostmixIndexService(config, bech32Util);
@@ -202,8 +200,8 @@ public class WhirlpoolWallet {
       }
     }
 
-    int initialPremixIndex = getWalletPremix().getIndexHandler().get();
-    int initialChangeIndex = getWalletDeposit().getIndexChangeHandler().get();
+    int initialPremixIndex = getWalletPremix().getIndexHandlerReceive().get();
+    int initialChangeIndex = getWalletDeposit().getIndexHandlerChange().get();
     try {
       // run tx0
       Tx0 tx0 = doTx0(spendFroms, tx0Config, pool);
@@ -217,8 +215,8 @@ public class WhirlpoolWallet {
       return tx0;
     } catch (Exception e) {
       // revert index
-      getWalletPremix().getIndexHandler().set(initialPremixIndex, true);
-      getWalletDeposit().getIndexChangeHandler().set(initialChangeIndex, true);
+      getWalletPremix().getIndexHandlerReceive().set(initialPremixIndex, true);
+      getWalletDeposit().getIndexHandlerChange().set(initialChangeIndex, true);
       throw e;
     }
   }
@@ -228,8 +226,8 @@ public class WhirlpoolWallet {
     Exception tx0Exception = null;
 
     for (int i = 0; i < config.getTx0MaxRetry(); i++) {
-      int premixIndex = getWalletPremix().getIndexHandler().get();
-      int changeIndex = getWalletDeposit().getIndexChangeHandler().get();
+      int premixIndex = getWalletPremix().getIndexHandlerReceive().get();
+      int changeIndex = getWalletDeposit().getIndexHandlerChange().get();
 
       Tx0 tx0 =
           tx0Service.tx0(
@@ -296,10 +294,10 @@ public class WhirlpoolWallet {
 
         // revert non-reused indexs for next retry
         if (!isPremixReuse) {
-          getWalletPremix().getIndexHandler().set(premixIndex, true);
+          getWalletPremix().getIndexHandlerReceive().set(premixIndex, true);
         }
         if (!isChangeReuse) {
-          getWalletDeposit().getIndexChangeHandler().set(changeIndex, true);
+          getWalletDeposit().getIndexHandlerChange().set(changeIndex, true);
         }
 
         tx0Exception = new NotifiableException(e.getMessage());
@@ -394,18 +392,18 @@ public class WhirlpoolWallet {
     dataSource.open();
 
     // log wallets
-    for (BipWalletAndAddressType bipWallet : getWalletSupplier().getWallets()) {
-      String nextReceivePath =
-          bipWallet.getNextAddress(false).getPathFull(bipWallet.getAddressType());
-      String nextChangePath =
-          bipWallet.getNextChangeAddress(false).getPathFull(bipWallet.getAddressType());
+    for (BipWallet bipWallet : getWalletSupplier().getWallets()) {
+      String nextReceivePath = bipWallet.getNextAddress(false).getPathAddress();
+      String nextChangePath = bipWallet.getNextChangeAddress(false).getPathAddress();
       String pub =
           log.isDebugEnabled() ? bipWallet.getPub() : ClientUtils.maskString(bipWallet.getPub());
       log.info(
           " +WALLET "
+              + bipWallet.getId()
+              + ": account="
               + bipWallet.getAccount()
-              + ", "
-              + bipWallet.getAddressType()
+              + ", bipFormat="
+              + bipWallet.getBipFormat().getId()
               + ", receive="
               + nextReceivePath
               + ", change="
@@ -523,20 +521,20 @@ public class WhirlpoolWallet {
     this.mixOrchestrator.mixStop(whirlpoolUtxo, true, false);
   }
 
-  public BipWalletAndAddressType getWalletDeposit() {
-    return getWalletSupplier().getWallet(WhirlpoolAccount.DEPOSIT, AddressType.SEGWIT_NATIVE);
+  public BipWallet getWalletDeposit() {
+    return getWalletSupplier().getWallet(WhirlpoolAccount.DEPOSIT, BIP_FORMAT.SEGWIT_NATIVE);
   }
 
-  public BipWalletAndAddressType getWalletPremix() {
-    return getWalletSupplier().getWallet(WhirlpoolAccount.PREMIX, AddressType.SEGWIT_NATIVE);
+  public BipWallet getWalletPremix() {
+    return getWalletSupplier().getWallet(WhirlpoolAccount.PREMIX, BIP_FORMAT.SEGWIT_NATIVE);
   }
 
-  public BipWalletAndAddressType getWalletPostmix() {
-    return getWalletSupplier().getWallet(WhirlpoolAccount.POSTMIX, AddressType.SEGWIT_NATIVE);
+  public BipWallet getWalletPostmix() {
+    return getWalletSupplier().getWallet(WhirlpoolAccount.POSTMIX, BIP_FORMAT.SEGWIT_NATIVE);
   }
 
-  public BipWalletAndAddressType getWalletBadbank() {
-    return getWalletSupplier().getWallet(WhirlpoolAccount.BADBANK, AddressType.SEGWIT_NATIVE);
+  public BipWallet getWalletBadbank() {
+    return getWalletSupplier().getWallet(WhirlpoolAccount.BADBANK, BIP_FORMAT.SEGWIT_NATIVE);
   }
 
   public WalletSupplier getWalletSupplier() {
@@ -796,7 +794,7 @@ public class WhirlpoolWallet {
 
     // send to destination
     log.info(" • Moving funds to: " + toAddress);
-    walletAggregateService.toAddress(getWalletDeposit(), toAddress);
+    walletAggregateService.toAddress(WhirlpoolAccount.DEPOSIT, toAddress);
 
     // refresh
     getUtxoSupplier().refresh();
@@ -811,8 +809,7 @@ public class WhirlpoolWallet {
   }
 
   public String getDepositAddress(boolean increment) {
-    return bech32Util.toBech32(
-        getWalletDeposit().getNextAddress(increment), config.getNetworkParameters());
+    return getWalletDeposit().getNextAddress(increment).getAddressString();
   }
 
   public void notifyError(String message) {

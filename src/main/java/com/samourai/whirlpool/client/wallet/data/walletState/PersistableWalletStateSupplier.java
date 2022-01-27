@@ -1,8 +1,9 @@
 package com.samourai.whirlpool.client.wallet.data.walletState;
 
+import com.samourai.wallet.bipWallet.BipDerivation;
+import com.samourai.wallet.bipWallet.BipWallet;
 import com.samourai.wallet.client.indexHandler.AbstractIndexHandler;
 import com.samourai.wallet.client.indexHandler.IIndexHandler;
-import com.samourai.wallet.hd.AddressType;
 import com.samourai.wallet.hd.Chain;
 import com.samourai.whirlpool.client.wallet.beans.ExternalDestination;
 import com.samourai.whirlpool.client.wallet.beans.WhirlpoolAccount;
@@ -31,9 +32,9 @@ public class PersistableWalletStateSupplier extends BasicPersistableSupplier<Wal
   }
 
   @Override
-  public IIndexHandler getIndexHandlerWallet(
-      WhirlpoolAccount account, AddressType addressType, Chain chain) {
-    String persistKey = computePersistKeyWallet(account, addressType, chain);
+  public IIndexHandler getIndexHandlerWallet(BipWallet bipWallet, Chain chain) {
+    String persistKey =
+        computePersistKeyWallet(bipWallet.getAccount(), bipWallet.getDerivation(), chain);
     IIndexHandler indexHandlerWallet = indexHandlerWallets.get(persistKey);
     if (indexHandlerWallet == null) {
       indexHandlerWallet = createIndexHandler(persistKey, 0);
@@ -65,8 +66,8 @@ public class PersistableWalletStateSupplier extends BasicPersistableSupplier<Wal
   }
 
   protected String computePersistKeyWallet(
-      WhirlpoolAccount account, AddressType addressType, Chain chain) {
-    return account.name() + "_" + addressType.getPurpose() + "_" + chain.getIndex();
+      WhirlpoolAccount account, BipDerivation bipDerivation, Chain chain) {
+    return account.name() + "_" + bipDerivation.getPurpose() + "_" + chain.getIndex();
   }
 
   @Override

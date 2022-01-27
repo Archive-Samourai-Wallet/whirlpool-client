@@ -2,9 +2,9 @@ package com.samourai.whirlpool.client.tx0;
 
 import com.samourai.wallet.api.backend.BackendServer;
 import com.samourai.wallet.api.backend.beans.UnspentOutput;
-import com.samourai.wallet.client.BipWallet;
-import com.samourai.wallet.client.indexHandler.MemoryIndexHandler;
-import com.samourai.wallet.hd.AddressType;
+import com.samourai.wallet.bipWallet.BipWallet;
+import com.samourai.wallet.client.indexHandler.MemoryIndexHandlerSupplier;
+import com.samourai.wallet.hd.BIP_WALLET;
 import com.samourai.wallet.hd.HD_Address;
 import com.samourai.wallet.hd.HD_Wallet;
 import com.samourai.whirlpool.client.test.AbstractTest;
@@ -349,34 +349,11 @@ public class Tx0ServiceTest extends AbstractTest {
             address);
     utxoKeyProvider.setKey(spendFromUtxo.computeOutpoint(params), address.getECKey());
 
-    BipWallet depositWallet =
-        new BipWallet(
-            bip84w,
-            WhirlpoolAccount.DEPOSIT,
-            new MemoryIndexHandler(),
-            new MemoryIndexHandler(),
-            AddressType.SEGWIT_NATIVE);
-    BipWallet premixWallet =
-        new BipWallet(
-            bip84w,
-            WhirlpoolAccount.PREMIX,
-            new MemoryIndexHandler(),
-            new MemoryIndexHandler(),
-            AddressType.SEGWIT_NATIVE);
-    BipWallet postmixWallet =
-        new BipWallet(
-            bip84w,
-            WhirlpoolAccount.POSTMIX,
-            new MemoryIndexHandler(),
-            new MemoryIndexHandler(),
-            AddressType.SEGWIT_NATIVE);
-    BipWallet badbankWallet =
-        new BipWallet(
-            bip84w,
-            WhirlpoolAccount.BADBANK,
-            new MemoryIndexHandler(),
-            new MemoryIndexHandler(),
-            AddressType.SEGWIT_NATIVE);
+    MemoryIndexHandlerSupplier indexHandlerSupplier = new MemoryIndexHandlerSupplier();
+    BipWallet depositWallet = new BipWallet(bip84w, indexHandlerSupplier, BIP_WALLET.DEPOSIT_BIP84);
+    BipWallet premixWallet = new BipWallet(bip84w, indexHandlerSupplier, BIP_WALLET.PREMIX_BIP84);
+    BipWallet postmixWallet = new BipWallet(bip84w, indexHandlerSupplier, BIP_WALLET.POSTMIX_BIP84);
+    BipWallet badbankWallet = new BipWallet(bip84w, indexHandlerSupplier, BIP_WALLET.BADBANK_BIP84);
     Tx0Config tx0Config =
         new Tx0Config(
             mockTx0PreviewService(),
@@ -624,34 +601,11 @@ public class Tx0ServiceTest extends AbstractTest {
             address); // balance with 11000 change
     utxoKeyProvider.setKey(spendFromUtxo.computeOutpoint(params), address.getECKey());
 
-    BipWallet depositWallet =
-        new BipWallet(
-            bip84w,
-            WhirlpoolAccount.DEPOSIT,
-            new MemoryIndexHandler(),
-            new MemoryIndexHandler(),
-            AddressType.SEGWIT_NATIVE);
-    BipWallet premixWallet =
-        new BipWallet(
-            bip84w,
-            WhirlpoolAccount.PREMIX,
-            new MemoryIndexHandler(),
-            new MemoryIndexHandler(),
-            AddressType.SEGWIT_NATIVE);
-    BipWallet postmixWallet =
-        new BipWallet(
-            bip84w,
-            WhirlpoolAccount.POSTMIX,
-            new MemoryIndexHandler(),
-            new MemoryIndexHandler(),
-            AddressType.SEGWIT_NATIVE);
-    BipWallet badbankWallet =
-        new BipWallet(
-            bip84w,
-            WhirlpoolAccount.BADBANK,
-            new MemoryIndexHandler(),
-            new MemoryIndexHandler(),
-            AddressType.SEGWIT_NATIVE);
+    MemoryIndexHandlerSupplier indexHandlerSupplier = new MemoryIndexHandlerSupplier();
+    BipWallet depositWallet = new BipWallet(bip84w, indexHandlerSupplier, BIP_WALLET.DEPOSIT_BIP84);
+    BipWallet premixWallet = new BipWallet(bip84w, indexHandlerSupplier, BIP_WALLET.PREMIX_BIP84);
+    BipWallet postmixWallet = new BipWallet(bip84w, indexHandlerSupplier, BIP_WALLET.POSTMIX_BIP84);
+    BipWallet badbankWallet = new BipWallet(bip84w, indexHandlerSupplier, BIP_WALLET.PREMIX_BIP84);
     Tx0Config tx0Config =
         new Tx0Config(
             mockTx0PreviewService(),
@@ -750,34 +704,11 @@ public class Tx0ServiceTest extends AbstractTest {
 
     utxoKeyProvider.setKey(spendFromUtxo.computeOutpoint(params), address.getECKey());
 
-    BipWallet depositWallet =
-        new BipWallet(
-            bip84w,
-            WhirlpoolAccount.DEPOSIT,
-            new MemoryIndexHandler(),
-            new MemoryIndexHandler(),
-            AddressType.SEGWIT_NATIVE);
-    BipWallet premixWallet =
-        new BipWallet(
-            bip84w,
-            WhirlpoolAccount.PREMIX,
-            new MemoryIndexHandler(),
-            new MemoryIndexHandler(),
-            AddressType.SEGWIT_NATIVE);
-    BipWallet postmixWallet =
-        new BipWallet(
-            bip84w,
-            WhirlpoolAccount.POSTMIX,
-            new MemoryIndexHandler(),
-            new MemoryIndexHandler(),
-            AddressType.SEGWIT_NATIVE);
-    BipWallet badbankWallet =
-        new BipWallet(
-            bip84w,
-            WhirlpoolAccount.BADBANK,
-            new MemoryIndexHandler(),
-            new MemoryIndexHandler(),
-            AddressType.SEGWIT_NATIVE);
+    MemoryIndexHandlerSupplier indexHandlerSupplier = new MemoryIndexHandlerSupplier();
+    BipWallet depositWallet = new BipWallet(bip84w, indexHandlerSupplier, BIP_WALLET.DEPOSIT_BIP84);
+    BipWallet premixWallet = new BipWallet(bip84w, indexHandlerSupplier, BIP_WALLET.PREMIX_BIP84);
+    BipWallet postmixWallet = new BipWallet(bip84w, indexHandlerSupplier, BIP_WALLET.POSTMIX_BIP84);
+    BipWallet badbankWallet = new BipWallet(bip84w, indexHandlerSupplier, BIP_WALLET.PREMIX_BIP84);
     Tx0Config tx0Config =
         new Tx0Config(
             mockTx0PreviewService(),
@@ -875,34 +806,11 @@ public class Tx0ServiceTest extends AbstractTest {
             address); // balance with 11000 change
     utxoKeyProvider.setKey(spendFromUtxo.computeOutpoint(params), address.getECKey());
 
-    BipWallet depositWallet =
-        new BipWallet(
-            bip84w,
-            WhirlpoolAccount.DEPOSIT,
-            new MemoryIndexHandler(),
-            new MemoryIndexHandler(),
-            AddressType.SEGWIT_NATIVE);
-    BipWallet premixWallet =
-        new BipWallet(
-            bip84w,
-            WhirlpoolAccount.PREMIX,
-            new MemoryIndexHandler(),
-            new MemoryIndexHandler(),
-            AddressType.SEGWIT_NATIVE);
-    BipWallet postmixWallet =
-        new BipWallet(
-            bip84w,
-            WhirlpoolAccount.POSTMIX,
-            new MemoryIndexHandler(),
-            new MemoryIndexHandler(),
-            AddressType.SEGWIT_NATIVE);
-    BipWallet badbankWallet =
-        new BipWallet(
-            bip84w,
-            WhirlpoolAccount.BADBANK,
-            new MemoryIndexHandler(),
-            new MemoryIndexHandler(),
-            AddressType.SEGWIT_NATIVE);
+    MemoryIndexHandlerSupplier indexHandlerSupplier = new MemoryIndexHandlerSupplier();
+    BipWallet depositWallet = new BipWallet(bip84w, indexHandlerSupplier, BIP_WALLET.DEPOSIT_BIP84);
+    BipWallet premixWallet = new BipWallet(bip84w, indexHandlerSupplier, BIP_WALLET.PREMIX_BIP84);
+    BipWallet postmixWallet = new BipWallet(bip84w, indexHandlerSupplier, BIP_WALLET.POSTMIX_BIP84);
+    BipWallet badbankWallet = new BipWallet(bip84w, indexHandlerSupplier, BIP_WALLET.PREMIX_BIP84);
     Tx0Config tx0Config =
         new Tx0Config(
             mockTx0PreviewService(),
@@ -999,34 +907,11 @@ public class Tx0ServiceTest extends AbstractTest {
             address); // balance with 11000 change
     utxoKeyProvider.setKey(spendFromUtxo.computeOutpoint(params), address.getECKey());
 
-    BipWallet depositWallet =
-        new BipWallet(
-            bip84w,
-            WhirlpoolAccount.DEPOSIT,
-            new MemoryIndexHandler(),
-            new MemoryIndexHandler(),
-            AddressType.SEGWIT_NATIVE);
-    BipWallet premixWallet =
-        new BipWallet(
-            bip84w,
-            WhirlpoolAccount.PREMIX,
-            new MemoryIndexHandler(),
-            new MemoryIndexHandler(),
-            AddressType.SEGWIT_NATIVE);
-    BipWallet postmixWallet =
-        new BipWallet(
-            bip84w,
-            WhirlpoolAccount.POSTMIX,
-            new MemoryIndexHandler(),
-            new MemoryIndexHandler(),
-            AddressType.SEGWIT_NATIVE);
-    BipWallet badbankWallet =
-        new BipWallet(
-            bip84w,
-            WhirlpoolAccount.BADBANK,
-            new MemoryIndexHandler(),
-            new MemoryIndexHandler(),
-            AddressType.SEGWIT_NATIVE);
+    MemoryIndexHandlerSupplier indexHandlerSupplier = new MemoryIndexHandlerSupplier();
+    BipWallet depositWallet = new BipWallet(bip84w, indexHandlerSupplier, BIP_WALLET.DEPOSIT_BIP84);
+    BipWallet premixWallet = new BipWallet(bip84w, indexHandlerSupplier, BIP_WALLET.PREMIX_BIP84);
+    BipWallet postmixWallet = new BipWallet(bip84w, indexHandlerSupplier, BIP_WALLET.POSTMIX_BIP84);
+    BipWallet badbankWallet = new BipWallet(bip84w, indexHandlerSupplier, BIP_WALLET.PREMIX_BIP84);
     Tx0Config tx0Config =
         new Tx0Config(
             mockTx0PreviewService(),

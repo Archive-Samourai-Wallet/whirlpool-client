@@ -2,8 +2,8 @@ package com.samourai.whirlpool.client.tx0;
 
 import com.samourai.wallet.api.backend.beans.UnspentOutput;
 import com.samourai.wallet.bip69.BIP69OutputComparator;
-import com.samourai.wallet.client.BipWallet;
-import com.samourai.wallet.hd.HD_Address;
+import com.samourai.wallet.bipWallet.BipWallet;
+import com.samourai.wallet.hd.BipAddress;
 import com.samourai.wallet.segwit.bech32.Bech32UtilGeneric;
 import com.samourai.wallet.send.SendFactoryGeneric;
 import com.samourai.wallet.send.provider.UtxoKeyProvider;
@@ -101,7 +101,7 @@ public class Tx0Service {
       }
     } else {
       // pay to deposit
-      feeOrBackAddressBech32 = bech32Util.toBech32(depositWallet.getNextChangeAddress(), params);
+      feeOrBackAddressBech32 = depositWallet.getNextChangeAddress().getAddressString();
       if (log.isDebugEnabled()) {
         log.debug("feeAddressDestination: back to deposit => " + feeOrBackAddressBech32);
       }
@@ -257,14 +257,14 @@ public class Tx0Service {
     List<TransactionOutput> premixOutputs = new ArrayList<TransactionOutput>();
     for (int j = 0; j < nbPremix; j++) {
       // send to PREMIX
-      HD_Address toAddress = premixWallet.getNextAddress();
-      String toAddressBech32 = bech32Util.toBech32(toAddress, params);
+      BipAddress toAddress = premixWallet.getNextAddress();
+      String toAddressBech32 = toAddress.getAddressString();
       if (log.isDebugEnabled()) {
         log.debug(
             "Tx0 out (premix): address="
                 + toAddressBech32
                 + ", path="
-                + toAddress.toJSON().get("path")
+                + toAddress.getPathAddress()
                 + " ("
                 + premixValue
                 + " sats)");
@@ -281,8 +281,8 @@ public class Tx0Service {
     //
     List<TransactionOutput> changeOutputs = new LinkedList<TransactionOutput>();
     if (changeValueTotal > 0) {
-      HD_Address changeAddress = changeWallet.getNextChangeAddress();
-      String changeAddressBech32 = bech32Util.toBech32(changeAddress, params);
+      BipAddress changeAddress = changeWallet.getNextChangeAddress();
+      String changeAddressBech32 = changeAddress.getAddressString();
       TransactionOutput changeOutput =
           bech32Util.getTransactionOutput(changeAddressBech32, changeValueTotal, params);
       outputs.add(changeOutput);
@@ -292,7 +292,7 @@ public class Tx0Service {
             "Tx0 out (change): address="
                 + changeAddressBech32
                 + ", path="
-                + changeAddress.toJSON().get("path")
+                + changeAddress.getPathAddress()
                 + " ("
                 + changeValueTotal
                 + " sats)");

@@ -1,9 +1,6 @@
 package com.samourai.whirlpool.client.wallet.orchestrator;
 
 import com.samourai.wallet.api.backend.beans.UnspentOutput;
-import com.samourai.wallet.hd.AddressType;
-import com.samourai.wallet.hd.HD_Address;
-import com.samourai.wallet.segwit.bech32.Bech32UtilGeneric;
 import com.samourai.whirlpool.client.WhirlpoolClient;
 import com.samourai.whirlpool.client.exception.NotifiableException;
 import com.samourai.whirlpool.client.mix.MixParams;
@@ -21,7 +18,6 @@ import com.samourai.whirlpool.client.whirlpool.beans.Pool;
 import com.samourai.whirlpool.client.whirlpool.listener.WhirlpoolClientListener;
 import com.samourai.whirlpool.protocol.beans.Utxo;
 import org.bitcoinj.core.ECKey;
-import org.bitcoinj.core.NetworkParameters;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -180,12 +176,7 @@ public class MixOrchestratorImpl extends MixOrchestrator {
   }
 
   private IPremixHandler computePremixHandler(WhirlpoolUtxo whirlpoolUtxo) {
-    HD_Address premixAddress =
-        whirlpoolWallet
-            .getWalletSupplier()
-            .getWallet(whirlpoolUtxo.getAccount(), AddressType.SEGWIT_NATIVE)
-            .getAddressAt(whirlpoolUtxo.getUtxo());
-    ECKey premixKey = premixAddress.getECKey();
+    ECKey premixKey = whirlpoolUtxo.getBipAddress().getHdAddress().getECKey();
 
     UnspentOutput premixOrPostmixUtxo = whirlpoolUtxo.getUtxo();
     UtxoWithBalance utxoWithBalance =
@@ -195,13 +186,7 @@ public class MixOrchestratorImpl extends MixOrchestrator {
             premixOrPostmixUtxo.value);
 
     // use PREMIX(0,0) as userPreHash (not transmitted to server but rehashed with another salt)
-    HD_Address premix00 =
-        whirlpoolWallet
-            .getWalletSupplier()
-            .getWallet(WhirlpoolAccount.PREMIX, AddressType.SEGWIT_NATIVE)
-            .getAddressAt(0, 0);
-    NetworkParameters params = config.getNetworkParameters();
-    String premix00Bech32 = Bech32UtilGeneric.getInstance().toBech32(premix00, params);
+    String premix00Bech32 = whirlpoolWallet.getWalletPremix().getAddressAt(0, 0).getAddressString();
     String userPreHash = ClientUtils.sha256Hash(premix00Bech32);
 
     return new PremixHandler(utxoWithBalance, premixKey, userPreHash);
