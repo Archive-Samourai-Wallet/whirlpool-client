@@ -219,32 +219,6 @@ public class DebugUtils {
     return sb.toString();
   }
 
-  public static String getDebugUtxos(
-      Collection<UnspentOutput> utxos,
-      int purpose,
-      int accountIndex,
-      NetworkParameters params,
-      BipFormatSupplier bipFormatSupplier) {
-    String lineFormat = "| %10s | %7s | %68s | %45s | %18s |\n";
-    StringBuilder sb = new StringBuilder().append("\n");
-    sb.append(String.format(lineFormat, "BALANCE", "CONFIRM", "UTXO", "ADDRESS", "TYPE", "PATH"));
-    sb.append(String.format(lineFormat, "(btc)", "", "", "", "", ""));
-    for (UnspentOutput o : utxos) {
-      String utxo = o.tx_hash + ":" + o.tx_output_n;
-      BipFormat bipFormat = bipFormatSupplier.findByAddress(o.addr, params);
-      sb.append(
-          String.format(
-              lineFormat,
-              ClientUtils.satToBtc(o.value),
-              o.confirmations,
-              utxo,
-              o.addr,
-              bipFormat.getId(),
-              o.getPathAddress(purpose, accountIndex)));
-    }
-    return sb.toString();
-  }
-
   public static String getDebugSystem() {
     StringBuilder sb = new StringBuilder().append("\n");
     final ThreadGroup tg = Thread.currentThread().getThreadGroup();
@@ -297,6 +271,7 @@ public class DebugUtils {
   public static String getDebugMixingThreads(WhirlpoolWallet whirlpoolWallet) {
     StringBuilder sb = new StringBuilder().append("\n");
     MixingState mixingState = whirlpoolWallet.getMixingState();
+    int latestBlockHeight = whirlpoolWallet.getChainSupplier().getLatestBlock().height;
     try {
       sb.append("⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿" + "\n");
       sb.append("⣿ MIXING THREADS:" + "\n");
@@ -344,7 +319,7 @@ public class DebugUtils {
                 since,
                 whirlpoolUtxo.getAccount().name(),
                 ClientUtils.satToBtc(o.value),
-                o.confirmations,
+                whirlpoolUtxo.computeConfirmations(latestBlockHeight),
                 utxo,
                 o.getPath(),
                 mixProgress.getPoolId() != null ? mixProgress.getPoolId() : "-",
