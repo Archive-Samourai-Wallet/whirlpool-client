@@ -84,11 +84,13 @@ public class UtxoData {
 
       UnspentOutput freshUtxo = freshUtxos.get(key);
       if (freshUtxo != null) {
-        // update utxo if confirmed
+        // set blockHeight when confirmed
         if (whirlpoolUtxo.getBlockHeight() == null && freshUtxo.confirmations > 0) {
           whirlpoolUtxo.setUtxoConfirmed(freshUtxo, latestBlockHeight);
           utxoChanges.getUtxosConfirmed().add(whirlpoolUtxo);
         }
+        // update utxo.confirmations (not really needed)
+        whirlpoolUtxo.getUtxo().confirmations = freshUtxo.confirmations;
         // add
         addUtxo(whirlpoolUtxo);
       } else {

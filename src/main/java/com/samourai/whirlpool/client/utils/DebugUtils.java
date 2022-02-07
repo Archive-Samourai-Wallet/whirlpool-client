@@ -291,6 +291,7 @@ public class DebugUtils {
   public static String getDebugMixingThreads(WhirlpoolWallet whirlpoolWallet) {
     StringBuilder sb = new StringBuilder().append("\n");
     MixingState mixingState = whirlpoolWallet.getMixingState();
+    int latestBlockHeight = whirlpoolWallet.getChainSupplier().getLatestBlock().height;
     try {
       sb.append("⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿" + "\n");
       sb.append("⣿ MIXING THREADS:" + "\n");
@@ -338,7 +339,7 @@ public class DebugUtils {
                 since,
                 whirlpoolUtxo.getAccount().name(),
                 ClientUtils.satToBtc(o.value),
-                o.confirmations,
+                whirlpoolUtxo.computeConfirmations(latestBlockHeight),
                 utxo,
                 o.getPath(),
                 mixProgress.getPoolId() != null ? mixProgress.getPoolId() : "-",
