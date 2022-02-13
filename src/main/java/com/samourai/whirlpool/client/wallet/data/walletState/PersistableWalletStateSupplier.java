@@ -32,6 +32,16 @@ public class PersistableWalletStateSupplier extends BasicPersistableSupplier<Wal
   }
 
   @Override
+  protected void validate(WalletStateData value) {
+    // nothing to do
+  }
+
+  @Override
+  protected void onValueChange(WalletStateData value) throws Exception {
+    // nothing to do
+  }
+
+  @Override
   public IIndexHandler getIndexHandlerWallet(BipWallet bipWallet, Chain chain) {
     String persistKey =
         computePersistKeyWallet(bipWallet.getAccount(), bipWallet.getDerivation(), chain);

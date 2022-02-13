@@ -66,6 +66,18 @@ public abstract class BasicUtxoSupplier extends BasicSupplier<UtxoData>
   }
 
   @Override
+  protected void validate(UtxoData value) {
+    // nothing to do
+  }
+
+  @Override
+  protected void onValueChange(UtxoData value) throws Exception {
+    if (!value.getUtxoChanges().isEmpty()) {
+      onUtxoChanges(value);
+    }
+  }
+
+  @Override
   public void setValue(UtxoData utxoData) throws Exception {
     utxoData.init(
         walletSupplier,
@@ -82,11 +94,6 @@ public abstract class BasicUtxoSupplier extends BasicSupplier<UtxoData>
 
     // set new value
     super.setValue(utxoData);
-
-    // notify
-    if (!utxoData.getUtxoChanges().isEmpty()) {
-      onUtxoChanges(utxoData);
-    }
   }
 
   @Override

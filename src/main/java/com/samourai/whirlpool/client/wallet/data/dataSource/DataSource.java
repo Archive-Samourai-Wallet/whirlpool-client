@@ -1,10 +1,10 @@
 package com.samourai.whirlpool.client.wallet.data.dataSource;
 
-import com.samourai.wallet.api.paynym.PaynymSupplier;
 import com.samourai.wallet.bipWallet.WalletSupplier;
 import com.samourai.whirlpool.client.tx0.Tx0PreviewService;
 import com.samourai.whirlpool.client.wallet.data.chain.ChainSupplier;
 import com.samourai.whirlpool.client.wallet.data.minerFee.MinerFeeSupplier;
+import com.samourai.whirlpool.client.wallet.data.paynym.PaynymSupplier;
 import com.samourai.whirlpool.client.wallet.data.pool.PoolSupplier;
 import com.samourai.whirlpool.client.wallet.data.utxo.UtxoSupplier;
 

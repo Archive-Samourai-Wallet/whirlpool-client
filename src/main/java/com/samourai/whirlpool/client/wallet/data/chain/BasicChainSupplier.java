@@ -16,8 +16,7 @@ public class BasicChainSupplier extends BasicSupplier<ChainData> implements Chai
   }
 
   @Override
-  public void setValue(ChainData value) throws Exception {
-    // validate
+  protected void validate(ChainData value) throws Exception {
     if (value == null
         || value.getLatestBlock() == null
         || value.getLatestBlock().height <= 0
@@ -25,15 +24,16 @@ public class BasicChainSupplier extends BasicSupplier<ChainData> implements Chai
         || StringUtils.isEmpty(value.getLatestBlock().hash)) {
       throw new Exception("Invalid ChainData");
     }
-    ChainData oldValue = getValue();
+  }
 
-    // set
+  @Override
+  protected void onValueChange(ChainData value) {
+    WhirlpoolEventService.getInstance().post(new ChainBlockChangeEvent(value.getLatestBlock()));
+  }
+
+  @Override
+  public void setValue(ChainData value) throws Exception { // make public
     super.setValue(value);
-
-    // notify new blocks
-    if (oldValue == null || oldValue.getLatestBlock().height != value.getLatestBlock().height) {
-      WhirlpoolEventService.getInstance().post(new ChainBlockChangeEvent(value.getLatestBlock()));
-    }
   }
 
   @Override

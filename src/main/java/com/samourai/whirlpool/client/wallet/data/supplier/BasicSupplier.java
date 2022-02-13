@@ -18,9 +18,23 @@ public abstract class BasicSupplier<D> {
     if (log.isTraceEnabled()) {
       log.trace("setValue");
     }
+    // validate
+    validate(value);
+    D oldValue = getValue();
+
+    // set
     this.value = value;
     this.lastUpdate = System.currentTimeMillis();
+
+    // notify
+    if (oldValue == null || !oldValue.equals(value)) {
+      onValueChange(value);
+    }
   }
+
+  protected abstract void validate(D value) throws Exception;
+
+  protected abstract void onValueChange(D value) throws Exception;
 
   public D getValue() {
     return value;

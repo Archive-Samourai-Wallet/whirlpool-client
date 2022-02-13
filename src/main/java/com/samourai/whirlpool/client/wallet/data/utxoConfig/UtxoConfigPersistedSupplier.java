@@ -21,6 +21,16 @@ public class UtxoConfigPersistedSupplier extends BasicPersistableSupplier<UtxoCo
   }
 
   @Override
+  protected void validate(UtxoConfigData value) {
+    // nothing to do
+  }
+
+  @Override
+  protected void onValueChange(UtxoConfigData value) {
+    // nothing to do
+  }
+
+  @Override
   public UtxoConfigPersisted getUtxo(String hash, int index) {
     String key = computeUtxoConfigKey(hash, index);
     return getValue().getUtxoConfig(key);

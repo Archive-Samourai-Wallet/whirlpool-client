@@ -36,10 +36,12 @@ public class WalletResponseSupplier extends ExpirableSupplier<WalletResponse> {
   }
 
   @Override
-  protected void setValue(WalletResponse value) throws Exception {
-    super.setValue(value);
+  protected void validate(WalletResponse value) throws Exception {
+    // nothing to do
+  }
 
-    // notify
+  @Override
+  protected void onValueChange(WalletResponse value) throws Exception {
     dataSource.setValue(value);
   }
 }

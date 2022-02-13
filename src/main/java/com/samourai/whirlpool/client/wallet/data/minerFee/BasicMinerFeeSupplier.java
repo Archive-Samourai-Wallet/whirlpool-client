@@ -22,29 +22,28 @@ public class BasicMinerFeeSupplier extends BasicSupplier<MinerFee> implements Mi
     this.feeMax = feeMax;
   }
 
+  @Override
+  public void setValue(MinerFee value) throws Exception { // make public
+    super.setValue(value);
+  }
+
   public void setValue(int value) throws Exception {
     MinerFee minerFee = mockMinerFee(value);
     setValue(minerFee);
   }
 
   @Override
-  public void setValue(MinerFee value) throws Exception {
-    // validate
+  protected void validate(MinerFee value) throws Exception {
     for (MinerFeeTarget minerFeeTarget : MinerFeeTarget.values()) {
       if (value.get(minerFeeTarget) <= 0) {
         throw new Exception("Invalid MinerFee[" + minerFeeTarget + "]");
       }
     }
+  }
 
-    MinerFee oldValue = getValue();
-
-    // set
-    super.setValue(value);
-
-    // notify minerFee changes
-    if (oldValue == null || !oldValue.equals(value)) {
-      WhirlpoolEventService.getInstance().post(new MinerFeeChangeEvent(value));
-    }
+  @Override
+  protected void onValueChange(MinerFee value) {
+    WhirlpoolEventService.getInstance().post(new MinerFeeChangeEvent(value));
   }
 
   protected static MinerFee mockMinerFee(int feeValue) {

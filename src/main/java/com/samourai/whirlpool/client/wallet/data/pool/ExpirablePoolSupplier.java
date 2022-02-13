@@ -44,10 +44,12 @@ public class ExpirablePoolSupplier extends ExpirableSupplier<PoolData> implement
   }
 
   @Override
-  protected void setValue(PoolData value) throws Exception {
-    super.setValue(value);
+  protected void validate(PoolData value) throws Exception {
+    // nothing to do
+  }
 
-    // notify
+  @Override
+  protected void onValueChange(PoolData value) throws Exception {
     eventService.post(new PoolsChangeEvent());
   }
 

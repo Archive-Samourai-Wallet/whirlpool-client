@@ -3,11 +3,14 @@ package com.samourai.whirlpool.client.utils;
 import com.samourai.wallet.api.backend.MinerFeeTarget;
 import com.samourai.wallet.api.backend.beans.UnspentOutput;
 import com.samourai.wallet.api.backend.beans.WalletResponse;
+import com.samourai.wallet.api.paynym.beans.PaynymContact;
+import com.samourai.wallet.api.paynym.beans.PaynymState;
 import com.samourai.wallet.bipWallet.BipWallet;
 import com.samourai.wallet.hd.BipAddress;
 import com.samourai.wallet.hd.Chain;
 import com.samourai.whirlpool.client.wallet.WhirlpoolWallet;
 import com.samourai.whirlpool.client.wallet.beans.*;
+import com.samourai.whirlpool.client.wallet.data.paynym.PaynymSupplier;
 import com.samourai.whirlpool.client.wallet.data.pool.PoolSupplier;
 import com.samourai.whirlpool.client.whirlpool.beans.Pool;
 import java.util.Collection;
@@ -32,6 +35,7 @@ public class DebugUtils {
       sb.append(getDebugUtxos(whirlpoolWallet));
       sb.append(getDebugMixingThreads(whirlpoolWallet));
       sb.append(getDebugPools(whirlpoolWallet.getPoolSupplier()));
+      sb.append(getDebugPaynym(whirlpoolWallet.getPaynymSupplier()));
     } else {
       sb.append("WhirlpoolWallet is closed.\n");
     }
@@ -376,6 +380,52 @@ public class DebugUtils {
       }
     } catch (Exception e) {
       log.error("", e);
+    }
+    return sb.toString();
+  }
+
+  public static String getDebugPaynym(PaynymSupplier paynymSupplier) {
+    StringBuilder sb = new StringBuilder().append("\n");
+
+    PaynymState paynymState = paynymSupplier.getState();
+    boolean claimed = paynymState.isClaimed();
+
+    sb.append("⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿" + "\n");
+    sb.append("⣿ PAYNYM" + "\n");
+    sb.append(" • PaymentCode: " + paynymState.getPaymentCode() + "\n");
+    sb.append(" • Claimed: " + claimed + "\n");
+
+    if (claimed) {
+      sb.append(" • Name: " + paynymState.getNymName() + "\n");
+
+      Collection<PaynymContact> followers = paynymState.getFollowers();
+      sb.append(" • " + followers.size() + " followers: ");
+      sb.append(
+          StreamSupport.stream(followers)
+                  .map(
+                      new Function<PaynymContact, String>() {
+                        @Override
+                        public String apply(PaynymContact paynymContact) {
+                          return paynymContact.getNymName();
+                        }
+                      })
+                  .collect(Collectors.joining(", "))
+              + "\n");
+
+      Collection<PaynymContact> following = paynymState.getFollowing();
+      sb.append(" • " + following.size() + " following: ");
+      sb.append(
+          StreamSupport.stream(following)
+                  .map(
+                      new Function<PaynymContact, String>() {
+                        @Override
+                        public String apply(PaynymContact paynymContact) {
+                          return paynymContact.getNymName();
+                        }
+                      })
+                  .collect(Collectors.joining(", "))
+              + "\n");
+      sb.append("\n");
     }
     return sb.toString();
   }
