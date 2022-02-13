@@ -1,7 +1,12 @@
 package com.samourai.whirlpool.client.wallet.data.dataSource;
 
+import com.samourai.http.client.HttpUsage;
+import com.samourai.http.client.IHttpClient;
 import com.samourai.wallet.api.backend.MinerFee;
 import com.samourai.wallet.api.backend.beans.WalletResponse;
+import com.samourai.wallet.api.paynym.PaynymApi;
+import com.samourai.wallet.api.paynym.PaynymServer;
+import com.samourai.wallet.bip47.rpc.BIP47Wallet;
 import com.samourai.wallet.bipFormat.BipFormatSupplier;
 import com.samourai.wallet.bipFormat.BipFormatSupplierImpl;
 import com.samourai.wallet.bipWallet.BipWallet;
@@ -18,6 +23,8 @@ import com.samourai.whirlpool.client.wallet.data.chain.ChainSupplier;
 import com.samourai.whirlpool.client.wallet.data.dataPersister.DataPersister;
 import com.samourai.whirlpool.client.wallet.data.minerFee.BasicMinerFeeSupplier;
 import com.samourai.whirlpool.client.wallet.data.minerFee.MinerFeeSupplier;
+import com.samourai.whirlpool.client.wallet.data.paynym.ExpirablePaynymSupplier;
+import com.samourai.whirlpool.client.wallet.data.paynym.PaynymSupplier;
 import com.samourai.whirlpool.client.wallet.data.pool.ExpirablePoolSupplier;
 import com.samourai.whirlpool.client.wallet.data.pool.PoolSupplier;
 import com.samourai.whirlpool.client.wallet.data.utxo.BasicUtxoSupplier;
@@ -47,6 +54,7 @@ public abstract class WalletResponseDataSource implements DataSource {
   private final BasicChainSupplier chainSupplier;
   private final BasicUtxoSupplier utxoSupplier;
   private final BipFormatSupplier bipFormatSupplier;
+  private final PaynymSupplier paynymSupplier;
 
   public WalletResponseDataSource(
       WhirlpoolWallet whirlpoolWallet, HD_Wallet bip44w, DataPersister dataPersister)
@@ -70,6 +78,8 @@ public abstract class WalletResponseDataSource implements DataSource {
             chainSupplier,
             poolSupplier,
             bipFormatSupplier);
+    WalletStateSupplier walletStateSupplier = dataPersister.getWalletStateSupplier();
+    this.paynymSupplier = computePaynymSupplier(whirlpoolWallet, bip44w, walletStateSupplier);
   }
 
   protected WalletSupplierImpl computeWalletSupplier(
@@ -130,6 +140,22 @@ public abstract class WalletResponseDataSource implements DataSource {
     };
   }
 
+  protected PaynymSupplier computePaynymSupplier(
+      WhirlpoolWallet whirlpoolWallet, HD_Wallet bip44w, WalletStateSupplier walletStateSupplier) {
+    int refreshPaynymDelay = whirlpoolWallet.getConfig().getRefreshPaynymDelay();
+    PaynymApi paynymApi = computePaynymApi(whirlpoolWallet);
+    BIP47Wallet bip47Wallet = new BIP47Wallet(bip44w);
+    return new ExpirablePaynymSupplier(
+        refreshPaynymDelay, bip47Wallet, paynymApi, walletStateSupplier);
+  }
+
+  protected PaynymApi computePaynymApi(WhirlpoolWallet whirlpoolWallet) {
+    WhirlpoolWalletConfig config = whirlpoolWallet.getConfig();
+    IHttpClient httpClient = config.getHttpClient(HttpUsage.BACKEND);
+    String serverUrl = PaynymServer.get().getUrl();
+    return new PaynymApi(httpClient, serverUrl, config.getBip47Util());
+  }
+
   public void refresh() throws Exception {
     walletResponseSupplier.refresh();
   }
@@ -173,7 +199,6 @@ public abstract class WalletResponseDataSource implements DataSource {
 
   private void setWalletStateValue(Map<String, WalletResponse.Address> addressesMap) {
     // update indexs from wallet backend
-    WalletStateSupplier walletStateSupplier = dataPersister.getWalletStateSupplier();
     for (String pub : addressesMap.keySet()) {
       WalletResponse.Address address = addressesMap.get(pub);
       BipWallet bipWallet = walletSupplier.getWalletByPub(pub);
@@ -189,6 +214,9 @@ public abstract class WalletResponseDataSource implements DataSource {
   protected void load(boolean initial) throws Exception {
     // load pools
     poolSupplier.load();
+
+    // load paynym
+    paynymSupplier.load();
 
     // load data
     walletResponseSupplier.load();
@@ -265,6 +293,11 @@ public abstract class WalletResponseDataSource implements DataSource {
   @Override
   public UtxoSupplier getUtxoSupplier() {
     return utxoSupplier;
+  }
+
+  @Override
+  public PaynymSupplier getPaynymSupplier() {
+    return paynymSupplier;
   }
 
   protected WalletResponseSupplier getWalletResponseSupplier() {

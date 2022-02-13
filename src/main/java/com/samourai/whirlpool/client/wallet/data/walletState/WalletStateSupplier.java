@@ -6,5 +6,9 @@ import com.samourai.whirlpool.client.wallet.data.dataPersister.PersistableSuppli
 public interface WalletStateSupplier extends PersistableSupplier, IndexHandlerSupplier {
   boolean isInitialized();
 
-  void setInitialized(boolean initialized);
+  void setInitialized(boolean value);
+
+  boolean isNymClaimed();
+
+  void setNymClaimed(boolean value);
 }

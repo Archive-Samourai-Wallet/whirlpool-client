@@ -5,6 +5,7 @@ import com.samourai.tor.client.TorClientService;
 import com.samourai.wallet.api.backend.BackendServer;
 import com.samourai.wallet.api.backend.beans.UnspentOutput;
 import com.samourai.wallet.api.backend.beans.WalletResponse;
+import com.samourai.wallet.api.paynym.beans.PaynymState;
 import com.samourai.wallet.bipFormat.BIP_FORMAT;
 import com.samourai.wallet.bipFormat.BipFormat;
 import com.samourai.wallet.bipWallet.BipDerivation;
@@ -25,6 +26,7 @@ import com.samourai.whirlpool.client.wallet.beans.*;
 import com.samourai.whirlpool.client.wallet.data.dataPersister.DataPersister;
 import com.samourai.whirlpool.client.wallet.data.dataPersister.DataPersisterFactory;
 import com.samourai.whirlpool.client.wallet.data.dataSource.*;
+import com.samourai.whirlpool.client.wallet.data.paynym.PaynymSupplier;
 import com.samourai.whirlpool.client.wallet.data.pool.PoolSupplier;
 import com.samourai.whirlpool.client.wallet.data.utxo.UtxoSupplier;
 import com.samourai.whirlpool.client.wallet.data.utxoConfig.UtxoConfigSupplier;
@@ -341,6 +343,29 @@ public class JavaExample {
       }
     }
 
+    /*
+     * PAYNYM
+     */
+    PaynymSupplier paynymSupplier = whirlpoolWallet.getPaynymSupplier();
+
+    // get Paynym state
+    PaynymState paynymState = paynymSupplier.getState();
+
+    // claim paynym
+    paynymSupplier.claim();
+
+    // follow
+    paynymSupplier.follow("friendPaymentCode");
+
+    // unfollow
+    paynymSupplier.unfollow("friendPaymentCode");
+
+    // refresh
+    paynymSupplier.refresh();
+
+    /*
+     * WALLET MANAGEMENT
+     */
     // manually start mixing specific utxo
     whirlpoolWallet.mix(whirlpoolUtxo);
 
@@ -444,5 +469,10 @@ public class JavaExample {
   @Subscribe
   public void onPostmixIndexFixFailEvent(PostmixIndexFixFailEvent e) {
     // postmix index problem could not be fixed
+  }
+
+  @Subscribe
+  public void onPaynymChangeEvent(PaynymChangeEvent e) {
+    // paynym update
   }
 }

@@ -76,8 +76,18 @@ public class PersistableWalletStateSupplier extends BasicPersistableSupplier<Wal
   }
 
   @Override
-  public void setInitialized(boolean initialized) {
-    getValue().setInitialized(initialized);
+  public void setInitialized(boolean value) {
+    getValue().setInitialized(value);
+  }
+
+  @Override
+  public boolean isNymClaimed() {
+    return getValue().isNymClaimed();
+  }
+
+  @Override
+  public void setNymClaimed(boolean value) {
+    getValue().setNymClaimed(value);
   }
 
   @Override

@@ -1,5 +1,6 @@
 package com.samourai.whirlpool.client.wallet.data.dataSource;
 
+import com.samourai.wallet.api.paynym.PaynymSupplier;
 import com.samourai.wallet.bipWallet.WalletSupplier;
 import com.samourai.whirlpool.client.tx0.Tx0PreviewService;
 import com.samourai.whirlpool.client.wallet.data.chain.ChainSupplier;
@@ -24,6 +25,8 @@ public interface DataSource {
   ChainSupplier getChainSupplier();
 
   PoolSupplier getPoolSupplier();
+
+  PaynymSupplier getPaynymSupplier();
 
   Tx0PreviewService getTx0PreviewService();
 }

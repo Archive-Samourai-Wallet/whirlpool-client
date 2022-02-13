@@ -9,6 +9,7 @@ import org.slf4j.LoggerFactory;
 public class WalletStateData extends PersistableData {
   private static final Logger log = LoggerFactory.getLogger(WalletStateData.class);
   private static final String INDEX_INITIALIZED = "init";
+  private static final String INDEX_NYM_CLAIMED = "nymClaimed";
 
   private Map<String, Integer> items;
 
@@ -25,15 +26,31 @@ public class WalletStateData extends PersistableData {
   }
 
   public boolean isInitialized() {
-    return get(INDEX_INITIALIZED, 0) == 1;
+    return getBoolean(INDEX_INITIALIZED, false);
   }
 
-  public void setInitialized(boolean initialized) {
-    set(INDEX_INITIALIZED, initialized ? 1 : 0);
+  public void setInitialized(boolean value) {
+    setBoolean(INDEX_INITIALIZED, value);
+  }
+
+  public boolean isNymClaimed() {
+    return getBoolean(INDEX_NYM_CLAIMED, false);
+  }
+
+  public void setNymClaimed(boolean value) {
+    setBoolean(INDEX_NYM_CLAIMED, value);
   }
 
   protected Map<String, Integer> getItems() {
     return items;
+  }
+
+  public boolean getBoolean(String key, boolean defaultValue) {
+    return get(key, defaultValue ? 1 : 0) == 1;
+  }
+
+  public void setBoolean(String key, boolean value) {
+    set(key, value ? 1 : 0);
   }
 
   protected int get(String key, int defaultValue) {

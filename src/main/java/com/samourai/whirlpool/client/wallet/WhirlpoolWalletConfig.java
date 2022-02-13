@@ -3,6 +3,8 @@ package com.samourai.whirlpool.client.wallet;
 import com.samourai.http.client.IHttpClientService;
 import com.samourai.stomp.client.IStompClientService;
 import com.samourai.tor.client.TorClientService;
+import com.samourai.wallet.bip47.BIP47UtilGeneric;
+import com.samourai.wallet.bip47.rpc.java.Bip47UtilJava;
 import com.samourai.wallet.bip47.rpc.java.SecretPointFactoryJava;
 import com.samourai.wallet.bip47.rpc.secretPoint.ISecretPointFactory;
 import com.samourai.wallet.util.FormatsUtilGeneric;
@@ -51,6 +53,7 @@ public class WhirlpoolWalletConfig extends WhirlpoolClientConfig
   private int tx0MinConfirmations;
   private int refreshUtxoDelay;
   private int refreshPoolsDelay;
+  private int refreshPaynymDelay;
 
   private int feeMin;
   private int feeMax;
@@ -63,6 +66,7 @@ public class WhirlpoolWalletConfig extends WhirlpoolClientConfig
   private String partner;
 
   private ISecretPointFactory secretPointFactory;
+  private BIP47UtilGeneric bip47Util;
 
   public WhirlpoolWalletConfig(
       DataSourceFactory dataSourceFactory,
@@ -106,6 +110,7 @@ public class WhirlpoolWalletConfig extends WhirlpoolClientConfig
     this.tx0MinConfirmations = 0;
     this.refreshUtxoDelay = 60; // 1min
     this.refreshPoolsDelay = 600; // 10min
+    this.refreshPaynymDelay = 3600; // 1h
 
     this.feeMin = 1;
     this.feeMax = 510;
@@ -118,6 +123,7 @@ public class WhirlpoolWalletConfig extends WhirlpoolClientConfig
     this.partner = WhirlpoolProtocol.PARTNER_ID_SAMOURAI;
 
     this.secretPointFactory = SecretPointFactoryJava.getInstance();
+    this.bip47Util = Bip47UtilJava.getInstance();
   }
 
   public void verify() throws Exception {
@@ -309,6 +315,14 @@ public class WhirlpoolWalletConfig extends WhirlpoolClientConfig
     this.refreshPoolsDelay = refreshPoolsDelay;
   }
 
+  public int getRefreshPaynymDelay() {
+    return refreshPaynymDelay;
+  }
+
+  public void setRefreshPaynymDelay(int refreshPaynymDelay) {
+    this.refreshPaynymDelay = refreshPaynymDelay;
+  }
+
   public int getFeeMin() {
     return feeMin;
   }
@@ -381,6 +395,14 @@ public class WhirlpoolWalletConfig extends WhirlpoolClientConfig
     this.secretPointFactory = secretPointFactory;
   }
 
+  public BIP47UtilGeneric getBip47Util() {
+    return bip47Util;
+  }
+
+  public void setBip47Util(BIP47UtilGeneric bip47Util) {
+    this.bip47Util = bip47Util;
+  }
+
   public Map<String, String> getConfigInfo() {
     Map<String, String> configInfo = new LinkedHashMap<String, String>();
     configInfo.put("dataSourceFactory", dataSourceFactory.getClass().getSimpleName());
@@ -394,7 +416,12 @@ public class WhirlpoolWalletConfig extends WhirlpoolClientConfig
     configInfo.put("indexRangePostmix", getIndexRangePostmix().name());
     configInfo.put(
         "refreshDelay",
-        "refreshUtxoDelay=" + refreshUtxoDelay + ", refreshPoolsDelay=" + refreshPoolsDelay);
+        "refreshUtxoDelay="
+            + refreshUtxoDelay
+            + ", refreshPoolsDelay="
+            + refreshPoolsDelay
+            + ", refreshPaynymDelay="
+            + refreshPaynymDelay);
     configInfo.put(
         "mix",
         "mobile="
@@ -436,6 +463,7 @@ public class WhirlpoolWalletConfig extends WhirlpoolClientConfig
     configInfo.put("postmixIndexAutoFix", Boolean.toString(postmixIndexAutoFix));
     configInfo.put("persistDelaySeconds", Integer.toString(persistDelaySeconds));
     configInfo.put("secretPointFactory", secretPointFactory.getClass().getName());
+    configInfo.put("bip47Util", bip47Util.getClass().getName());
     return configInfo;
   }
 }

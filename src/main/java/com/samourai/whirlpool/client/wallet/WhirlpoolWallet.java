@@ -26,6 +26,7 @@ import com.samourai.whirlpool.client.wallet.data.dataPersister.DataPersister;
 import com.samourai.whirlpool.client.wallet.data.dataSource.DataSource;
 import com.samourai.whirlpool.client.wallet.data.dataSource.DataSourceWithStrictMode;
 import com.samourai.whirlpool.client.wallet.data.minerFee.MinerFeeSupplier;
+import com.samourai.whirlpool.client.wallet.data.paynym.PaynymSupplier;
 import com.samourai.whirlpool.client.wallet.data.pool.PoolSupplier;
 import com.samourai.whirlpool.client.wallet.data.utxo.UtxoData;
 import com.samourai.whirlpool.client.wallet.data.utxo.UtxoSupplier;
@@ -63,6 +64,7 @@ public class WhirlpoolWallet {
   private HD_Wallet bip44w;
   private DataSource dataSource;
   private Tx0Service tx0Service;
+  private PaynymSupplier paynymSupplier;
   private DataPersister dataPersister;
 
   protected MixOrchestratorImpl mixOrchestrator;
@@ -124,6 +126,7 @@ public class WhirlpoolWallet {
     this.dataPersister = null;
     this.dataSource = null;
     this.tx0Service = null; // will be set with datasource
+    this.paynymSupplier = null; // will be set with datasource
 
     this.mixOrchestrator = null;
     this.autoTx0Orchestrator = Optional.empty();
@@ -369,6 +372,7 @@ public class WhirlpoolWallet {
     this.dataPersister = config.getDataPersisterFactory().createDataPersister(this, bip44w);
     this.dataSource = config.getDataSourceFactory().createDataSource(this, bip44w, dataPersister);
     this.tx0Service = new Tx0Service(config, dataSource.getTx0PreviewService());
+    this.paynymSupplier = dataSource.getPaynymSupplier();
 
     // start orchestrators
     int loopDelay = config.getRefreshUtxoDelay() * 1000;
@@ -559,6 +563,10 @@ public class WhirlpoolWallet {
 
   public PoolSupplier getPoolSupplier() {
     return dataSource.getPoolSupplier();
+  }
+
+  public PaynymSupplier getPaynymSupplier() {
+    return paynymSupplier;
   }
 
   public Tx0PreviewService getTx0PreviewService() {
