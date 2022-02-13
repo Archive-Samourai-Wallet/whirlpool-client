@@ -3,10 +3,14 @@ package com.samourai.whirlpool.client.wallet.data.utxoConfig;
 import com.samourai.wallet.api.backend.beans.UnspentOutput;
 import com.samourai.whirlpool.client.wallet.beans.WhirlpoolUtxo;
 import com.samourai.whirlpool.client.wallet.data.utxo.UtxoSupplierTest;
-import org.junit.Assert;
-import org.junit.Test;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Test;
 
 public class UtxoConfigSupplierTest extends UtxoSupplierTest {
+
+  public UtxoConfigSupplierTest() throws Exception {
+    super();
+  }
 
   @Test
   public void testValid() throws Exception {
@@ -19,17 +23,17 @@ public class UtxoConfigSupplierTest extends UtxoSupplierTest {
     doTest(utxos1);
     assertUtxoChanges(utxos1, new UnspentOutput[] {}, new UnspentOutput[] {});
 
-    // TODO Assert.assertEquals(utxos1.length, utxoSupplier.getUtxos().size());
+    // TODO Assertions.assertEquals(utxos1.length, utxoSupplier.getUtxos().size());
 
     // verify mixsDone
-    Assert.assertEquals(
+    Assertions.assertEquals(
         0, utxoSupplier.findUtxo(UTXO_DEPOSIT1.tx_hash, UTXO_DEPOSIT1.tx_output_n).getMixsDone());
-    Assert.assertEquals(
+    Assertions.assertEquals(
         0, utxoSupplier.findUtxo(UTXO_PREMIX1.tx_hash, UTXO_PREMIX1.tx_output_n).getMixsDone());
-    Assert.assertEquals(
+    Assertions.assertEquals(
         1, utxoSupplier.findUtxo(UTXO_POSTMIX1.tx_hash, UTXO_POSTMIX1.tx_output_n).getMixsDone());
 
-    Assert.assertNull(utxoSupplier.findUtxo(UTXO_DEPOSIT1.tx_hash, 99));
+    Assertions.assertNull(utxoSupplier.findUtxo(UTXO_DEPOSIT1.tx_hash, 99));
   }
 
   @Test

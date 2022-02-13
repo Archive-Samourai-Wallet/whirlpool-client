@@ -3,8 +3,6 @@ package com.samourai.whirlpool.client.utils;
 import com.samourai.wallet.api.backend.MinerFeeTarget;
 import com.samourai.wallet.api.backend.beans.UnspentOutput;
 import com.samourai.wallet.api.backend.beans.WalletResponse;
-import com.samourai.wallet.bipFormat.BipFormat;
-import com.samourai.wallet.bipFormat.BipFormatSupplier;
 import com.samourai.wallet.bipWallet.BipWallet;
 import com.samourai.wallet.hd.BipAddress;
 import com.samourai.wallet.hd.Chain;
@@ -20,7 +18,6 @@ import java8.util.function.Predicate;
 import java8.util.stream.Collectors;
 import java8.util.stream.StreamSupport;
 import org.apache.commons.lang3.StringUtils;
-import org.bitcoinj.core.NetworkParameters;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

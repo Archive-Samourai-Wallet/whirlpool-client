@@ -3,6 +3,9 @@ package com.samourai.whirlpool.client.wallet.persist;
 import com.samourai.whirlpool.client.test.AbstractTest;
 
 public class FileWhirlpoolWalletPersistHandlerTest extends AbstractTest {
+  public FileWhirlpoolWalletPersistHandlerTest() throws Exception {
+    super();
+  }
   /*
   private FileWhirlpoolWalletPersistHandler persistHandler;
   private WhirlpoolWallet whirlpoolWallet;

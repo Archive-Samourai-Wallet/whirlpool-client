@@ -17,6 +17,10 @@ public class MixOrchestratorTest extends AbstractTest {
   private List<WhirlpoolUtxo> utxos = new LinkedList<WhirlpoolUtxo>();
   private List<WhirlpoolUtxo> mixingHistory = new LinkedList<WhirlpoolUtxo>();
   private String POOL_001;
+
+  public MixOrchestratorTest() throws Exception {
+    super();
+  }
   /*
   @BeforeEach
   public void setUp() throws Exception {
@@ -101,8 +105,8 @@ public class MixOrchestratorTest extends AbstractTest {
     String[] utxoStrings2 = doTestMixOrder();
 
     // random utxo selection
-    Assert.assertEquals(6, utxoStrings1.length);
-    Assert.assertEquals(6, utxoStrings2.length);
+    Assertions.assertEquals(6, utxoStrings1.length);
+    Assertions.assertEquals(6, utxoStrings2.length);
   }
 
   private String[] doTestMixOrder() throws Exception {
@@ -130,11 +134,11 @@ public class MixOrchestratorTest extends AbstractTest {
 
     // mix all
     findAndMixAll();
-    Assert.assertEquals(6, mixingHistory.size());
+    Assertions.assertEquals(6, mixingHistory.size());
 
     // spend "0.01btcPremix10conf"
     WhirlpoolUtxo utxo = utxos.get(1);
-    Assert.assertNotNull(data.getMixing(utxo.getUtxo())); // mixing
+    Assertions.assertNotNull(data.getMixing(utxo.getUtxo())); // mixing
     {
       WhirlpoolUtxoChanges whirlpoolUtxoChanges = new WhirlpoolUtxoChanges(false);
       whirlpoolUtxoChanges.getUtxosRemoved().add(utxos.get(1));
@@ -142,11 +146,11 @@ public class MixOrchestratorTest extends AbstractTest {
     }
 
     // => should stop mixing
-    Assert.assertNull(data.getMixing(utxo.getUtxo())); // not mixing
+    Assertions.assertNull(data.getMixing(utxo.getUtxo())); // not mixing
 
     // confirm "0.01btcPostmix0conf"
     utxo = utxos.get(0);
-    Assert.assertNull(data.getMixing(utxo.getUtxo())); // not mixing
+    Assertions.assertNull(data.getMixing(utxo.getUtxo())); // not mixing
     utxo.getUtxo().confirmations = 7;
     {
       WhirlpoolUtxoChanges whirlpoolUtxoChanges = new WhirlpoolUtxoChanges(false);
@@ -156,12 +160,12 @@ public class MixOrchestratorTest extends AbstractTest {
     Thread.sleep(300);
 
     // => shoud start mixing
-    Assert.assertNotNull(data.getMixing(utxo.getUtxo())); // mixing
+    Assertions.assertNotNull(data.getMixing(utxo.getUtxo())); // mixing
 
     // new utxo
     utxo = newUtxo(POOL_001, WhirlpoolAccount.PREMIX, "0.01btcPremix9confNew", 9, null);
     utxos.add(utxo);
-    Assert.assertNull(data.getMixing(utxo.getUtxo())); // not mixing
+    Assertions.assertNull(data.getMixing(utxo.getUtxo())); // not mixing
     {
       WhirlpoolUtxoChanges whirlpoolUtxoChanges = new WhirlpoolUtxoChanges(false);
       whirlpoolUtxoChanges.getUtxosAdded().add(utxo);
@@ -170,7 +174,7 @@ public class MixOrchestratorTest extends AbstractTest {
     Thread.sleep(300);
 
     // => shoud start mixing
-    Assert.assertNotNull(data.getMixing(utxo.getUtxo())); // mixing
+    Assertions.assertNotNull(data.getMixing(utxo.getUtxo())); // mixing
   }
 
   @Test
@@ -181,11 +185,11 @@ public class MixOrchestratorTest extends AbstractTest {
     findAndMixAll();
 
     // just 1 mixing
-    Assert.assertEquals(1, mixingHistory.size());
+    Assertions.assertEquals(1, mixingHistory.size());
 
     // stop current mix on utxo spend
     WhirlpoolUtxo utxo = mixingHistory.get(0);
-    Assert.assertNotNull(data.getMixing(utxo.getUtxo())); // mixing
+    Assertions.assertNotNull(data.getMixing(utxo.getUtxo())); // mixing
     utxos.remove(utxo);
     {
       WhirlpoolUtxoChanges whirlpoolUtxoChanges = new WhirlpoolUtxoChanges(false);
@@ -195,10 +199,10 @@ public class MixOrchestratorTest extends AbstractTest {
     Thread.sleep(600);
 
     // => should stop mixing
-    Assert.assertNull(data.getMixing(utxo.getUtxo())); // not mixing
+    Assertions.assertNull(data.getMixing(utxo.getUtxo())); // not mixing
 
     // another one is mixing
-    Assert.assertEquals(2, mixingHistory.size());
+    Assertions.assertEquals(2, mixingHistory.size());
   }
 
   @Test
@@ -209,7 +213,7 @@ public class MixOrchestratorTest extends AbstractTest {
     findAndMixAll();
 
     // just 1 mixing per pool
-    Assert.assertEquals(1, mixingHistory.size());
+    Assertions.assertEquals(1, mixingHistory.size());
     String utxoStrings[] = toUtxoStrings(mixingHistory);
 
     // adding same priority utxo doesn't change anything
@@ -222,33 +226,33 @@ public class MixOrchestratorTest extends AbstractTest {
       mixOrchestrator.onUtxoChanges(whirlpoolUtxoChanges);
     }
     // => nothing changed
-    Assert.assertEquals(1, mixingHistory.size());
-    Assert.assertTrue(Arrays.equals(utxoStrings, toUtxoStrings(mixingHistory)));
+    Assertions.assertEquals(1, mixingHistory.size());
+    Assertions.assertTrue(Arrays.equals(utxoStrings, toUtxoStrings(mixingHistory)));
 
     // adding same priority with mixNow() get mixed directly
     mixOrchestrator.mixNow(newUtxo);
     // => mixing changed
-    Assert.assertEquals(2, mixingHistory.size());
+    Assertions.assertEquals(2, mixingHistory.size());
     utxoStrings = toUtxoStrings(mixingHistory);
-    Assert.assertEquals("0.01btcPremix10confNew:3", utxoStrings[1]);
+    Assertions.assertEquals("0.01btcPremix10confNew:3", utxoStrings[1]);
   }
 
   private void verifySortShuffled(String[] utxoStrings) {
     // first premix
     for (int i = 0; i < 2; i++) {
-      Assert.assertTrue(utxoStrings[i].contains("Premix"));
+      Assertions.assertTrue(utxoStrings[i].contains("Premix"));
     }
-    Assert.assertEquals("0.01btcPremix5confError:3", utxoStrings[2]); // error last
+    Assertions.assertEquals("0.01btcPremix5confError:3", utxoStrings[2]); // error last
 
     // then postmix
     for (int i = 3; i < 5; i++) {
-      Assert.assertTrue(utxoStrings[i].contains("Postmix"));
+      Assertions.assertTrue(utxoStrings[i].contains("Postmix"));
     }
-    Assert.assertEquals("0.01btcPostmix5confError:3", utxoStrings[5]); // postmix error last
+    Assertions.assertEquals("0.01btcPostmix5confError:3", utxoStrings[5]); // postmix error last
 
     // non-confirmated cannot be mixed
-    Assert.assertFalse(ArrayUtils.contains(utxoStrings, "0.01btcPremix0conf"));
-    Assert.assertFalse(ArrayUtils.contains(utxoStrings, "0.01btcPostmix0conf"));
+    Assertions.assertFalse(ArrayUtils.contains(utxoStrings, "0.01btcPremix0conf"));
+    Assertions.assertFalse(ArrayUtils.contains(utxoStrings, "0.01btcPostmix0conf"));
   }
 
   private String[] toUtxoStrings(Collection<WhirlpoolUtxo> utxos) {

@@ -25,9 +25,9 @@ import java.util.List;
 import java8.util.function.Function;
 import java8.util.stream.Collectors;
 import java8.util.stream.StreamSupport;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 public class UtxoSupplierTest extends AbstractTest {
   protected WalletResponseDataSource dataSource;
@@ -52,7 +52,11 @@ public class UtxoSupplierTest extends AbstractTest {
 
   protected WhirlpoolUtxoChanges lastUtxoChanges;
 
-  @Before
+  public UtxoSupplierTest() throws Exception {
+    super();
+  }
+
+  @BeforeEach
   public void setup() throws Exception {
     WhirlpoolEventService.getInstance()
         .register(
@@ -125,7 +129,7 @@ public class UtxoSupplierTest extends AbstractTest {
 
     // should use cached data
     doTest(utxos1);
-    Assert.assertEquals(null, lastUtxoChanges);
+    Assertions.assertEquals(null, lastUtxoChanges);
 
     // expire data
     utxoSupplier.refresh();
@@ -146,9 +150,9 @@ public class UtxoSupplierTest extends AbstractTest {
     // verify
     try {
       dataSource.open();
-      Assert.assertTrue(false);
+      Assertions.assertTrue(false);
     } catch (Exception e) {
-      Assert.assertEquals("utxos not available", e.getMessage());
+      Assertions.assertEquals("utxos not available", e.getMessage());
     }
   }
 
@@ -172,7 +176,7 @@ public class UtxoSupplierTest extends AbstractTest {
 
     // should use initial data
     doTest(utxos1);
-    Assert.assertEquals(null, lastUtxoChanges);
+    Assertions.assertEquals(null, lastUtxoChanges);
   }
 
   protected void setMockWalletResponse(UnspentOutput[] unspentOutputs) throws Exception {
@@ -195,7 +199,7 @@ public class UtxoSupplierTest extends AbstractTest {
   }
 
   private void assertUtxoEquals(UnspentOutput[] utxos1, Collection<WhirlpoolUtxo> utxos2) {
-    Assert.assertEquals(utxos1.length, utxos2.size());
+    Assertions.assertEquals(utxos1.length, utxos2.size());
 
     List<String> utxos1Ids =
         StreamSupport.stream(Arrays.asList(utxos1))
@@ -209,7 +213,7 @@ public class UtxoSupplierTest extends AbstractTest {
             .collect(Collectors.<String>toList());
     for (WhirlpoolUtxo whirlpoolUtxo : utxos2) {
       // search utxo by id
-      Assert.assertTrue(utxos1Ids.contains(computeUtxoId(whirlpoolUtxo.getUtxo())));
+      Assertions.assertTrue(utxos1Ids.contains(computeUtxoId(whirlpoolUtxo.getUtxo())));
     }
   }
 

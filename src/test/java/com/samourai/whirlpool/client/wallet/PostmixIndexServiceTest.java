@@ -17,16 +17,18 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.concurrent.Callable;
 import java8.util.Optional;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 public class PostmixIndexServiceTest extends AbstractTest {
   private PostmixIndexService postmixIndexService;
   private BipWallet walletPostmix;
   private Bech32UtilGeneric bech32Util = Bech32UtilGeneric.getInstance();
 
-  @Before
+  public PostmixIndexServiceTest() throws Exception {}
+
+  @BeforeEach
   public void setup() throws Exception {
     byte[] seed = hdWalletFactory.computeSeedFromWords(SEED_WORDS);
     HD_Wallet bip44w =
@@ -62,7 +64,7 @@ public class PostmixIndexServiceTest extends AbstractTest {
     int postmixIndex = walletPostmix.getIndexHandlerReceive().get();
     int minAcceptable = validPostmixIndex - PostmixIndexService.POSTMIX_INDEX_RANGE_ACCEPTABLE_GAP;
     int maxAcceptable = validPostmixIndex + PostmixIndexService.POSTMIX_INDEX_RANGE_ACCEPTABLE_GAP;
-    Assert.assertTrue(postmixIndex >= minAcceptable && postmixIndex <= maxAcceptable);
+    Assertions.assertTrue(postmixIndex >= minAcceptable && postmixIndex <= maxAcceptable);
   }
 
   private ServerApi mockServerApi(int validPostmixIndex, BipWallet walletPostmix) {

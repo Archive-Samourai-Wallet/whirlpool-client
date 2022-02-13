@@ -3,9 +3,9 @@ package com.samourai.whirlpool.client.utils;
 import com.samourai.wallet.util.RandomUtil;
 import com.samourai.whirlpool.client.test.AbstractTest;
 import io.reactivex.functions.Action;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -14,11 +14,11 @@ public class ClientUtilsTest extends AbstractTest {
 
   private int counter;
 
-  public ClientUtilsTest() {
+  public ClientUtilsTest() throws Exception {
     super();
   }
 
-  @Before
+  @BeforeEach
   public void setUp() {
     this.counter = 0;
   }
@@ -35,7 +35,7 @@ public class ClientUtilsTest extends AbstractTest {
     if (log.isDebugEnabled()) {
       log.debug("rand=" + rand);
     }
-    Assert.assertTrue(rand >= -1 && rand <= 1);
+    Assertions.assertTrue(rand >= -1 && rand <= 1);
     return rand;
   }
 
@@ -53,7 +53,7 @@ public class ClientUtilsTest extends AbstractTest {
 
     // simple run
     ClientUtils.runAsync(action, "testAsync").blockingAwait();
-    Assert.assertEquals(1, counter);
+    Assertions.assertEquals(1, counter);
 
     // with doOnComplete
     ClientUtils.runAsync(action, "testAsync")
@@ -61,7 +61,7 @@ public class ClientUtilsTest extends AbstractTest {
             new Action() {
               @Override
               public void run() throws Exception {
-                Assert.assertEquals(2, counter);
+                Assertions.assertEquals(2, counter);
                 counter++;
                 log.info("doOnComplete => counter=" + counter);
               }
@@ -70,12 +70,12 @@ public class ClientUtilsTest extends AbstractTest {
             new Action() {
               @Override
               public void run() throws Exception {
-                Assert.assertEquals(3, counter);
+                Assertions.assertEquals(3, counter);
                 counter++;
                 log.info("doOnComplete2 => counter=" + counter);
               }
             })
         .blockingAwait();
-    Assert.assertEquals(4, counter);
+    Assertions.assertEquals(4, counter);
   }
 }

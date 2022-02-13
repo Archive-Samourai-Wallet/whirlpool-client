@@ -1,8 +1,6 @@
 package com.samourai.whirlpool.client.test;
 
-import com.samourai.http.client.HttpUsage;
-import com.samourai.http.client.IHttpClient;
-import com.samourai.http.client.IHttpClientService;
+import com.samourai.http.client.*;
 import com.samourai.wallet.api.backend.BackendServer;
 import com.samourai.wallet.api.backend.beans.UnspentOutput;
 import com.samourai.wallet.api.backend.beans.WalletResponse;
@@ -26,6 +24,7 @@ import com.samourai.whirlpool.protocol.websocket.notifications.MixStatus;
 import java.io.File;
 import java.util.Collection;
 import java8.util.Lists;
+import java8.util.Optional;
 import org.bitcoinj.core.NetworkParameters;
 import org.bitcoinj.params.TestNet3Params;
 import org.bouncycastle.util.encoders.Hex;
@@ -38,6 +37,8 @@ public class AbstractTest {
   protected static final String SEED_WORDS = "all all all all all all all all all all all all";
   protected static final String SEED_PASSPHRASE = "whirlpool";
 
+  protected IHttpClient httpClient;
+
   protected NetworkParameters params = TestNet3Params.get();
   protected HD_WalletFactoryGeneric hdWalletFactory = HD_WalletFactoryGeneric.getInstance();
   protected Bech32UtilGeneric bech32Util = Bech32UtilGeneric.getInstance();
@@ -49,7 +50,9 @@ public class AbstractTest {
   private static final String WALLET_RESPONSE =
       "{\"wallet\": {\"final_balance\": 116640227},\"info\": {\"fees\": {\"2\": 1,\"4\": 1,\"6\": 1,\"12\": 1,\"24\": 1},\"latest_block\": {\"height\": 2064015,\"hash\": \"00000000000000409297f8e0c0e73475cdd215ef675ad82802a08507b1c1d0e1\",\"time\": 1628498860}},\"addresses\": [{\"address\": \"vpub5YEhBtZy85KxLBxQB4MiHZvjjhz5DcYT9DV2gLshFykuWXjqSzLxpLd4TwS8nFxJmXAX8RrxRxpanndBh5a9AJPbrJEtqCcTKAnRYcP4Aed\",\"final_balance\": 116640227,\"account_index\": 511,\"change_index\": 183,\"n_tx\": 137}],\"txs\": [],\"unspent_outputs\": []}";
 
-  public AbstractTest() {
+  public AbstractTest() throws Exception {
+    httpClient = new JettyHttpClient(5000, Optional.<HttpProxy>empty(), null);
+
     pool01btc = new Pool();
     pool01btc.setPoolId("0.1btc");
     pool01btc.setDenomination(1000000);

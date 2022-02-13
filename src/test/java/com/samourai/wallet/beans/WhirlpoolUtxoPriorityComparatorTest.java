@@ -13,6 +13,10 @@ public class WhirlpoolUtxoPriorityComparatorTest extends AbstractTest {
       LoggerFactory.getLogger(WhirlpoolUtxoPriorityComparatorTest.class);
   private WhirlpoolUtxoPriorityComparator c = WhirlpoolUtxoPriorityComparator.getInstance();
   private List<WhirlpoolUtxo> utxos = new LinkedList<WhirlpoolUtxo>();
+
+  public WhirlpoolUtxoPriorityComparatorTest() throws Exception {
+    super();
+  }
   /*
   public WhirlpoolUtxoPriorityComparatorTest() {
     utxos.add(newUtxo("0.01btc", WhirlpoolAccount.PREMIX, "0.01btcPremix0conf", 0, null));
