@@ -21,6 +21,7 @@ import java8.util.function.Predicate;
 import java8.util.stream.Collectors;
 import java8.util.stream.StreamSupport;
 import org.apache.commons.lang3.StringUtils;
+import org.bitcoinj.core.NetworkParameters;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -69,6 +70,7 @@ public class DebugUtils {
               + " BTC\n");
 
       for (BipWallet wallet : whirlpoolWallet.getWalletSupplier().getWallets(account)) {
+        NetworkParameters params = wallet.getParams();
         utxos = whirlpoolWallet.getUtxoSupplier().findUtxos(wallet.getBipFormat(), account);
         String nextAddressReceive =
             whirlpoolWallet.getWalletDeposit().getNextAddress(false).getAddressString();
@@ -77,7 +79,7 @@ public class DebugUtils {
         sb.append(
             wallet.getId()
                 + ": path="
-                + wallet.getDerivation().getPathAccount()
+                + wallet.getDerivation().getPathAccount(params)
                 + ", bipFormat="
                 + wallet.getBipFormat().getId()
                 + ", "
@@ -387,7 +389,7 @@ public class DebugUtils {
   public static String getDebugPaynym(PaynymSupplier paynymSupplier) {
     StringBuilder sb = new StringBuilder().append("\n");
 
-    PaynymState paynymState = paynymSupplier.getState();
+    PaynymState paynymState = paynymSupplier.getPaynymState();
     boolean claimed = paynymState.isClaimed();
 
     sb.append("⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿" + "\n");

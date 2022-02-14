@@ -349,7 +349,7 @@ public class JavaExample {
     PaynymSupplier paynymSupplier = whirlpoolWallet.getPaynymSupplier();
 
     // get Paynym state
-    PaynymState paynymState = paynymSupplier.getState();
+    PaynymState paynymState = paynymSupplier.getPaynymState();
 
     // claim paynym
     paynymSupplier.claim();

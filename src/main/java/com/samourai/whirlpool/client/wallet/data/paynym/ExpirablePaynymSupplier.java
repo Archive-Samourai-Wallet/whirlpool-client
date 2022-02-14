@@ -155,7 +155,7 @@ public class ExpirablePaynymSupplier extends ExpirableSupplier<PaynymState>
   }
 
   @Override
-  public PaynymState getState() {
+  public PaynymState getPaynymState() {
     return getValue();
   }
 

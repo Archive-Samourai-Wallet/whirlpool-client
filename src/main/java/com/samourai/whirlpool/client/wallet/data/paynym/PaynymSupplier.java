@@ -12,7 +12,7 @@ public interface PaynymSupplier {
 
   Completable unfollow(String paymentCodeTarget) throws Exception;
 
-  PaynymState getState();
+  PaynymState getPaynymState();
 
   void refresh() throws Exception;
 

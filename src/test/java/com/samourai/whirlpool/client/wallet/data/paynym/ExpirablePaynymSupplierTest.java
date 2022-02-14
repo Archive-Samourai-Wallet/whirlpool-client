@@ -91,7 +91,7 @@ public class ExpirablePaynymSupplierTest extends AbstractTest {
     paynymWalletImpl.follow(PCODE2).blockingAwait();
 
     // verify
-    PaynymState paynymState = paynymWalletImpl.getState();
+    PaynymState paynymState = paynymWalletImpl.getPaynymState();
     PaynymContact paynymContact = paynymState.getFollowing().iterator().next();
     Assertions.assertEquals(PCODE2, paynymContact.getCode());
     Assertions.assertEquals("nymHc99UYDRYd6EdPYxbLCSLC", paynymContact.getNymId());
@@ -101,13 +101,13 @@ public class ExpirablePaynymSupplierTest extends AbstractTest {
     paynymWalletImpl.unfollow(PCODE2).blockingAwait();
 
     // verify
-    paynymState = paynymWalletImpl.getState();
+    paynymState = paynymWalletImpl.getPaynymState();
     Assertions.assertFalse(paynymState.getFollowing().contains(PCODE2));
   }
 
   @Test
   public void getNym() throws Exception {
-    PaynymState paynymState = paynymWalletImpl.getState();
+    PaynymState paynymState = paynymWalletImpl.getPaynymState();
     Assertions.assertTrue(paynymState.isClaimed());
     Assertions.assertEquals("/" + PCODE + "/avatar", paynymState.getNymAvatar());
     Assertions.assertEquals("+stillmud69f", paynymState.getNymName());

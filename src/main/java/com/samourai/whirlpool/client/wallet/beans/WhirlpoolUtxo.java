@@ -7,6 +7,7 @@ import com.samourai.whirlpool.client.wallet.data.utxoConfig.UtxoConfig;
 import com.samourai.whirlpool.client.wallet.data.utxoConfig.UtxoConfigPersisted;
 import com.samourai.whirlpool.client.wallet.data.utxoConfig.UtxoConfigSupplier;
 import java.util.Collection;
+import org.bitcoinj.core.NetworkParameters;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -139,7 +140,8 @@ public class WhirlpoolUtxo {
   }
 
   public String getPathAddress() {
-    return bipWallet.getDerivation().getPathAddress(utxo);
+    NetworkParameters params = bipWallet.getParams();
+    return bipWallet.getDerivation().getPathAddress(utxo, params);
   }
 
   @Override
