@@ -4,7 +4,6 @@ import com.samourai.stomp.client.IStompClient;
 import com.samourai.stomp.client.IStompTransportListener;
 import com.samourai.stomp.client.StompTransport;
 import com.samourai.wallet.util.MessageErrorListener;
-import com.samourai.wallet.util.MessageListener;
 import com.samourai.wallet.util.RandomUtil;
 import com.samourai.whirlpool.client.exception.NotifiableException;
 import com.samourai.whirlpool.client.utils.ClientUtils;
@@ -153,12 +152,9 @@ public class MixSession {
             listener.exitOnProtocolError(errorMessage); // subscribe error
           }
         },
-        new MessageListener<String>() {
-          @Override
-          public void onMessage(String serverProtocolVersion) {
-            // server version mismatch
-            listener.exitOnProtocolVersionMismatch(serverProtocolVersion);
-          }
+        serverProtocolVersion -> {
+          // server version mismatch
+          listener.exitOnProtocolVersionMismatch(serverProtocolVersion);
         });
 
     // will automatically receive mixStatus in response of subscription

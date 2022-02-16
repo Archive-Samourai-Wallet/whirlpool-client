@@ -49,25 +49,27 @@ public class SamouraiDataSource extends WalletResponseDataSource
 
   @Override
   protected void load(boolean initial) throws Exception {
+    WalletStateSupplier walletStateSupplier = getDataPersister().getWalletStateSupplier();
+    boolean isInitialized = walletStateSupplier.isInitialized();
+
+    // initialize wallet BEFORE loading
+    if (initial && !isInitialized) {
+      // initialize bip84 wallets on backend
+      String[] activePubs = getWalletSupplier().getPubs(true, BIP_FORMAT.SEGWIT_NATIVE);
+      for (String pub : activePubs) {
+        initWallet(pub);
+      }
+      walletStateSupplier.setInitialized(true);
+    }
+
+    // load
     super.load(initial);
 
-    if (initial) {
-      WalletStateSupplier walletStateSupplier = getDataPersister().getWalletStateSupplier();
-      boolean isInitialized = walletStateSupplier.isInitialized();
-
-      // initialize wallets
-      if (!isInitialized) {
-        String[] activePubs = getWalletSupplier().getPubs(true, BIP_FORMAT.SEGWIT_NATIVE);
-        for (String pub : activePubs) {
-          initWallet(pub);
-        }
-        walletStateSupplier.setInitialized(true);
-
-        // when wallet is not initialized, counters are not synced
-        if (getWhirlpoolWallet().getConfig().isResyncOnFirstRun()) {
-          // resync postmix indexs
-          resyncMixsDone();
-        }
+    // resync postmix AFTER loading
+    if (initial && !isInitialized) {
+      if (getWhirlpoolWallet().getConfig().isResyncOnFirstRun()) {
+        // resync postmix indexs
+        resyncMixsDone();
       }
     }
   }
@@ -158,48 +160,46 @@ public class SamouraiDataSource extends WalletResponseDataSource
 
   protected void startBackendWsApi() throws Exception {
     backendWsApi.connect(
-        new MessageListener<Void>() {
-          @Override
-          public void onMessage(Void foo) {
-            try {
-              // watch blocks
-              backendWsApi.subscribeBlock(
-                  new MessageListener() {
-                    @Override
-                    public void onMessage(Object message) {
-                      if (log.isDebugEnabled()) {
-                        log.debug("new block received -> refreshing walletData");
-                        try {
-                          refresh();
-                        } catch (Exception e) {
-                          log.error("", e);
+        (MessageListener<Void>)
+            foo -> {
+              try {
+                // watch blocks
+                backendWsApi.subscribeBlock(
+                    new MessageListener() {
+                      @Override
+                      public void onMessage(Object message) {
+                        if (log.isDebugEnabled()) {
+                          log.debug("new block received -> refreshing walletData");
+                          try {
+                            refresh();
+                          } catch (Exception e) {
+                            log.error("", e);
+                          }
                         }
                       }
-                    }
-                  });
+                    });
 
-              // watch addresses
-              String[] pubs = getWalletSupplier().getPubs(true);
-              backendWsApi.subscribeAddress(
-                  pubs,
-                  new MessageListener() {
-                    @Override
-                    public void onMessage(Object message) {
-                      if (log.isDebugEnabled()) {
-                        log.debug("new address received -> refreshing walletData");
-                        try {
-                          refresh();
-                        } catch (Exception e) {
-                          log.error("", e);
+                // watch addresses
+                String[] pubs = getWalletSupplier().getPubs(true);
+                backendWsApi.subscribeAddress(
+                    pubs,
+                    new MessageListener() {
+                      @Override
+                      public void onMessage(Object message) {
+                        if (log.isDebugEnabled()) {
+                          log.debug("new address received -> refreshing walletData");
+                          try {
+                            refresh();
+                          } catch (Exception e) {
+                            log.error("", e);
+                          }
                         }
                       }
-                    }
-                  });
-            } catch (Exception e) {
-              log.error("", e);
-            }
-          }
-        },
+                    });
+              } catch (Exception e) {
+                log.error("", e);
+              }
+            },
         true);
   }
 

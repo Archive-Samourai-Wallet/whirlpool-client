@@ -40,6 +40,7 @@ public class AbstractTest {
 
   protected static final String SEED_WORDS = "all all all all all all all all all all all all";
   protected static final String SEED_PASSPHRASE = "whirlpool";
+  private static final String STATE_FILENAME = "/tmp/tmp-state";
 
   protected IHttpClient httpClient;
 
@@ -106,6 +107,8 @@ public class AbstractTest {
     pool05btc.setMixStatus(MixStatus.CONFIRM_INPUT);
     pool05btc.setElapsedTime(1000);
     pool05btc.setNbConfirmed(0);
+
+    resetWalletStateFile();
   }
 
   protected WalletResponse mockWalletResponse() throws Exception {
@@ -242,11 +245,14 @@ public class AbstractTest {
   }
 
   protected WalletStateSupplier computeWalletStateSupplier() throws Exception {
-    String stateFileName = "/tmp/tmp-state";
-    ClientUtils.createFile(stateFileName);
+    ClientUtils.createFile(STATE_FILENAME);
     WalletStateSupplier walletStateSupplier =
-        new PersistableWalletStateSupplier(new WalletStatePersister(stateFileName), null);
+        new PersistableWalletStateSupplier(new WalletStatePersister(STATE_FILENAME), null);
     walletStateSupplier.load();
     return walletStateSupplier;
+  }
+
+  protected void resetWalletStateFile() throws Exception {
+    resetFile(STATE_FILENAME);
   }
 }
