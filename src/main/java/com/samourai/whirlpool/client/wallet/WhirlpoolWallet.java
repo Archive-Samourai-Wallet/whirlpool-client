@@ -38,16 +38,12 @@ import com.samourai.whirlpool.client.whirlpool.beans.Pool;
 import com.samourai.whirlpool.protocol.beans.Utxo;
 import com.samourai.whirlpool.protocol.rest.Tx0NotifyRequest;
 import io.reactivex.Completable;
-import io.reactivex.functions.Action;
-import io.reactivex.functions.Consumer;
 import java.util.Collection;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java8.util.Optional;
-import java8.util.function.Function;
-import java8.util.stream.Collectors;
-import java8.util.stream.StreamSupport;
+import java.util.Optional;
+import java.util.stream.Collectors;
 import org.bitcoinj.core.NetworkParameters;
 import org.bitcoinj.core.TransactionOutput;
 import org.slf4j.Logger;
@@ -325,25 +321,16 @@ public class WhirlpoolWallet {
   }
 
   private Collection<UnspentOutput> toUnspentOutputs(Collection<WhirlpoolUtxo> whirlpoolUtxos) {
-    return StreamSupport.stream(whirlpoolUtxos)
-        .map(
-            new Function<WhirlpoolUtxo, UnspentOutput>() {
-              @Override
-              public UnspentOutput apply(WhirlpoolUtxo whirlpoolUtxo) {
-                return whirlpoolUtxo.getUtxo();
-              }
-            })
+    return whirlpoolUtxos.stream()
+        .map(whirlpoolUtxo -> whirlpoolUtxo.getUtxo())
         .collect(Collectors.<UnspentOutput>toList());
   }
 
   private Completable notifyCoordinatorTx0Async(final String txid, final String poolId) {
     return ClientUtils.runAsync(
-        new Action() {
-          @Override
-          public void run() throws Exception {
-            Tx0NotifyRequest tx0NotifyRequest = new Tx0NotifyRequest(txid, poolId);
-            config.getServerApi().tx0Notify(tx0NotifyRequest).blockingFirst().get();
-          }
+        () -> {
+          Tx0NotifyRequest tx0NotifyRequest = new Tx0NotifyRequest(txid, poolId);
+          config.getServerApi().tx0Notify(tx0NotifyRequest).blockingSingle().get();
         },
         "whirlpoolWallet.notifyCoordinatorTx0 " + txid);
   }
@@ -453,12 +440,9 @@ public class WhirlpoolWallet {
     // check postmix index against coordinator
     return checkPostmixIndexAsync()
         .doOnComplete(
-            new Action() {
-              @Override
-              public void run() throws Exception {
-                // start mixing on success
-                doStart();
-              }
+            () -> {
+              // start mixing on success
+              doStart();
             });
   }
 
@@ -673,13 +657,10 @@ public class WhirlpoolWallet {
         // check postmixIndex
         checkPostmixIndexAsync()
             .doOnError(
-                new Consumer<Throwable>() {
-                  @Override
-                  public void accept(Throwable e) {
-                    // stop mixing on postmixIndex error
-                    log.error(e.getMessage());
-                    stop();
-                  }
+                e -> {
+                  // stop mixing on postmixIndex error
+                  log.error(e.getMessage());
+                  stop();
                 })
             .subscribe();
         break;
@@ -719,40 +700,25 @@ public class WhirlpoolWallet {
   /** Refresh utxos in background after utxosDelay */
   public Completable refreshUtxosDelayAsync() {
     return ClientUtils.sleepUtxosDelayAsync(config.getNetworkParameters())
-        .doOnComplete(
-            new Action() {
-              @Override
-              public void run() {
-                refreshUtxosAsync().blockingAwait();
-              }
-            });
+        .doOnComplete(() -> refreshUtxosAsync().blockingAwait());
   }
 
   /** Refresh utxos now */
   public Completable refreshUtxosAsync() {
     return ClientUtils.runAsync(
-        new Action() {
-          @Override
-          public void run() throws Exception {
-            getUtxoSupplier().refresh();
-          }
-        },
-        "whirlpoolWallet.refreshUtxosAsync");
+        () -> getUtxoSupplier().refresh(), "whirlpoolWallet.refreshUtxosAsync");
   }
 
   public synchronized Completable checkPostmixIndexAsync() {
     return ClientUtils.runAsync(
-        new Action() {
-          @Override
-          public void run() throws Exception {
-            if (!config.isPostmixIndexCheck()) {
-              // check disabled
-              log.warn("postmixIndexCheck is disabled");
-              return;
-            }
-
-            doCheckPostmixIndex();
+        () -> {
+          if (!config.isPostmixIndexCheck()) {
+            // check disabled
+            log.warn("postmixIndexCheck is disabled");
+            return;
           }
+
+          doCheckPostmixIndex();
         },
         "whirlpoolWallet.checkPostmixIndex");
   }

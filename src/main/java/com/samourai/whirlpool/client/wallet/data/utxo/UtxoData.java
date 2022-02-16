@@ -12,9 +12,7 @@ import com.samourai.whirlpool.client.wallet.data.pool.PoolSupplier;
 import com.samourai.whirlpool.client.wallet.data.utxoConfig.UtxoConfigSupplier;
 import com.samourai.whirlpool.client.whirlpool.beans.Pool;
 import java.util.*;
-import java8.util.function.Predicate;
-import java8.util.stream.Collectors;
-import java8.util.stream.StreamSupport;
+import java.util.stream.Collectors;
 import org.apache.commons.lang3.ArrayUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -238,16 +236,13 @@ public class UtxoData {
   }
 
   public Collection<WhirlpoolUtxo> findUtxos(final WhirlpoolAccount... whirlpoolAccounts) {
-    return StreamSupport.stream(utxos.values())
+    return utxos.values().stream()
         .filter(
-            new Predicate<WhirlpoolUtxo>() {
-              @Override
-              public boolean test(WhirlpoolUtxo whirlpoolUtxo) {
-                if (!ArrayUtils.contains(whirlpoolAccounts, whirlpoolUtxo.getAccount())) {
-                  return false;
-                }
-                return true;
+            whirlpoolUtxo -> {
+              if (!ArrayUtils.contains(whirlpoolAccounts, whirlpoolUtxo.getAccount())) {
+                return false;
               }
+              return true;
             })
         .collect(Collectors.<WhirlpoolUtxo>toList());
   }

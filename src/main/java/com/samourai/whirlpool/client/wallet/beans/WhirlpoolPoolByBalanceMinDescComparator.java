@@ -2,7 +2,6 @@ package com.samourai.whirlpool.client.wallet.beans;
 
 import com.samourai.whirlpool.client.whirlpool.beans.Pool;
 import java.util.Comparator;
-import java8.lang.Longs;
 
 public class WhirlpoolPoolByBalanceMinDescComparator implements Comparator<Pool> {
   @Override
@@ -11,6 +10,6 @@ public class WhirlpoolPoolByBalanceMinDescComparator implements Comparator<Pool>
     long premixBalanceMin2 = o2.computePremixBalanceMin(false);
 
     // reversed: biggest balanceMin first
-    return Longs.compare(premixBalanceMin2, premixBalanceMin1);
+    return Long.compare(premixBalanceMin2, premixBalanceMin1);
   }
 }

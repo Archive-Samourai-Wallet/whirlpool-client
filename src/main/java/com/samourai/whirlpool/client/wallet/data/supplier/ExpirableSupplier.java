@@ -40,7 +40,8 @@ public abstract class ExpirableSupplier<D> extends BasicSupplier<D> {
             : Suppliers.memoize(throwingSupplier);
   }
 
-  public synchronized void expire() {
+  // value will be reloaded on next load(), not on getValue()!
+  protected synchronized void expire() {
     if (refreshDelaySeconds != null) {
       if (log.isDebugEnabled()) {
         log.debug("expire");

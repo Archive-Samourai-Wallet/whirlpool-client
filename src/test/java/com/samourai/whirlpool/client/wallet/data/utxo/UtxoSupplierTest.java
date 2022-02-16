@@ -22,9 +22,8 @@ import com.samourai.whirlpool.client.wallet.data.utxoConfig.UtxoConfigSupplier;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
-import java8.util.function.Function;
-import java8.util.stream.Collectors;
-import java8.util.stream.StreamSupport;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -202,14 +201,8 @@ public class UtxoSupplierTest extends AbstractTest {
     Assertions.assertEquals(utxos1.length, utxos2.size());
 
     List<String> utxos1Ids =
-        StreamSupport.stream(Arrays.asList(utxos1))
-            .map(
-                new Function<UnspentOutput, String>() {
-                  @Override
-                  public String apply(UnspentOutput utxo) {
-                    return computeUtxoId(utxo);
-                  }
-                })
+        Arrays.asList(utxos1).stream()
+            .map((Function<UnspentOutput, String>) utxo -> computeUtxoId(utxo))
             .collect(Collectors.<String>toList());
     for (WhirlpoolUtxo whirlpoolUtxo : utxos2) {
       // search utxo by id

@@ -8,11 +8,8 @@ import com.samourai.whirlpool.client.wallet.data.utxo.UtxoSupplier;
 import com.samourai.whirlpool.client.whirlpool.beans.Pool;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
-import java8.util.function.Function;
-import java8.util.function.Predicate;
-import java8.util.stream.Collectors;
-import java8.util.stream.Stream;
-import java8.util.stream.StreamSupport;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -43,16 +40,11 @@ public class MixOrchestratorData {
   }
 
   public Stream<WhirlpoolUtxo> getQueue() {
-    return StreamSupport.stream(
-            utxoSupplier.findUtxos(WhirlpoolAccount.PREMIX, WhirlpoolAccount.POSTMIX))
+    return utxoSupplier.findUtxos(WhirlpoolAccount.PREMIX, WhirlpoolAccount.POSTMIX).stream()
         .filter(
-            new Predicate<WhirlpoolUtxo>() {
-              @Override
-              public boolean test(WhirlpoolUtxo whirlpoolUtxo) {
-                // queued
-                return WhirlpoolUtxoStatus.MIX_QUEUE.equals(
-                    whirlpoolUtxo.getUtxoState().getStatus());
-              }
+            whirlpoolUtxo -> {
+              // queued
+              return WhirlpoolUtxoStatus.MIX_QUEUE.equals(whirlpoolUtxo.getUtxoState().getStatus());
             });
   }
 
@@ -91,14 +83,8 @@ public class MixOrchestratorData {
   }
 
   private Collection<WhirlpoolUtxo> computeUtxosMixing() {
-    return StreamSupport.stream(mixing.values())
-        .map(
-            new Function<Mixing, WhirlpoolUtxo>() {
-              @Override
-              public WhirlpoolUtxo apply(Mixing m) {
-                return m.getUtxo();
-              }
-            })
+    return mixing.values().stream()
+        .map(m -> m.getUtxo())
         .collect(Collectors.<WhirlpoolUtxo>toList());
   }
 
@@ -131,15 +117,11 @@ public class MixOrchestratorData {
   }
 
   public int getNbMixing(final String poolId, final boolean liquidity) {
-    return StreamSupport.stream(mixing.values())
+    return mixing.values().stream()
         .filter(
-            new Predicate<Mixing>() {
-              @Override
-              public boolean test(Mixing mixing) {
-                return mixing.getUtxo().getUtxoState().getPoolId().equals(poolId)
-                    && mixing.getUtxo().isAccountPostmix() == liquidity;
-              }
-            })
+            mixing ->
+                mixing.getUtxo().getUtxoState().getPoolId().equals(poolId)
+                    && mixing.getUtxo().isAccountPostmix() == liquidity)
         .collect(Collectors.<Mixing>toList())
         .size();
   }

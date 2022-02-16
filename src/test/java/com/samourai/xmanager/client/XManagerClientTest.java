@@ -7,7 +7,7 @@ import com.samourai.xmanager.protocol.XManagerService;
 import com.samourai.xmanager.protocol.rest.AddressIndexResponse;
 import io.reactivex.Observable;
 import java.util.Map;
-import java8.util.Optional;
+import java.util.Optional;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
@@ -18,6 +18,7 @@ public class XManagerClientTest extends AbstractTest {
   private XManagerClient xManagerClientFailing;
 
   public XManagerClientTest() throws Exception {
+    super();
     xManagerClient = new XManagerClient(httpClient, testnet, false);
 
     IHttpClient httpClientFailing =

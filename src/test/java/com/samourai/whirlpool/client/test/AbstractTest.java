@@ -1,5 +1,6 @@
 package com.samourai.whirlpool.client.test;
 
+import ch.qos.logback.classic.Level;
 import com.samourai.http.client.*;
 import com.samourai.wallet.api.backend.BackendServer;
 import com.samourai.wallet.api.backend.beans.UnspentOutput;
@@ -17,14 +18,17 @@ import com.samourai.whirlpool.client.wallet.data.minerFee.BasicMinerFeeSupplier;
 import com.samourai.whirlpool.client.wallet.data.minerFee.MinerFeeSupplier;
 import com.samourai.whirlpool.client.wallet.data.pool.ExpirablePoolSupplier;
 import com.samourai.whirlpool.client.wallet.data.pool.MockPoolSupplier;
+import com.samourai.whirlpool.client.wallet.data.walletState.PersistableWalletStateSupplier;
+import com.samourai.whirlpool.client.wallet.data.walletState.WalletStatePersister;
+import com.samourai.whirlpool.client.wallet.data.walletState.WalletStateSupplier;
 import com.samourai.whirlpool.client.whirlpool.ServerApi;
 import com.samourai.whirlpool.client.whirlpool.beans.Pool;
 import com.samourai.whirlpool.protocol.rest.PoolsResponse;
 import com.samourai.whirlpool.protocol.websocket.notifications.MixStatus;
 import java.io.File;
+import java.util.Arrays;
 import java.util.Collection;
-import java8.util.Lists;
-import java8.util.Optional;
+import java.util.Optional;
 import org.bitcoinj.core.NetworkParameters;
 import org.bitcoinj.params.TestNet3Params;
 import org.bouncycastle.util.encoders.Hex;
@@ -51,7 +55,9 @@ public class AbstractTest {
       "{\"wallet\": {\"final_balance\": 116640227},\"info\": {\"fees\": {\"2\": 1,\"4\": 1,\"6\": 1,\"12\": 1,\"24\": 1},\"latest_block\": {\"height\": 2064015,\"hash\": \"00000000000000409297f8e0c0e73475cdd215ef675ad82802a08507b1c1d0e1\",\"time\": 1628498860}},\"addresses\": [{\"address\": \"vpub5YEhBtZy85KxLBxQB4MiHZvjjhz5DcYT9DV2gLshFykuWXjqSzLxpLd4TwS8nFxJmXAX8RrxRxpanndBh5a9AJPbrJEtqCcTKAnRYcP4Aed\",\"final_balance\": 116640227,\"account_index\": 511,\"change_index\": 183,\"n_tx\": 137}],\"txs\": [],\"unspent_outputs\": []}";
 
   public AbstractTest() throws Exception {
-    httpClient = new JettyHttpClient(5000, Optional.<HttpProxy>empty(), null);
+    ClientUtils.setLogLevel(Level.DEBUG, Level.DEBUG);
+
+    httpClient = new JettyHttpClient(5000, Optional.<HttpProxy>empty(), "test");
 
     pool01btc = new Pool();
     pool01btc.setPoolId("0.1btc");
@@ -181,7 +187,7 @@ public class AbstractTest {
   }
 
   protected Collection<Pool> getPools() {
-    return Lists.of(pool001btc, pool01btc, pool05btc);
+    return Arrays.asList(pool001btc, pool01btc, pool05btc);
   }
 
   protected UnspentOutput newUnspentOutput(String hash, int index, long value, HD_Address hdAddress)
@@ -208,7 +214,7 @@ public class AbstractTest {
         new IHttpClientService() {
           @Override
           public IHttpClient getHttpClient(HttpUsage httpUsage) {
-            return null;
+            return httpClient;
           }
 
           @Override
@@ -233,5 +239,14 @@ public class AbstractTest {
     }
     f.createNewFile();
     return f;
+  }
+
+  protected WalletStateSupplier computeWalletStateSupplier() throws Exception {
+    String stateFileName = "/tmp/tmp-state";
+    ClientUtils.createFile(stateFileName);
+    WalletStateSupplier walletStateSupplier =
+        new PersistableWalletStateSupplier(new WalletStatePersister(stateFileName), null);
+    walletStateSupplier.load();
+    return walletStateSupplier;
   }
 }

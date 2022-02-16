@@ -17,7 +17,6 @@ import com.samourai.whirlpool.protocol.beans.Utxo;
 import com.samourai.whirlpool.protocol.rest.RestErrorResponse;
 import io.reactivex.Completable;
 import io.reactivex.functions.Action;
-import io.reactivex.functions.Consumer;
 import io.reactivex.schedulers.Schedulers;
 import java.io.File;
 import java.io.RandomAccessFile;
@@ -29,9 +28,7 @@ import java.security.interfaces.RSAPublicKey;
 import java.security.spec.X509EncodedKeySpec;
 import java.text.SimpleDateFormat;
 import java.util.*;
-import java8.util.function.Function;
-import java8.util.stream.Collectors;
-import java8.util.stream.StreamSupport;
+import java.util.stream.Collectors;
 import org.bitcoinj.core.*;
 import org.bouncycastle.crypto.params.RSAKeyParameters;
 import org.slf4j.Logger;
@@ -191,16 +188,13 @@ public class ClientUtils {
 
   public static Completable sleepUtxosDelayAsync(final NetworkParameters params) {
     return runAsync(
-        new Action() {
-          @Override
-          public void run() {
-            // wait for delay
-            boolean isTestnet = FormatsUtilGeneric.getInstance().isTestNet(params);
-            int sleepDelay = isTestnet ? SLEEP_REFRESH_UTXOS_TESTNET : SLEEP_REFRESH_UTXOS_MAINNET;
-            try {
-              Thread.sleep(sleepDelay);
-            } catch (InterruptedException e) {
-            }
+        () -> {
+          // wait for delay
+          boolean isTestnet = FormatsUtilGeneric.getInstance().isTestNet(params);
+          int sleepDelay = isTestnet ? SLEEP_REFRESH_UTXOS_TESTNET : SLEEP_REFRESH_UTXOS_MAINNET;
+          try {
+            Thread.sleep(sleepDelay);
+          } catch (InterruptedException e) {
           }
         },
         "sleepUtxosDelay");
@@ -262,13 +256,7 @@ public class ClientUtils {
 
   public static void safeWriteValue(final ObjectMapper mapper, final Object value, final File file)
       throws Exception {
-    CallbackWithArg<File> callback =
-        new CallbackWithArg<File>() {
-          @Override
-          public void apply(File tempFile) throws Exception {
-            mapper.writeValue(tempFile, value);
-          }
-        };
+    CallbackWithArg<File> callback = tempFile -> mapper.writeValue(tempFile, value);
     safeWrite(file, callback);
   }
 
@@ -310,6 +298,7 @@ public class ClientUtils {
     LogbackUtils.setLogLevel("org.bitcoinj", org.slf4j.event.Level.ERROR.toString());
     LogbackUtils.setLogLevel(
         "org.bitcoin", org.slf4j.event.Level.WARN.toString()); // "no wallycore"
+    LogbackUtils.setLogLevel("org.eclipse.jetty", org.slf4j.event.Level.INFO.toString());
   }
 
   public static long computeTx0MinerFee(
@@ -389,15 +378,7 @@ public class ClientUtils {
   }
 
   public static Collection<Integer> getOutputIndexs(Collection<TransactionOutput> outputs) {
-    return StreamSupport.stream(outputs)
-        .map(
-            new Function<TransactionOutput, Integer>() {
-              @Override
-              public Integer apply(TransactionOutput output) {
-                return output.getIndex();
-              }
-            })
-        .collect(Collectors.<Integer>toList());
+    return outputs.stream().map(output -> output.getIndex()).collect(Collectors.<Integer>toList());
   }
 
   public static <B> Collection<B> intersect(Collection<B> a1, Collection<B> a2) {
@@ -418,32 +399,20 @@ public class ClientUtils {
   public static Completable runAsync(final Action action, final String taskName) {
     Completable completable =
         Completable.fromAction(
-                new Action() {
-                  @Override
-                  public void run() throws Exception {
-                    if (log.isDebugEnabled()) {
-                      log.debug("=> runAsync starting " + taskName);
-                    }
-                    action.run();
+                () -> {
+                  if (log.isDebugEnabled()) {
+                    log.debug("=> runAsync starting " + taskName);
                   }
+                  action.run();
                 })
             .subscribeOn(Schedulers.io())
             .doOnComplete(
-                new Action() {
-                  @Override
-                  public void run() {
-                    if (log.isDebugEnabled()) {
-                      log.debug("<= runAsync completed " + taskName);
-                    }
+                () -> {
+                  if (log.isDebugEnabled()) {
+                    log.debug("<= runAsync completed " + taskName);
                   }
                 })
-            .doOnError(
-                new Consumer<Throwable>() {
-                  @Override
-                  public void accept(Throwable e) {
-                    log.error("<= runAsync failed " + taskName, e);
-                  }
-                });
+            .doOnError(e -> log.error("<= runAsync failed " + taskName, e));
     return completable;
   }
 }

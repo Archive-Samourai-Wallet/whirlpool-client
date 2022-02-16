@@ -6,8 +6,8 @@
     <version>0.23.39-SNAPSHOT</version>
     <name>whirlpool-client</name>
     <properties>
-        <maven.compiler.source>1.6</maven.compiler.source>
-        <maven.compiler.target>1.6</maven.compiler.target>
+        <maven.compiler.source>1.8</maven.compiler.source>
+        <maven.compiler.target>1.8</maven.compiler.target>
         <project.scm.id>samourai</project.scm.id>
     </properties>
     <dependencies>
@@ -25,7 +25,7 @@
         <dependency>
             <groupId>io.samourai.code.wallet</groupId>
             <artifactId>extlibj</artifactId>
-            <version>0.0.29-SNAPSHOT</version>
+            <version>0.0.29</version>
         </dependency>
         <dependency>
             <groupId>io.samourai.code.wallet</groupId>
@@ -44,14 +44,9 @@
             <version>1.2.10</version>
         </dependency>
         <dependency>
-            <groupId>net.sourceforge.streamsupport</groupId>
-            <artifactId>streamsupport</artifactId>
-            <version>1.7.0</version>
-        </dependency>
-        <dependency>
             <groupId>com.github.zeroleak</groupId>
             <artifactId>throwing-supplier</artifactId>
-            <version>1.0.5</version>
+            <version>1.0.7</version>
         </dependency>
         <dependency>
             <groupId>org.junit.jupiter</groupId>
@@ -62,7 +57,7 @@
         <dependency>
             <groupId>io.samourai.code.wallet</groupId>
             <artifactId>java-http-client</artifactId>
-            <version>1.0.5-SNAPSHOT</version>
+            <version>1.0.6</version>
             <scope>test</scope>
             <exclusions>
                 <exclusion>
@@ -70,6 +65,11 @@
                     <artifactId>extlibj</artifactId>
                 </exclusion>
             </exclusions>
+        </dependency>
+        <dependency>
+            <groupId>io.samourai.code.wallet.bitcoinj</groupId>
+            <artifactId>bitcoinj-core</artifactId>
+            <version>003</version>
         </dependency>
     </dependencies>
     <build>

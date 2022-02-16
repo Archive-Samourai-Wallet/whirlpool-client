@@ -4,12 +4,9 @@ import com.samourai.whirlpool.client.tx0.*;
 import com.samourai.whirlpool.client.wallet.beans.Tx0FeeTarget;
 import com.samourai.whirlpool.client.wallet.beans.WhirlpoolPoolByBalanceMinDescComparator;
 import com.samourai.whirlpool.client.whirlpool.beans.Pool;
-import com.samourai.whirlpool.protocol.rest.PoolInfo;
 import com.samourai.whirlpool.protocol.rest.PoolsResponse;
 import java.util.*;
-import java8.util.function.Function;
-import java8.util.stream.Collectors;
-import java8.util.stream.StreamSupport;
+import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -28,29 +25,26 @@ public class PoolData {
 
     // biggest balanceMin first
     List<Pool> poolsOrdered =
-        StreamSupport.stream(Arrays.asList(poolsResponse.pools))
+        Arrays.stream(poolsResponse.pools)
             .map(
-                new Function<PoolInfo, Pool>() {
-                  @Override
-                  public Pool apply(PoolInfo poolInfo) {
-                    Pool pool = new Pool();
-                    pool.setPoolId(poolInfo.poolId);
-                    pool.setDenomination(poolInfo.denomination);
-                    pool.setFeeValue(poolInfo.feeValue);
-                    pool.setMustMixBalanceMin(poolInfo.mustMixBalanceMin);
-                    pool.setMustMixBalanceCap(poolInfo.mustMixBalanceCap);
-                    pool.setMustMixBalanceMax(poolInfo.mustMixBalanceMax);
-                    pool.setMinAnonymitySet(poolInfo.minAnonymitySet);
-                    pool.setMinMustMix(poolInfo.minMustMix);
-                    pool.setTx0MaxOutputs(poolInfo.tx0MaxOutputs);
-                    pool.setNbRegistered(poolInfo.nbRegistered);
+                poolInfo -> {
+                  Pool pool = new Pool();
+                  pool.setPoolId(poolInfo.poolId);
+                  pool.setDenomination(poolInfo.denomination);
+                  pool.setFeeValue(poolInfo.feeValue);
+                  pool.setMustMixBalanceMin(poolInfo.mustMixBalanceMin);
+                  pool.setMustMixBalanceCap(poolInfo.mustMixBalanceCap);
+                  pool.setMustMixBalanceMax(poolInfo.mustMixBalanceMax);
+                  pool.setMinAnonymitySet(poolInfo.minAnonymitySet);
+                  pool.setMinMustMix(poolInfo.minMustMix);
+                  pool.setTx0MaxOutputs(poolInfo.tx0MaxOutputs);
+                  pool.setNbRegistered(poolInfo.nbRegistered);
 
-                    pool.setMixAnonymitySet(poolInfo.mixAnonymitySet);
-                    pool.setMixStatus(poolInfo.mixStatus);
-                    pool.setElapsedTime(poolInfo.elapsedTime);
-                    pool.setNbConfirmed(poolInfo.nbConfirmed);
-                    return pool;
-                  }
+                  pool.setMixAnonymitySet(poolInfo.mixAnonymitySet);
+                  pool.setMixStatus(poolInfo.mixStatus);
+                  pool.setElapsedTime(poolInfo.elapsedTime);
+                  pool.setNbConfirmed(poolInfo.nbConfirmed);
+                  return pool;
                 })
             .sorted(new WhirlpoolPoolByBalanceMinDescComparator())
             .collect(Collectors.<Pool>toList());

@@ -7,7 +7,7 @@ import com.samourai.xmanager.protocol.XManagerProtocol;
 import com.samourai.xmanager.protocol.XManagerService;
 import com.samourai.xmanager.protocol.rest.*;
 import io.reactivex.Observable;
-import java8.util.Optional;
+import java.util.Optional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -40,7 +40,7 @@ public class XManagerClient {
     String address = null;
     try {
       Observable<Optional<AddressResponse>> responseObservable = getAddressResponse(service);
-      address = responseObservable.blockingFirst().get().address;
+      address = responseObservable.blockingSingle().get().address;
     } catch (Exception e) {
       log.error("getAddressResponse(" + service.name() + ") failed", e);
     }
@@ -68,7 +68,7 @@ public class XManagerClient {
     try {
       Observable<Optional<AddressIndexResponse>> responseObservable =
           getAddressIndexResponse(service);
-      response = responseObservable.blockingFirst().get();
+      response = responseObservable.blockingSingle().get();
     } catch (Exception e) {
       log.error("getAddressIndexResponse(" + service.name() + ") failed", e);
     }
@@ -102,7 +102,7 @@ public class XManagerClient {
     try {
       Observable<Optional<VerifyAddressIndexResponse>> responseObservable =
           verifyAddressIndexResponseAsync(service, address, index);
-      return responseObservable.blockingFirst().get().valid;
+      return responseObservable.blockingSingle().get().valid;
     } catch (Exception e) {
       log.error("verifyAddressIndexResponse(" + service.name() + ") failed", e);
       throw e;

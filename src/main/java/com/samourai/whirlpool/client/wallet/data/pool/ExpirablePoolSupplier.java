@@ -10,9 +10,7 @@ import com.samourai.whirlpool.client.whirlpool.ServerApi;
 import com.samourai.whirlpool.client.whirlpool.beans.Pool;
 import com.samourai.whirlpool.protocol.rest.PoolsResponse;
 import java.util.Collection;
-import java8.util.function.Predicate;
-import java8.util.stream.Collectors;
-import java8.util.stream.StreamSupport;
+import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -65,27 +63,15 @@ public class ExpirablePoolSupplier extends ExpirableSupplier<PoolData> implement
 
   @Override
   public Collection<Pool> findPoolsForPremix(final long utxoValue, final boolean liquidity) {
-    return StreamSupport.stream(getPools())
-        .filter(
-            new Predicate<Pool>() {
-              @Override
-              public boolean test(Pool pool) {
-                return pool.isPremix(utxoValue, liquidity);
-              }
-            })
+    return getPools().stream()
+        .filter(pool -> pool.isPremix(utxoValue, liquidity))
         .collect(Collectors.<Pool>toList());
   }
 
   @Override
   public Collection<Pool> findPoolsForTx0(final long utxoValue) {
-    return StreamSupport.stream(getPools())
-        .filter(
-            new Predicate<Pool>() {
-              @Override
-              public boolean test(Pool pool) {
-                return pool.isTx0Possible(utxoValue);
-              }
-            })
+    return getPools().stream()
+        .filter(pool -> pool.isTx0Possible(utxoValue))
         .collect(Collectors.<Pool>toList());
   }
 }

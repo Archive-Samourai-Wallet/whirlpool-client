@@ -1,12 +1,7 @@
 package com.samourai.whirlpool.client.wallet.data.dataSource;
 
-import com.samourai.http.client.HttpUsage;
-import com.samourai.http.client.IHttpClient;
 import com.samourai.wallet.api.backend.MinerFee;
 import com.samourai.wallet.api.backend.beans.WalletResponse;
-import com.samourai.wallet.api.paynym.PaynymApi;
-import com.samourai.wallet.api.paynym.PaynymServer;
-import com.samourai.wallet.bip47.rpc.BIP47Wallet;
 import com.samourai.wallet.bipFormat.BipFormatSupplier;
 import com.samourai.wallet.bipFormat.BipFormatSupplierImpl;
 import com.samourai.wallet.bipWallet.BipWallet;
@@ -63,8 +58,8 @@ public abstract class WalletResponseDataSource implements DataSource {
     this.dataPersister = dataPersister;
     this.walletResponseSupplier = new WalletResponseSupplier(whirlpoolWallet, this);
 
-    this.walletSupplier =
-        computeWalletSupplier(whirlpoolWallet, bip44w, dataPersister.getWalletStateSupplier());
+    WalletStateSupplier walletStateSupplier = dataPersister.getWalletStateSupplier();
+    this.walletSupplier = computeWalletSupplier(whirlpoolWallet, bip44w, walletStateSupplier);
     this.minerFeeSupplier = computeMinerFeeSupplier(whirlpoolWallet);
     this.tx0PreviewService = new Tx0PreviewService(minerFeeSupplier, whirlpoolWallet.getConfig());
     this.poolSupplier = computePoolSupplier(whirlpoolWallet, tx0PreviewService);
@@ -78,7 +73,6 @@ public abstract class WalletResponseDataSource implements DataSource {
             chainSupplier,
             poolSupplier,
             bipFormatSupplier);
-    WalletStateSupplier walletStateSupplier = dataPersister.getWalletStateSupplier();
     this.paynymSupplier = computePaynymSupplier(whirlpoolWallet, bip44w, walletStateSupplier);
   }
 
@@ -142,18 +136,7 @@ public abstract class WalletResponseDataSource implements DataSource {
 
   protected PaynymSupplier computePaynymSupplier(
       WhirlpoolWallet whirlpoolWallet, HD_Wallet bip44w, WalletStateSupplier walletStateSupplier) {
-    int refreshPaynymDelay = whirlpoolWallet.getConfig().getRefreshPaynymDelay();
-    PaynymApi paynymApi = computePaynymApi(whirlpoolWallet);
-    BIP47Wallet bip47Wallet = new BIP47Wallet(bip44w);
-    return new ExpirablePaynymSupplier(
-        refreshPaynymDelay, bip47Wallet, paynymApi, walletStateSupplier);
-  }
-
-  protected PaynymApi computePaynymApi(WhirlpoolWallet whirlpoolWallet) {
-    WhirlpoolWalletConfig config = whirlpoolWallet.getConfig();
-    IHttpClient httpClient = config.getHttpClient(HttpUsage.BACKEND);
-    String serverUrl = PaynymServer.get().getUrl();
-    return new PaynymApi(httpClient, serverUrl, config.getBip47Util());
+    return ExpirablePaynymSupplier.create(whirlpoolWallet.getConfig(), bip44w, walletStateSupplier);
   }
 
   public void refresh() throws Exception {

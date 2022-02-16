@@ -4,10 +4,7 @@ import com.samourai.whirlpool.client.wallet.data.supplier.PersistableData;
 import java.util.Collection;
 import java.util.LinkedHashMap;
 import java.util.Map;
-import java8.util.function.Function;
-import java8.util.function.Predicate;
-import java8.util.stream.Collectors;
-import java8.util.stream.StreamSupport;
+import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -43,73 +40,56 @@ public class UtxoConfigData extends PersistableData {
 
     // remove obsolete utxoConfigs
     Map<String, UtxoConfigPersisted> newUtxoConfigs =
-        StreamSupport.stream(utxoConfigs.entrySet())
+        utxoConfigs.entrySet().stream()
             .filter(
-                new Predicate<Map.Entry<String, UtxoConfigPersisted>>() {
-                  @Override
-                  public boolean test(Map.Entry<String, UtxoConfigPersisted> e) {
-                    String key = e.getKey();
-                    UtxoConfigPersisted utxoConfigPersisted = e.getValue();
+                e -> {
+                  String key = e.getKey();
+                  UtxoConfigPersisted utxoConfigPersisted = e.getValue();
 
-                    // keep existing utxos
-                    if (validKeys.contains(key)) {
-                      // mark as valid
-                      if (utxoConfigPersisted.getExpired() != null) {
-                        utxoConfigPersisted.setExpired(null);
-                        setLastChange();
-                        if (log.isDebugEnabled()) {
-                          log.debug("utxoConfig valid: " + key + ", " + utxoConfigPersisted);
-                        }
-                      }
-                      return true;
-                    }
-
-                    // mark as expired
-                    if (utxoConfigPersisted.getExpired() == null) {
-                      utxoConfigPersisted.setExpired(System.currentTimeMillis());
+                  // keep existing utxos
+                  if (validKeys.contains(key)) {
+                    // mark as valid
+                    if (utxoConfigPersisted.getExpired() != null) {
+                      utxoConfigPersisted.setExpired(null);
                       setLastChange();
                       if (log.isDebugEnabled()) {
-                        log.debug("utxoConfig expired: " + key + ", " + utxoConfigPersisted);
+                        log.debug("utxoConfig valid: " + key + ", " + utxoConfigPersisted);
                       }
-                    }
-
-                    // purge older expired
-                    if (utxoConfigPersisted.getExpired() <= MIN_EXPIRED) {
-                      if (log.isDebugEnabled()) {
-                        log.debug("utxoConfig cleaned: " + key + ", " + utxoConfigPersisted);
-                      }
-                      return false;
-                    }
-
-                    // keep the others
-                    if (log.isTraceEnabled()) {
-                      long remainingSeconds =
-                          (utxoConfigPersisted.getExpired() - MIN_EXPIRED) / 1000;
-                      log.trace(
-                          "utxoConfig awaiting expiration ("
-                              + remainingSeconds
-                              + "s): "
-                              + key
-                              + ", "
-                              + utxoConfigPersisted);
                     }
                     return true;
                   }
+
+                  // mark as expired
+                  if (utxoConfigPersisted.getExpired() == null) {
+                    utxoConfigPersisted.setExpired(System.currentTimeMillis());
+                    setLastChange();
+                    if (log.isDebugEnabled()) {
+                      log.debug("utxoConfig expired: " + key + ", " + utxoConfigPersisted);
+                    }
+                  }
+
+                  // purge older expired
+                  if (utxoConfigPersisted.getExpired() <= MIN_EXPIRED) {
+                    if (log.isDebugEnabled()) {
+                      log.debug("utxoConfig cleaned: " + key + ", " + utxoConfigPersisted);
+                    }
+                    return false;
+                  }
+
+                  // keep the others
+                  if (log.isTraceEnabled()) {
+                    long remainingSeconds = (utxoConfigPersisted.getExpired() - MIN_EXPIRED) / 1000;
+                    log.trace(
+                        "utxoConfig awaiting expiration ("
+                            + remainingSeconds
+                            + "s): "
+                            + key
+                            + ", "
+                            + utxoConfigPersisted);
+                  }
+                  return true;
                 })
-            .collect(
-                Collectors.toMap(
-                    new Function<Map.Entry<String, UtxoConfigPersisted>, String>() {
-                      @Override
-                      public String apply(Map.Entry<String, UtxoConfigPersisted> e) {
-                        return e.getKey();
-                      }
-                    },
-                    new Function<Map.Entry<String, UtxoConfigPersisted>, UtxoConfigPersisted>() {
-                      @Override
-                      public UtxoConfigPersisted apply(Map.Entry<String, UtxoConfigPersisted> e) {
-                        return e.getValue();
-                      }
-                    }));
+            .collect(Collectors.toMap(e -> e.getKey(), e -> e.getValue()));
 
     int nbCleaned = utxoConfigs.size() - newUtxoConfigs.size();
     this.utxoConfigs = newUtxoConfigs;

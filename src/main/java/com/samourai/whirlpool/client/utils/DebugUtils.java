@@ -14,12 +14,9 @@ import com.samourai.whirlpool.client.wallet.data.paynym.PaynymSupplier;
 import com.samourai.whirlpool.client.wallet.data.pool.PoolSupplier;
 import com.samourai.whirlpool.client.whirlpool.beans.Pool;
 import java.util.Collection;
+import java.util.Comparator;
 import java.util.Iterator;
-import java8.util.Comparators;
-import java8.util.function.Function;
-import java8.util.function.Predicate;
-import java8.util.stream.Collectors;
-import java8.util.stream.StreamSupport;
+import java.util.stream.Collectors;
 import org.apache.commons.lang3.StringUtils;
 import org.bitcoinj.core.NetworkParameters;
 import org.slf4j.Logger;
@@ -30,7 +27,7 @@ public class DebugUtils {
 
   public static String getDebug(WhirlpoolWallet whirlpoolWallet) {
     StringBuilder sb = new StringBuilder("\n");
-    sb.append("now = " + ClientUtils.dateToString(System.currentTimeMillis()));
+    sb.append("now = " + ClientUtils.dateToString(System.currentTimeMillis()) + "\n");
     if (whirlpoolWallet != null) {
       sb.append(getDebugWallet(whirlpoolWallet));
       sb.append(getDebugUtxos(whirlpoolWallet));
@@ -77,7 +74,8 @@ public class DebugUtils {
         String nextAddressChange =
             whirlpoolWallet.getWalletDeposit().getNextChangeAddress(false).getAddressString();
         sb.append(
-            wallet.getId()
+            "     + "
+                + wallet.getId()
                 + ": path="
                 + wallet.getDerivation().getPathAccount(params)
                 + ", bipFormat="
@@ -226,22 +224,9 @@ public class DebugUtils {
     StringBuilder sb = new StringBuilder().append("\n");
     final ThreadGroup tg = Thread.currentThread().getThreadGroup();
     Collection<Thread> threadSet =
-        StreamSupport.stream(Thread.getAllStackTraces().keySet())
-            .filter(
-                new Predicate<Thread>() {
-                  @Override
-                  public boolean test(Thread t) {
-                    return t.getThreadGroup() == tg;
-                  }
-                })
-            .sorted(
-                Comparators.comparing(
-                    new Function<Thread, String>() {
-                      @Override
-                      public String apply(Thread t) {
-                        return t.getName().toLowerCase();
-                      }
-                    }))
+        Thread.getAllStackTraces().keySet().stream()
+            .filter(t -> t.getThreadGroup() == tg)
+            .sorted(Comparator.comparing(t -> t.getName().toLowerCase()))
             .collect(Collectors.<Thread>toList());
     sb.append("⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿" + "\n");
     sb.append("⣿ SYSTEM THREADS:" + "\n");
@@ -387,13 +372,17 @@ public class DebugUtils {
   }
 
   public static String getDebugPaynym(PaynymSupplier paynymSupplier) {
+    if (paynymSupplier == null) { // not implemented yet on Android
+      return "";
+    }
     StringBuilder sb = new StringBuilder().append("\n");
+
+    sb.append("⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿" + "\n");
+    sb.append("⣿ PAYNYM" + "\n");
 
     PaynymState paynymState = paynymSupplier.getPaynymState();
     boolean claimed = paynymState.isClaimed();
 
-    sb.append("⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿" + "\n");
-    sb.append("⣿ PAYNYM" + "\n");
     sb.append(" • PaymentCode: " + paynymState.getPaymentCode() + "\n");
     sb.append(" • Claimed: " + claimed + "\n");
 
@@ -403,28 +392,16 @@ public class DebugUtils {
       Collection<PaynymContact> followers = paynymState.getFollowers();
       sb.append(" • " + followers.size() + " followers: ");
       sb.append(
-          StreamSupport.stream(followers)
-                  .map(
-                      new Function<PaynymContact, String>() {
-                        @Override
-                        public String apply(PaynymContact paynymContact) {
-                          return paynymContact.getNymName();
-                        }
-                      })
+          followers.stream()
+                  .map(paynymContact -> paynymContact.getNymName())
                   .collect(Collectors.joining(", "))
               + "\n");
 
       Collection<PaynymContact> following = paynymState.getFollowing();
       sb.append(" • " + following.size() + " following: ");
       sb.append(
-          StreamSupport.stream(following)
-                  .map(
-                      new Function<PaynymContact, String>() {
-                        @Override
-                        public String apply(PaynymContact paynymContact) {
-                          return paynymContact.getNymName();
-                        }
-                      })
+          following.stream()
+                  .map(paynymContact -> paynymContact.getNymName())
                   .collect(Collectors.joining(", "))
               + "\n");
       sb.append("\n");

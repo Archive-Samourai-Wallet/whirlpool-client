@@ -5,8 +5,6 @@ import io.reactivex.subjects.BehaviorSubject;
 import io.reactivex.subjects.Subject;
 import java.util.ArrayList;
 import java.util.Collection;
-import java8.util.function.Predicate;
-import java8.util.stream.StreamSupport;
 
 public class MixingState {
   private boolean started;
@@ -40,15 +38,7 @@ public class MixingState {
     this.nbMixing = utxosMixing.size();
     this.nbMixingLiquidity =
         (int)
-            StreamSupport.stream(utxosMixing)
-                .filter(
-                    new Predicate<WhirlpoolUtxo>() {
-                      @Override
-                      public boolean test(WhirlpoolUtxo whirlpoolUtxo) {
-                        return whirlpoolUtxo.isAccountPostmix();
-                      }
-                    })
-                .count();
+            utxosMixing.stream().filter(whirlpoolUtxo -> whirlpoolUtxo.isAccountPostmix()).count();
     this.nbMixingMustMix = this.nbMixing - this.nbMixingLiquidity;
   }
 
@@ -56,15 +46,7 @@ public class MixingState {
     this.nbQueued = utxosQueued.size();
     this.nbQueuedLiquidity =
         (int)
-            StreamSupport.stream(utxosQueued)
-                .filter(
-                    new Predicate<WhirlpoolUtxo>() {
-                      @Override
-                      public boolean test(WhirlpoolUtxo whirlpoolUtxo) {
-                        return whirlpoolUtxo.isAccountPostmix();
-                      }
-                    })
-                .count();
+            utxosQueued.stream().filter(whirlpoolUtxo -> whirlpoolUtxo.isAccountPostmix()).count();
     this.nbQueuedMustMix = this.nbQueued - this.nbQueuedLiquidity;
   }
 

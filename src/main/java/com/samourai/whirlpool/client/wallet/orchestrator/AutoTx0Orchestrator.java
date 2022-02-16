@@ -12,9 +12,7 @@ import com.samourai.whirlpool.client.wallet.beans.*;
 import com.samourai.whirlpool.client.whirlpool.beans.Pool;
 import java.util.Collection;
 import java.util.LinkedList;
-import java8.util.function.Predicate;
-import java8.util.stream.Collectors;
-import java8.util.stream.StreamSupport;
+import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -108,14 +106,11 @@ public class AutoTx0Orchestrator extends AbstractOrchestrator {
   private long computeTotalUnconfirmedDeposits() {
     final int latestBlockHeight = whirlpoolWallet.getChainSupplier().getLatestBlock().height;
     return WhirlpoolUtxo.sumValue(
-        StreamSupport.stream(whirlpoolWallet.getUtxoSupplier().findUtxos(WhirlpoolAccount.DEPOSIT))
+        whirlpoolWallet.getUtxoSupplier().findUtxos(WhirlpoolAccount.DEPOSIT).stream()
             .filter(
-                new Predicate<WhirlpoolUtxo>() {
-                  @Override
-                  public boolean test(WhirlpoolUtxo whirlpoolUtxo) {
-                    // find unconfirmed utxos
-                    return (whirlpoolUtxo.computeConfirmations(latestBlockHeight) == 0);
-                  }
+                whirlpoolUtxo -> {
+                  // find unconfirmed utxos
+                  return (whirlpoolUtxo.computeConfirmations(latestBlockHeight) == 0);
                 })
             .collect(Collectors.<WhirlpoolUtxo>toList()));
   }

@@ -6,9 +6,6 @@ import com.samourai.wallet.api.paynym.beans.PaynymContact;
 import com.samourai.wallet.api.paynym.beans.PaynymState;
 import com.samourai.wallet.bip47.rpc.BIP47Wallet;
 import com.samourai.wallet.bip47.rpc.java.Bip47UtilJava;
-import com.samourai.wallet.bipWallet.BipWallet;
-import com.samourai.wallet.client.indexHandler.IIndexHandler;
-import com.samourai.wallet.hd.Chain;
 import com.samourai.wallet.hd.HD_Wallet;
 import com.samourai.wallet.hd.HD_WalletFactoryGeneric;
 import com.samourai.whirlpool.client.test.AbstractTest;
@@ -25,7 +22,8 @@ public class ExpirablePaynymSupplierTest extends AbstractTest {
       "PM8TJfP8GCovEuu715SgTzzhRFY6Lki9E9T9JJR4JRyqEBXcFmMmfSrz58cY5MhaDEfd1BuWUBXPwjk1vRm4aTHcBM2vQyVvQhcdTGRQGNCnGeqbWW4B";
   private static final NetworkParameters params = TestNet3Params.get();
 
-  private ExpirablePaynymSupplier paynymWalletImpl;
+  private WalletStateSupplier walletStateSupplier;
+  private ExpirablePaynymSupplier paynymSupplier;
 
   public ExpirablePaynymSupplierTest() throws Exception {
     super();
@@ -36,83 +34,62 @@ public class ExpirablePaynymSupplierTest extends AbstractTest {
     HD_Wallet bip44w =
         HD_WalletFactoryGeneric.getInstance().restoreWallet(SEED_WORDS, SEED_PASSPHRASE, params);
     BIP47Wallet bip47w = new BIP47Wallet(bip44w);
-    WalletStateSupplier walletStateSupplier = computeWalletStateSupplier();
-    paynymWalletImpl = new ExpirablePaynymSupplier(999999, bip47w, paynymApi, walletStateSupplier);
-    Assertions.assertEquals(PCODE, paynymWalletImpl.getPaymentCode());
-  }
-
-  private WalletStateSupplier computeWalletStateSupplier() {
-    return new WalletStateSupplier() {
-      @Override
-      public boolean isInitialized() {
-        return false;
-      }
-
-      @Override
-      public void setInitialized(boolean value) {}
-
-      @Override
-      public boolean isNymClaimed() {
-        return false;
-      }
-
-      @Override
-      public void setNymClaimed(boolean value) {}
-
-      @Override
-      public IIndexHandler getIndexHandlerExternal() {
-        return null;
-      }
-
-      @Override
-      public IIndexHandler getIndexHandlerWallet(BipWallet bipWallet, Chain chain) {
-        return null;
-      }
-
-      @Override
-      public void load() throws Exception {}
-
-      @Override
-      public boolean persist(boolean force) throws Exception {
-        return false;
-      }
-    };
+    walletStateSupplier = computeWalletStateSupplier();
+    paynymSupplier = new ExpirablePaynymSupplier(999999, bip47w, paynymApi, walletStateSupplier);
+    paynymSupplier.load();
+    Assertions.assertEquals(PCODE, paynymSupplier.getPaymentCode());
   }
 
   @Test
   public void claim() throws Exception {
-    paynymWalletImpl.claim().blockingAwait();
+    paynymSupplier.claim().blockingAwait();
   }
 
   @Test
   public void followUnfollow() throws Exception {
+    walletStateSupplier.setNymClaimed(true);
 
     // follow
-    paynymWalletImpl.follow(PCODE2).blockingAwait();
+    paynymSupplier.follow(PCODE2).blockingAwait();
 
     // verify
-    PaynymState paynymState = paynymWalletImpl.getPaynymState();
+    PaynymState paynymState = paynymSupplier.getPaynymState();
     PaynymContact paynymContact = paynymState.getFollowing().iterator().next();
     Assertions.assertEquals(PCODE2, paynymContact.getCode());
     Assertions.assertEquals("nymHc99UYDRYd6EdPYxbLCSLC", paynymContact.getNymId());
     Assertions.assertEquals("+boldboat533", paynymContact.getNymName());
 
     // unfollow
-    paynymWalletImpl.unfollow(PCODE2).blockingAwait();
+    paynymSupplier.unfollow(PCODE2).blockingAwait();
 
     // verify
-    paynymState = paynymWalletImpl.getPaynymState();
+    paynymState = paynymSupplier.getPaynymState();
     Assertions.assertFalse(paynymState.getFollowing().contains(PCODE2));
   }
 
   @Test
-  public void getNym() throws Exception {
-    PaynymState paynymState = paynymWalletImpl.getPaynymState();
-    Assertions.assertTrue(paynymState.isClaimed());
-    Assertions.assertEquals("/" + PCODE + "/avatar", paynymState.getNymAvatar());
-    Assertions.assertEquals("+stillmud69f", paynymState.getNymName());
-    Assertions.assertEquals("nymmFABjPvpR2uxmAUKfD53mj", paynymState.getNymID());
-    Assertions.assertEquals(true, paynymState.isSegwit());
+  public void getPaynymState() throws Exception {
+    doGetPaynymState(false);
+    doGetPaynymState(true);
+  }
+
+  private void doGetPaynymState(boolean claimed) throws Exception {
+    walletStateSupplier.setNymClaimed(claimed);
+    paynymSupplier.refresh();
+    PaynymState paynymState = paynymSupplier.getPaynymState();
+    Assertions.assertEquals(claimed, paynymState.isClaimed());
+
+    if (claimed) {
+      Assertions.assertEquals("/" + PCODE + "/avatar", paynymState.getNymAvatar());
+      Assertions.assertEquals("+stillmud69f", paynymState.getNymName());
+      Assertions.assertEquals("nymmFABjPvpR2uxmAUKfD53mj", paynymState.getNymID());
+      Assertions.assertEquals(true, paynymState.isSegwit());
+    } else {
+      Assertions.assertNull(paynymState.getNymAvatar());
+      Assertions.assertNull(paynymState.getNymName());
+      Assertions.assertNull(paynymState.getNymID());
+      Assertions.assertNull(paynymState.isSegwit());
+    }
 
     Assertions.assertTrue(paynymState.getFollowing().isEmpty());
     Assertions.assertTrue(paynymState.getFollowers().isEmpty());

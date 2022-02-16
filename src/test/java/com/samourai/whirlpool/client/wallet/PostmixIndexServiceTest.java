@@ -15,8 +15,8 @@ import com.samourai.whirlpool.protocol.rest.RestErrorResponse;
 import io.reactivex.Observable;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Optional;
 import java.util.concurrent.Callable;
-import java8.util.Optional;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -80,19 +80,16 @@ public class PostmixIndexServiceTest extends AbstractTest {
           public Observable<Optional<String>> checkOutput(
               final CheckOutputRequest checkOutputRequest) {
             return httpObservable(
-                new Callable<String>() {
-                  @Override
-                  public String call() throws Exception {
-                    if (alreadyUsedAddresses.contains(checkOutputRequest.receiveAddress)) {
-                      // already used
-                      String responseBody =
-                          ClientUtils.toJsonString(
-                              new RestErrorResponse(
-                                  PostmixIndexService.CHECKOUTPUT_ERROR_OUTPUT_ALREADY_REGISTERED));
-                      throw new HttpException((Exception) null, responseBody);
-                    }
-                    return "OK";
+                () -> {
+                  if (alreadyUsedAddresses.contains(checkOutputRequest.receiveAddress)) {
+                    // already used
+                    String responseBody =
+                        ClientUtils.toJsonString(
+                            new RestErrorResponse(
+                                PostmixIndexService.CHECKOUTPUT_ERROR_OUTPUT_ALREADY_REGISTERED));
+                    throw new HttpException((Exception) null, responseBody);
                   }
+                  return "OK";
                 });
           }
         };
@@ -101,17 +98,15 @@ public class PostmixIndexServiceTest extends AbstractTest {
 
   private <T> Observable<Optional<T>> httpObservable(final Callable<T> supplier) {
     return Observable.fromCallable(
-        new Callable<Optional<T>>() {
-          public Optional<T> call() throws Exception {
-            try {
-              return Optional.ofNullable(supplier.call());
-            } catch (Exception var2) {
-              Exception e = var2;
-              if (!(var2 instanceof HttpException)) {
-                e = new HttpException(var2, (String) null);
-              }
-              throw e;
+        () -> {
+          try {
+            return Optional.ofNullable(supplier.call());
+          } catch (Exception var2) {
+            Exception e = var2;
+            if (!(var2 instanceof HttpException)) {
+              e = new HttpException(var2, (String) null);
             }
+            throw e;
           }
         });
   }

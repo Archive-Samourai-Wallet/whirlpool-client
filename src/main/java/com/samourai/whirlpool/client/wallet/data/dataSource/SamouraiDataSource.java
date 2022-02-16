@@ -18,9 +18,7 @@ import java.util.Collection;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java8.util.function.Predicate;
-import java8.util.stream.Collectors;
-import java8.util.stream.StreamSupport;
+import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -120,15 +118,10 @@ public class SamouraiDataSource extends WalletResponseDataSource
   }
 
   private Collection<WhirlpoolUtxo> filterRemixableUtxos(Collection<WhirlpoolUtxo> whirlpoolUtxos) {
-    return StreamSupport.stream(whirlpoolUtxos)
+    return whirlpoolUtxos.stream()
         .filter(
-            new Predicate<WhirlpoolUtxo>() {
-              @Override
-              public boolean test(WhirlpoolUtxo whirlpoolUtxo) {
-                return !MixableStatus.NO_POOL.equals(
-                    whirlpoolUtxo.getUtxoState().getMixableStatus());
-              }
-            })
+            whirlpoolUtxo ->
+                !MixableStatus.NO_POOL.equals(whirlpoolUtxo.getUtxoState().getMixableStatus()))
         .collect(Collectors.<WhirlpoolUtxo>toList());
   }
 

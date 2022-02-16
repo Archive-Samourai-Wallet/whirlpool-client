@@ -42,13 +42,11 @@ public class ClientUtilsTest extends AbstractTest {
   @Test
   public void runAsync() {
     this.counter = 0;
-    Action action =
-        new Action() {
-          @Override
-          public void run() {
-            counter++;
-            log.info("running testAsync => counter=" + counter);
-          }
+    Action action;
+    action =
+        () -> {
+          counter++;
+          log.info("running testAsync => counter=" + counter);
         };
 
     // simple run
@@ -58,22 +56,16 @@ public class ClientUtilsTest extends AbstractTest {
     // with doOnComplete
     ClientUtils.runAsync(action, "testAsync")
         .doOnComplete(
-            new Action() {
-              @Override
-              public void run() throws Exception {
-                Assertions.assertEquals(2, counter);
-                counter++;
-                log.info("doOnComplete => counter=" + counter);
-              }
+            () -> {
+              Assertions.assertEquals(2, counter);
+              counter++;
+              log.info("doOnComplete => counter=" + counter);
             })
         .doOnComplete(
-            new Action() {
-              @Override
-              public void run() throws Exception {
-                Assertions.assertEquals(3, counter);
-                counter++;
-                log.info("doOnComplete2 => counter=" + counter);
-              }
+            () -> {
+              Assertions.assertEquals(3, counter);
+              counter++;
+              log.info("doOnComplete2 => counter=" + counter);
             })
         .blockingAwait();
     Assertions.assertEquals(4, counter);

@@ -20,9 +20,7 @@ import com.samourai.whirlpool.client.wallet.data.utxoConfig.UtxoConfigSupplier;
 import java.util.Collection;
 import java.util.LinkedHashMap;
 import java.util.Map;
-import java8.util.function.Predicate;
-import java8.util.stream.Collectors;
-import java8.util.stream.StreamSupport;
+import java.util.stream.Collectors;
 import org.bitcoinj.core.ECKey;
 import org.bitcoinj.core.NetworkParameters;
 import org.slf4j.Logger;
@@ -78,7 +76,7 @@ public abstract class BasicUtxoSupplier extends BasicSupplier<UtxoData>
   }
 
   @Override
-  public void setValue(UtxoData utxoData) throws Exception {
+  public synchronized void setValue(UtxoData utxoData) throws Exception {
     utxoData.init(
         walletSupplier,
         utxoConfigSupplier,
@@ -104,14 +102,8 @@ public abstract class BasicUtxoSupplier extends BasicSupplier<UtxoData>
   @Override
   public Collection<WhirlpoolUtxo> findUtxos(
       final BipFormat bipFormat, final WhirlpoolAccount... whirlpoolAccounts) {
-    return StreamSupport.stream(findUtxos(whirlpoolAccounts))
-        .filter(
-            new Predicate<WhirlpoolUtxo>() {
-              @Override
-              public boolean test(WhirlpoolUtxo whirlpoolUtxo) {
-                return whirlpoolUtxo.getBipWallet().getBipFormat() == bipFormat;
-              }
-            })
+    return findUtxos(whirlpoolAccounts).stream()
+        .filter(whirlpoolUtxo -> whirlpoolUtxo.getBipWallet().getBipFormat() == bipFormat)
         .collect(Collectors.<WhirlpoolUtxo>toList());
   }
 

@@ -1,7 +1,6 @@
 package com.samourai.whirlpool.client.wallet.beans;
 
 import java.util.Comparator;
-import java8.lang.Longs;
 
 public class WhirlpoolUtxoPriorityComparator implements Comparator<WhirlpoolUtxo> {
   private static final WhirlpoolUtxoPriorityComparator instance =
@@ -36,7 +35,7 @@ public class WhirlpoolUtxoPriorityComparator implements Comparator<WhirlpoolUtxo
     }
     if (o1Error && o2Error) {
       // both errors: older error first
-      return Longs.compare(o1.getUtxoState().getLastError(), o2.getUtxoState().getLastError());
+      return Long.compare(o1.getUtxoState().getLastError(), o2.getUtxoState().getLastError());
     }
 
     // decrease priority when mixing for too long

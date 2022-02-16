@@ -222,7 +222,7 @@ public class Tx0PreviewService {
     try {
       Tx0DataRequestV2 tx0DataRequest = new Tx0DataRequestV2(config.getScode(), partnerId);
       Tx0DataResponseV2 tx0DatasResponse =
-          config.getServerApi().fetchTx0Data(tx0DataRequest).blockingFirst().get();
+          config.getServerApi().fetchTx0Data(tx0DataRequest).blockingSingle().get();
       for (Tx0DataResponseV2.Tx0Data tx0DataItem : tx0DatasResponse.tx0Datas) {
         Tx0Data tx0Data = new Tx0Data(tx0DataItem);
         tx0Datas.add(tx0Data);

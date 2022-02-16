@@ -9,7 +9,7 @@ import com.samourai.whirlpool.client.exception.NotifiableException;
 import com.samourai.whirlpool.client.utils.ClientUtils;
 import com.samourai.whirlpool.protocol.rest.CheckOutputRequest;
 import io.reactivex.Observable;
-import java8.util.Optional;
+import java.util.Optional;
 import org.apache.commons.lang3.tuple.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -38,7 +38,7 @@ public class PostmixIndexService {
             postmixIndexHandler, config.getIndexRangePostmix());
 
     try {
-      checkPostmixIndexAsync(walletPostmix, postmixIndex).blockingFirst().get(); // throws on error
+      checkPostmixIndexAsync(walletPostmix, postmixIndex).blockingSingle().get(); // throws on error
     } finally {
       postmixIndexHandler.cancelUnconfirmed(postmixIndex);
     }
@@ -110,7 +110,7 @@ public class PostmixIndexService {
         }
 
         // check next output
-        checkPostmixIndexAsync(walletPostmix, postmixIndex).blockingFirst().get();
+        checkPostmixIndexAsync(walletPostmix, postmixIndex).blockingSingle().get();
 
         // success!
         if (log.isDebugEnabled()) {

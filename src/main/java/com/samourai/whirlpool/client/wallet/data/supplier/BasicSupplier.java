@@ -14,13 +14,13 @@ public abstract class BasicSupplier<D> {
     this.lastUpdate = null;
   }
 
-  protected void setValue(D value) throws Exception {
+  protected synchronized void setValue(D value) throws Exception {
     if (log.isTraceEnabled()) {
       log.trace("setValue");
     }
     // validate
     validate(value);
-    D oldValue = getValue();
+    D oldValue = this.value;
 
     // set
     this.value = value;

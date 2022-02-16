@@ -33,8 +33,8 @@ import com.samourai.whirlpool.client.wallet.data.utxoConfig.UtxoConfigSupplier;
 import com.samourai.whirlpool.client.wallet.data.walletState.WalletStateSupplier;
 import com.samourai.whirlpool.client.whirlpool.ServerApi;
 import com.samourai.whirlpool.client.whirlpool.beans.Pool;
+import java.util.Arrays;
 import java.util.Collection;
-import java8.util.Lists;
 import org.bitcoinj.core.NetworkParameters;
 
 public class JavaExample {
@@ -271,7 +271,7 @@ public class JavaExample {
       int utxoIndex = 2;
       whirlpoolUtxo = utxoSupplier.findUtxo(utxoHash, utxoIndex);
       if (whirlpoolUtxo == null) {} // utxo not found
-      Collection<WhirlpoolUtxo> utxos = Lists.of(whirlpoolUtxo);
+      Collection<WhirlpoolUtxo> utxos = Arrays.asList(whirlpoolUtxo);
 
       // configure tx0
       Tx0FeeTarget tx0FeeTarget = Tx0FeeTarget.BLOCKS_4;
@@ -308,7 +308,7 @@ public class JavaExample {
     {
       // external utxo for tx0
       UnspentOutput spendFrom = null; // provide utxo outpoint
-      Collection<UnspentOutput> utxos = Lists.of(spendFrom);
+      Collection<UnspentOutput> utxos = Arrays.asList(spendFrom);
 
       // configure tx0
       Tx0FeeTarget tx0FeeTarget = Tx0FeeTarget.BLOCKS_4;
