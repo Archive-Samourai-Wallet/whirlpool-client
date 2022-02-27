@@ -117,9 +117,6 @@ public class ClientUtils {
   }
 
   public static String getHttpResponseBody(Throwable e) {
-    if (!(e instanceof HttpException) && e.getCause() != null) {
-      e = e.getCause(); // blockingGet from CLI wraps errors in RuntimeException
-    }
     if (e instanceof HttpException) {
       return ((HttpException) e).getResponseBody();
     }
@@ -179,11 +176,6 @@ public class ClientUtils {
 
   public static String utxoToKey(String utxoHash, int utxoIndex) {
     return utxoHash + ':' + utxoIndex;
-  }
-
-  public static String getTxHex(Transaction tx) {
-    String txHex = org.bitcoinj.core.Utils.HEX.encode(tx.bitcoinSerialize());
-    return txHex;
   }
 
   public static Completable sleepUtxosDelayAsync(final NetworkParameters params) {

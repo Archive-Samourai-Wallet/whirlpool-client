@@ -13,7 +13,6 @@ import org.slf4j.LoggerFactory;
 public class StompTransport {
   // non-static logger to prefix it with stomp sessionId
   private Logger log;
-  private static final String HEADER_USERNAME = "user-name";
   public static final String HEADER_DESTINATION = "destination";
 
   private IStompClient stompClient;

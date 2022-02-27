@@ -1,6 +1,7 @@
 package com.samourai.xmanager.client;
 
 import com.samourai.http.client.IHttpClient;
+import com.samourai.wallet.util.AsyncUtil;
 import com.samourai.wallet.util.FormatsUtilGeneric;
 import com.samourai.xmanager.protocol.XManagerEnv;
 import com.samourai.xmanager.protocol.XManagerProtocol;
@@ -40,7 +41,7 @@ public class XManagerClient {
     String address = null;
     try {
       Observable<Optional<AddressResponse>> responseObservable = getAddressResponse(service);
-      address = responseObservable.blockingSingle().get().address;
+      address = AsyncUtil.blockingSingle(responseObservable).get().address;
     } catch (Exception e) {
       log.error("getAddressResponse(" + service.name() + ") failed", e);
     }
@@ -68,7 +69,7 @@ public class XManagerClient {
     try {
       Observable<Optional<AddressIndexResponse>> responseObservable =
           getAddressIndexResponse(service);
-      response = responseObservable.blockingSingle().get();
+      response = AsyncUtil.blockingSingle(responseObservable).get();
     } catch (Exception e) {
       log.error("getAddressIndexResponse(" + service.name() + ") failed", e);
     }
@@ -102,7 +103,7 @@ public class XManagerClient {
     try {
       Observable<Optional<VerifyAddressIndexResponse>> responseObservable =
           verifyAddressIndexResponseAsync(service, address, index);
-      return responseObservable.blockingSingle().get().valid;
+      return AsyncUtil.blockingSingle(responseObservable).get().valid;
     } catch (Exception e) {
       log.error("verifyAddressIndexResponse(" + service.name() + ") failed", e);
       throw e;

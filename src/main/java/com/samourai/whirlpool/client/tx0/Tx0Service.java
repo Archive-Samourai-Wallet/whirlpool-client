@@ -7,6 +7,7 @@ import com.samourai.wallet.hd.BipAddress;
 import com.samourai.wallet.segwit.bech32.Bech32UtilGeneric;
 import com.samourai.wallet.send.SendFactoryGeneric;
 import com.samourai.wallet.send.provider.UtxoKeyProvider;
+import com.samourai.wallet.util.TxUtil;
 import com.samourai.whirlpool.client.exception.NotifiableException;
 import com.samourai.whirlpool.client.utils.BIP69InputComparatorUnspentOutput;
 import com.samourai.whirlpool.client.wallet.WhirlpoolWalletConfig;
@@ -186,7 +187,7 @@ public class Tx0Service {
             utxoKeyProvider);
 
     Transaction tx = tx0.getTx();
-    final String hexTx = new String(Hex.encode(tx.bitcoinSerialize()));
+    final String hexTx = TxUtil.getInstance().getTxHex(tx);
     final String strTxHash = tx.getHashAsString();
 
     tx.verify();

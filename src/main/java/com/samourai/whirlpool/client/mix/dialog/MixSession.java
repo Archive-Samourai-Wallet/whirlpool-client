@@ -16,6 +16,7 @@ import com.samourai.whirlpool.protocol.websocket.messages.SubscribePoolResponse;
 import io.reactivex.Completable;
 import io.reactivex.functions.Action;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -80,7 +81,7 @@ public class MixSession {
     }
 
     // connect with a new transport
-    Map<String, String> connectHeaders = computeStompHeaders(null);
+    Map<String, String> connectHeaders = new LinkedHashMap<>();
     IStompClient stompClient = config.getStompClientService().newStompClient();
     transport = new StompTransport(stompClient, computeTransportListener(), logPrefix);
     transport.connect(wsUrl, connectHeaders);
@@ -94,7 +95,7 @@ public class MixSession {
     final String privateQueue =
         whirlpoolProtocol.WS_PREFIX_USER_PRIVATE + whirlpoolProtocol.WS_PREFIX_USER_REPLY;
     transport.subscribe(
-        computeStompHeaders(privateQueue),
+        computeSubscribeStompHeaders(privateQueue),
         new MessageErrorListener<Object, String>() {
           @Override
           public void onMessage(Object payload) {
@@ -220,7 +221,7 @@ public class MixSession {
 
   //
 
-  private Map<String, String> computeStompHeaders(String destination) {
+  private Map<String, String> computeSubscribeStompHeaders(String destination) {
     Map<String, String> stompHeaders = new HashMap<String, String>();
     stompHeaders.put(WhirlpoolProtocol.HEADER_POOL_ID, poolId);
     if (destination != null) {

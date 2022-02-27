@@ -2,6 +2,7 @@ package com.samourai.whirlpool.client.tx0;
 
 import com.samourai.wallet.api.backend.beans.HttpException;
 import com.samourai.wallet.api.backend.beans.UnspentOutput;
+import com.samourai.wallet.util.AsyncUtil;
 import com.samourai.wallet.util.FeeUtil;
 import com.samourai.whirlpool.client.exception.NotifiableException;
 import com.samourai.whirlpool.client.utils.ClientUtils;
@@ -222,7 +223,7 @@ public class Tx0PreviewService {
     try {
       Tx0DataRequestV2 tx0DataRequest = new Tx0DataRequestV2(config.getScode(), partnerId);
       Tx0DataResponseV2 tx0DatasResponse =
-          config.getServerApi().fetchTx0Data(tx0DataRequest).blockingSingle().get();
+          AsyncUtil.blockingSingle(config.getServerApi().fetchTx0Data(tx0DataRequest)).get();
       for (Tx0DataResponseV2.Tx0Data tx0DataItem : tx0DatasResponse.tx0Datas) {
         Tx0Data tx0Data = new Tx0Data(tx0DataItem);
         tx0Datas.add(tx0Data);

@@ -5,6 +5,7 @@ import com.samourai.wallet.client.indexHandler.IIndexHandler;
 import com.samourai.wallet.hd.BipAddress;
 import com.samourai.wallet.hd.Chain;
 import com.samourai.wallet.segwit.bech32.Bech32UtilGeneric;
+import com.samourai.wallet.util.AsyncUtil;
 import com.samourai.whirlpool.client.exception.NotifiableException;
 import com.samourai.whirlpool.client.utils.ClientUtils;
 import com.samourai.whirlpool.protocol.rest.CheckOutputRequest;
@@ -38,7 +39,8 @@ public class PostmixIndexService {
             postmixIndexHandler, config.getIndexRangePostmix());
 
     try {
-      checkPostmixIndexAsync(walletPostmix, postmixIndex).blockingSingle().get(); // throws on error
+      AsyncUtil.blockingSingle(checkPostmixIndexAsync(walletPostmix, postmixIndex))
+          .get(); // throws on error
     } finally {
       postmixIndexHandler.cancelUnconfirmed(postmixIndex);
     }
@@ -110,7 +112,7 @@ public class PostmixIndexService {
         }
 
         // check next output
-        checkPostmixIndexAsync(walletPostmix, postmixIndex).blockingSingle().get();
+        AsyncUtil.blockingSingle(checkPostmixIndexAsync(walletPostmix, postmixIndex)).get();
 
         // success!
         if (log.isDebugEnabled()) {

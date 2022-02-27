@@ -90,7 +90,7 @@ public class XManagerClientTest extends AbstractTest {
       xManagerClientFailing.verifyAddressIndexResponse(
           XManagerService.WHIRLPOOL, "tb1qcfgn9nlgxu0ycj446prdkg0p36qy5a39pcf74v", 0);
       Assertions.assertTrue(false); // exception expected
-    } catch (RuntimeException e) {
+    } catch (Exception e) {
       // ok
     }
   }

@@ -13,6 +13,7 @@ import com.samourai.whirlpool.client.whirlpool.ServerApi;
 import com.samourai.whirlpool.protocol.rest.CheckOutputRequest;
 import com.samourai.whirlpool.protocol.rest.RestErrorResponse;
 import io.reactivex.Observable;
+import io.reactivex.schedulers.Schedulers;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Optional;
@@ -97,17 +98,7 @@ public class PostmixIndexServiceTest extends AbstractTest {
   }
 
   private <T> Observable<Optional<T>> httpObservable(final Callable<T> supplier) {
-    return Observable.fromCallable(
-        () -> {
-          try {
-            return Optional.ofNullable(supplier.call());
-          } catch (Exception var2) {
-            Exception e = var2;
-            if (!(var2 instanceof HttpException)) {
-              e = new HttpException(var2, (String) null);
-            }
-            throw e;
-          }
-        });
+    return Observable.fromCallable(() -> Optional.ofNullable(supplier.call()))
+        .subscribeOn(Schedulers.io());
   }
 }

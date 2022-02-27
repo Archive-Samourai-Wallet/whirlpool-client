@@ -7,6 +7,7 @@ import com.samourai.wallet.client.indexHandler.MemoryIndexHandlerSupplier;
 import com.samourai.wallet.hd.BIP_WALLET;
 import com.samourai.wallet.hd.HD_Address;
 import com.samourai.wallet.hd.HD_Wallet;
+import com.samourai.wallet.util.TxUtil;
 import com.samourai.whirlpool.client.test.AbstractTest;
 import com.samourai.whirlpool.client.utils.MockUtxoKeyProvider;
 import com.samourai.whirlpool.client.wallet.WhirlpoolWalletConfig;
@@ -20,7 +21,6 @@ import com.samourai.whirlpool.protocol.WhirlpoolProtocol;
 import java.nio.ByteBuffer;
 import java.util.Arrays;
 import org.bitcoinj.core.Transaction;
-import org.bouncycastle.util.encoders.Hex;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -425,7 +425,7 @@ public class Tx0ServiceTest extends AbstractTest {
         nbOutputsExpected + 3, tx.getOutputs().size()); // opReturn + fee + change
 
     String tx0Hash = tx.getHashAsString();
-    String tx0Hex = new String(Hex.encode(tx.bitcoinSerialize()));
+    String tx0Hex = TxUtil.getInstance().getTxHex(tx);
     log.info(tx0.getTx().toString());
     Assertions.assertEquals(
         "a55c2154aa023ed127692139a29ad01d50d4cc43b8d50f029a8867da36e6e0cf", tx0Hash);
@@ -522,7 +522,7 @@ public class Tx0ServiceTest extends AbstractTest {
         nbOutputsExpected + 3, tx.getOutputs().size()); // opReturn + fee + change
 
     String tx0Hash = tx.getHashAsString();
-    String tx0Hex = new String(Hex.encode(tx.bitcoinSerialize()));
+    String tx0Hex = TxUtil.getInstance().getTxHex(tx);
     log.info(tx0.getTx().toString());
     Assertions.assertEquals(
         "4894aaa78aaf1460098befa81d111b1f2702f71f3134a0365f921d4fc72ffc20", tx0Hash);
@@ -577,7 +577,7 @@ public class Tx0ServiceTest extends AbstractTest {
         nbOutputsExpected + 2, tx.getOutputs().size()); // opReturn + fee (no change)
 
     String tx0Hash = tx.getHashAsString();
-    String tx0Hex = new String(Hex.encode(tx.bitcoinSerialize()));
+    String tx0Hex = TxUtil.getInstance().getTxHex(tx);
     log.info(tx0.getTx().toString());
     Assertions.assertEquals(
         "239f59f6ada2835bf34cd04eea2e81f0bacd924c5483233f25365c05e67ecd53", tx0Hash);
@@ -679,7 +679,7 @@ public class Tx0ServiceTest extends AbstractTest {
         nbOutputsExpected + 3, tx.getOutputs().size()); // opReturn + fee (no change)
 
     String tx0Hash = tx.getHashAsString();
-    String tx0Hex = new String(Hex.encode(tx.bitcoinSerialize()));
+    String tx0Hex = TxUtil.getInstance().getTxHex(tx);
     log.info(tx0.getTx().toString());
     Assertions.assertEquals(
         "d1d42d8ffdc8f1cc93d2eb184acfb0c19c56ca501a4a2fa8753deaa1dfa8d751", tx0Hash);
@@ -782,7 +782,7 @@ public class Tx0ServiceTest extends AbstractTest {
         nbOutputsExpected + 3, tx.getOutputs().size()); // opReturn + fee (no change)
 
     String tx0Hash = tx.getHashAsString();
-    String tx0Hex = new String(Hex.encode(tx.bitcoinSerialize()));
+    String tx0Hex = TxUtil.getInstance().getTxHex(tx);
     log.info(tx0.getTx().toString());
     Assertions.assertEquals(
         "8e9ca87bf78ebed2c67046cc8cd9cd034549e41de3c4b28098aba29e206af023", tx0Hash);
@@ -883,7 +883,7 @@ public class Tx0ServiceTest extends AbstractTest {
         nbOutputsExpected + 3, tx.getOutputs().size()); // opReturn + fee (no change)
 
     String tx0Hash = tx.getHashAsString();
-    String tx0Hex = new String(Hex.encode(tx.bitcoinSerialize()));
+    String tx0Hex = TxUtil.getInstance().getTxHex(tx);
     log.info(tx0.getTx().toString());
     Assertions.assertEquals(
         "958c28db07b16091d8f6e69209159fc3a8098485c8900e6d40880a14266a8ad3", tx0Hash);
@@ -984,7 +984,7 @@ public class Tx0ServiceTest extends AbstractTest {
         nbOutputsExpected + 3, tx.getOutputs().size()); // opReturn + fee (no change)
 
     String tx0Hash = tx.getHashAsString();
-    String tx0Hex = new String(Hex.encode(tx.bitcoinSerialize()));
+    String tx0Hex = TxUtil.getInstance().getTxHex(tx);
     log.info(tx0.getTx().toString());
     Assertions.assertEquals(
         "1a1ff49a285a4b2131e7155e25341d575e7e6e9278c5f00bbc90dec362412334", tx0Hash);

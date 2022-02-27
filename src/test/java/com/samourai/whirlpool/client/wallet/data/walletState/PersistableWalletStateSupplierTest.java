@@ -93,19 +93,22 @@ public class PersistableWalletStateSupplierTest extends AbstractTest {
     IIndexHandler indexHandler =
         walletStateSupplier.getIndexHandlerWallet(walletPostmix, Chain.RECEIVE);
     Assertions.assertEquals(0, indexHandler.getAndIncrementUnconfirmed());
+    Assertions.assertEquals(0, indexHandler.get());
 
     indexHandler = walletStateSupplier.getIndexHandlerWallet(walletPostmix, Chain.RECEIVE);
-    Assertions.assertEquals(0, indexHandler.getAndIncrementUnconfirmed());
+    Assertions.assertEquals(1, indexHandler.getAndIncrementUnconfirmed());
+    Assertions.assertEquals(0, indexHandler.get());
     indexHandler.confirmUnconfirmed(0);
 
     indexHandler = walletStateSupplier.getIndexHandlerWallet(walletPostmix, Chain.RECEIVE);
     Assertions.assertEquals(1, indexHandler.get());
     Assertions.assertEquals(1, indexHandler.get());
-    Assertions.assertEquals(1, indexHandler.getAndIncrementUnconfirmed());
+    Assertions.assertEquals(2, indexHandler.getAndIncrementUnconfirmed());
+    Assertions.assertEquals(1, indexHandler.get());
 
     walletStateSupplier.persist(true);
-    Assertions.assertEquals(2, indexHandler.get());
-    Assertions.assertEquals(2, indexHandler.get());
-    Assertions.assertEquals(2, indexHandler.getAndIncrementUnconfirmed());
+    Assertions.assertEquals(1, indexHandler.get());
+    Assertions.assertEquals(1, indexHandler.get());
+    Assertions.assertEquals(3, indexHandler.getAndIncrementUnconfirmed());
   }
 }

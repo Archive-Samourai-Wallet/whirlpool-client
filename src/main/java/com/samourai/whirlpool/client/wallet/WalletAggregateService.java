@@ -8,6 +8,7 @@ import com.samourai.wallet.segwit.bech32.Bech32UtilGeneric;
 import com.samourai.wallet.send.SendFactoryGeneric;
 import com.samourai.wallet.util.FeeUtil;
 import com.samourai.wallet.util.FormatsUtilGeneric;
+import com.samourai.wallet.util.TxUtil;
 import com.samourai.whirlpool.client.exception.NotifiableException;
 import com.samourai.whirlpool.client.utils.ClientUtils;
 import com.samourai.whirlpool.client.utils.DebugUtils;
@@ -21,7 +22,6 @@ import org.bitcoinj.core.NetworkParameters;
 import org.bitcoinj.core.Transaction;
 import org.bitcoinj.core.TransactionInput;
 import org.bitcoinj.core.TransactionOutput;
-import org.bouncycastle.util.encoders.Hex;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -121,7 +121,7 @@ public class WalletAggregateService {
 
     // broadcast
     log.info(" • Broadcasting TxAggregate...");
-    String txHex = ClientUtils.getTxHex(txAggregate);
+    String txHex = TxUtil.getInstance().getTxHex(txAggregate);
     whirlpoolWallet.pushTx(txHex);
   }
 
@@ -163,7 +163,7 @@ public class WalletAggregateService {
     // sign inputs
     SendFactoryGeneric.getInstance().signTransaction(tx, whirlpoolWallet.getUtxoSupplier());
 
-    final String hexTx = new String(Hex.encode(tx.bitcoinSerialize()));
+    final String hexTx = TxUtil.getInstance().getTxHex(tx);
     final String strTxHash = tx.getHashAsString();
 
     tx.verify();
