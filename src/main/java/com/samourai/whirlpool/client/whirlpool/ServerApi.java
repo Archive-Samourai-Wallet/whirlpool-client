@@ -3,11 +3,14 @@ package com.samourai.whirlpool.client.whirlpool;
 import com.samourai.http.client.HttpUsage;
 import com.samourai.http.client.IHttpClient;
 import com.samourai.http.client.IHttpClientService;
+import com.samourai.wallet.api.backend.beans.HttpException;
+import com.samourai.whirlpool.client.exception.PushTxErrorResponseException;
 import com.samourai.whirlpool.client.utils.ClientUtils;
 import com.samourai.whirlpool.protocol.WhirlpoolProtocol;
 import com.samourai.whirlpool.protocol.rest.*;
 import io.reactivex.Observable;
 import java.util.Optional;
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -38,19 +41,17 @@ public class ServerApi {
       log.debug("fetchPools: " + url);
     }
     httpClientRest.connect();
-    PoolsResponse poolsResponse = httpClientRest.getJson(url, PoolsResponse.class, null);
-    return poolsResponse;
+    return httpClientRest.getJson(url, PoolsResponse.class, null);
   }
 
   public Observable<Optional<Tx0DataResponseV2>> fetchTx0Data(Tx0DataRequestV2 tx0DataRequest)
       throws Exception {
+    httpClientRest.connect();
     String url = WhirlpoolProtocol.getUrlTx0Data(urlServer);
     if (log.isDebugEnabled()) {
       log.debug("POST " + url + ": " + ClientUtils.toJsonString(tx0DataRequest));
     }
-    Observable<Optional<Tx0DataResponseV2>> tx0DataResponse =
-        httpClientRest.postJson(url, Tx0DataResponseV2.class, null, tx0DataRequest);
-    return tx0DataResponse;
+    return httpClientRest.postJson(url, Tx0DataResponseV2.class, null, tx0DataRequest);
   }
 
   public String getWsUrlConnect() {
@@ -66,9 +67,7 @@ public class ServerApi {
     if (log.isDebugEnabled()) {
       log.debug("POST " + checkOutputUrl + ": " + ClientUtils.toJsonString(checkOutputRequest));
     }
-    Observable<Optional<String>> observable =
-        httpClientRegOutput.postJson(checkOutputUrl, String.class, null, checkOutputRequest);
-    return observable;
+    return httpClientRegOutput.postJson(checkOutputUrl, String.class, null, checkOutputRequest);
   }
 
   public Observable<Optional<String>> registerOutput(RegisterOutputRequest registerOutputRequest)
@@ -81,22 +80,41 @@ public class ServerApi {
       log.debug(
           "POST " + registerOutputUrl + ": " + ClientUtils.toJsonString(registerOutputRequest));
     }
-    Observable<Optional<String>> observable =
-        httpClientRegOutput.postJson(registerOutputUrl, String.class, null, registerOutputRequest);
-    return observable;
+    return httpClientRegOutput.postJson(
+        registerOutputUrl, String.class, null, registerOutputRequest);
   }
 
-  public Observable<Optional<String>> tx0Notify(Tx0NotifyRequest tx0NotifyRequest)
-      throws Exception {
+  public Observable<PushTxSuccessResponse> pushTx0(Tx0PushRequest request) throws Exception {
     httpClientRest.connect();
 
-    String url = WhirlpoolProtocol.getUrlTx0Notify(urlServer);
+    String url = WhirlpoolProtocol.getUrlTx0Push(urlServer);
     if (log.isDebugEnabled()) {
-      log.debug("POST " + url + ": " + ClientUtils.toJsonString(tx0NotifyRequest));
+      log.debug("POST " + url + ": " + ClientUtils.toJsonString(request));
     }
-    Observable<Optional<String>> observable =
-        httpClientRest.postJson(url, String.class, null, tx0NotifyRequest);
-    return observable;
+    return httpClientRest
+        .postJson(url, PushTxSuccessResponse.class, null, request)
+        .map(o -> o.get())
+        .onErrorResumeNext(
+            throwable -> {
+              return Observable.error(responseError(throwable));
+            });
+  }
+
+  protected Throwable responseError(Throwable e) {
+    if (e instanceof HttpException) {
+      String responseBody = ((HttpException) e).getResponseBody();
+      try {
+        PushTxErrorResponse pushTxErrorResponse =
+            ClientUtils.fromJson(responseBody, PushTxErrorResponse.class);
+        if (!StringUtils.isEmpty(
+            pushTxErrorResponse.pushTxErrorCode)) { // skip false-positive NotifiableException
+          return new PushTxErrorResponseException(pushTxErrorResponse);
+        }
+      } catch (Exception ee) {
+        log.error("Not a pushTxErrorResponse: " + responseBody, ee);
+      }
+    }
+    return e;
   }
 
   public String toString() {

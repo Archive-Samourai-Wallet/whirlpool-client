@@ -1,7 +1,6 @@
 package com.samourai.whirlpool.client.wallet;
 
 import com.google.common.primitives.Bytes;
-import com.samourai.wallet.api.backend.beans.PushTxAddressReuseException;
 import com.samourai.wallet.api.backend.beans.UnspentOutput;
 import com.samourai.wallet.bipFormat.BIP_FORMAT;
 import com.samourai.wallet.bipWallet.BipWallet;
@@ -10,8 +9,10 @@ import com.samourai.wallet.hd.HD_Wallet;
 import com.samourai.wallet.hd.HD_WalletFactoryGeneric;
 import com.samourai.wallet.segwit.bech32.Bech32UtilGeneric;
 import com.samourai.wallet.send.spend.SpendBuilder;
+import com.samourai.wallet.util.AsyncUtil;
 import com.samourai.whirlpool.client.event.*;
 import com.samourai.whirlpool.client.exception.NotifiableException;
+import com.samourai.whirlpool.client.exception.PushTxErrorResponseException;
 import com.samourai.whirlpool.client.exception.UnconfirmedUtxoException;
 import com.samourai.whirlpool.client.mix.MixParams;
 import com.samourai.whirlpool.client.mix.handler.MixDestination;
@@ -24,7 +25,6 @@ import com.samourai.whirlpool.client.wallet.beans.*;
 import com.samourai.whirlpool.client.wallet.data.chain.ChainSupplier;
 import com.samourai.whirlpool.client.wallet.data.dataPersister.DataPersister;
 import com.samourai.whirlpool.client.wallet.data.dataSource.DataSource;
-import com.samourai.whirlpool.client.wallet.data.dataSource.DataSourceWithStrictMode;
 import com.samourai.whirlpool.client.wallet.data.minerFee.MinerFeeSupplier;
 import com.samourai.whirlpool.client.wallet.data.paynym.PaynymSupplier;
 import com.samourai.whirlpool.client.wallet.data.pool.PoolSupplier;
@@ -35,17 +35,18 @@ import com.samourai.whirlpool.client.wallet.data.walletState.WalletStateSupplier
 import com.samourai.whirlpool.client.wallet.orchestrator.AutoTx0Orchestrator;
 import com.samourai.whirlpool.client.wallet.orchestrator.MixOrchestratorImpl;
 import com.samourai.whirlpool.client.whirlpool.beans.Pool;
+import com.samourai.whirlpool.protocol.WhirlpoolProtocol;
 import com.samourai.whirlpool.protocol.beans.Utxo;
-import com.samourai.whirlpool.protocol.rest.Tx0NotifyRequest;
+import com.samourai.whirlpool.protocol.rest.PushTxErrorResponse;
+import com.samourai.whirlpool.protocol.rest.PushTxSuccessResponse;
+import com.samourai.whirlpool.protocol.rest.Tx0PushRequest;
 import io.reactivex.Completable;
+import io.reactivex.Observable;
 import java.util.Collection;
-import java.util.LinkedList;
-import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 import org.bitcoinj.core.NetworkParameters;
-import org.bitcoinj.core.TransactionOutput;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -207,7 +208,6 @@ public class WhirlpoolWallet {
 
       // notify
       WhirlpoolEventService.getInstance().post(new Tx0Event(this, tx0));
-      notifyCoordinatorTx0Async(tx0.getTx().getHashAsString(), pool.getPoolId()).subscribe();
 
       // refresh new utxos in background
       refreshUtxosDelayAsync().subscribe();
@@ -220,8 +220,8 @@ public class WhirlpoolWallet {
     }
   }
 
-  private Tx0 doTx0(Collection<UnspentOutput> spendFroms, Tx0Config tx0Config, Pool pool)
-      throws Exception {
+  private synchronized Tx0 doTx0(
+      Collection<UnspentOutput> spendFroms, Tx0Config tx0Config, Pool pool) throws Exception {
     Exception tx0Exception = null;
 
     for (int i = 0; i < config.getTx0MaxRetry(); i++) {
@@ -248,36 +248,40 @@ public class WhirlpoolWallet {
         log.debug(tx0.getTx().toString());
       }
 
-      // standard pushTx
-      if (!config.isTx0StrictMode() || !(dataSource instanceof DataSourceWithStrictMode)) {
-        String tx0Hex = ClientUtils.getTxHex(tx0.getTx());
-        pushTx(tx0Hex);
-        return tx0;
-      }
-
-      // pushTx with strict mode and retry on address reuse
+      // pushT to coordinator retry on address reuse
       try {
-        pushTx0StrictMode(tx0);
+        AsyncUtil.blockingSingle(pushTx0(tx0));
         return tx0;
-      } catch (PushTxAddressReuseException e) {
-        List<Integer> addressReuseOutputIndexs = e.getAdressReuseOutputIndexs();
+      } catch (PushTxErrorResponseException e) {
+        PushTxErrorResponse pushTxErrorResponse = e.getPushTxErrorResponse();
+        if (pushTxErrorResponse.voutsAddressReuse == null
+            || pushTxErrorResponse.voutsAddressReuse.isEmpty()) {
+          // not an address-reuse => abort
+          throw e;
+        }
 
         // manage premix address reuses
         Collection<Integer> premixOutputIndexs =
             ClientUtils.getOutputIndexs(tx0.getPremixOutputs());
         boolean isPremixReuse =
-            !ClientUtils.intersect(addressReuseOutputIndexs, premixOutputIndexs).isEmpty();
+            pushTxErrorResponse.voutsAddressReuse != null
+                && !ClientUtils.intersect(pushTxErrorResponse.voutsAddressReuse, premixOutputIndexs)
+                    .isEmpty();
 
         // manage change address reuses
         Collection<Integer> changeOutputIndexs =
             ClientUtils.getOutputIndexs(tx0.getChangeOutputs());
         boolean isChangeReuse =
-            !ClientUtils.intersect(addressReuseOutputIndexs, changeOutputIndexs).isEmpty();
+            pushTxErrorResponse.voutsAddressReuse != null
+                && !ClientUtils.intersect(pushTxErrorResponse.voutsAddressReuse, changeOutputIndexs)
+                    .isEmpty();
 
         // preserve pushTx message and retry with next index
         log.warn(
             "tx0 failed: "
                 + e.getMessage()
+                + ", pushTxErrorCode="
+                + pushTxErrorResponse.pushTxErrorCode
                 + ", attempt="
                 + i
                 + "/"
@@ -299,40 +303,23 @@ public class WhirlpoolWallet {
           getWalletDeposit().getIndexHandlerChange().set(changeIndex, true);
         }
 
-        tx0Exception = new NotifiableException(e.getMessage());
+        tx0Exception = new NotifiableException("PushTX0 failed: " + e.getMessage());
       }
     }
     throw tx0Exception;
   }
 
-  private void pushTx0StrictMode(Tx0 tx0) throws Exception {
-    String tx0Hex = ClientUtils.getTxHex(tx0.getTx());
-
-    List<Integer> strictModeVouts = new LinkedList<Integer>();
-    // strict mode on premix
-    for (TransactionOutput premixOutput : tx0.getPremixOutputs()) {
-      strictModeVouts.add(premixOutput.getIndex());
-    }
-    // strict mode on change
-    for (TransactionOutput changeOutput : tx0.getChangeOutputs()) {
-      strictModeVouts.add(changeOutput.getIndex());
-    }
-    ((DataSourceWithStrictMode) dataSource).pushTx(tx0Hex, strictModeVouts);
+  protected Observable<PushTxSuccessResponse> pushTx0(Tx0 tx0) throws Exception {
+    String tx64 = WhirlpoolProtocol.encodeBytes(tx0.getTx().bitcoinSerialize());
+    String poolId = tx0.getPool().getPoolId();
+    Tx0PushRequest request = new Tx0PushRequest(tx64, poolId);
+    return config.getServerApi().pushTx0(request);
   }
 
   private Collection<UnspentOutput> toUnspentOutputs(Collection<WhirlpoolUtxo> whirlpoolUtxos) {
     return whirlpoolUtxos.stream()
         .map(whirlpoolUtxo -> whirlpoolUtxo.getUtxo())
         .collect(Collectors.<UnspentOutput>toList());
-  }
-
-  private Completable notifyCoordinatorTx0Async(final String txid, final String poolId) {
-    return ClientUtils.runAsync(
-        () -> {
-          Tx0NotifyRequest tx0NotifyRequest = new Tx0NotifyRequest(txid, poolId);
-          config.getServerApi().tx0Notify(tx0NotifyRequest).blockingSingle().get();
-        },
-        "whirlpoolWallet.notifyCoordinatorTx0 " + txid);
   }
 
   public Tx0Config getTx0Config(Tx0FeeTarget tx0FeeTarget, Tx0FeeTarget mixFeeTarget) {
@@ -497,8 +484,8 @@ public class WhirlpoolWallet {
     WhirlpoolEventService.getInstance().post(new WalletStopEvent(this));
   }
 
-  public void pushTx(String txHex) throws Exception {
-    dataSource.pushTx(txHex);
+  public String pushTx(String txHex) throws Exception {
+    return dataSource.pushTx(txHex);
   }
 
   public void mixQueue(WhirlpoolUtxo whirlpoolUtxo) throws NotifiableException {

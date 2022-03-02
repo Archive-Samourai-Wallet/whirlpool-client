@@ -14,7 +14,7 @@ public interface DataSource {
 
   void close() throws Exception;
 
-  void pushTx(String txHex) throws Exception;
+  String pushTx(String txHex) throws Exception;
 
   WalletSupplier getWalletSupplier();
 

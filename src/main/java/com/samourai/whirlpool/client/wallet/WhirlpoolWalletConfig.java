@@ -47,7 +47,6 @@ public class WhirlpoolWalletConfig extends WhirlpoolClientConfig
   private String scode;
   private int tx0MaxOutputs;
   private int tx0MaxRetry;
-  private boolean tx0StrictMode;
   private Map<String, Long> overspend;
 
   private int tx0MinConfirmations;
@@ -103,7 +102,6 @@ public class WhirlpoolWalletConfig extends WhirlpoolClientConfig
     this.scode = null;
     this.tx0MaxOutputs = 0;
     this.tx0MaxRetry = 5;
-    this.tx0StrictMode = true;
     this.overspend = new LinkedHashMap<String, Long>();
 
     // technical settings
@@ -275,14 +273,6 @@ public class WhirlpoolWalletConfig extends WhirlpoolClientConfig
     this.tx0MaxRetry = tx0MaxRetry;
   }
 
-  public boolean isTx0StrictMode() {
-    return tx0StrictMode;
-  }
-
-  public void setTx0StrictMode(boolean tx0StrictMode) {
-    this.tx0StrictMode = tx0StrictMode;
-  }
-
   public Long getOverspend(String poolId) {
     return overspend != null ? overspend.get(poolId) : null;
   }
@@ -448,14 +438,7 @@ public class WhirlpoolWalletConfig extends WhirlpoolClientConfig
             + (scode != null ? ClientUtils.maskString(scode) : "null")
             + ", overspend="
             + (overspend != null ? overspend.toString() : "null"));
-    configInfo.put(
-        "tx0",
-        "tx0MaxOutputs="
-            + tx0MaxOutputs
-            + ", tx0MaxRetry="
-            + tx0MaxRetry
-            + ", tx0StrictMode="
-            + tx0StrictMode);
+    configInfo.put("tx0", "tx0MaxOutputs=" + tx0MaxOutputs + ", tx0MaxRetry=" + tx0MaxRetry);
     configInfo.put(
         "fee", "fallback=" + getFeeFallback() + ", min=" + getFeeMin() + ", max=" + getFeeMax());
     configInfo.put("resyncOnFirstRun", Boolean.toString(resyncOnFirstRun));

@@ -93,8 +93,9 @@ public class UtxoSupplierTest extends AbstractTest {
           }
 
           @Override
-          public void pushTx(String txHex) throws Exception {
+          public String pushTx(String txHex) throws Exception {
             // do nothing
+            return "txid-test";
           }
         };
 

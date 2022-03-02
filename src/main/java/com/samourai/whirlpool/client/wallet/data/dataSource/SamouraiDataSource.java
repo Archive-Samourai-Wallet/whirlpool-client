@@ -16,7 +16,6 @@ import com.samourai.whirlpool.client.wallet.data.dataPersister.DataPersister;
 import com.samourai.whirlpool.client.wallet.data.walletState.WalletStateSupplier;
 import java.util.Collection;
 import java.util.LinkedHashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 import org.slf4j.Logger;
@@ -220,13 +219,13 @@ public class SamouraiDataSource extends WalletResponseDataSource
   }
 
   @Override
-  public void pushTx(String txHex) throws Exception {
-    backendApi.pushTx(txHex);
+  public String pushTx(String txHex) throws Exception {
+    return backendApi.pushTx(txHex);
   }
 
   @Override
-  public void pushTx(String txHex, List<Integer> strictModeVouts) throws Exception {
-    backendApi.pushTx(txHex, strictModeVouts);
+  public String pushTx(String txHex, Collection<Integer> strictModeVouts) throws Exception {
+    return backendApi.pushTx(txHex, strictModeVouts);
   }
 
   public BackendApi getBackendApi() {

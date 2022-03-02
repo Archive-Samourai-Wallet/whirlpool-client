@@ -1,8 +1,8 @@
 package com.samourai.whirlpool.client.wallet.data.dataSource;
 
-import java.util.List;
+import java.util.Collection;
 
 public interface DataSourceWithStrictMode {
 
-  void pushTx(String txHex, List<Integer> strictModeVouts) throws Exception;
+  String pushTx(String txHex, Collection<Integer> strictModeVouts) throws Exception;
 }

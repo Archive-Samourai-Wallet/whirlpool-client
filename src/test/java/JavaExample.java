@@ -145,8 +145,9 @@ public class JavaExample {
           }
 
           @Override
-          public void pushTx(String txHex) throws Exception {
+          public String pushTx(String txHex) throws Exception {
             // provide pushTx service here
+            return "txid";
           }
         };
       };
