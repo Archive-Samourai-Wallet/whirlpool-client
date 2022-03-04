@@ -115,12 +115,7 @@ public abstract class WalletResponseDataSource implements DataSource {
       BipFormatSupplier bipFormatSupplier)
       throws Exception {
     return new BasicUtxoSupplier(
-        walletSupplier,
-        utxoConfigSupplier,
-        chainSupplier,
-        poolSupplier,
-        bipFormatSupplier,
-        whirlpoolWallet.getConfig().getNetworkParameters()) {
+        walletSupplier, utxoConfigSupplier, chainSupplier, poolSupplier, bipFormatSupplier) {
       @Override
       public void refresh() throws Exception {
         WalletResponseDataSource.this.refresh();

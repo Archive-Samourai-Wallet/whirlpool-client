@@ -21,8 +21,12 @@ public class MockUtxoKeyProvider implements UtxoKeyProvider {
   }
 
   @Override
-  public ECKey _getPrivKey(String utxoHash, int utxoIndex) throws Exception {
-    return keys.get(utxoHash + ":" + utxoIndex);
+  public byte[] _getPrivKey(String utxoHash, int utxoIndex) throws Exception {
+    ECKey ecKey = keys.get(utxoHash + ":" + utxoIndex);
+    if (ecKey == null) {
+      return null;
+    }
+    return ecKey.getPrivKeyBytes();
   }
 
   @Override

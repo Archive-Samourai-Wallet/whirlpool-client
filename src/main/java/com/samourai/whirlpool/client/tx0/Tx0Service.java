@@ -115,16 +115,12 @@ public class Tx0Service {
 
     // compute feePayloadMasked
     UnspentOutput firstInput = sortedSpendFroms.get(0);
-    ECKey firstInputKey = utxoKeyProvider._getPrivKey(firstInput.tx_hash, firstInput.tx_output_n);
+    byte[] firstInputKey = utxoKeyProvider._getPrivKey(firstInput.tx_hash, firstInput.tx_output_n);
     String feePaymentCode = tx0Data.getFeePaymentCode();
     byte[] feePayload = tx0Data.getFeePayload();
     byte[] feePayloadMasked =
         xorMask.mask(
-            feePayload,
-            feePaymentCode,
-            params,
-            firstInputKey.getPrivKeyBytes(),
-            firstInput.computeOutpoint(params));
+            feePayload, feePaymentCode, params, firstInputKey, firstInput.computeOutpoint(params));
     if (log.isDebugEnabled()) {
       log.debug("feePayloadHex=" + Hex.toHexString(feePayload));
     }

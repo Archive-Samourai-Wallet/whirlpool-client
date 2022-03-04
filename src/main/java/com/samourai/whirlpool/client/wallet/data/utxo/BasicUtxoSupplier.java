@@ -21,7 +21,6 @@ import java.util.Collection;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.stream.Collectors;
-import org.bitcoinj.core.ECKey;
 import org.bitcoinj.core.NetworkParameters;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -35,7 +34,6 @@ public abstract class BasicUtxoSupplier extends BasicSupplier<UtxoData>
   private final ChainSupplier chainSupplier;
   private final PoolSupplier poolSupplier;
   private final BipFormatSupplier bipFormatSupplier;
-  private NetworkParameters params;
 
   private Map<String, WhirlpoolUtxo> previousUtxos;
 
@@ -44,8 +42,7 @@ public abstract class BasicUtxoSupplier extends BasicSupplier<UtxoData>
       UtxoConfigSupplier utxoConfigSupplier,
       ChainSupplier chainSupplier,
       PoolSupplier poolSupplier,
-      BipFormatSupplier bipFormatSupplier,
-      NetworkParameters params)
+      BipFormatSupplier bipFormatSupplier)
       throws Exception {
     super(log);
     this.previousUtxos = null;
@@ -54,7 +51,6 @@ public abstract class BasicUtxoSupplier extends BasicSupplier<UtxoData>
     this.chainSupplier = chainSupplier;
     this.poolSupplier = poolSupplier;
     this.bipFormatSupplier = bipFormatSupplier;
-    this.params = params;
   }
 
   public abstract void refresh() throws Exception;
@@ -157,13 +153,13 @@ public abstract class BasicUtxoSupplier extends BasicSupplier<UtxoData>
     return toUTXOs(findUtxos(account));
   }
 
-  public ECKey _getPrivKeyBip47(WhirlpoolUtxo whirlpoolUtxo) throws Exception {
+  public byte[] _getPrivKeyBip47(WhirlpoolUtxo whirlpoolUtxo) throws Exception {
     // override this to support bip47
     throw new NotifiableException("No privkey found for utxo: " + whirlpoolUtxo);
   }
 
   @Override
-  public ECKey _getPrivKey(String utxoHash, int utxoIndex) throws Exception {
+  public byte[] _getPrivKey(String utxoHash, int utxoIndex) throws Exception {
     WhirlpoolUtxo whirlpoolUtxo = findUtxo(utxoHash, utxoIndex);
     if (whirlpoolUtxo == null) {
       throw new Exception("Utxo not found: " + utxoHash + ":" + utxoIndex);
@@ -172,7 +168,7 @@ public abstract class BasicUtxoSupplier extends BasicSupplier<UtxoData>
       // bip47
       return _getPrivKeyBip47(whirlpoolUtxo);
     }
-    return whirlpoolUtxo.getBipAddress().getHdAddress().getECKey();
+    return whirlpoolUtxo.getBipAddress().getHdAddress().getECKey().getPrivKeyBytes();
   }
 
   @Override
@@ -208,6 +204,7 @@ public abstract class BasicUtxoSupplier extends BasicSupplier<UtxoData>
     // group utxos by script = same address
     Map<String, UTXO> utxoByScript = new LinkedHashMap<String, UTXO>();
     for (WhirlpoolUtxo whirlpoolUtxo : whirlpoolUtxos) {
+      NetworkParameters params = whirlpoolUtxo.getBipWallet().getParams();
       MyTransactionOutPoint outPoint = whirlpoolUtxo.getUtxo().computeOutpoint(params);
       String script = whirlpoolUtxo.getUtxo().script;
 
