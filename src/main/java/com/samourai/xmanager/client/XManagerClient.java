@@ -16,6 +16,7 @@ public class XManagerClient {
   private static final Logger log = LoggerFactory.getLogger(XManagerClient.class);
   private static final XManagerProtocol protocol = XManagerProtocol.getInstance();
   private static final FormatsUtilGeneric formatUtils = FormatsUtilGeneric.getInstance();
+  private static final AsyncUtil asyncUtil = AsyncUtil.getInstance();
 
   private String serverUrl;
   private boolean testnet;
@@ -41,7 +42,7 @@ public class XManagerClient {
     String address = null;
     try {
       Observable<Optional<AddressResponse>> responseObservable = getAddressResponse(service);
-      address = AsyncUtil.blockingSingle(responseObservable).get().address;
+      address = asyncUtil.blockingSingle(responseObservable).get().address;
     } catch (Exception e) {
       log.error("getAddressResponse(" + service.name() + ") failed", e);
     }
@@ -69,7 +70,7 @@ public class XManagerClient {
     try {
       Observable<Optional<AddressIndexResponse>> responseObservable =
           getAddressIndexResponse(service);
-      response = AsyncUtil.blockingSingle(responseObservable).get();
+      response = asyncUtil.blockingSingle(responseObservable).get();
     } catch (Exception e) {
       log.error("getAddressIndexResponse(" + service.name() + ") failed", e);
     }
@@ -103,7 +104,7 @@ public class XManagerClient {
     try {
       Observable<Optional<VerifyAddressIndexResponse>> responseObservable =
           verifyAddressIndexResponseAsync(service, address, index);
-      return AsyncUtil.blockingSingle(responseObservable).get().valid;
+      return asyncUtil.blockingSingle(responseObservable).get().valid;
     } catch (Exception e) {
       log.error("verifyAddressIndexResponse(" + service.name() + ") failed", e);
       throw e;

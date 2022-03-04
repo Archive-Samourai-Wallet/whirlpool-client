@@ -8,6 +8,7 @@ import com.samourai.wallet.api.backend.beans.WalletResponse;
 import com.samourai.wallet.hd.HD_Address;
 import com.samourai.wallet.hd.HD_WalletFactoryGeneric;
 import com.samourai.wallet.segwit.bech32.Bech32UtilGeneric;
+import com.samourai.wallet.util.AsyncUtil;
 import com.samourai.whirlpool.client.tx0.ITx0PreviewServiceConfig;
 import com.samourai.whirlpool.client.tx0.Tx0PreviewService;
 import com.samourai.whirlpool.client.utils.ClientUtils;
@@ -47,6 +48,7 @@ public class AbstractTest {
   protected NetworkParameters params = TestNet3Params.get();
   protected HD_WalletFactoryGeneric hdWalletFactory = HD_WalletFactoryGeneric.getInstance();
   protected Bech32UtilGeneric bech32Util = Bech32UtilGeneric.getInstance();
+  protected AsyncUtil asyncUtil = AsyncUtil.getInstance();
   protected Pool pool01btc;
   protected Pool pool05btc;
   protected Pool pool001btc;

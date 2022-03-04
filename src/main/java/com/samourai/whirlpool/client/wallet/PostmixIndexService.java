@@ -39,7 +39,8 @@ public class PostmixIndexService {
             postmixIndexHandler, config.getIndexRangePostmix());
 
     try {
-      AsyncUtil.blockingSingle(checkPostmixIndexAsync(walletPostmix, postmixIndex))
+      AsyncUtil.getInstance()
+          .blockingSingle(checkPostmixIndexAsync(walletPostmix, postmixIndex))
           .get(); // throws on error
     } finally {
       postmixIndexHandler.cancelUnconfirmed(postmixIndex);
@@ -112,7 +113,9 @@ public class PostmixIndexService {
         }
 
         // check next output
-        AsyncUtil.blockingSingle(checkPostmixIndexAsync(walletPostmix, postmixIndex)).get();
+        AsyncUtil.getInstance()
+            .blockingSingle(checkPostmixIndexAsync(walletPostmix, postmixIndex))
+            .get();
 
         // success!
         if (log.isDebugEnabled()) {

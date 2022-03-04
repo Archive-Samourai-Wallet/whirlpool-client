@@ -7,6 +7,7 @@ import com.samourai.wallet.api.backend.beans.HttpException;
 import com.samourai.wallet.api.backend.beans.UnspentOutput;
 import com.samourai.wallet.client.indexHandler.IIndexHandler;
 import com.samourai.wallet.segwit.bech32.Bech32UtilGeneric;
+import com.samourai.wallet.util.AsyncUtil;
 import com.samourai.wallet.util.CallbackWithArg;
 import com.samourai.wallet.util.FeeUtil;
 import com.samourai.wallet.util.FormatsUtilGeneric;
@@ -16,8 +17,6 @@ import com.samourai.whirlpool.protocol.WhirlpoolProtocol;
 import com.samourai.whirlpool.protocol.beans.Utxo;
 import com.samourai.whirlpool.protocol.rest.RestErrorResponse;
 import io.reactivex.Completable;
-import io.reactivex.functions.Action;
-import io.reactivex.schedulers.Schedulers;
 import java.io.File;
 import java.io.RandomAccessFile;
 import java.nio.channels.FileChannel;
@@ -179,17 +178,18 @@ public class ClientUtils {
   }
 
   public static Completable sleepUtxosDelayAsync(final NetworkParameters params) {
-    return runAsync(
-        () -> {
-          // wait for delay
-          boolean isTestnet = FormatsUtilGeneric.getInstance().isTestNet(params);
-          int sleepDelay = isTestnet ? SLEEP_REFRESH_UTXOS_TESTNET : SLEEP_REFRESH_UTXOS_MAINNET;
-          try {
-            Thread.sleep(sleepDelay);
-          } catch (InterruptedException e) {
-          }
-        },
-        "sleepUtxosDelay");
+    return AsyncUtil.getInstance()
+        .runIOAsyncCompletable(
+            () -> {
+              // wait for delay
+              boolean isTestnet = FormatsUtilGeneric.getInstance().isTestNet(params);
+              int sleepDelay =
+                  isTestnet ? SLEEP_REFRESH_UTXOS_TESTNET : SLEEP_REFRESH_UTXOS_MAINNET;
+              try {
+                Thread.sleep(sleepDelay);
+              } catch (InterruptedException e) {
+              }
+            });
   }
 
   public static String sha256Hash(String str) {
@@ -386,25 +386,5 @@ public class ClientUtils {
 
   public static long bytesToMB(long bytes) {
     return Math.round(bytes / (1024L * 1024L));
-  }
-
-  public static Completable runAsync(final Action action, final String taskName) {
-    Completable completable =
-        Completable.fromAction(
-                () -> {
-                  if (log.isDebugEnabled()) {
-                    log.debug("=> runAsync starting " + taskName);
-                  }
-                  action.run();
-                })
-            .subscribeOn(Schedulers.io())
-            .doOnComplete(
-                () -> {
-                  if (log.isDebugEnabled()) {
-                    log.debug("<= runAsync completed " + taskName);
-                  }
-                })
-            .doOnError(e -> log.error("<= runAsync failed " + taskName, e));
-    return completable;
   }
 }

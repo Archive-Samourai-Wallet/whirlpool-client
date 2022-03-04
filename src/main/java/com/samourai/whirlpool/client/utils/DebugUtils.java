@@ -69,10 +69,8 @@ public class DebugUtils {
       for (BipWallet wallet : whirlpoolWallet.getWalletSupplier().getWallets(account)) {
         NetworkParameters params = wallet.getParams();
         utxos = whirlpoolWallet.getUtxoSupplier().findUtxos(wallet.getBipFormat(), account);
-        String nextAddressReceive =
-            whirlpoolWallet.getWalletDeposit().getNextAddress(false).getAddressString();
-        String nextAddressChange =
-            whirlpoolWallet.getWalletDeposit().getNextChangeAddress(false).getAddressString();
+        String nextAddressReceive = wallet.getNextAddress(false).getAddressString();
+        String nextAddressChange = wallet.getNextChangeAddress(false).getAddressString();
         sb.append(
             "     + "
                 + wallet.getId()
@@ -81,16 +79,14 @@ public class DebugUtils {
                 + ", bipFormat="
                 + wallet.getBipFormat().getId()
                 + ", "
-                + ", pub="
-                + ClientUtils.maskString(
-                    wallet.getPub()
-                        + ", nextAddressReceive="
-                        + nextAddressReceive
-                        + ", nextAddressChange="
-                        + nextAddressChange)
-                + ": "
                 + utxos.size()
-                + " utxos");
+                + " utxos"
+                + ", pub="
+                + ClientUtils.maskString(wallet.getPub())
+                + ", nextAddressReceive="
+                + nextAddressReceive
+                + ", nextAddressChange="
+                + nextAddressChange);
 
         for (Chain chain : Chain.values()) {
           int index = wallet.getIndexHandler(chain).get();

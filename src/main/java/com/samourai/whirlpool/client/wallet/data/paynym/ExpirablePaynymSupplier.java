@@ -21,6 +21,7 @@ import org.slf4j.LoggerFactory;
 public class ExpirablePaynymSupplier extends ExpirableSupplier<PaynymState>
     implements PaynymSupplier {
   private static final Logger log = LoggerFactory.getLogger(ExpirablePaynymSupplier.class);
+  private static final AsyncUtil asyncUtil = AsyncUtil.getInstance();
 
   private BIP47Wallet bip47Wallet;
   private PaynymApi paynymApi;
@@ -71,7 +72,7 @@ public class ExpirablePaynymSupplier extends ExpirableSupplier<PaynymState>
       log.debug("fetching...");
     }
     try {
-      return AsyncUtil.blockingSingle(
+      return asyncUtil.blockingSingle(
           paynymApi
               .getNymInfo(paymentCode)
               .map(
@@ -102,7 +103,7 @@ public class ExpirablePaynymSupplier extends ExpirableSupplier<PaynymState>
 
   protected synchronized String getToken() throws Exception {
     if (token == null) {
-      token = AsyncUtil.blockingSingle(paynymApi.getToken(paymentCode));
+      token = asyncUtil.blockingSingle(paynymApi.getToken(paymentCode));
     }
     return token;
   }
@@ -118,14 +119,14 @@ public class ExpirablePaynymSupplier extends ExpirableSupplier<PaynymState>
                   String myToken = getToken();
 
                   // claim
-                  AsyncUtil.blockingSingle(paynymApi.claim(myToken, bip47Wallet));
+                  asyncUtil.blockingSingle(paynymApi.claim(myToken, bip47Wallet));
                 })
             .doOnComplete(
                 () -> {
                   String myToken = getToken();
 
                   // add
-                  AsyncUtil.blockingSingle(paynymApi.addPaynym(myToken, bip47Wallet));
+                  asyncUtil.blockingSingle(paynymApi.addPaynym(myToken, bip47Wallet));
                 })
             .doOnComplete(
                 () -> {

@@ -3,6 +3,7 @@ package com.samourai.whirlpool.client.mix.dialog;
 import com.samourai.stomp.client.IStompClient;
 import com.samourai.stomp.client.IStompTransportListener;
 import com.samourai.stomp.client.StompTransport;
+import com.samourai.wallet.util.AsyncUtil;
 import com.samourai.wallet.util.MessageErrorListener;
 import com.samourai.wallet.util.RandomUtil;
 import com.samourai.whirlpool.client.exception.NotifiableException;
@@ -14,7 +15,6 @@ import com.samourai.whirlpool.protocol.websocket.MixMessage;
 import com.samourai.whirlpool.protocol.websocket.messages.RegisterInputRequest;
 import com.samourai.whirlpool.protocol.websocket.messages.SubscribePoolResponse;
 import io.reactivex.Completable;
-import io.reactivex.functions.Action;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -306,19 +306,16 @@ public class MixSession {
 
   protected Completable waitAndReconnectAsync(final int reconnectDelay) {
     // reconnect after delay
-    return ClientUtils.runAsync(
-        new Action() {
-          @Override
-          public synchronized void run() {
-            try {
-              wait(reconnectDelay);
-            } catch (Exception e) {
-              log.error("", e);
-            }
-            connect();
-          }
-        },
-        "mixSession.waitAndReconnectAsync");
+    return AsyncUtil.getInstance()
+        .runIOAsyncCompletable(
+            () -> {
+              try {
+                wait(reconnectDelay);
+              } catch (Exception e) {
+                log.error("", e);
+              }
+              connect();
+            });
   }
 
   //

@@ -52,6 +52,7 @@ import org.slf4j.LoggerFactory;
 
 public class WhirlpoolWallet {
   private final Logger log = LoggerFactory.getLogger(WhirlpoolWallet.class);
+  private static final AsyncUtil asyncUtil = AsyncUtil.getInstance();
 
   private String walletIdentifier;
   private WhirlpoolWalletConfig config;
@@ -250,7 +251,7 @@ public class WhirlpoolWallet {
 
       // pushT to coordinator retry on address reuse
       try {
-        AsyncUtil.blockingSingle(pushTx0(tx0));
+        asyncUtil.blockingSingle(pushTx0(tx0));
         return tx0;
       } catch (PushTxErrorResponseException e) {
         PushTxErrorResponse pushTxErrorResponse = e.getPushTxErrorResponse();
@@ -692,12 +693,11 @@ public class WhirlpoolWallet {
 
   /** Refresh utxos now */
   public Completable refreshUtxosAsync() {
-    return ClientUtils.runAsync(
-        () -> getUtxoSupplier().refresh(), "whirlpoolWallet.refreshUtxosAsync");
+    return asyncUtil.runIOAsyncCompletable(() -> getUtxoSupplier().refresh());
   }
 
   public synchronized Completable checkPostmixIndexAsync() {
-    return ClientUtils.runAsync(
+    return asyncUtil.runIOAsyncCompletable(
         () -> {
           if (!config.isPostmixIndexCheck()) {
             // check disabled
@@ -706,8 +706,7 @@ public class WhirlpoolWallet {
           }
 
           doCheckPostmixIndex();
-        },
-        "whirlpoolWallet.checkPostmixIndex");
+        });
   }
 
   protected void doCheckPostmixIndex() throws Exception {
