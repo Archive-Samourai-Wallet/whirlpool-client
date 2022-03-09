@@ -77,7 +77,11 @@ public class UtxoSupplierTest extends AbstractTest {
     dataPersister.load();
     dataPersister.open();
     dataSource =
-        new WalletResponseDataSource(whirlpoolWallet, bip44w, dataPersister) {
+        new WalletResponseDataSource(
+            whirlpoolWallet,
+            bip44w,
+            dataPersister.getWalletStateSupplier(),
+            dataPersister.getUtxoConfigSupplier()) {
           @Override
           protected WalletResponse fetchWalletResponse() throws Exception {
             if (mockException) {

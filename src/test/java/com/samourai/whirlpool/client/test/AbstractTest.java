@@ -14,7 +14,7 @@ import com.samourai.whirlpool.client.tx0.Tx0PreviewService;
 import com.samourai.whirlpool.client.utils.ClientUtils;
 import com.samourai.whirlpool.client.wallet.WhirlpoolWalletConfig;
 import com.samourai.whirlpool.client.wallet.data.dataSource.DataSourceFactory;
-import com.samourai.whirlpool.client.wallet.data.dataSource.SamouraiDataSourceFactory;
+import com.samourai.whirlpool.client.wallet.data.dataSource.DojoDataSourceFactory;
 import com.samourai.whirlpool.client.wallet.data.minerFee.BasicMinerFeeSupplier;
 import com.samourai.whirlpool.client.wallet.data.minerFee.MinerFeeSupplier;
 import com.samourai.whirlpool.client.wallet.data.pool.ExpirablePoolSupplier;
@@ -214,7 +214,7 @@ public class AbstractTest {
 
   protected WhirlpoolWalletConfig computeWhirlpoolWalletConfig(ServerApi serverApi) {
     DataSourceFactory dataSourceFactory =
-        new SamouraiDataSourceFactory(BackendServer.TESTNET, false, null);
+        new DojoDataSourceFactory(BackendServer.TESTNET, false, null);
     IHttpClientService httpClientService =
         new IHttpClientService() {
           @Override

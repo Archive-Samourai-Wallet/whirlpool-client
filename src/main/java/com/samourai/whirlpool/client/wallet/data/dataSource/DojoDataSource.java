@@ -12,7 +12,7 @@ import com.samourai.whirlpool.client.wallet.WhirlpoolWallet;
 import com.samourai.whirlpool.client.wallet.beans.MixableStatus;
 import com.samourai.whirlpool.client.wallet.beans.WhirlpoolAccount;
 import com.samourai.whirlpool.client.wallet.beans.WhirlpoolUtxo;
-import com.samourai.whirlpool.client.wallet.data.dataPersister.DataPersister;
+import com.samourai.whirlpool.client.wallet.data.utxoConfig.UtxoConfigSupplier;
 import com.samourai.whirlpool.client.wallet.data.walletState.WalletStateSupplier;
 import java.util.Collection;
 import java.util.LinkedHashMap;
@@ -22,9 +22,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /** DataSource for Samourai/Dojo backend. */
-public class SamouraiDataSource extends WalletResponseDataSource
-    implements DataSourceWithStrictMode {
-  private static final Logger log = LoggerFactory.getLogger(SamouraiDataSource.class);
+public class DojoDataSource extends WalletResponseDataSource implements DataSourceWithStrictMode {
+  private static final Logger log = LoggerFactory.getLogger(DojoDataSource.class);
 
   private static final int INITWALLET_RETRY = 3;
   private static final int INITWALLET_RETRY_TIMEOUT = 3000;
@@ -33,14 +32,15 @@ public class SamouraiDataSource extends WalletResponseDataSource
   private BackendApi backendApi;
   private BackendWsApi backendWsApi; // may be null
 
-  public SamouraiDataSource(
+  public DojoDataSource(
       WhirlpoolWallet whirlpoolWallet,
       HD_Wallet bip44w,
-      DataPersister dataPersister,
+      WalletStateSupplier walletStateSupplier,
+      UtxoConfigSupplier utxoConfigSupplier,
       BackendApi backendApi,
       BackendWsApi backendWsApi)
       throws Exception {
-    super(whirlpoolWallet, bip44w, dataPersister);
+    super(whirlpoolWallet, bip44w, walletStateSupplier, utxoConfigSupplier);
 
     this.backendApi = backendApi;
     this.backendWsApi = backendWsApi;
@@ -48,8 +48,7 @@ public class SamouraiDataSource extends WalletResponseDataSource
 
   @Override
   protected void load(boolean initial) throws Exception {
-    WalletStateSupplier walletStateSupplier = getDataPersister().getWalletStateSupplier();
-    boolean isInitialized = walletStateSupplier.isInitialized();
+    boolean isInitialized = getWalletStateSupplier().isInitialized();
 
     // initialize wallet BEFORE loading
     if (initial && !isInitialized) {
@@ -58,7 +57,7 @@ public class SamouraiDataSource extends WalletResponseDataSource
       for (String pub : activePubs) {
         initWallet(pub);
       }
-      walletStateSupplier.setInitialized(true);
+      getWalletStateSupplier().setInitialized(true);
     }
 
     // load

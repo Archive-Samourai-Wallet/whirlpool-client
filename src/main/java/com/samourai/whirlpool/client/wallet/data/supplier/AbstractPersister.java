@@ -2,7 +2,7 @@ package com.samourai.whirlpool.client.wallet.data.supplier;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.samourai.whirlpool.client.utils.ClientUtils;
+import com.samourai.wallet.util.SystemUtil;
 import java.io.File;
 import org.slf4j.Logger;
 
@@ -63,7 +63,7 @@ public abstract class AbstractPersister<D extends PersistableData, P> {
 
     // write json
     P persisted = toPersisted(data);
-    ClientUtils.safeWriteValue(mapper, persisted, file);
+    SystemUtil.safeWriteValue(file, mapper, persisted);
   }
 
   private File getFile() throws Exception {

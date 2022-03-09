@@ -15,7 +15,7 @@ import com.samourai.whirlpool.client.wallet.beans.Tx0FeeTarget;
 import com.samourai.whirlpool.client.wallet.beans.WhirlpoolAccount;
 import com.samourai.whirlpool.client.wallet.beans.WhirlpoolServer;
 import com.samourai.whirlpool.client.wallet.data.dataSource.DataSourceFactory;
-import com.samourai.whirlpool.client.wallet.data.dataSource.SamouraiDataSourceFactory;
+import com.samourai.whirlpool.client.wallet.data.dataSource.DojoDataSourceFactory;
 import com.samourai.whirlpool.client.whirlpool.beans.Tx0Data;
 import com.samourai.whirlpool.protocol.WhirlpoolProtocol;
 import java.nio.ByteBuffer;
@@ -47,7 +47,7 @@ public class Tx0ServiceTest extends AbstractTest {
   public void setup() throws Exception {
     WhirlpoolServer server = WhirlpoolServer.LOCAL_TESTNET;
     DataSourceFactory dataSourceFactory =
-        new SamouraiDataSourceFactory(BackendServer.TESTNET, false, null);
+        new DojoDataSourceFactory(BackendServer.TESTNET, false, null);
     config =
         new WhirlpoolWalletConfig(
             dataSourceFactory, null, null, null, null, server.getParams(), false);

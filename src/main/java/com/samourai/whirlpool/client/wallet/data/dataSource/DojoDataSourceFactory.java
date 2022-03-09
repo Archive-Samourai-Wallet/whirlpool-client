@@ -3,17 +3,15 @@ package com.samourai.whirlpool.client.wallet.data.dataSource;
 import com.samourai.http.client.HttpUsage;
 import com.samourai.http.client.IHttpClient;
 import com.samourai.wallet.api.backend.BackendApi;
-import com.samourai.wallet.api.backend.BackendOAuthApi;
+import com.samourai.wallet.api.backend.BackendServer;
 import com.samourai.wallet.api.backend.websocket.BackendWsApi;
 import com.samourai.wallet.hd.HD_Wallet;
-import com.samourai.wallet.util.oauth.OAuthApi;
-import com.samourai.wallet.util.oauth.OAuthManager;
-import com.samourai.wallet.util.oauth.OAuthManagerJava;
 import com.samourai.websocket.client.IWebsocketClient;
 import com.samourai.whirlpool.client.exception.NotifiableException;
 import com.samourai.whirlpool.client.wallet.WhirlpoolWallet;
 import com.samourai.whirlpool.client.wallet.WhirlpoolWalletConfig;
-import com.samourai.whirlpool.client.wallet.data.dataPersister.DataPersister;
+import com.samourai.whirlpool.client.wallet.data.utxoConfig.UtxoConfigSupplier;
+import com.samourai.whirlpool.client.wallet.data.walletState.WalletStateSupplier;
 
 public class DojoDataSourceFactory implements DataSourceFactory {
   private String dojoUrl;
@@ -26,6 +24,12 @@ public class DojoDataSourceFactory implements DataSourceFactory {
     this.wsClient = wsClient;
   }
 
+  // Samourai backend
+  public DojoDataSourceFactory(
+      BackendServer backendServer, boolean onion, final IWebsocketClient wsClient) {
+    this(backendServer.getBackendUrl(onion), null, wsClient);
+  }
+
   // overridable
   protected String computeDojoApiKey(WhirlpoolWallet whirlpoolWallet, HD_Wallet bip44w)
       throws Exception {
@@ -34,26 +38,31 @@ public class DojoDataSourceFactory implements DataSourceFactory {
 
   @Override
   public DataSource createDataSource(
-      WhirlpoolWallet whirlpoolWallet, HD_Wallet bip44w, DataPersister dataPersister)
+      WhirlpoolWallet whirlpoolWallet,
+      HD_Wallet bip44w,
+      WalletStateSupplier walletStateSupplier,
+      UtxoConfigSupplier utxoConfigSupplier)
       throws Exception {
     WhirlpoolWalletConfig config = whirlpoolWallet.getConfig();
     IHttpClient httpClientBackend = config.getHttpClient(HttpUsage.BACKEND);
 
-    // configure OAuth
-    OAuthManager oAuthManager = null;
+    // configure backendApi
     String myDojoApiKey = computeDojoApiKey(whirlpoolWallet, bip44w);
+    BackendApi backendApi;
     if (myDojoApiKey != null) {
-      OAuthApi backendOAuthApi = new BackendOAuthApi(httpClientBackend, dojoUrl);
-      oAuthManager = new OAuthManagerJava(myDojoApiKey, backendOAuthApi);
+      // dojo
+      backendApi = BackendApi.newBackendApiDojo(httpClientBackend, dojoUrl, myDojoApiKey);
+    } else {
+      // samourai
+      backendApi = BackendApi.newBackendApiSamourai(httpClientBackend, dojoUrl);
     }
 
-    // configure Samourai/Dojo backend
-    BackendApi backendApi = new BackendApi(httpClientBackend, dojoUrl, oAuthManager);
-    BackendWsApi backendWsApi =
-        wsClient != null ? new BackendWsApi(wsClient, dojoUrl, oAuthManager) : null;
+    // configure backendWsApi
+    BackendWsApi backendWsApi = wsClient != null ? backendApi.newBackendWsApi(wsClient) : null;
     checkConnectivity(backendApi, backendWsApi);
 
-    return new SamouraiDataSource(whirlpoolWallet, bip44w, dataPersister, backendApi, backendWsApi);
+    return new DojoDataSource(
+        whirlpoolWallet, bip44w, walletStateSupplier, utxoConfigSupplier, backendApi, backendWsApi);
   }
 
   protected void checkConnectivity(BackendApi backendApi, BackendWsApi backendWsApi)

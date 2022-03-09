@@ -345,7 +345,14 @@ public class WhirlpoolWallet {
 
     // instanciate data
     this.dataPersister = config.getDataPersisterFactory().createDataPersister(this, bip44w);
-    this.dataSource = config.getDataSourceFactory().createDataSource(this, bip44w, dataPersister);
+    this.dataSource =
+        config
+            .getDataSourceFactory()
+            .createDataSource(
+                this,
+                bip44w,
+                dataPersister.getWalletStateSupplier(),
+                dataPersister.getUtxoConfigSupplier());
     this.tx0Service = new Tx0Service(config, dataSource.getTx0PreviewService());
     this.paynymSupplier = dataSource.getPaynymSupplier();
 

@@ -2,15 +2,11 @@ package com.samourai.whirlpool.client.utils;
 
 import ch.qos.logback.classic.Level;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.google.common.io.Files;
 import com.samourai.wallet.api.backend.beans.HttpException;
 import com.samourai.wallet.api.backend.beans.UnspentOutput;
 import com.samourai.wallet.client.indexHandler.IIndexHandler;
 import com.samourai.wallet.segwit.bech32.Bech32UtilGeneric;
-import com.samourai.wallet.util.AsyncUtil;
-import com.samourai.wallet.util.CallbackWithArg;
-import com.samourai.wallet.util.FeeUtil;
-import com.samourai.wallet.util.FormatsUtilGeneric;
+import com.samourai.wallet.util.*;
 import com.samourai.whirlpool.client.exception.NotifiableException;
 import com.samourai.whirlpool.client.wallet.beans.IndexRange;
 import com.samourai.whirlpool.protocol.WhirlpoolProtocol;
@@ -18,9 +14,6 @@ import com.samourai.whirlpool.protocol.beans.Utxo;
 import com.samourai.whirlpool.protocol.rest.RestErrorResponse;
 import io.reactivex.Completable;
 import java.io.File;
-import java.io.RandomAccessFile;
-import java.nio.channels.FileChannel;
-import java.nio.channels.FileLock;
 import java.security.KeyFactory;
 import java.security.SecureRandom;
 import java.security.interfaces.RSAPublicKey;
@@ -216,64 +209,6 @@ public class ClientUtils {
         + value.substring(Math.max(0, value.length() - startEnd), value.length());
   }
 
-  public static void safeWrite(File file, CallbackWithArg<File> callback) throws Exception {
-    if (!file.exists()) {
-      file.createNewFile();
-    }
-    FileLock fileLock = lockFile(file);
-
-    File tempFile = null;
-    try {
-
-      try {
-        // write to temp file (in same directory)
-        tempFile = new File(file.getParent(), file.getName() + ".tmp");
-        callback.apply(tempFile);
-      } finally {
-        // unlock before rename
-        unlockFile(fileLock);
-      }
-
-      // rename
-      Files.move(tempFile, file);
-    } catch (Exception e) {
-      log.error(
-          "safeWrite failed for "
-              + (tempFile != null ? tempFile.getAbsolutePath() : "null")
-              + " ->"
-              + file.getAbsolutePath());
-      throw e;
-    }
-  }
-
-  public static void safeWriteValue(final ObjectMapper mapper, final Object value, final File file)
-      throws Exception {
-    CallbackWithArg<File> callback = tempFile -> mapper.writeValue(tempFile, value);
-    safeWrite(file, callback);
-  }
-
-  public static FileLock lockFile(File f) throws Exception {
-    return lockFile(
-        f,
-        "Cannot lock file "
-            + f.getAbsolutePath()
-            + ". Make sure no other Whirlpool instance is running in same directory.");
-  }
-
-  public static FileLock lockFile(File f, String errorMsg) throws Exception {
-    FileChannel channel = new RandomAccessFile(f, "rw").getChannel();
-    FileLock fileLock = channel.tryLock(); // exclusive lock
-    if (fileLock == null) {
-      throw new NotifiableException(errorMsg);
-    }
-    return fileLock; // success
-  }
-
-  public static void unlockFile(FileLock fileLock) throws Exception {
-    fileLock.release();
-    fileLock.channel().close();
-  }
-
   public static void setLogLevel(Level mainLevel, Level subLevel) {
     LogbackUtils.setLogLevel("com.samourai", mainLevel.toString());
 
@@ -341,15 +276,11 @@ public class ClientUtils {
   }
 
   public static void createFile(File f) throws NotifiableException {
-    if (!f.exists()) {
-      if (log.isDebugEnabled()) {
-        log.debug("Creating file " + f.getAbsolutePath());
-      }
-      try {
-        f.createNewFile();
-      } catch (Exception e) {
-        throw new NotifiableException("Unable to write file " + f.getAbsolutePath());
-      }
+    try {
+      SystemUtil.createFile(f);
+    } catch (Exception e) {
+      log.error("", e);
+      throw new NotifiableException(e.getMessage());
     }
   }
 

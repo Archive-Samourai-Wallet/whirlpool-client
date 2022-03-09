@@ -15,7 +15,6 @@ import com.samourai.whirlpool.client.wallet.WhirlpoolWalletConfig;
 import com.samourai.whirlpool.client.wallet.data.chain.BasicChainSupplier;
 import com.samourai.whirlpool.client.wallet.data.chain.ChainData;
 import com.samourai.whirlpool.client.wallet.data.chain.ChainSupplier;
-import com.samourai.whirlpool.client.wallet.data.dataPersister.DataPersister;
 import com.samourai.whirlpool.client.wallet.data.minerFee.BasicMinerFeeSupplier;
 import com.samourai.whirlpool.client.wallet.data.minerFee.MinerFeeSupplier;
 import com.samourai.whirlpool.client.wallet.data.paynym.ExpirablePaynymSupplier;
@@ -39,7 +38,7 @@ public abstract class WalletResponseDataSource implements DataSource {
   private AbstractOrchestrator dataOrchestrator;
 
   private final WhirlpoolWallet whirlpoolWallet;
-  private final DataPersister dataPersister;
+  private final WalletStateSupplier walletStateSupplier;
   private final WalletResponseSupplier walletResponseSupplier;
 
   private final WalletSupplier walletSupplier;
@@ -52,13 +51,15 @@ public abstract class WalletResponseDataSource implements DataSource {
   private final PaynymSupplier paynymSupplier;
 
   public WalletResponseDataSource(
-      WhirlpoolWallet whirlpoolWallet, HD_Wallet bip44w, DataPersister dataPersister)
+      WhirlpoolWallet whirlpoolWallet,
+      HD_Wallet bip44w,
+      WalletStateSupplier walletStateSupplier,
+      UtxoConfigSupplier utxoConfigSupplier)
       throws Exception {
     this.whirlpoolWallet = whirlpoolWallet;
-    this.dataPersister = dataPersister;
+    this.walletStateSupplier = walletStateSupplier;
     this.walletResponseSupplier = new WalletResponseSupplier(whirlpoolWallet, this);
 
-    WalletStateSupplier walletStateSupplier = dataPersister.getWalletStateSupplier();
     this.walletSupplier = computeWalletSupplier(whirlpoolWallet, bip44w, walletStateSupplier);
     this.minerFeeSupplier = computeMinerFeeSupplier(whirlpoolWallet);
     this.tx0PreviewService = new Tx0PreviewService(minerFeeSupplier, whirlpoolWallet.getConfig());
@@ -69,7 +70,7 @@ public abstract class WalletResponseDataSource implements DataSource {
         computeUtxoSupplier(
             whirlpoolWallet,
             walletSupplier,
-            dataPersister.getUtxoConfigSupplier(),
+            utxoConfigSupplier,
             chainSupplier,
             poolSupplier,
             bipFormatSupplier);
@@ -239,8 +240,8 @@ public abstract class WalletResponseDataSource implements DataSource {
     return whirlpoolWallet;
   }
 
-  protected DataPersister getDataPersister() {
-    return dataPersister;
+  protected WalletStateSupplier getWalletStateSupplier() {
+    return walletStateSupplier;
   }
 
   @Override

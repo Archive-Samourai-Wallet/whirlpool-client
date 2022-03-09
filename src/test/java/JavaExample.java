@@ -44,8 +44,7 @@ public class JavaExample {
     BackendServer backendServer = BackendServer.TESTNET;
     boolean onion = true; // use Tor onion services?
     IWebsocketClient wsClient = null; // provide impl, or null to disable real-time sync backend
-    DataSourceFactory dataSourceFactory =
-        new SamouraiDataSourceFactory(backendServer, onion, wsClient);
+    DataSourceFactory dataSourceFactory = new DojoDataSourceFactory(backendServer, onion, wsClient);
 
     // option 2 - use Dojo backend
     String dojoUrl = ""; // provide Dojo onion URL
@@ -109,10 +108,14 @@ public class JavaExample {
     return new DataSourceFactory() {
       @Override
       public DataSource createDataSource(
-          WhirlpoolWallet whirlpoolWallet, HD_Wallet bip44w, DataPersister dataPersister)
+          WhirlpoolWallet whirlpoolWallet,
+          HD_Wallet bip44w,
+          WalletStateSupplier walletStateSupplier,
+          UtxoConfigSupplier utxoConfigSupplier)
           throws Exception {
         // use WalletResponse data (or use your own implementation of DataSource)
-        return new WalletResponseDataSource(whirlpoolWallet, bip44w, dataPersister) {
+        return new WalletResponseDataSource(
+            whirlpoolWallet, bip44w, walletStateSupplier, utxoConfigSupplier) {
           @Override
           protected WalletResponse fetchWalletResponse() throws Exception {
             WalletResponse walletResponse = null; // provide data here
