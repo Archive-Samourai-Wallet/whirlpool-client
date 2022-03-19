@@ -1,6 +1,7 @@
 package com.samourai.whirlpool.client.wallet.data.dataSource;
 
 import com.samourai.wallet.api.backend.BackendApi;
+import com.samourai.wallet.api.backend.ISweepBackend;
 import com.samourai.wallet.api.backend.beans.TxsResponse;
 import com.samourai.wallet.api.backend.beans.WalletResponse;
 import com.samourai.wallet.api.backend.websocket.BackendWsApi;
@@ -22,7 +23,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /** DataSource for Samourai/Dojo backend. */
-public class DojoDataSource extends WalletResponseDataSource implements DataSourceWithStrictMode {
+public class DojoDataSource extends WalletResponseDataSource
+    implements DataSourceWithStrictMode, DataSourceWithSweep {
   private static final Logger log = LoggerFactory.getLogger(DojoDataSource.class);
 
   private static final int INITWALLET_RETRY = 3;
@@ -225,6 +227,11 @@ public class DojoDataSource extends WalletResponseDataSource implements DataSour
   @Override
   public String pushTx(String txHex, Collection<Integer> strictModeVouts) throws Exception {
     return backendApi.pushTx(txHex, strictModeVouts);
+  }
+
+  @Override
+  public ISweepBackend getSweepBackend() {
+    return backendApi;
   }
 
   public BackendApi getBackendApi() {

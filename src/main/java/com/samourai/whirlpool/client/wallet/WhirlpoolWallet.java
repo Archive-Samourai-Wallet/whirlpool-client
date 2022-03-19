@@ -1,6 +1,7 @@
 package com.samourai.whirlpool.client.wallet;
 
 import com.google.common.primitives.Bytes;
+import com.samourai.wallet.api.backend.ISweepBackend;
 import com.samourai.wallet.api.backend.beans.UnspentOutput;
 import com.samourai.wallet.bipFormat.BIP_FORMAT;
 import com.samourai.wallet.bipWallet.BipWallet;
@@ -25,6 +26,7 @@ import com.samourai.whirlpool.client.wallet.beans.*;
 import com.samourai.whirlpool.client.wallet.data.chain.ChainSupplier;
 import com.samourai.whirlpool.client.wallet.data.dataPersister.DataPersister;
 import com.samourai.whirlpool.client.wallet.data.dataSource.DataSource;
+import com.samourai.whirlpool.client.wallet.data.dataSource.DataSourceWithSweep;
 import com.samourai.whirlpool.client.wallet.data.minerFee.MinerFeeSupplier;
 import com.samourai.whirlpool.client.wallet.data.paynym.PaynymSupplier;
 import com.samourai.whirlpool.client.wallet.data.pool.PoolSupplier;
@@ -817,5 +819,12 @@ public class WhirlpoolWallet {
 
   protected DataSource getDataSource() {
     return dataSource;
+  }
+
+  public ISweepBackend getSweepBackend() throws Exception {
+    if (!(dataSource instanceof DataSourceWithSweep)) {
+      throw new NotifiableException("Sweep not supported by current datasource");
+    }
+    return ((DataSourceWithSweep) dataSource).getSweepBackend();
   }
 }
