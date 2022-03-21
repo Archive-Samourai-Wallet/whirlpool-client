@@ -218,6 +218,14 @@ public class ClientUtils {
 
     LogbackUtils.setLogLevel("com.samourai.whirlpool.client.utils", mainLevel.toString());
     LogbackUtils.setLogLevel("com.samourai.whirlpool.client.wallet", mainLevel.toString());
+
+    LogbackUtils.setLogLevel("com.samourai.wallet.cahoots", mainLevel.toString());
+    LogbackUtils.setLogLevel("com.samourai.wallet.cahoots.stowaway", mainLevel.toString());
+    LogbackUtils.setLogLevel("com.samourai.wallet.cahoots.stonewallx2", mainLevel.toString());
+    LogbackUtils.setLogLevel("com.samourai.soroban.client", mainLevel.toString());
+    LogbackUtils.setLogLevel("com.samourai.soroban.client.dialog", subLevel.toString());
+    LogbackUtils.setLogLevel("com.samourai.soroban.client.meeting", mainLevel.toString());
+
     LogbackUtils.setLogLevel(
         "com.samourai.whirlpool.client.wallet.orchestrator", mainLevel.toString());
 
