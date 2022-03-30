@@ -3,11 +3,14 @@ package com.samourai.whirlpool.client.wallet;
 import com.google.common.primitives.Bytes;
 import com.samourai.wallet.api.backend.ISweepBackend;
 import com.samourai.wallet.api.backend.beans.UnspentOutput;
+import com.samourai.wallet.bip47.rpc.BIP47Wallet;
 import com.samourai.wallet.bipFormat.BIP_FORMAT;
 import com.samourai.wallet.bipWallet.BipWallet;
 import com.samourai.wallet.bipWallet.WalletSupplier;
+import com.samourai.wallet.hd.BIP_WALLET;
 import com.samourai.wallet.hd.HD_Wallet;
 import com.samourai.wallet.hd.HD_WalletFactoryGeneric;
+import com.samourai.wallet.ricochet.RicochetConfig;
 import com.samourai.wallet.segwit.bech32.Bech32UtilGeneric;
 import com.samourai.wallet.send.spend.SpendBuilder;
 import com.samourai.wallet.util.AsyncUtil;
@@ -42,6 +45,7 @@ import com.samourai.whirlpool.protocol.beans.Utxo;
 import com.samourai.whirlpool.protocol.rest.PushTxErrorResponse;
 import com.samourai.whirlpool.protocol.rest.PushTxSuccessResponse;
 import com.samourai.whirlpool.protocol.rest.Tx0PushRequest;
+import com.samourai.xmanager.protocol.XManagerService;
 import io.reactivex.Completable;
 import io.reactivex.Observable;
 import java.util.Collection;
@@ -826,5 +830,32 @@ public class WhirlpoolWallet {
       throw new NotifiableException("Sweep not supported by current datasource");
     }
     return ((DataSourceWithSweep) dataSource).getSweepBackend();
+  }
+
+  public RicochetConfig newRicochetConfig(
+      int feePerB, boolean useTimeLock, WhirlpoolAccount spendAccount) {
+    long latestBlock = getChainSupplier().getLatestBlock().height;
+    BipWallet bipWalletRicochet = getWalletSupplier().getWallet(BIP_WALLET.RICOCHET_BIP84);
+    BipWallet bipWalletChange =
+        getWalletSupplier().getWallet(spendAccount, BIP_FORMAT.SEGWIT_NATIVE);
+    BIP47Wallet bip47Wallet = new BIP47Wallet(bip44w);
+    int bip47WalletOutgoingIdx = 0; // TODO zl !!!
+    boolean samouraiFeeViaBIP47 = getPaynymSupplier().getPaynymState().isClaimed();
+    String samouraiFeeAddress =
+        config.computeXManagerClient().getAddressOrDefault(XManagerService.RICOCHET);
+    return new RicochetConfig(
+        feePerB,
+        samouraiFeeViaBIP47,
+        samouraiFeeAddress,
+        useTimeLock,
+        true,
+        latestBlock,
+        getUtxoSupplier(),
+        config.getBip47Util(),
+        bipWalletRicochet,
+        bipWalletChange,
+        spendAccount,
+        bip47Wallet,
+        bip47WalletOutgoingIdx);
   }
 }

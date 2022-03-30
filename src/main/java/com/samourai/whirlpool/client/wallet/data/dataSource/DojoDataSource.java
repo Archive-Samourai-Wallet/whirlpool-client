@@ -165,37 +165,33 @@ public class DojoDataSource extends WalletResponseDataSource
               try {
                 // watch blocks
                 backendWsApi.subscribeBlock(
-                    new MessageListener() {
-                      @Override
-                      public void onMessage(Object message) {
-                        if (log.isDebugEnabled()) {
-                          log.debug("new block received -> refreshing walletData");
-                          try {
-                            refresh();
-                          } catch (Exception e) {
-                            log.error("", e);
+                    (MessageListener)
+                        message -> {
+                          if (log.isDebugEnabled()) {
+                            log.debug("new block received -> refreshing walletData");
+                            try {
+                              refresh();
+                            } catch (Exception e) {
+                              log.error("", e);
+                            }
                           }
-                        }
-                      }
-                    });
+                        });
 
                 // watch addresses
                 String[] pubs = getWalletSupplier().getPubs(true);
                 backendWsApi.subscribeAddress(
                     pubs,
-                    new MessageListener() {
-                      @Override
-                      public void onMessage(Object message) {
-                        if (log.isDebugEnabled()) {
-                          log.debug("new address received -> refreshing walletData");
-                          try {
-                            refresh();
-                          } catch (Exception e) {
-                            log.error("", e);
+                    (MessageListener)
+                        message -> {
+                          if (log.isDebugEnabled()) {
+                            log.debug("new address received -> refreshing walletData");
+                            try {
+                              refresh();
+                            } catch (Exception e) {
+                              log.error("", e);
+                            }
                           }
-                        }
-                      }
-                    });
+                        });
               } catch (Exception e) {
                 log.error("", e);
               }

@@ -21,6 +21,7 @@ import java.security.spec.X509EncodedKeySpec;
 import java.text.SimpleDateFormat;
 import java.util.*;
 import java.util.stream.Collectors;
+import org.apache.commons.lang3.StringUtils;
 import org.bitcoinj.core.*;
 import org.bouncycastle.crypto.params.RSAKeyParameters;
 import org.slf4j.Logger;
@@ -325,5 +326,13 @@ public class ClientUtils {
 
   public static long bytesToMB(long bytes) {
     return Math.round(bytes / (1024L * 1024L));
+  }
+
+  public static String getDirUserHome() {
+    String dir = System.getProperty("user.home");
+    if (StringUtils.isEmpty(dir)) {
+      dir = System.getProperty("user.dir"); // fallback
+    }
+    return dir;
   }
 }

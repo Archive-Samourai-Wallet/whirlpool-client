@@ -1,5 +1,6 @@
 package com.samourai.whirlpool.client.wallet;
 
+import com.samourai.http.client.HttpUsage;
 import com.samourai.http.client.IHttpClientService;
 import com.samourai.stomp.client.IStompClientService;
 import com.samourai.tor.client.TorClientService;
@@ -19,6 +20,7 @@ import com.samourai.whirlpool.client.wallet.data.dataSource.DataSourceFactory;
 import com.samourai.whirlpool.client.whirlpool.ServerApi;
 import com.samourai.whirlpool.client.whirlpool.WhirlpoolClientConfig;
 import com.samourai.whirlpool.protocol.WhirlpoolProtocol;
+import com.samourai.xmanager.client.XManagerClient;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import org.apache.commons.lang3.StringUtils;
@@ -151,6 +153,12 @@ public class WhirlpoolWalletConfig extends WhirlpoolClientConfig
               + javaVersion
               + ", recommended: OpenJDK 8-11).");
     }
+  }
+
+  public XManagerClient computeXManagerClient() {
+    boolean testnet = FormatsUtilGeneric.getInstance().isTestNet(getNetworkParameters());
+    return new XManagerClient(
+        getHttpClientService().getHttpClient(HttpUsage.BACKEND), testnet, false);
   }
 
   public DataSourceFactory getDataSourceFactory() {

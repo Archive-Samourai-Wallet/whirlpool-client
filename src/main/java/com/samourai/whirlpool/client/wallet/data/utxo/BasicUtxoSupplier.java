@@ -153,9 +153,18 @@ public abstract class BasicUtxoSupplier extends BasicSupplier<UtxoData>
     return toUTXOs(findUtxos(account));
   }
 
-  public byte[] _getPrivKeyBip47(WhirlpoolUtxo whirlpoolUtxo) throws Exception {
+  protected byte[] _getPrivKeyBip47(WhirlpoolUtxo whirlpoolUtxo) throws Exception {
     // override this to support bip47
     throw new NotifiableException("No privkey found for utxo: " + whirlpoolUtxo);
+  }
+
+  // overidden by Sparrow
+  protected byte[] _getPrivKey(WhirlpoolUtxo whirlpoolUtxo) throws Exception {
+    if (!whirlpoolUtxo.getUtxo().hasPath()) {
+      // bip47
+      return _getPrivKeyBip47(whirlpoolUtxo);
+    }
+    return whirlpoolUtxo.getBipAddress().getHdAddress().getECKey().getPrivKeyBytes();
   }
 
   @Override
@@ -164,11 +173,7 @@ public abstract class BasicUtxoSupplier extends BasicSupplier<UtxoData>
     if (whirlpoolUtxo == null) {
       throw new Exception("Utxo not found: " + utxoHash + ":" + utxoIndex);
     }
-    if (!whirlpoolUtxo.getUtxo().hasPath()) {
-      // bip47
-      return _getPrivKeyBip47(whirlpoolUtxo);
-    }
-    return whirlpoolUtxo.getBipAddress().getHdAddress().getECKey().getPrivKeyBytes();
+    return _getPrivKey(whirlpoolUtxo);
   }
 
   @Override

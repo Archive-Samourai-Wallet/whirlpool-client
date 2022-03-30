@@ -248,7 +248,11 @@ public class UtxoData {
   }
 
   public Collection<WhirlpoolUtxo> findUtxosByAddress(String address) {
-    return utxosByAddress.get(address);
+    Collection<WhirlpoolUtxo> result = utxosByAddress.get(address);
+    if (result == null) {
+      result = new LinkedList<>();
+    }
+    return result;
   }
 
   // balances

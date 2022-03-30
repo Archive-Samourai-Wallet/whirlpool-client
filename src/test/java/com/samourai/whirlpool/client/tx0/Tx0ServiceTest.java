@@ -7,9 +7,9 @@ import com.samourai.wallet.client.indexHandler.MemoryIndexHandlerSupplier;
 import com.samourai.wallet.hd.BIP_WALLET;
 import com.samourai.wallet.hd.HD_Address;
 import com.samourai.wallet.hd.HD_Wallet;
+import com.samourai.wallet.send.provider.SimpleUtxoKeyProvider;
 import com.samourai.wallet.util.TxUtil;
 import com.samourai.whirlpool.client.test.AbstractTest;
-import com.samourai.whirlpool.client.utils.MockUtxoKeyProvider;
 import com.samourai.whirlpool.client.wallet.WhirlpoolWalletConfig;
 import com.samourai.whirlpool.client.wallet.beans.Tx0FeeTarget;
 import com.samourai.whirlpool.client.wallet.beans.WhirlpoolAccount;
@@ -37,7 +37,7 @@ public class Tx0ServiceTest extends AbstractTest {
 
   private WhirlpoolWalletConfig config;
 
-  private MockUtxoKeyProvider utxoKeyProvider;
+  private SimpleUtxoKeyProvider utxoKeyProvider;
 
   public Tx0ServiceTest() throws Exception {
     super();
@@ -54,7 +54,7 @@ public class Tx0ServiceTest extends AbstractTest {
     config.setTx0MaxOutputs(10);
     tx0PreviewService = new Tx0PreviewService(mockMinerFeeSupplier(), config);
     tx0Service = new Tx0Service(config, tx0PreviewService);
-    utxoKeyProvider = new MockUtxoKeyProvider();
+    utxoKeyProvider = new SimpleUtxoKeyProvider();
   }
 
   // sync from whirlpool-server
@@ -347,7 +347,7 @@ public class Tx0ServiceTest extends AbstractTest {
             1,
             500000000,
             address);
-    utxoKeyProvider.setKey(spendFromUtxo.computeOutpoint(params), address.getECKey());
+    utxoKeyProvider.setKey(spendFromUtxo.computeOutpoint(params).getAddress(), address.getECKey());
 
     MemoryIndexHandlerSupplier indexHandlerSupplier = new MemoryIndexHandlerSupplier();
     BipWallet depositWallet = new BipWallet(bip84w, indexHandlerSupplier, BIP_WALLET.DEPOSIT_BIP84);
@@ -600,7 +600,7 @@ public class Tx0ServiceTest extends AbstractTest {
             1,
             1021397,
             address); // balance with 11000 change
-    utxoKeyProvider.setKey(spendFromUtxo.computeOutpoint(params), address.getECKey());
+    utxoKeyProvider.setKey(spendFromUtxo.computeOutpoint(params).getAddress(), address.getECKey());
 
     MemoryIndexHandlerSupplier indexHandlerSupplier = new MemoryIndexHandlerSupplier();
     BipWallet depositWallet = new BipWallet(bip84w, indexHandlerSupplier, BIP_WALLET.DEPOSIT_BIP84);
@@ -703,7 +703,7 @@ public class Tx0ServiceTest extends AbstractTest {
             1021397,
             address); // balance with 11000 change
 
-    utxoKeyProvider.setKey(spendFromUtxo.computeOutpoint(params), address.getECKey());
+    utxoKeyProvider.setKey(spendFromUtxo.computeOutpoint(params).getAddress(), address.getECKey());
 
     MemoryIndexHandlerSupplier indexHandlerSupplier = new MemoryIndexHandlerSupplier();
     BipWallet depositWallet = new BipWallet(bip84w, indexHandlerSupplier, BIP_WALLET.DEPOSIT_BIP84);
@@ -805,7 +805,7 @@ public class Tx0ServiceTest extends AbstractTest {
             1,
             1021397,
             address); // balance with 11000 change
-    utxoKeyProvider.setKey(spendFromUtxo.computeOutpoint(params), address.getECKey());
+    utxoKeyProvider.setKey(spendFromUtxo.computeOutpoint(params).getAddress(), address.getECKey());
 
     MemoryIndexHandlerSupplier indexHandlerSupplier = new MemoryIndexHandlerSupplier();
     BipWallet depositWallet = new BipWallet(bip84w, indexHandlerSupplier, BIP_WALLET.DEPOSIT_BIP84);
@@ -906,7 +906,7 @@ public class Tx0ServiceTest extends AbstractTest {
             1,
             1021397,
             address); // balance with 11000 change
-    utxoKeyProvider.setKey(spendFromUtxo.computeOutpoint(params), address.getECKey());
+    utxoKeyProvider.setKey(spendFromUtxo.computeOutpoint(params).getAddress(), address.getECKey());
 
     MemoryIndexHandlerSupplier indexHandlerSupplier = new MemoryIndexHandlerSupplier();
     BipWallet depositWallet = new BipWallet(bip84w, indexHandlerSupplier, BIP_WALLET.DEPOSIT_BIP84);
