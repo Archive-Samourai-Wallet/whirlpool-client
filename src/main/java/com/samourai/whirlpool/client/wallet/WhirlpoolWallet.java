@@ -463,17 +463,30 @@ public class WhirlpoolWallet {
     }
 
     // notify startup
-    UtxoData utxoData = getUtxoSupplier().getValue();
+    onStartup(getUtxoSupplier().getValue());
+  }
+
+  protected void onStartup(UtxoData utxoData) {
+    // simulate "firstFetch" of all utxos to get it correctly queued
+    WhirlpoolUtxoChanges startupUtxoChanges = new WhirlpoolUtxoChanges(true);
+    startupUtxoChanges.getUtxosAdded().addAll(utxoData.getUtxos().values());
+    if (mixOrchestrator != null) {
+      mixOrchestrator.onUtxoChanges(startupUtxoChanges);
+    }
+    if (autoTx0Orchestrator.isPresent()) {
+      autoTx0Orchestrator.get().onUtxoChanges(startupUtxoChanges);
+    }
     WhirlpoolEventService.getInstance().post(new WalletStartEvent(this, utxoData));
-    onUtxoChanges(utxoData);
   }
 
   public void onUtxoChanges(UtxoData utxoData) {
-    if (mixOrchestrator != null) {
-      mixOrchestrator.onUtxoChanges(utxoData.getUtxoChanges());
-    }
-    if (autoTx0Orchestrator.isPresent()) {
-      autoTx0Orchestrator.get().onUtxoChanges(utxoData.getUtxoChanges());
+    if (isStarted()) {
+      if (mixOrchestrator != null) {
+        mixOrchestrator.onUtxoChanges(utxoData.getUtxoChanges());
+      }
+      if (autoTx0Orchestrator.isPresent()) {
+        autoTx0Orchestrator.get().onUtxoChanges(utxoData.getUtxoChanges());
+      }
     }
     WhirlpoolEventService.getInstance().post(new UtxoChangesEvent(this, utxoData));
   }
