@@ -4,6 +4,8 @@ import com.samourai.whirlpool.client.exception.PushTxErrorResponseException;
 import com.samourai.whirlpool.client.test.AbstractTest;
 import com.samourai.whirlpool.client.wallet.beans.WhirlpoolServer;
 import com.samourai.whirlpool.protocol.WhirlpoolProtocol;
+import com.samourai.whirlpool.protocol.rest.Tx0DataRequestV2;
+import com.samourai.whirlpool.protocol.rest.Tx0DataResponseV2;
 import com.samourai.whirlpool.protocol.rest.Tx0PushRequest;
 import java.util.Arrays;
 import org.bitcoinj.core.Utils;
@@ -59,5 +61,15 @@ public class ServerApiTest extends AbstractTest {
           },
           e.getPushTxErrorResponse().voutsAddressReuse.toArray());
     }
+  }
+
+  @Test
+  public void fetchTx0Data() throws Exception {
+    Tx0DataRequestV2 request = new Tx0DataRequestV2();
+    request.partnerId = "FREESIDE";
+
+    Tx0DataResponseV2 response = asyncUtil.blockingSingle(serverApi.fetchTx0Data(request)).get();
+    Assertions.assertEquals(4, response.tx0Datas.length);
+    Assertions.assertNull(response.tx0Datas[0].message);
   }
 }

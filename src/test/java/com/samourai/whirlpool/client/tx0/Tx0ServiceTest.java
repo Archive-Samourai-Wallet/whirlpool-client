@@ -347,7 +347,7 @@ public class Tx0ServiceTest extends AbstractTest {
             1,
             500000000,
             address);
-    utxoKeyProvider.setKey(spendFromUtxo.computeOutpoint(params).getAddress(), address.getECKey());
+    utxoKeyProvider.setKey(spendFromUtxo.computeOutpoint(params), address.getECKey());
 
     MemoryIndexHandlerSupplier indexHandlerSupplier = new MemoryIndexHandlerSupplier();
     BipWallet depositWallet = new BipWallet(bip84w, indexHandlerSupplier, BIP_WALLET.DEPOSIT_BIP84);
@@ -600,7 +600,7 @@ public class Tx0ServiceTest extends AbstractTest {
             1,
             1021397,
             address); // balance with 11000 change
-    utxoKeyProvider.setKey(spendFromUtxo.computeOutpoint(params).getAddress(), address.getECKey());
+    utxoKeyProvider.setKey(spendFromUtxo.computeOutpoint(params), address.getECKey());
 
     MemoryIndexHandlerSupplier indexHandlerSupplier = new MemoryIndexHandlerSupplier();
     BipWallet depositWallet = new BipWallet(bip84w, indexHandlerSupplier, BIP_WALLET.DEPOSIT_BIP84);
@@ -703,7 +703,7 @@ public class Tx0ServiceTest extends AbstractTest {
             1021397,
             address); // balance with 11000 change
 
-    utxoKeyProvider.setKey(spendFromUtxo.computeOutpoint(params).getAddress(), address.getECKey());
+    utxoKeyProvider.setKey(spendFromUtxo.computeOutpoint(params), address.getECKey());
 
     MemoryIndexHandlerSupplier indexHandlerSupplier = new MemoryIndexHandlerSupplier();
     BipWallet depositWallet = new BipWallet(bip84w, indexHandlerSupplier, BIP_WALLET.DEPOSIT_BIP84);
@@ -805,7 +805,7 @@ public class Tx0ServiceTest extends AbstractTest {
             1,
             1021397,
             address); // balance with 11000 change
-    utxoKeyProvider.setKey(spendFromUtxo.computeOutpoint(params).getAddress(), address.getECKey());
+    utxoKeyProvider.setKey(spendFromUtxo.computeOutpoint(params), address.getECKey());
 
     MemoryIndexHandlerSupplier indexHandlerSupplier = new MemoryIndexHandlerSupplier();
     BipWallet depositWallet = new BipWallet(bip84w, indexHandlerSupplier, BIP_WALLET.DEPOSIT_BIP84);
@@ -906,7 +906,7 @@ public class Tx0ServiceTest extends AbstractTest {
             1,
             1021397,
             address); // balance with 11000 change
-    utxoKeyProvider.setKey(spendFromUtxo.computeOutpoint(params).getAddress(), address.getECKey());
+    utxoKeyProvider.setKey(spendFromUtxo.computeOutpoint(params), address.getECKey());
 
     MemoryIndexHandlerSupplier indexHandlerSupplier = new MemoryIndexHandlerSupplier();
     BipWallet depositWallet = new BipWallet(bip84w, indexHandlerSupplier, BIP_WALLET.DEPOSIT_BIP84);
