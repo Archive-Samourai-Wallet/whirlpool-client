@@ -359,7 +359,8 @@ public class WhirlpoolWallet {
                 bip44w,
                 dataPersister.getWalletStateSupplier(),
                 dataPersister.getUtxoConfigSupplier());
-    this.tx0Service = new Tx0Service(config, dataSource.getTx0PreviewService());
+    this.tx0Service =
+        new Tx0Service(config, dataSource.getTx0PreviewService(), config.computeFeeOpReturnImpl());
     this.paynymSupplier = dataSource.getPaynymSupplier();
 
     // start orchestrators

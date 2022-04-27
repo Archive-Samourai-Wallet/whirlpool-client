@@ -86,7 +86,7 @@ public class PostmixIndexServiceTest extends AbstractTest {
                     // already used
                     String responseBody =
                         ClientUtils.toJsonString(
-                            new RestErrorResponse(
+                            new RestErrorResponse(611,
                                 PostmixIndexService.CHECKOUTPUT_ERROR_OUTPUT_ALREADY_REGISTERED));
                     throw new HttpException((Exception) null, responseBody);
                   }

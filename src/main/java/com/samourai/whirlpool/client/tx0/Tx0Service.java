@@ -13,30 +13,37 @@ import com.samourai.whirlpool.client.utils.BIP69InputComparatorUnspentOutput;
 import com.samourai.whirlpool.client.wallet.WhirlpoolWalletConfig;
 import com.samourai.whirlpool.client.whirlpool.beans.Pool;
 import com.samourai.whirlpool.client.whirlpool.beans.Tx0Data;
-import com.samourai.whirlpool.protocol.WhirlpoolProtocol;
-import com.samourai.whirlpool.protocol.util.XorMask;
+import com.samourai.whirlpool.protocol.feeOpReturn.FeeOpReturnImpl;
 import java.util.*;
 import org.bitcoinj.core.*;
 import org.bitcoinj.script.Script;
 import org.bitcoinj.script.ScriptBuilder;
 import org.bitcoinj.script.ScriptOpCodes;
-import org.bouncycastle.util.encoders.Hex;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class Tx0Service {
   private Logger log = LoggerFactory.getLogger(Tx0Service.class);
 
-  private final Bech32UtilGeneric bech32Util = Bech32UtilGeneric.getInstance();
-  private final XorMask xorMask;
-
-  private WhirlpoolWalletConfig config;
   private Tx0PreviewService tx0PreviewService;
+  private WhirlpoolWalletConfig config;
+  private FeeOpReturnImpl feeOpReturnImpl;
+  private final Bech32UtilGeneric bech32Util = Bech32UtilGeneric.getInstance();
 
-  public Tx0Service(WhirlpoolWalletConfig config, Tx0PreviewService tx0PreviewService) {
+  public Tx0Service(
+      WhirlpoolWalletConfig config,
+      Tx0PreviewService tx0PreviewService,
+      FeeOpReturnImpl feeOpReturnImpl) {
     this.config = config;
     this.tx0PreviewService = tx0PreviewService;
-    xorMask = XorMask.getInstance(config.getSecretPointFactory());
+    this.feeOpReturnImpl = feeOpReturnImpl;
+    if (log.isDebugEnabled()) {
+      log.debug(
+          "Using feeOpReturnImpl="
+              + feeOpReturnImpl.getClass().getName()
+              + ", opReturnVersion="
+              + feeOpReturnImpl.getOpReturnVersion());
+    }
   }
 
   /** Generate maxOutputs premixes outputs max. */
@@ -88,8 +95,6 @@ public class Tx0Service {
       Tx0Preview tx0Preview,
       UtxoKeyProvider utxoKeyProvider)
       throws Exception {
-    NetworkParameters params = config.getNetworkParameters();
-
     Tx0Data tx0Data = tx0Preview.getTx0Data();
 
     // compute opReturnValue for feePaymentCode and feePayload
@@ -113,17 +118,9 @@ public class Tx0Service {
     sortedSpendFroms.addAll(spendFroms);
     Collections.sort(sortedSpendFroms, new BIP69InputComparatorUnspentOutput());
 
-    // compute feePayloadMasked
+    // op_return
     UnspentOutput firstInput = sortedSpendFroms.get(0);
-    byte[] firstInputKey = utxoKeyProvider._getPrivKey(firstInput.tx_hash, firstInput.tx_output_n);
-    String feePaymentCode = tx0Data.getFeePaymentCode();
-    byte[] feePayload = tx0Data.getFeePayload();
-    byte[] feePayloadMasked =
-        xorMask.mask(
-            feePayload, feePaymentCode, params, firstInputKey, firstInput.computeOutpoint(params));
-    if (log.isDebugEnabled()) {
-      log.debug("feePayloadHex=" + Hex.toHexString(feePayload));
-    }
+    byte[] opReturn = computeOpReturn(firstInput, utxoKeyProvider, tx0Data);
     return tx0(
         sortedSpendFroms,
         depositWallet,
@@ -132,7 +129,7 @@ public class Tx0Service {
         badbankWallet,
         tx0Config,
         tx0Preview,
-        feePayloadMasked,
+        opReturn,
         feeOrBackAddressBech32,
         utxoKeyProvider);
   }
@@ -145,7 +142,7 @@ public class Tx0Service {
       BipWallet badbankWallet,
       Tx0Config tx0Config,
       Tx0Preview tx0Preview,
-      byte[] feePayloadMasked,
+      byte[] opReturn,
       String feeOrBackAddressBech32,
       UtxoKeyProvider utxoKeyProvider)
       throws Exception {
@@ -176,7 +173,7 @@ public class Tx0Service {
             sortedSpendFroms,
             premixWallet,
             tx0Preview,
-            feePayloadMasked,
+            opReturn,
             feeOrBackAddressBech32,
             changeWallet,
             config.getNetworkParameters(),
@@ -201,7 +198,7 @@ public class Tx0Service {
       Collection<UnspentOutput> sortedSpendFroms,
       BipWallet premixWallet,
       Tx0Preview tx0Preview,
-      byte[] feePayloadMasked,
+      byte[] opReturn,
       String feeOrBackAddressBech32,
       BipWallet changeWallet,
       NetworkParameters params,
@@ -319,19 +316,12 @@ public class Tx0Service {
 
     // add OP_RETURN output
     Script op_returnOutputScript =
-        new ScriptBuilder().op(ScriptOpCodes.OP_RETURN).data(feePayloadMasked).build();
+        new ScriptBuilder().op(ScriptOpCodes.OP_RETURN).data(opReturn).build();
     TransactionOutput txFeeOutput =
         new TransactionOutput(params, null, Coin.valueOf(0L), op_returnOutputScript.getProgram());
     outputs.add(txFeeOutput);
     if (log.isDebugEnabled()) {
-      log.debug("Tx0 out (OP_RETURN): " + feePayloadMasked.length + " bytes");
-    }
-    if (feePayloadMasked.length != WhirlpoolProtocol.FEE_PAYLOAD_LENGTH) {
-      throw new Exception(
-          "Invalid opReturnValue length detected, please report this bug. opReturnValue="
-              + feePayloadMasked
-              + " vs "
-              + WhirlpoolProtocol.FEE_PAYLOAD_LENGTH);
+      log.debug("Tx0 out (OP_RETURN): " + opReturn.length + " bytes");
     }
 
     // all outputs
@@ -358,5 +348,19 @@ public class Tx0Service {
 
   protected void signTx0(Transaction tx, UtxoKeyProvider utxoKeyProvider) throws Exception {
     SendFactoryGeneric.getInstance().signTransaction(tx, utxoKeyProvider);
+  }
+
+  protected byte[] computeOpReturn(
+      UnspentOutput firstInput, UtxoKeyProvider utxoKeyProvider, Tx0Data tx0Data) throws Exception {
+    NetworkParameters params = config.getNetworkParameters();
+
+    // use firstInputKey to sign
+    TransactionOutPoint signingOutpoint = firstInput.computeOutpoint(params);
+    byte[] signingPrivateKey =
+        utxoKeyProvider._getPrivKey(firstInput.tx_hash, firstInput.tx_output_n);
+    String feePaymentCode = tx0Data.getFeePaymentCode();
+    byte[] feePayload = tx0Data.getFeePayload();
+    return feeOpReturnImpl.computeOpReturn(
+        feePaymentCode, feePayload, signingOutpoint, signingPrivateKey);
   }
 }

@@ -20,6 +20,9 @@ import com.samourai.whirlpool.client.wallet.data.dataSource.DataSourceFactory;
 import com.samourai.whirlpool.client.whirlpool.ServerApi;
 import com.samourai.whirlpool.client.whirlpool.WhirlpoolClientConfig;
 import com.samourai.whirlpool.protocol.WhirlpoolProtocol;
+import com.samourai.whirlpool.protocol.feeOpReturn.FeeOpReturnImpl;
+import com.samourai.whirlpool.protocol.feeOpReturn.FeeOpReturnImplV1;
+import com.samourai.whirlpool.protocol.util.XorMask;
 import com.samourai.xmanager.client.XManagerClient;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -159,6 +162,15 @@ public class WhirlpoolWalletConfig extends WhirlpoolClientConfig
     boolean testnet = FormatsUtilGeneric.getInstance().isTestNet(getNetworkParameters());
     return new XManagerClient(
         getHttpClientService().getHttpClient(HttpUsage.BACKEND), testnet, false);
+  }
+
+  public FeeOpReturnImpl computeFeeOpReturnImpl() {
+    XorMask xorMask = computeXorMask();
+    return new FeeOpReturnImplV1(xorMask);
+  }
+
+  protected XorMask computeXorMask() {
+    return XorMask.getInstance(secretPointFactory);
   }
 
   public DataSourceFactory getDataSourceFactory() {
