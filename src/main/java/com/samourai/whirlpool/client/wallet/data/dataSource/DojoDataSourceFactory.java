@@ -27,21 +27,24 @@ public class DojoDataSourceFactory implements DataSourceFactory {
   }
 
   // overridable
-  protected String computeDojoApiKey(WhirlpoolWallet whirlpoolWallet, HD_Wallet bip44w)
-      throws Exception {
+  protected String computeDojoApiKey(
+      WhirlpoolWallet whirlpoolWallet, HD_Wallet bip44w, String passphrase) throws Exception {
     return this.dojoApiKey;
   }
 
   @Override
   public DataSource createDataSource(
-      WhirlpoolWallet whirlpoolWallet, HD_Wallet bip44w, DataPersister dataPersister)
+      WhirlpoolWallet whirlpoolWallet,
+      HD_Wallet bip44w,
+      String passphrase,
+      DataPersister dataPersister)
       throws Exception {
     WhirlpoolWalletConfig config = whirlpoolWallet.getConfig();
     IHttpClient httpClientBackend = config.getHttpClient(HttpUsage.BACKEND);
 
     // configure OAuth
     OAuthManager oAuthManager = null;
-    String myDojoApiKey = computeDojoApiKey(whirlpoolWallet, bip44w);
+    String myDojoApiKey = computeDojoApiKey(whirlpoolWallet, bip44w, passphrase);
     if (myDojoApiKey != null) {
       OAuthApi backendOAuthApi = new BackendOAuthApi(httpClientBackend, dojoUrl);
       oAuthManager = new OAuthManagerJava(myDojoApiKey, backendOAuthApi);

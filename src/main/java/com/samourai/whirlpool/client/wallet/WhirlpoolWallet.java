@@ -362,14 +362,15 @@ public class WhirlpoolWallet {
     return mixingState.isStarted();
   }
 
-  public void open() throws Exception {
+  public void open(String passphrase) throws Exception {
     if (log.isDebugEnabled()) {
       log.debug("Opening wallet " + walletIdentifier);
     }
 
     // instanciate data
     this.dataPersister = config.getDataPersisterFactory().createDataPersister(this, bip44w);
-    this.dataSource = config.getDataSourceFactory().createDataSource(this, bip44w, dataPersister);
+    this.dataSource =
+        config.getDataSourceFactory().createDataSource(this, bip44w, passphrase, dataPersister);
     this.tx0Service = new Tx0Service(config, dataSource.getTx0PreviewService());
 
     // start orchestrators

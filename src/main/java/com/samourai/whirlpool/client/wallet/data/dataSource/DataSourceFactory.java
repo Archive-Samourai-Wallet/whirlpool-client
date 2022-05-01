@@ -7,6 +7,9 @@ import com.samourai.whirlpool.client.wallet.data.dataPersister.DataPersister;
 public interface DataSourceFactory {
 
   DataSource createDataSource(
-      WhirlpoolWallet whirlpoolWallet, HD_Wallet bip44w, DataPersister dataPersister)
+      WhirlpoolWallet whirlpoolWallet,
+      HD_Wallet bip44w,
+      String passphrase,
+      DataPersister dataPersister)
       throws Exception;
 }
