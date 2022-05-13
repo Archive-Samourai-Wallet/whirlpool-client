@@ -1,6 +1,7 @@
 package com.samourai.whirlpool.client.utils;
 
 import ch.qos.logback.classic.Level;
+import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.samourai.wallet.api.backend.beans.HttpException;
 import com.samourai.wallet.api.backend.beans.UnspentOutput;
@@ -15,7 +16,6 @@ import com.samourai.whirlpool.protocol.rest.RestErrorResponse;
 import io.reactivex.Completable;
 import java.io.File;
 import java.security.KeyFactory;
-import java.security.SecureRandom;
 import java.security.interfaces.RSAPublicKey;
 import java.security.spec.X509EncodedKeySpec;
 import java.text.SimpleDateFormat;
@@ -29,13 +29,15 @@ import org.slf4j.LoggerFactory;
 
 public class ClientUtils {
   private static final Logger log = LoggerFactory.getLogger(ClientUtils.class);
-  private static final SecureRandom secureRandom = new SecureRandom();
 
   private static final int SLEEP_REFRESH_UTXOS_TESTNET = 15000;
   private static final int SLEEP_REFRESH_UTXOS_MAINNET = 5000;
   public static final String USER_AGENT = "whirlpool-client/" + WhirlpoolProtocol.PROTOCOL_VERSION;
 
-  private static final ObjectMapper objectMapper = new ObjectMapper();
+  private static final ObjectMapper objectMapper =
+      new ObjectMapper()
+          .configure(
+              DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false); // allow protocol upgrades
   private static final FeeUtil feeUtil = FeeUtil.getInstance();
   private static final Bech32UtilGeneric bech32Util = Bech32UtilGeneric.getInstance();
 
