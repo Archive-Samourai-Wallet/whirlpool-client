@@ -15,7 +15,7 @@ mvn clean install -Dmaven.test.skip=true
 See [JavaExample.java](src/test/java/JavaExample.java) for Java integration.
 
 ## Resources
- * [whirlpool](https://github.com/Samourai-Wallet/Whirlpool)
- * [whirlpool-protocol](https://github.com/Samourai-Wallet/whirlpool-protocol)
- * [whirlpool-server](https://github.com/Samourai-Wallet/whirlpool-server)
- * [whirlpool-client-cli](https://github.com/Samourai-Wallet/whirlpool-client-cli)
+ * [whirlpool](https://code.samourai.io/whirlpool/Whirlpool)
+ * [whirlpool-protocol](https://code.samourai.io/whirlpool/whirlpool-protocol)
+ * [whirlpool-server](https://code.samourai.io/whirlpool/whirlpool-server)
+ * [whirlpool-client-cli](https://code.samourai.io/whirlpool/whirlpool-client-cli)
