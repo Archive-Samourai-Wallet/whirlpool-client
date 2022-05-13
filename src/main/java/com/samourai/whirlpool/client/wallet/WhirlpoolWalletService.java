@@ -28,12 +28,13 @@ public class WhirlpoolWalletService {
     }
   }
 
-  public synchronized WhirlpoolWallet openWallet(WhirlpoolWallet wp) throws Exception {
+  public synchronized WhirlpoolWallet openWallet(WhirlpoolWallet wp, String passphrase)
+      throws Exception {
     if (whirlpoolWallet != null) {
       throw new Exception("WhirlpoolWallet already opened");
     }
 
-    wp.open();
+    wp.open(passphrase);
     whirlpoolWallet = wp;
     return wp;
   }

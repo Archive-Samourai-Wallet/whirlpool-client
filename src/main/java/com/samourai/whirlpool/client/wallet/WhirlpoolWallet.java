@@ -344,7 +344,7 @@ public class WhirlpoolWallet {
     return mixingState.isStarted();
   }
 
-  public void open() throws Exception {
+  public void open(String passphrase) throws Exception {
     if (log.isDebugEnabled()) {
       log.debug("Opening wallet " + walletIdentifier);
     }
@@ -357,6 +357,7 @@ public class WhirlpoolWallet {
             .createDataSource(
                 this,
                 bip44w,
+                passphrase,
                 dataPersister.getWalletStateSupplier(),
                 dataPersister.getUtxoConfigSupplier());
     this.tx0Service =

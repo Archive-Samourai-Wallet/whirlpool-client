@@ -10,6 +10,7 @@ public interface DataSourceFactory {
   DataSource createDataSource(
       WhirlpoolWallet whirlpoolWallet,
       HD_Wallet bip44w,
+      String passphrase,
       WalletStateSupplier walletStateSupplier,
       UtxoConfigSupplier utxoConfigSupplier)
       throws Exception;

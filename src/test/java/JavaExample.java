@@ -110,6 +110,7 @@ public class JavaExample {
       public DataSource createDataSource(
           WhirlpoolWallet whirlpoolWallet,
           HD_Wallet bip44w,
+          String passphrase,
           WalletStateSupplier walletStateSupplier,
           UtxoConfigSupplier utxoConfigSupplier)
           throws Exception {
@@ -212,12 +213,12 @@ public class JavaExample {
     byte[] seed = null; // provide seed here
     String seedPassphrase = null; // provide seed passphrase here (or null if none)
     WhirlpoolWallet whirlpoolWallet = new WhirlpoolWallet(config, seed, seedPassphrase);
-    whirlpoolWallet.open();
+    whirlpoolWallet.open(seedPassphrase);
 
     // open wallet: alternate way
     HD_Wallet bip44w = null; // provide bip44 wallet here
     whirlpoolWallet = new WhirlpoolWallet(config, bip44w);
-    whirlpoolWallet.open();
+    whirlpoolWallet.open(seedPassphrase);
 
     // start whirlpool wallet
     whirlpoolWallet.startAsync().subscribe();
