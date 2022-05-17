@@ -13,7 +13,7 @@ import com.samourai.whirlpool.client.utils.BIP69InputComparatorUnspentOutput;
 import com.samourai.whirlpool.client.wallet.WhirlpoolWalletConfig;
 import com.samourai.whirlpool.client.whirlpool.beans.Pool;
 import com.samourai.whirlpool.client.whirlpool.beans.Tx0Data;
-import com.samourai.whirlpool.protocol.feeOpReturn.FeeOpReturnImpl;
+import com.samourai.whirlpool.protocol.feeOpReturn.FeeOpReturnImplV1;
 import java.util.*;
 import org.bitcoinj.core.*;
 import org.bitcoinj.script.Script;
@@ -27,13 +27,13 @@ public class Tx0Service {
 
   private Tx0PreviewService tx0PreviewService;
   private WhirlpoolWalletConfig config;
-  private FeeOpReturnImpl feeOpReturnImpl;
+  private FeeOpReturnImplV1 feeOpReturnImpl;
   private final Bech32UtilGeneric bech32Util = Bech32UtilGeneric.getInstance();
 
   public Tx0Service(
       WhirlpoolWalletConfig config,
       Tx0PreviewService tx0PreviewService,
-      FeeOpReturnImpl feeOpReturnImpl) {
+      FeeOpReturnImplV1 feeOpReturnImpl) {
     this.config = config;
     this.tx0PreviewService = tx0PreviewService;
     this.feeOpReturnImpl = feeOpReturnImpl;
@@ -354,13 +354,10 @@ public class Tx0Service {
       UnspentOutput firstInput, UtxoKeyProvider utxoKeyProvider, Tx0Data tx0Data) throws Exception {
     NetworkParameters params = config.getNetworkParameters();
 
-    // use firstInputKey to sign
-    TransactionOutPoint signingOutpoint = firstInput.computeOutpoint(params);
-    byte[] signingPrivateKey =
-        utxoKeyProvider._getPrivKey(firstInput.tx_hash, firstInput.tx_output_n);
+    // use input0 for masking
+    TransactionOutPoint maskingOutpoint = firstInput.computeOutpoint(params);
     String feePaymentCode = tx0Data.getFeePaymentCode();
     byte[] feePayload = tx0Data.getFeePayload();
-    return feeOpReturnImpl.computeOpReturn(
-        feePaymentCode, feePayload, signingOutpoint, signingPrivateKey);
+    return feeOpReturnImpl.computeOpReturnV1(feePaymentCode, feePayload, maskingOutpoint);
   }
 }

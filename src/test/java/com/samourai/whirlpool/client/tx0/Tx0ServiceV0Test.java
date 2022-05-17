@@ -17,13 +17,11 @@ import com.samourai.whirlpool.client.wallet.beans.WhirlpoolServer;
 import com.samourai.whirlpool.client.wallet.data.dataSource.DataSourceFactory;
 import com.samourai.whirlpool.client.wallet.data.dataSource.DojoDataSourceFactory;
 import com.samourai.whirlpool.client.whirlpool.beans.Tx0Data;
-import com.samourai.whirlpool.protocol.feeOpReturn.FeeOpReturnImpl;
-import com.samourai.whirlpool.protocol.feeOpReturn.FeeOpReturnImplV0;
-import com.samourai.whirlpool.protocol.util.XorMask;
 import java.util.Arrays;
 import org.bitcoinj.core.Transaction;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -51,14 +49,7 @@ public class Tx0ServiceV0Test extends AbstractTest {
         new DojoDataSourceFactory(BackendServer.TESTNET, false, null);
     config =
         new WhirlpoolWalletConfig(
-            dataSourceFactory, null, null, null, null, server.getParams(), false) {
-          @Override
-          public FeeOpReturnImpl computeFeeOpReturnImpl() {
-            // use FeeOpReturnImplV0
-            XorMask xorMask = computeXorMask();
-            return new FeeOpReturnImplV0(xorMask);
-          }
-        };
+            dataSourceFactory, null, null, null, null, server.getParams(), false);
     config.setTx0MaxOutputs(10);
     tx0PreviewService = new Tx0PreviewService(mockMinerFeeSupplier(), config);
     tx0Service = new Tx0Service(config, tx0PreviewService, config.computeFeeOpReturnImpl());
@@ -304,6 +295,7 @@ public class Tx0ServiceV0Test extends AbstractTest {
     Assertions.assertEquals(tp.getNbPremix(), tp2.getNbPremix());
   }
 
+  @Disabled
   @Test
   public void tx0_5premix_withChange_scode_noFee() throws Exception {
     String seedWords = "all all all all all all all all all all all all";
@@ -557,6 +549,7 @@ public class Tx0ServiceV0Test extends AbstractTest {
         tx0Hex);
   }*/
 
+  @Disabled
   @Test
   public void tx0_1premix_withChange_scode_nofee() throws Exception {
     String seedWords = "all all all all all all all all all all all all";
@@ -659,6 +652,7 @@ public class Tx0ServiceV0Test extends AbstractTest {
         tx0Hex);
   }
 
+  @Disabled
   @Test
   public void tx0_1premix_withChange_scode_fee() throws Exception {
     String seedWords = "all all all all all all all all all all all all";
@@ -762,6 +756,7 @@ public class Tx0ServiceV0Test extends AbstractTest {
         tx0Hex);
   }
 
+  @Disabled
   @Test
   public void tx0_1premix_withChange_noScode() throws Exception {
     String seedWords = "all all all all all all all all all all all all";
@@ -863,6 +858,7 @@ public class Tx0ServiceV0Test extends AbstractTest {
         tx0Hex);
   }
 
+  @Disabled
   @Test
   public void tx0_1premix_withChangePostmix_noScode() throws Exception {
     String seedWords = "all all all all all all all all all all all all";
