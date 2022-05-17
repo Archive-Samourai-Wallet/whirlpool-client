@@ -212,19 +212,22 @@ public class AbstractTest {
     return spendFrom;
   }
 
+  protected IHttpClientService computeHttpClientService() {
+    return new IHttpClientService() {
+      @Override
+      public IHttpClient getHttpClient(HttpUsage httpUsage) {
+        return httpClient;
+      }
+
+      @Override
+      public void stop() {}
+    };
+  }
+
   protected WhirlpoolWalletConfig computeWhirlpoolWalletConfig(ServerApi serverApi) {
     DataSourceFactory dataSourceFactory =
         new DojoDataSourceFactory(BackendServer.TESTNET, false, null);
-    IHttpClientService httpClientService =
-        new IHttpClientService() {
-          @Override
-          public IHttpClient getHttpClient(HttpUsage httpUsage) {
-            return httpClient;
-          }
-
-          @Override
-          public void stop() {}
-        };
+    IHttpClientService httpClientService = computeHttpClientService();
     WhirlpoolWalletConfig config =
         new WhirlpoolWalletConfig(
             dataSourceFactory,

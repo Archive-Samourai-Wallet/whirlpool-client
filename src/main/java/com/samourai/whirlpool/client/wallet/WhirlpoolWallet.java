@@ -16,6 +16,7 @@ import com.samourai.wallet.send.spend.SpendBuilder;
 import com.samourai.wallet.util.AsyncUtil;
 import com.samourai.whirlpool.client.event.*;
 import com.samourai.whirlpool.client.exception.NotifiableException;
+import com.samourai.whirlpool.client.exception.PostmixIndexAlreadyUsedException;
 import com.samourai.whirlpool.client.exception.PushTxErrorResponseException;
 import com.samourai.whirlpool.client.exception.UnconfirmedUtxoException;
 import com.samourai.whirlpool.client.mix.MixParams;
@@ -441,7 +442,7 @@ public class WhirlpoolWallet {
 
   public synchronized Completable startAsync() {
     // check postmix index against coordinator
-    return checkPostmixIndexAsync()
+    return checkAndFixPostmixIndexAsync()
         .doOnComplete(
             () -> {
               // start mixing on success
@@ -671,7 +672,7 @@ public class WhirlpoolWallet {
         }
 
         // check postmixIndex
-        checkPostmixIndexAsync()
+        checkAndFixPostmixIndexAsync()
             .doOnError(
                 e -> {
                   // stop mixing on postmixIndex error
@@ -724,7 +725,7 @@ public class WhirlpoolWallet {
     return asyncUtil.runIOAsyncCompletable(() -> getUtxoSupplier().refresh());
   }
 
-  public synchronized Completable checkPostmixIndexAsync() {
+  public synchronized Completable checkAndFixPostmixIndexAsync() {
     return asyncUtil.runIOAsyncCompletable(
         () -> {
           if (!config.isPostmixIndexCheck()) {
@@ -732,19 +733,18 @@ public class WhirlpoolWallet {
             log.warn("postmixIndexCheck is disabled");
             return;
           }
-
-          doCheckPostmixIndex();
+          checkAndFixPostmixIndex();
         });
   }
 
-  protected void doCheckPostmixIndex() throws Exception {
+  protected void checkAndFixPostmixIndex() throws NotifiableException {
     try {
       // check
       postmixIndexService.checkPostmixIndex(getWalletPostmix());
-    } catch (Exception e) {
+    } catch (PostmixIndexAlreadyUsedException e) {
+      // postmix index is desynchronized
       log.error(
           "postmixIndex is desynchronized: " + e.getClass().getSimpleName() + " " + e.getMessage());
-      // postmix index is desynchronized
       WhirlpoolEventService.getInstance().post(new PostmixIndexAlreadyUsedEvent(this));
       if (config.isPostmixIndexAutoFix()) {
         // autofix
@@ -752,9 +752,12 @@ public class WhirlpoolWallet {
           WhirlpoolEventService.getInstance().post(new PostmixIndexFixProgressEvent(this));
           postmixIndexService.fixPostmixIndex(getWalletPostmix());
           WhirlpoolEventService.getInstance().post(new PostmixIndexFixSuccessEvent(this));
-        } catch (Exception ee) {
+        } catch (PostmixIndexAlreadyUsedException ee) {
+          // could not autofix
           WhirlpoolEventService.getInstance().post(new PostmixIndexFixFailEvent(this));
-          throw ee;
+          throw new NotifiableException(
+              "PostmixIndex error - please resync your wallet or contact support. PostmixIndex="
+                  + ee.getPostmixIndex());
         }
       }
     }
