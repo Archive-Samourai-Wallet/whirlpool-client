@@ -1,6 +1,7 @@
 package com.samourai.whirlpool.client.mix.dialog;
 
 import com.samourai.wallet.api.backend.beans.HttpException;
+import com.samourai.wallet.util.AsyncUtil;
 import com.samourai.whirlpool.client.exception.NotifiableException;
 import com.samourai.whirlpool.client.utils.ClientUtils;
 import com.samourai.whirlpool.client.whirlpool.WhirlpoolClientConfig;
@@ -16,6 +17,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class MixDialog {
+  private static final int REGISTER_OUTPUT_ATTEMPTS = 10;
+  private static final AsyncUtil asyncUtil = AsyncUtil.getInstance();
+
   // non-static logger to prefix it with stomp sessionId
   private Logger log;
 
@@ -226,40 +230,67 @@ public class MixDialog {
 
   private void doRegisterOutput(
       RegisterOutputMixStatusNotification registerOutputMixStatusNotification) throws Exception {
-    try {
-      listener
-          .postRegisterOutput(registerOutputMixStatusNotification, config.getServerApi())
-          .subscribe(
-              new CompletableObserver() {
-                @Override
-                public void onSubscribe(Disposable disposable) {}
 
-                @Override
-                public void onComplete() {
-                  if (log.isDebugEnabled()) {
-                    log.debug("postRegisterOutput onComplete!");
-                  }
-                }
+    asyncUtil
+        .runIOAsyncCompletable(() -> doRegisterOutputAttempts(registerOutputMixStatusNotification))
+        .subscribe(
+            new CompletableObserver() {
+              @Override
+              public void onSubscribe(Disposable disposable) {}
 
-                @Override
-                public void onError(Throwable throwable) {
-                  // registerOutput failed
-                  try {
-                    throw ClientUtils.wrapRestError(throwable);
-                  } catch (NotifiableException e) {
-                    log.error("onPrivateReceived NotifiableException: " + e.getMessage());
-                    exitOnResponseError(e.getMessage());
-                  } catch (HttpException e) {
-                    log.error("onPrivateReceived HttpException: " + e.getMessage());
-                    exitOnDisconnected(e.getMessage());
-                  } catch (Throwable e) {
-                    log.error("onPrivateReceived Exception", e);
-                    exitOnPrivateReceivedException(e);
-                  }
+              @Override
+              public void onComplete() {
+                if (log.isDebugEnabled()) {
+                  log.debug("postRegisterOutput onComplete!");
                 }
-              });
-    } catch (HttpException e) {
-      throw ClientUtils.wrapRestError(e);
+              }
+
+              @Override
+              public void onError(Throwable throwable) {
+                // registerOutput failed
+                try {
+                  throw ClientUtils.wrapRestError(throwable);
+                } catch (NotifiableException e) {
+                  log.error("onPrivateReceived NotifiableException: " + e.getMessage());
+                  exitOnResponseError(e.getMessage());
+                } catch (HttpException e) {
+                  log.error("onPrivateReceived HttpException: " + e.getMessage());
+                  exitOnDisconnected(e.getMessage());
+                } catch (Throwable e) {
+                  log.error("onPrivateReceived Exception", e);
+                  exitOnPrivateReceivedException(e);
+                }
+              }
+            });
+  }
+
+  private void doRegisterOutputAttempts(
+      RegisterOutputMixStatusNotification registerOutputMixStatusNotification) throws Exception {
+    int attempt = 0;
+    while (true) {
+      try {
+        if (log.isDebugEnabled()) {
+          log.debug("registerOutput[" + attempt + "]");
+        }
+        asyncUtil.blockingAwait(
+            listener.postRegisterOutput(
+                registerOutputMixStatusNotification, config.getServerApi()));
+        return; // success
+      } catch (Exception e) {
+        if (attempt >= REGISTER_OUTPUT_ATTEMPTS) {
+          throw e; // all attempts failed
+        }
+        if (log.isDebugEnabled()) {
+          log.error(
+              "postRegisterOutput["
+                  + attempt
+                  + "/"
+                  + REGISTER_OUTPUT_ATTEMPTS
+                  + "] failed, retrying... "
+                  + e.getMessage());
+        }
+        attempt++; // continue next attempt
+      }
     }
   }
 

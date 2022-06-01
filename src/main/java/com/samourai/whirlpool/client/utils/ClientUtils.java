@@ -40,6 +40,7 @@ public class ClientUtils {
               DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false); // allow protocol upgrades
   private static final FeeUtil feeUtil = FeeUtil.getInstance();
   private static final Bech32UtilGeneric bech32Util = Bech32UtilGeneric.getInstance();
+  private static final int BORDEREAU_LENGTH = 30;
 
   public static void setupEnv() {
     // prevent user-agent tracking
@@ -336,5 +337,9 @@ public class ClientUtils {
       dir = System.getProperty("user.dir"); // fallback
     }
     return dir;
+  }
+
+  public static byte[] generateBordereau() {
+    return RandomUtil.getInstance().nextBytes(BORDEREAU_LENGTH);
   }
 }

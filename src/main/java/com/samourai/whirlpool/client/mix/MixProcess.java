@@ -46,6 +46,7 @@ public class MixProcess {
 
   // computed values
   private boolean liquidity;
+  private byte[] bordereau;
   private RSABlindingParameters blindingParams;
   private MixDestination receiveDestination;
   private Utxo receiveUtxo;
@@ -139,18 +140,17 @@ public class MixProcess {
       throwProtocolException();
     }
 
-    // use receiveAddress as bordereau. keep it private, but transmit blindedBordereau
-    // clear receiveAddress will be provided with unblindedSignedBordereau by connecting with
-    // another identity for REGISTER_OUTPUT
+    // generate a secret bordereau. keep it private and register INPUT with blindedBordereau
+    // bordereau will be provided with unblindedSignedBordereau to register POSTMIX with another
+    // identity
+    this.bordereau = ClientUtils.generateBordereau();
     byte[] publicKey = WhirlpoolProtocol.decodeBytes(confirmInputMixStatusNotification.publicKey64);
     RSAKeyParameters serverPublicKey = ClientUtils.publicKeyUnserialize(publicKey);
     this.blindingParams = clientCryptoService.computeBlindingParams(serverPublicKey);
-    this.receiveDestination = postmixHandler.computeDestination();
 
     String mixId = confirmInputMixStatusNotification.mixId;
     String blindedBordereau64 =
-        WhirlpoolProtocol.encodeBytes(
-            clientCryptoService.blind(this.receiveDestination.getAddress(), blindingParams));
+        WhirlpoolProtocol.encodeBytes(clientCryptoService.blind(bordereau, blindingParams));
     String userHash = premixHandler.computeUserHash(mixId);
     ConfirmInputRequest confirmInputRequest =
         new ConfirmInputRequest(mixId, blindedBordereau64, userHash);
@@ -180,21 +180,27 @@ public class MixProcess {
     if (!registeredInput
         || !confirmedInput
         || !confirmedInputResponse
-        || registeredOutput
+        // || registeredOutput => allow retrying REGISTER_OUTPUT failures
         || revealedOutput
         || signed) {
       throwProtocolException();
     }
 
     this.inputsHash = registerOutputMixStatusNotification.getInputsHash();
+    this.receiveDestination = postmixHandler.computeDestination();
 
     String unblindedSignedBordereau64 =
         WhirlpoolProtocol.encodeBytes(clientCryptoService.unblind(signedBordereau, blindingParams));
+    String bordereau64 = WhirlpoolProtocol.encodeBytes(bordereau);
     RegisterOutputRequest registerOutputRequest =
         new RegisterOutputRequest(
-            inputsHash, unblindedSignedBordereau64, this.receiveDestination.getAddress());
+            inputsHash,
+            unblindedSignedBordereau64,
+            this.receiveDestination.getAddress(),
+            bordereau64);
 
-    registeredOutput = true;
+    registeredOutput = true; // mark as registered even if failed
+
     return registerOutputRequest;
   }
 
@@ -384,9 +390,9 @@ public class MixProcess {
             + confirmedInput
             + ", confirmedInputResponse="
             + confirmedInputResponse
-            + ", registeredOutput"
+            + ", registeredOutput="
             + registeredOutput
-            + ", revealedOutput"
+            + ", revealedOutput="
             + revealedOutput
             + ", signed="
             + signed;

@@ -22,10 +22,6 @@ public class ClientCryptoService {
     return new RSABlindingParameters(publicKey, blindingFactor);
   }
 
-  public byte[] blind(String toBlind, RSABlindingParameters blindingParams) throws CryptoException {
-    return blind(toBlind.getBytes(), blindingParams);
-  }
-
   public byte[] blind(byte[] toBlind, RSABlindingParameters blindingParams) throws CryptoException {
     PSSSigner blinder = new PSSSigner(new RSABlindingEngine(), new SHA256Digest(), 32);
     blinder.init(true, blindingParams);
