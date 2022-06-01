@@ -3,6 +3,7 @@ package com.samourai.whirlpool.client.mix;
 import com.samourai.whirlpool.client.mix.handler.IPostmixHandler;
 import com.samourai.whirlpool.client.mix.handler.IPremixHandler;
 import com.samourai.whirlpool.client.wallet.beans.WhirlpoolUtxo;
+import com.samourai.whirlpool.client.wallet.data.chain.ChainSupplier;
 import com.samourai.whirlpool.client.whirlpool.beans.Pool;
 
 public class MixParams {
@@ -11,26 +12,36 @@ public class MixParams {
   private WhirlpoolUtxo whirlpoolUtxo;
   private IPremixHandler premixHandler;
   private IPostmixHandler postmixHandler;
+  private ChainSupplier chainSupplier;
 
   public MixParams(
       String poolId,
       long denomination,
       WhirlpoolUtxo whirlpoolUtxo,
       IPremixHandler premixHandler,
-      IPostmixHandler postmixHandler) {
+      IPostmixHandler postmixHandler,
+      ChainSupplier chainSupplier) {
     this.poolId = poolId;
     this.denomination = denomination;
     this.whirlpoolUtxo = whirlpoolUtxo;
     this.premixHandler = premixHandler;
     this.postmixHandler = postmixHandler;
+    this.chainSupplier = chainSupplier;
   }
 
   public MixParams(
       Pool pool,
       WhirlpoolUtxo whirlpoolUtxo,
       IPremixHandler premixHandler,
-      IPostmixHandler postmixHandler) {
-    this(pool.getPoolId(), pool.getDenomination(), whirlpoolUtxo, premixHandler, postmixHandler);
+      IPostmixHandler postmixHandler,
+      ChainSupplier chainSupplier) {
+    this(
+        pool.getPoolId(),
+        pool.getDenomination(),
+        whirlpoolUtxo,
+        premixHandler,
+        postmixHandler,
+        chainSupplier);
   }
 
   public MixParams(MixParams mixParams, IPremixHandler premixHandler) {
@@ -39,7 +50,8 @@ public class MixParams {
         mixParams.getDenomination(),
         mixParams.getWhirlpoolUtxo(),
         premixHandler,
-        mixParams.getPostmixHandler());
+        mixParams.getPostmixHandler(),
+        mixParams.getChainSupplier());
   }
 
   public String getPoolId() {
@@ -60,5 +72,9 @@ public class MixParams {
 
   public IPostmixHandler getPostmixHandler() {
     return postmixHandler;
+  }
+
+  public ChainSupplier getChainSupplier() {
+    return chainSupplier;
   }
 }

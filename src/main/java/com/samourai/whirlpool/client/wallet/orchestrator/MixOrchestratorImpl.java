@@ -11,6 +11,7 @@ import com.samourai.whirlpool.client.utils.ClientUtils;
 import com.samourai.whirlpool.client.wallet.WhirlpoolWallet;
 import com.samourai.whirlpool.client.wallet.WhirlpoolWalletConfig;
 import com.samourai.whirlpool.client.wallet.beans.*;
+import com.samourai.whirlpool.client.wallet.data.chain.ChainSupplier;
 import com.samourai.whirlpool.client.wallet.data.pool.PoolSupplier;
 import com.samourai.whirlpool.client.whirlpool.WhirlpoolClientConfig;
 import com.samourai.whirlpool.client.whirlpool.WhirlpoolClientImpl;
@@ -146,8 +147,14 @@ public class MixOrchestratorImpl extends MixOrchestrator {
   private MixParams computeMixParams(WhirlpoolUtxo whirlpoolUtxo, Pool pool) {
     IPremixHandler premixHandler = computePremixHandler(whirlpoolUtxo);
     IPostmixHandler postmixHandler = computePostmixHandler(whirlpoolUtxo);
+    ChainSupplier chainSupplier = whirlpoolWallet.getChainSupplier();
     return new MixParams(
-        pool.getPoolId(), pool.getDenomination(), whirlpoolUtxo, premixHandler, postmixHandler);
+        pool.getPoolId(),
+        pool.getDenomination(),
+        whirlpoolUtxo,
+        premixHandler,
+        postmixHandler,
+        chainSupplier);
   }
 
   @Override

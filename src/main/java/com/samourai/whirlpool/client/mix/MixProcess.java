@@ -9,6 +9,7 @@ import com.samourai.whirlpool.client.mix.handler.MixDestination;
 import com.samourai.whirlpool.client.mix.handler.UtxoWithBalance;
 import com.samourai.whirlpool.client.utils.ClientCryptoService;
 import com.samourai.whirlpool.client.utils.ClientUtils;
+import com.samourai.whirlpool.client.wallet.data.chain.ChainSupplier;
 import com.samourai.whirlpool.protocol.WhirlpoolProtocol;
 import com.samourai.whirlpool.protocol.beans.Utxo;
 import com.samourai.whirlpool.protocol.rest.RegisterOutputRequest;
@@ -35,6 +36,7 @@ public class MixProcess {
   private IPremixHandler premixHandler;
   private IPostmixHandler postmixHandler;
   private ClientCryptoService clientCryptoService;
+  private ChainSupplier chainSupplier;
   private Bech32UtilGeneric bech32Util;
 
   // hard limit for acceptable fees
@@ -65,13 +67,15 @@ public class MixProcess {
       long poolDenomination,
       IPremixHandler premixHandler,
       IPostmixHandler postmixHandler,
-      ClientCryptoService clientCryptoService) {
+      ClientCryptoService clientCryptoService,
+      ChainSupplier chainSupplier) {
     this.params = params;
     this.poolId = poolId;
     this.poolDenomination = poolDenomination;
     this.premixHandler = premixHandler;
     this.postmixHandler = postmixHandler;
     this.clientCryptoService = clientCryptoService;
+    this.chainSupplier = chainSupplier;
     this.bech32Util = Bech32UtilGeneric.getInstance();
   }
 
@@ -121,9 +125,10 @@ public class MixProcess {
     checkUtxoBalance(mustMixBalanceMin, mustMixBalanceMax);
 
     String signature = premixHandler.signMessage(poolId);
+    int blockHeight = chainSupplier.getLatestBlock().height;
     RegisterInputRequest registerInputRequest =
         new RegisterInputRequest(
-            poolId, utxo.getHash(), utxo.getIndex(), signature, this.liquidity);
+            poolId, utxo.getHash(), utxo.getIndex(), signature, this.liquidity, blockHeight);
 
     registeredInput = true;
     return registerInputRequest;

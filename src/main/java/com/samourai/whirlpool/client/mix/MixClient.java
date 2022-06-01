@@ -114,7 +114,8 @@ public class MixClient {
         mixParams.getDenomination(),
         mixParams.getPremixHandler(),
         mixParams.getPostmixHandler(),
-        clientCryptoService);
+        clientCryptoService,
+        mixParams.getChainSupplier());
   }
 
   private MixDialogListener computeMixDialogListener() {
