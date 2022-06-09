@@ -48,7 +48,7 @@ public class ExpirablePoolSupplier extends ExpirableSupplier<PoolData> implement
 
   @Override
   protected void onValueChange(PoolData value) throws Exception {
-    eventService.post(new PoolsChangeEvent());
+    eventService.post(new PoolsChangeEvent(value));
   }
 
   @Override

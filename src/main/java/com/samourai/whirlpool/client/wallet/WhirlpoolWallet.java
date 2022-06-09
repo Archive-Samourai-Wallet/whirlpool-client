@@ -406,9 +406,6 @@ public class WhirlpoolWallet {
               + ", "
               + pub);
     }
-
-    // notify
-    WhirlpoolEventService.getInstance().post(new WalletOpenEvent(this));
   }
 
   public void close() {
@@ -435,9 +432,6 @@ public class WhirlpoolWallet {
     } catch (Exception e) {
       log.error("", e);
     }
-
-    // notify
-    WhirlpoolEventService.getInstance().post(new WalletCloseEvent(this));
   }
 
   public synchronized Completable startAsync() {

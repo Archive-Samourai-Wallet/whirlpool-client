@@ -16,7 +16,7 @@ public class MixingStateEditable extends MixingState {
   @Override
   protected void emit() {
     super.emit();
-    WhirlpoolEventService.getInstance().post(new MixStateChangeEvent(whirlpoolWallet));
+    WhirlpoolEventService.getInstance().post(new MixStateChangeEvent(whirlpoolWallet, this));
   }
 
   @Override

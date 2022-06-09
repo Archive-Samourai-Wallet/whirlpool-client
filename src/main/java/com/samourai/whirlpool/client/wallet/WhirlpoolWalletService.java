@@ -1,5 +1,7 @@
 package com.samourai.whirlpool.client.wallet;
 
+import com.samourai.whirlpool.client.event.WalletCloseEvent;
+import com.samourai.whirlpool.client.event.WalletOpenEvent;
 import com.samourai.whirlpool.client.utils.ClientUtils;
 import java.util.Optional;
 import org.slf4j.Logger;
@@ -19,8 +21,12 @@ public class WhirlpoolWalletService {
 
   public synchronized void closeWallet() {
     if (whirlpoolWallet != null) {
+      WhirlpoolWallet wp = whirlpoolWallet;
       whirlpoolWallet.close();
       whirlpoolWallet = null;
+
+      // notify after updating session
+      WhirlpoolEventService.getInstance().post(new WalletCloseEvent(wp));
     } else {
       if (log.isDebugEnabled()) {
         log.debug("closeWallet skipped: no wallet opened");
@@ -36,6 +42,9 @@ public class WhirlpoolWalletService {
 
     wp.open(passphrase);
     whirlpoolWallet = wp;
+
+    // notify after updating session
+    WhirlpoolEventService.getInstance().post(new WalletOpenEvent(wp));
     return wp;
   }
 

@@ -66,11 +66,6 @@
                 </exclusion>
             </exclusions>
         </dependency>
-        <dependency>
-            <groupId>io.samourai.code.wallet.bitcoinj</groupId>
-            <artifactId>bitcoinj-core</artifactId>
-            <version>003</version>
-        </dependency>
     </dependencies>
     <build>
         <plugins>
