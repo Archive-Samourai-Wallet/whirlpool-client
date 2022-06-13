@@ -6,14 +6,13 @@ import com.samourai.wallet.util.SystemUtil;
 import java.io.File;
 import org.slf4j.Logger;
 
-public abstract class AbstractPersister<D extends PersistableData, P> {
+public abstract class AbstractFilePersister<D extends PersistableData, P> implements IPersister<D> {
   private final Logger log;
 
   private String fileName;
   private TypeReference<P> typePersisted;
 
   private final ObjectMapper mapper;
-  private long lastWrite;
 
   protected abstract D getInitialValue() throws Exception;
 
@@ -21,15 +20,15 @@ public abstract class AbstractPersister<D extends PersistableData, P> {
 
   protected abstract P toPersisted(D data) throws Exception;
 
-  public AbstractPersister(String fileName, TypeReference<P> typePersisted, Logger log) {
+  public AbstractFilePersister(String fileName, TypeReference<P> typePersisted, Logger log) {
     this.log = log;
     this.typePersisted = typePersisted;
     this.fileName = fileName;
 
     this.mapper = new ObjectMapper();
-    this.lastWrite = 0;
   }
 
+  @Override
   public synchronized D read() throws Exception {
     File file = getFile();
 
@@ -50,9 +49,9 @@ public abstract class AbstractPersister<D extends PersistableData, P> {
     return data;
   }
 
+  @Override
   public synchronized void write(D data) throws Exception {
     doWrite(data);
-    lastWrite = System.currentTimeMillis();
   }
 
   protected void doWrite(D data) throws Exception {
@@ -72,9 +71,5 @@ public abstract class AbstractPersister<D extends PersistableData, P> {
       throw new Exception("File not found: " + fileName);
     }
     return file;
-  }
-
-  public long getLastWrite() {
-    return lastWrite;
   }
 }

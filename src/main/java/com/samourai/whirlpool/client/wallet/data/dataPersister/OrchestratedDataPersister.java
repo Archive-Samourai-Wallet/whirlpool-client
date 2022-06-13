@@ -8,8 +8,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /** DataPersister based on filesystem. */
-public class FileDataPersister implements DataPersister {
-  private static final Logger log = LoggerFactory.getLogger(FileDataPersister.class);
+public class OrchestratedDataPersister implements DataPersister {
+  private static final Logger log = LoggerFactory.getLogger(OrchestratedDataPersister.class);
 
   private AbstractOrchestrator persistOrchestrator;
 
@@ -19,7 +19,7 @@ public class FileDataPersister implements DataPersister {
   private final WalletStateSupplier walletStateSupplier;
   private final UtxoConfigSupplier utxoConfigSupplier;
 
-  public FileDataPersister(
+  public OrchestratedDataPersister(
       WhirlpoolWallet whirlpoolWallet,
       int persistDelaySeconds,
       WalletStateSupplier walletStateSupplier,
@@ -66,8 +66,16 @@ public class FileDataPersister implements DataPersister {
 
   @Override
   public void persist(boolean force) throws Exception {
-    utxoConfigSupplier.persist(force);
+    Exception exception = null;
+    try {
+      utxoConfigSupplier.persist(force);
+    } catch (Exception e) {
+      exception = e;
+    }
     walletStateSupplier.persist(force);
+    if (exception != null) {
+      throw exception;
+    }
   }
 
   protected WhirlpoolWallet getWhirlpoolWallet() {

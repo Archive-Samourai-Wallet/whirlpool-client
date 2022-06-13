@@ -1,16 +1,17 @@
 package com.samourai.whirlpool.client.wallet.data.walletState;
 
 import com.fasterxml.jackson.core.type.TypeReference;
-import com.samourai.whirlpool.client.wallet.data.supplier.AbstractPersister;
+import com.samourai.whirlpool.client.wallet.data.supplier.AbstractFilePersister;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class WalletStatePersister extends AbstractPersister<WalletStateData, Map<String, Integer>> {
-  private static final Logger log = LoggerFactory.getLogger(WalletStatePersister.class);
+public class WalletStatePersisterFile
+    extends AbstractFilePersister<WalletStateData, Map<String, Integer>> {
+  private static final Logger log = LoggerFactory.getLogger(WalletStatePersisterFile.class);
 
-  public WalletStatePersister(String fileName) {
+  public WalletStatePersisterFile(String fileName) {
     super(fileName, new TypeReference<Map<String, Integer>>() {}, log);
   }
 

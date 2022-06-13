@@ -19,8 +19,8 @@ import com.samourai.whirlpool.client.wallet.data.minerFee.BasicMinerFeeSupplier;
 import com.samourai.whirlpool.client.wallet.data.minerFee.MinerFeeSupplier;
 import com.samourai.whirlpool.client.wallet.data.pool.ExpirablePoolSupplier;
 import com.samourai.whirlpool.client.wallet.data.pool.MockPoolSupplier;
-import com.samourai.whirlpool.client.wallet.data.walletState.PersistableWalletStateSupplier;
-import com.samourai.whirlpool.client.wallet.data.walletState.WalletStatePersister;
+import com.samourai.whirlpool.client.wallet.data.walletState.WalletStatePersistableSupplier;
+import com.samourai.whirlpool.client.wallet.data.walletState.WalletStatePersisterFile;
 import com.samourai.whirlpool.client.wallet.data.walletState.WalletStateSupplier;
 import com.samourai.whirlpool.client.whirlpool.ServerApi;
 import com.samourai.whirlpool.client.whirlpool.beans.Pool;
@@ -252,7 +252,7 @@ public class AbstractTest {
   protected WalletStateSupplier computeWalletStateSupplier() throws Exception {
     ClientUtils.createFile(STATE_FILENAME);
     WalletStateSupplier walletStateSupplier =
-        new PersistableWalletStateSupplier(new WalletStatePersister(STATE_FILENAME), null);
+        new WalletStatePersistableSupplier(new WalletStatePersisterFile(STATE_FILENAME), null);
     walletStateSupplier.load();
     return walletStateSupplier;
   }

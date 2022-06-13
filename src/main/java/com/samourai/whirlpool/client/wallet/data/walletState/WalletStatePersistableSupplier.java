@@ -7,22 +7,23 @@ import com.samourai.wallet.client.indexHandler.IIndexHandler;
 import com.samourai.wallet.hd.Chain;
 import com.samourai.whirlpool.client.wallet.beans.ExternalDestination;
 import com.samourai.whirlpool.client.wallet.beans.WhirlpoolAccount;
-import com.samourai.whirlpool.client.wallet.data.supplier.BasicPersistableSupplier;
+import com.samourai.whirlpool.client.wallet.data.supplier.AbstractPersistableSupplier;
+import com.samourai.whirlpool.client.wallet.data.supplier.IPersister;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class PersistableWalletStateSupplier extends BasicPersistableSupplier<WalletStateData>
+public class WalletStatePersistableSupplier extends AbstractPersistableSupplier<WalletStateData>
     implements WalletStateSupplier {
-  private static final Logger log = LoggerFactory.getLogger(PersistableWalletStateSupplier.class);
+  private static final Logger log = LoggerFactory.getLogger(WalletStatePersistableSupplier.class);
   private static final String EXTERNAL_INDEX_HANDLER = "external";
 
   private final IIndexHandler indexHandlerExternal;
   private Map<String, IIndexHandler> indexHandlerWallets;
 
-  public PersistableWalletStateSupplier(
-      WalletStatePersister persister, ExternalDestination externalDestination) {
+  public WalletStatePersistableSupplier(
+      IPersister<WalletStateData> persister, ExternalDestination externalDestination) {
     super(persister, log);
 
     int externalIndexDefault =

@@ -1,17 +1,17 @@
 package com.samourai.whirlpool.client.wallet.data.utxoConfig;
 
 import com.fasterxml.jackson.core.type.TypeReference;
-import com.samourai.whirlpool.client.wallet.data.supplier.AbstractPersister;
+import com.samourai.whirlpool.client.wallet.data.supplier.AbstractFilePersister;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class UtxoConfigPersister
-    extends AbstractPersister<UtxoConfigData, Map<String, UtxoConfigPersisted>> {
-  private static final Logger log = LoggerFactory.getLogger(UtxoConfigPersister.class);
+public class UtxoConfigPersisterFile
+    extends AbstractFilePersister<UtxoConfigData, Map<String, UtxoConfigPersisted>> {
+  private static final Logger log = LoggerFactory.getLogger(UtxoConfigPersisterFile.class);
 
-  public UtxoConfigPersister(String fileName) {
+  public UtxoConfigPersisterFile(String fileName) {
     super(fileName, new TypeReference<Map<String, UtxoConfigPersisted>>() {}, log);
   }
 

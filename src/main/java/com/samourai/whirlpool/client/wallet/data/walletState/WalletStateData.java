@@ -41,7 +41,7 @@ public class WalletStateData extends PersistableData {
     setBoolean(INDEX_NYM_CLAIMED, value);
   }
 
-  protected Map<String, Integer> getItems() {
+  public Map<String, Integer> getItems() {
     return items;
   }
 

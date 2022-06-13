@@ -11,11 +11,11 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-public class PersistableWalletStateSupplierTest extends AbstractTest {
+public class WalletStatePersistableSupplierTest extends AbstractTest {
   protected WalletStateSupplier walletStateSupplier;
   protected BipWallet walletPostmix;
 
-  public PersistableWalletStateSupplierTest() throws Exception {
+  public WalletStatePersistableSupplierTest() throws Exception {
     super();
   }
 
