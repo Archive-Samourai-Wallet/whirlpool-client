@@ -29,7 +29,7 @@ public class DojoDataSource extends WalletResponseDataSource
 
   private static final int INITWALLET_RETRY = 3;
   private static final int INITWALLET_RETRY_TIMEOUT = 3000;
-  private static final int FETCH_TXS_PER_PAGE = 300;
+  private static final int FETCH_TXS_PER_PAGE = 200;
 
   private BackendApi backendApi;
   private BackendWsApi backendWsApi; // may be null
