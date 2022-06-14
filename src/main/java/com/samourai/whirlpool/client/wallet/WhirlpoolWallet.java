@@ -598,7 +598,7 @@ public class WhirlpoolWallet {
     // forward utxoConfig
     int newMixsDone = whirlpoolUtxo.getMixsDone() + 1;
     getUtxoConfigSupplier()
-        .setUtxo(receiveUtxo.getHash(), (int) receiveUtxo.getIndex(), newMixsDone);
+        .setMixsDone(receiveUtxo.getHash(), (int) receiveUtxo.getIndex(), newMixsDone);
 
     // persist
     try {

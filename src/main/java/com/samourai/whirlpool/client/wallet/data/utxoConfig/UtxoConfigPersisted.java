@@ -7,18 +7,27 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 public class UtxoConfigPersisted implements UtxoConfig {
   private int mixsDone;
   private Long expired;
+  private boolean blocked;
+  private String note;
 
   public UtxoConfigPersisted() {
-    this(0, null);
+    this(0, null, false, null);
   }
 
-  public UtxoConfigPersisted(int mixsDone, Long expired) {
+  public UtxoConfigPersisted(int mixsDone) {
+    this(mixsDone, null, false, null);
+  }
+
+  public UtxoConfigPersisted(int mixsDone, Long expired, boolean blocked, String note) {
     this.mixsDone = mixsDone;
     this.expired = expired;
+    this.blocked = blocked;
+    this.note = note;
   }
 
   public UtxoConfigPersisted copy() {
-    UtxoConfigPersisted copy = new UtxoConfigPersisted(this.mixsDone, this.expired);
+    UtxoConfigPersisted copy =
+        new UtxoConfigPersisted(this.mixsDone, this.expired, this.blocked, this.note);
     return copy;
   }
 
@@ -38,8 +47,31 @@ public class UtxoConfigPersisted implements UtxoConfig {
     this.expired = expired;
   }
 
+  public boolean isBlocked() {
+    return blocked;
+  }
+
+  public void setBlocked(boolean blocked) {
+    this.blocked = blocked;
+  }
+
+  public String getNote() {
+    return note;
+  }
+
+  public void setNote(String note) {
+    this.note = note;
+  }
+
   @Override
   public String toString() {
-    return "mixsDone=" + mixsDone + ", expired=" + (expired != null ? expired : "null");
+    return "mixsDone="
+        + mixsDone
+        + ", expired="
+        + (expired != null ? expired : "null")
+        + ", blocked="
+        + blocked
+        + ", note="
+        + (note != null ? note : "null");
   }
 }

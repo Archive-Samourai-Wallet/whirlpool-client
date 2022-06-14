@@ -1,6 +1,7 @@
 package com.samourai.whirlpool.client.wallet.data.utxoConfig;
 
 import com.samourai.wallet.api.backend.beans.UnspentOutput;
+import com.samourai.wallet.util.CallbackWithArg;
 import com.samourai.whirlpool.client.utils.ClientUtils;
 import com.samourai.whirlpool.client.wallet.beans.WhirlpoolUtxo;
 import com.samourai.whirlpool.client.wallet.data.supplier.AbstractPersistableSupplier;
@@ -36,16 +37,35 @@ public class UtxoConfigPersistableSupplier extends AbstractPersistableSupplier<U
   }
 
   @Override
-  public synchronized void setUtxo(String hash, int index, int mixsDone) {
+  public synchronized void setMixsDone(String hash, int index, int mixsDone) {
+    applyUtxoConfig(hash, index, utxoConfigPersisted -> utxoConfigPersisted.setMixsDone(mixsDone));
+  }
+
+  @Override
+  public void setBlocked(String hash, int index, boolean blocked) {
+    applyUtxoConfig(hash, index, utxoConfigPersisted -> utxoConfigPersisted.setBlocked(blocked));
+  }
+
+  @Override
+  public void setNote(String hash, int index, String note) {
+    applyUtxoConfig(hash, index, utxoConfigPersisted -> utxoConfigPersisted.setNote(note));
+  }
+
+  protected synchronized void applyUtxoConfig(
+      String hash, int index, CallbackWithArg<UtxoConfigPersisted> callback) {
     String key = computeUtxoConfigKey(hash, index);
     UtxoConfigPersisted utxoConfigPersisted = getUtxo(hash, index);
     if (utxoConfigPersisted == null) {
-      utxoConfigPersisted = new UtxoConfigPersisted(mixsDone, null);
+      utxoConfigPersisted = new UtxoConfigPersisted();
       if (log.isDebugEnabled()) {
         log.debug("+utxoConfig: " + hash + ":" + index + " => " + utxoConfigPersisted);
       }
-    } else {
-      utxoConfigPersisted.setMixsDone(mixsDone);
+    }
+
+    try {
+      callback.apply(utxoConfigPersisted);
+    } catch (Exception e) {
+      log.error("", e);
     }
     getValue().add(key, utxoConfigPersisted);
   }

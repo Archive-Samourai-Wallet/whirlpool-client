@@ -9,11 +9,15 @@ public class ChainData {
     this.latestBlock = latestBlock;
   }
 
-  public boolean equals(ChainData o) {
+  @Override
+  public boolean equals(Object o) {
     if (this == o) return true;
-    return latestBlock != null
-        && o.latestBlock != null
-        && latestBlock.height == o.latestBlock.height;
+    if (!(o instanceof ChainData)) return false;
+
+    ChainData c = (ChainData) o;
+    return (latestBlock != null
+        && c.latestBlock != null
+        && latestBlock.height == c.latestBlock.height);
   }
 
   public WalletResponse.InfoBlock getLatestBlock() {

@@ -94,7 +94,7 @@ public class WhirlpoolUtxo {
     UtxoConfig utxoConfig = utxoConfigSupplier.getUtxo(utxo.tx_hash, utxo.tx_output_n);
     if (utxoConfig == null) {
       int mixsDone = WhirlpoolAccount.POSTMIX.equals(getAccount()) ? 1 : 0;
-      utxoConfig = new UtxoConfigPersisted(mixsDone, null);
+      utxoConfig = new UtxoConfigPersisted(mixsDone);
     }
     return utxoConfig;
   }
@@ -104,7 +104,23 @@ public class WhirlpoolUtxo {
   }
 
   public void setMixsDone(int mixsDone) {
-    utxoConfigSupplier.setUtxo(utxo.tx_hash, utxo.tx_output_n, mixsDone);
+    utxoConfigSupplier.setMixsDone(utxo.tx_hash, utxo.tx_output_n, mixsDone);
+  }
+
+  public boolean isBlocked() {
+    return getUtxoConfigOrDefault().isBlocked();
+  }
+
+  public void setBlocked(boolean blocked) {
+    utxoConfigSupplier.setBlocked(utxo.tx_hash, utxo.tx_output_n, blocked);
+  }
+
+  public String getNote() {
+    return getUtxoConfigOrDefault().getNote();
+  }
+
+  public void setNote(String note) {
+    utxoConfigSupplier.setNote(utxo.tx_hash, utxo.tx_output_n, note);
   }
 
   public UnspentOutput getUtxo() {

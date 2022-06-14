@@ -7,7 +7,11 @@ import java.util.Collection;
 public interface UtxoConfigSupplier extends PersistableSupplier {
   UtxoConfig getUtxo(String utxoHash, int utxoIndex);
 
-  void setUtxo(String utxoHash, int utxoIndex, int mixsDone);
+  void setMixsDone(String utxoHash, int utxoIndex, int mixsDone);
+
+  void setBlocked(String utxoHash, int utxoIndex, boolean blocked);
+
+  void setNote(String utxoHash, int utxoIndex, String note);
 
   void clean(Collection<WhirlpoolUtxo> existingUtxos);
 }
