@@ -20,6 +20,8 @@ import com.samourai.whirlpool.client.wallet.data.dataSource.DataSourceFactory;
 import com.samourai.whirlpool.client.whirlpool.ServerApi;
 import com.samourai.whirlpool.client.whirlpool.WhirlpoolClientConfig;
 import com.samourai.whirlpool.protocol.WhirlpoolProtocol;
+import com.samourai.whirlpool.protocol.feeOpReturn.FeeOpReturnImpl;
+import com.samourai.whirlpool.protocol.feeOpReturn.FeeOpReturnImplV0;
 import com.samourai.whirlpool.protocol.feeOpReturn.FeeOpReturnImplV1;
 import com.samourai.whirlpool.protocol.util.XorMask;
 import com.samourai.xmanager.client.XManagerClient;
@@ -70,6 +72,8 @@ public class WhirlpoolWalletConfig extends WhirlpoolClientConfig
 
   private ISecretPointFactory secretPointFactory;
   private BIP47UtilGeneric bip47Util;
+  private FeeOpReturnImpl feeOpReturnImpl;
+  private boolean opReturnV0;
 
   public WhirlpoolWalletConfig(
       DataSourceFactory dataSourceFactory,
@@ -126,6 +130,10 @@ public class WhirlpoolWalletConfig extends WhirlpoolClientConfig
 
     this.secretPointFactory = SecretPointFactoryJava.getInstance();
     this.bip47Util = Bip47UtilJava.getInstance();
+
+    XorMask xorMask = XorMask.getInstance(secretPointFactory);
+    feeOpReturnImpl = new FeeOpReturnImplV1(xorMask);
+    opReturnV0 = false;
   }
 
   public void verify() throws Exception {
@@ -161,15 +169,6 @@ public class WhirlpoolWalletConfig extends WhirlpoolClientConfig
     boolean testnet = FormatsUtilGeneric.getInstance().isTestNet(getNetworkParameters());
     return new XManagerClient(
         getHttpClientService().getHttpClient(HttpUsage.BACKEND), testnet, false);
-  }
-
-  public FeeOpReturnImplV1 computeFeeOpReturnImpl() {
-    XorMask xorMask = computeXorMask();
-    return new FeeOpReturnImplV1(xorMask);
-  }
-
-  protected XorMask computeXorMask() {
-    return XorMask.getInstance(secretPointFactory);
   }
 
   public DataSourceFactory getDataSourceFactory() {
@@ -410,6 +409,20 @@ public class WhirlpoolWalletConfig extends WhirlpoolClientConfig
 
   public void setBip47Util(BIP47UtilGeneric bip47Util) {
     this.bip47Util = bip47Util;
+  }
+
+  public FeeOpReturnImpl getFeeOpReturnImpl() {
+    return feeOpReturnImpl;
+  }
+
+  public boolean isOpReturnV0() {
+    return opReturnV0;
+  }
+
+  public void setFeeOpReturnImplV0() {
+    XorMask xorMask = XorMask.getInstance(secretPointFactory);
+    this.feeOpReturnImpl = new FeeOpReturnImplV0(xorMask);
+    opReturnV0 = true;
   }
 
   public Map<String, String> getConfigInfo() {

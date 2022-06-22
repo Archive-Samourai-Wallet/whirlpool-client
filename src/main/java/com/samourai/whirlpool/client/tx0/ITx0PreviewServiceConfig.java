@@ -19,4 +19,6 @@ public interface ITx0PreviewServiceConfig {
   ServerApi getServerApi();
 
   String getPartner();
+
+  boolean isOpReturnV0();
 }

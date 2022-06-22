@@ -21,7 +21,6 @@ import java.util.Arrays;
 import org.bitcoinj.core.Transaction;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -51,13 +50,14 @@ public class Tx0ServiceV0Test extends AbstractTest {
         new WhirlpoolWalletConfig(
             dataSourceFactory, null, null, null, null, server.getParams(), false);
     config.setTx0MaxOutputs(10);
+    config.setFeeOpReturnImplV0();
     tx0PreviewService = new Tx0PreviewService(mockMinerFeeSupplier(), config);
-    tx0Service = new Tx0Service(config, tx0PreviewService, config.computeFeeOpReturnImpl());
+    tx0Service = new Tx0Service(config, tx0PreviewService, config.getFeeOpReturnImpl());
     utxoKeyProvider = new SimpleUtxoKeyProvider();
   }
 
   private byte[] encodeFeePayload(int feeIndice, short scodePayload, short partner) {
-    return config.computeFeeOpReturnImpl().computeFeePayload(feeIndice, scodePayload, partner);
+    return config.getFeeOpReturnImpl().computeFeePayload(feeIndice, scodePayload, partner);
   }
 
   @Test
@@ -100,6 +100,7 @@ public class Tx0ServiceV0Test extends AbstractTest {
     Assertions.assertEquals(1000201, tx0Param.getPremixValue());
     Tx0Preview tx0Preview =
         tx0PreviewService.tx0Preview(tx0Param, tx0Data, Arrays.asList(spendFromUtxo));
+    check(tx0Preview);
     Assertions.assertEquals(572, tx0Preview.getTx0MinerFee());
     Assertions.assertEquals(feeValue, tx0Preview.getFeeValue());
     Assertions.assertEquals(feeChange, tx0Preview.getFeeChange());
@@ -148,18 +149,21 @@ public class Tx0ServiceV0Test extends AbstractTest {
     Assertions.assertEquals(1000201, tx0Param.getPremixValue());
     Tx0Preview tx0Preview =
         tx0PreviewService.tx0Preview(tx0Param, tx0Data, Arrays.asList(spendFromUtxo));
+    check(tx0Preview);
     Assertions.assertEquals(1000201, tx0Preview.getPremixValue());
 
     // overspend too low => min
     tx0Param = new Tx0Param(feeSatPerByte, feeSatPerByte, pool01btc, 1L);
     Assertions.assertEquals(pool01btc.getMustMixBalanceMin(), tx0Param.getPremixValue());
     tx0Preview = tx0PreviewService.tx0Preview(tx0Param, tx0Data, Arrays.asList(spendFromUtxo));
+    check(tx0Preview);
     Assertions.assertEquals(pool01btc.getMustMixBalanceMin(), tx0Preview.getPremixValue());
 
     // overspend too high => max
     tx0Param = new Tx0Param(feeSatPerByte, feeSatPerByte, pool01btc, 999999999L);
     Assertions.assertEquals(pool01btc.getMustMixBalanceCap(), tx0Param.getPremixValue());
     tx0Preview = tx0PreviewService.tx0Preview(tx0Param, tx0Data, Arrays.asList(spendFromUtxo));
+    check(tx0Preview);
     Assertions.assertEquals(pool01btc.getMustMixBalanceCap(), tx0Preview.getPremixValue());
   }
 
@@ -206,18 +210,21 @@ public class Tx0ServiceV0Test extends AbstractTest {
     tx0Param = new Tx0Param(feeTx0, feeSatPerByte, pool01btc, null);
     Tx0Preview tx0Preview =
         tx0PreviewService.tx0Preview(tx0Param, tx0Data, Arrays.asList(spendFromUtxo));
+    check(tx0Preview);
     Assertions.assertEquals(TX0_SIZE * feeTx0, tx0Preview.getTx0MinerFee());
 
     // feeTx0
     feeTx0 = 5;
     tx0Param = new Tx0Param(feeTx0, feeSatPerByte, pool01btc, null);
     tx0Preview = tx0PreviewService.tx0Preview(tx0Param, tx0Data, Arrays.asList(spendFromUtxo));
+    check(tx0Preview);
     Assertions.assertEquals(TX0_SIZE * feeTx0, tx0Preview.getTx0MinerFee());
 
     // feeTx0
     feeTx0 = 50;
     tx0Param = new Tx0Param(feeTx0, feeSatPerByte, pool01btc, null);
     tx0Preview = tx0PreviewService.tx0Preview(tx0Param, tx0Data, Arrays.asList(spendFromUtxo));
+    check(tx0Preview);
     Assertions.assertEquals(TX0_SIZE * feeTx0, tx0Preview.getTx0MinerFee());
   }
 
@@ -264,24 +271,28 @@ public class Tx0ServiceV0Test extends AbstractTest {
     tx0Param = new Tx0Param(feeSatPerByte, feePremix, pool01btc, null);
     Tx0Preview tx0Preview =
         tx0PreviewService.tx0Preview(tx0Param, tx0Data, Arrays.asList(spendFromUtxo));
+    check(tx0Preview);
     Assertions.assertEquals(1000201, tx0Preview.getPremixValue());
 
     // feePremix
     feePremix = 5;
     tx0Param = new Tx0Param(feeSatPerByte, feePremix, pool01btc, null);
     tx0Preview = tx0PreviewService.tx0Preview(tx0Param, tx0Data, Arrays.asList(spendFromUtxo));
+    check(tx0Preview);
     Assertions.assertEquals(1001008, tx0Preview.getPremixValue());
 
     // feePremix
     feePremix = 20;
     tx0Param = new Tx0Param(feeSatPerByte, feePremix, pool01btc, null);
     tx0Preview = tx0PreviewService.tx0Preview(tx0Param, tx0Data, Arrays.asList(spendFromUtxo));
+    check(tx0Preview);
     Assertions.assertEquals(1004033, tx0Preview.getPremixValue());
 
     // feePremix max
     feePremix = 99999;
     tx0Param = new Tx0Param(feeSatPerByte, feePremix, pool01btc, null);
     tx0Preview = tx0PreviewService.tx0Preview(tx0Param, tx0Data, Arrays.asList(spendFromUtxo));
+    check(tx0Preview);
     Assertions.assertEquals(1009500, tx0Preview.getPremixValue());
   }
 
@@ -295,7 +306,6 @@ public class Tx0ServiceV0Test extends AbstractTest {
     Assertions.assertEquals(tp.getNbPremix(), tp2.getNbPremix());
   }
 
-  @Disabled
   @Test
   public void tx0_5premix_withChange_scode_noFee() throws Exception {
     String seedWords = "all all all all all all all all all all all all";
@@ -319,7 +329,7 @@ public class Tx0ServiceV0Test extends AbstractTest {
     BipWallet badbankWallet = new BipWallet(bip84w, indexHandlerSupplier, BIP_WALLET.BADBANK_BIP84);
     Tx0Config tx0Config =
         new Tx0Config(
-            mockTx0PreviewService(),
+            tx0PreviewService,
             mockPoolSupplier().getPools(),
             Tx0FeeTarget.BLOCKS_24,
             Tx0FeeTarget.BLOCKS_24,
@@ -372,6 +382,7 @@ public class Tx0ServiceV0Test extends AbstractTest {
             tx0Preview,
             utxoKeyProvider);
 
+    check(tx0);
     assertEquals(tx0Preview, tx0);
     Assertions.assertEquals(tx0MinerFee, tx0Preview.getTx0MinerFee());
     Assertions.assertEquals(premixMinerFee, tx0Preview.getPremixMinerFee());
@@ -549,7 +560,6 @@ public class Tx0ServiceV0Test extends AbstractTest {
         tx0Hex);
   }*/
 
-  @Disabled
   @Test
   public void tx0_1premix_withChange_scode_nofee() throws Exception {
     String seedWords = "all all all all all all all all all all all all";
@@ -573,7 +583,7 @@ public class Tx0ServiceV0Test extends AbstractTest {
     BipWallet badbankWallet = new BipWallet(bip84w, indexHandlerSupplier, BIP_WALLET.PREMIX_BIP84);
     Tx0Config tx0Config =
         new Tx0Config(
-            mockTx0PreviewService(),
+            tx0PreviewService,
             mockPoolSupplier().getPools(),
             Tx0FeeTarget.BLOCKS_24,
             Tx0FeeTarget.BLOCKS_24,
@@ -627,6 +637,7 @@ public class Tx0ServiceV0Test extends AbstractTest {
             tx0Preview,
             utxoKeyProvider);
 
+    check(tx0);
     assertEquals(tx0Preview, tx0);
     Assertions.assertEquals(tx0MinerFee, tx0Preview.getTx0MinerFee());
     Assertions.assertEquals(premixMinerFee, tx0Preview.getPremixMinerFee());
@@ -652,7 +663,6 @@ public class Tx0ServiceV0Test extends AbstractTest {
         tx0Hex);
   }
 
-  @Disabled
   @Test
   public void tx0_1premix_withChange_scode_fee() throws Exception {
     String seedWords = "all all all all all all all all all all all all";
@@ -677,7 +687,7 @@ public class Tx0ServiceV0Test extends AbstractTest {
     BipWallet badbankWallet = new BipWallet(bip84w, indexHandlerSupplier, BIP_WALLET.PREMIX_BIP84);
     Tx0Config tx0Config =
         new Tx0Config(
-            mockTx0PreviewService(),
+            tx0PreviewService,
             mockPoolSupplier().getPools(),
             Tx0FeeTarget.BLOCKS_24,
             Tx0FeeTarget.BLOCKS_24,
@@ -731,6 +741,7 @@ public class Tx0ServiceV0Test extends AbstractTest {
             tx0Preview,
             utxoKeyProvider);
 
+    check(tx0);
     assertEquals(tx0Preview, tx0);
     Assertions.assertEquals(tx0MinerFee, tx0Preview.getTx0MinerFee());
     Assertions.assertEquals(premixMinerFee, tx0Preview.getPremixMinerFee());
@@ -756,7 +767,6 @@ public class Tx0ServiceV0Test extends AbstractTest {
         tx0Hex);
   }
 
-  @Disabled
   @Test
   public void tx0_1premix_withChange_noScode() throws Exception {
     String seedWords = "all all all all all all all all all all all all";
@@ -780,7 +790,7 @@ public class Tx0ServiceV0Test extends AbstractTest {
     BipWallet badbankWallet = new BipWallet(bip84w, indexHandlerSupplier, BIP_WALLET.PREMIX_BIP84);
     Tx0Config tx0Config =
         new Tx0Config(
-            mockTx0PreviewService(),
+            tx0PreviewService,
             mockPoolSupplier().getPools(),
             Tx0FeeTarget.BLOCKS_24,
             Tx0FeeTarget.BLOCKS_24,
@@ -833,6 +843,7 @@ public class Tx0ServiceV0Test extends AbstractTest {
             tx0Preview,
             utxoKeyProvider);
 
+    check(tx0);
     assertEquals(tx0Preview, tx0);
     Assertions.assertEquals(tx0MinerFee, tx0Preview.getTx0MinerFee());
     Assertions.assertEquals(premixMinerFee, tx0Preview.getPremixMinerFee());
@@ -858,7 +869,6 @@ public class Tx0ServiceV0Test extends AbstractTest {
         tx0Hex);
   }
 
-  @Disabled
   @Test
   public void tx0_1premix_withChangePostmix_noScode() throws Exception {
     String seedWords = "all all all all all all all all all all all all";
@@ -882,7 +892,7 @@ public class Tx0ServiceV0Test extends AbstractTest {
     BipWallet badbankWallet = new BipWallet(bip84w, indexHandlerSupplier, BIP_WALLET.PREMIX_BIP84);
     Tx0Config tx0Config =
         new Tx0Config(
-            mockTx0PreviewService(),
+            tx0PreviewService,
             mockPoolSupplier().getPools(),
             Tx0FeeTarget.BLOCKS_24,
             Tx0FeeTarget.BLOCKS_24,
@@ -935,6 +945,7 @@ public class Tx0ServiceV0Test extends AbstractTest {
             tx0Preview,
             utxoKeyProvider);
 
+    check(tx0);
     assertEquals(tx0Preview, tx0);
     Assertions.assertEquals(tx0MinerFee, tx0Preview.getTx0MinerFee());
     Assertions.assertEquals(premixMinerFee, tx0Preview.getPremixMinerFee());
@@ -958,5 +969,9 @@ public class Tx0ServiceV0Test extends AbstractTest {
     Assertions.assertEquals(
         "01000000000101ae24e3f5dbcee7971ae0e5b83fcb1eb67057901f2d371ca494f868b3dc8c58cc0100000000ffffffff040000000000000000426a409ae6649a7b1fc9ab17f408cbf7b41e27f3a5484650aafdf5167852bd348afa8aa8213dda856188683ab187a902923e7ec3b672a6fbb637a4063c71879f6859171027000000000000160014f6a884f18f4d7e78a4167c3e56773c3ae58e0164ee2b000000000000160014d49377882fdc939d951aa51a3c0ad6dd4a152e26d6420f00000000001600141dffe6e395c95927e4a16e8e6bd6d05604447e4d0247304402204e37d89e31eb2242049605dabc803579c717f41eea9e53e7a460e8ac7a3806800220460816a471b9dd9cae5b937368da68166d7b2d28a946a01bc1d6317018e3063801210349baf197181fe53937d225d0e7bd14d8b5f921813c038a95d7c2648500c119b000000000",
         tx0Hex);
+  }
+
+  private void check(Tx0Preview tx0Preview) {
+    Assertions.assertEquals(64, tx0Preview.getTx0Data().getFeePayload().length);
   }
 }

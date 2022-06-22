@@ -44,10 +44,10 @@ public class ServerApi {
     return httpClientRest.getJson(url, PoolsResponse.class, null);
   }
 
-  public Observable<Optional<Tx0DataResponseV2>> fetchTx0Data(Tx0DataRequestV2 tx0DataRequest)
-      throws Exception {
+  public Observable<Optional<Tx0DataResponseV2>> fetchTx0Data(
+      Tx0DataRequestV2 tx0DataRequest, boolean opReturnV0) throws Exception {
     httpClientRest.connect();
-    String url = WhirlpoolProtocol.getUrlTx0Data(urlServer);
+    String url = WhirlpoolProtocol.getUrlTx0Data(urlServer, opReturnV0);
     if (log.isDebugEnabled()) {
       log.debug("POST " + url + ": " + ClientUtils.toJsonString(tx0DataRequest));
     }

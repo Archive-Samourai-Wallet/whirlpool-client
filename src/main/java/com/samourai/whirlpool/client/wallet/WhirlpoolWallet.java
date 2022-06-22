@@ -362,7 +362,7 @@ public class WhirlpoolWallet {
                 dataPersister.getWalletStateSupplier(),
                 dataPersister.getUtxoConfigSupplier());
     this.tx0Service =
-        new Tx0Service(config, dataSource.getTx0PreviewService(), config.computeFeeOpReturnImpl());
+        new Tx0Service(config, dataSource.getTx0PreviewService(), config.getFeeOpReturnImpl());
     this.paynymSupplier = dataSource.getPaynymSupplier();
 
     // start orchestrators

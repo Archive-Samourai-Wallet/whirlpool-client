@@ -117,7 +117,7 @@ public class AbstractTest {
     return ClientUtils.fromJson(WALLET_RESPONSE, WalletResponse.class);
   }
 
-  protected Tx0PreviewService mockTx0PreviewService() throws Exception {
+  protected Tx0PreviewService mockTx0PreviewService(boolean isOpReturnV0) throws Exception {
     MinerFeeSupplier minerFeeSupplier = mockMinerFeeSupplier();
     return new Tx0PreviewService(
         minerFeeSupplier,
@@ -161,13 +161,18 @@ public class AbstractTest {
           public String getScode() {
             return null;
           }
+
+          @Override
+          public boolean isOpReturnV0() {
+            return isOpReturnV0;
+          }
         });
   }
 
   protected ExpirablePoolSupplier mockPoolSupplier() {
     try {
       PoolsResponse poolsResponse = ClientUtils.fromJson(POOLS_RESPONSE, PoolsResponse.class);
-      return new MockPoolSupplier(mockTx0PreviewService(), poolsResponse.pools);
+      return new MockPoolSupplier(mockTx0PreviewService(false), poolsResponse.pools);
     } catch (Exception e) {
       throw new RuntimeException(e);
     }

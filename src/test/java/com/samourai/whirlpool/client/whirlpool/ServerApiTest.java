@@ -32,9 +32,9 @@ public class ServerApiTest extends AbstractTest {
       asyncUtil.blockingSingle(serverApi.pushTx0(request)); // should fail
       Assertions.assertTrue(false);
     } catch (PushTxErrorResponseException e) {
-      Assertions.assertEquals("Not a valid TX0", e.getMessage());
-      Assertions.assertEquals("Not a valid TX0", e.getPushTxErrorResponse().message);
-      Assertions.assertEquals("Not a valid TX0", e.getPushTxErrorResponse().pushTxErrorCode);
+      Assertions.assertEquals("Not a TX0", e.getMessage());
+      Assertions.assertEquals("Not a TX0", e.getPushTxErrorResponse().message);
+      Assertions.assertEquals("Not a TX0", e.getPushTxErrorResponse().pushTxErrorCode);
       Assertions.assertNull(e.getPushTxErrorResponse().voutsAddressReuse);
     }
   }
@@ -64,12 +64,30 @@ public class ServerApiTest extends AbstractTest {
   }
 
   @Test
-  public void fetchTx0Data() throws Exception {
+  public void fetchTx0DataV0() throws Exception {
     Tx0DataRequestV2 request = new Tx0DataRequestV2();
     request.partnerId = "FREESIDE";
 
-    Tx0DataResponseV2 response = asyncUtil.blockingSingle(serverApi.fetchTx0Data(request)).get();
+    Tx0DataResponseV2 response =
+        asyncUtil.blockingSingle(serverApi.fetchTx0Data(request, true)).get();
     Assertions.assertEquals(4, response.tx0Datas.length);
+    for (Tx0DataResponseV2.Tx0Data tx0Data : response.tx0Datas) {
+      Assertions.assertEquals(64, WhirlpoolProtocol.decodeBytes(tx0Data.feePayload64).length);
+    }
+    Assertions.assertNull(response.tx0Datas[0].message);
+  }
+
+  @Test
+  public void fetchTx0DataV1() throws Exception {
+    Tx0DataRequestV2 request = new Tx0DataRequestV2();
+    request.partnerId = "FREESIDE";
+
+    Tx0DataResponseV2 response =
+        asyncUtil.blockingSingle(serverApi.fetchTx0Data(request, false)).get();
+    Assertions.assertEquals(4, response.tx0Datas.length);
+    for (Tx0DataResponseV2.Tx0Data tx0Data : response.tx0Datas) {
+      Assertions.assertEquals(46, WhirlpoolProtocol.decodeBytes(tx0Data.feePayload64).length);
+    }
     Assertions.assertNull(response.tx0Datas[0].message);
   }
 }

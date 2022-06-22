@@ -13,7 +13,7 @@ import com.samourai.whirlpool.client.utils.BIP69InputComparatorUnspentOutput;
 import com.samourai.whirlpool.client.wallet.WhirlpoolWalletConfig;
 import com.samourai.whirlpool.client.whirlpool.beans.Pool;
 import com.samourai.whirlpool.client.whirlpool.beans.Tx0Data;
-import com.samourai.whirlpool.protocol.feeOpReturn.FeeOpReturnImplV1;
+import com.samourai.whirlpool.protocol.feeOpReturn.FeeOpReturnImpl;
 import java.util.*;
 import org.bitcoinj.core.*;
 import org.bitcoinj.script.Script;
@@ -27,13 +27,13 @@ public class Tx0Service {
 
   private Tx0PreviewService tx0PreviewService;
   private WhirlpoolWalletConfig config;
-  private FeeOpReturnImplV1 feeOpReturnImpl;
+  private FeeOpReturnImpl feeOpReturnImpl;
   private final Bech32UtilGeneric bech32Util = Bech32UtilGeneric.getInstance();
 
   public Tx0Service(
       WhirlpoolWalletConfig config,
       Tx0PreviewService tx0PreviewService,
-      FeeOpReturnImplV1 feeOpReturnImpl) {
+      FeeOpReturnImpl feeOpReturnImpl) {
     this.config = config;
     this.tx0PreviewService = tx0PreviewService;
     this.feeOpReturnImpl = feeOpReturnImpl;
@@ -358,6 +358,8 @@ public class Tx0Service {
     TransactionOutPoint maskingOutpoint = firstInput.computeOutpoint(params);
     String feePaymentCode = tx0Data.getFeePaymentCode();
     byte[] feePayload = tx0Data.getFeePayload();
-    return feeOpReturnImpl.computeOpReturnV1(feePaymentCode, feePayload, maskingOutpoint);
+    byte[] firstInputKey = utxoKeyProvider._getPrivKey(firstInput.tx_hash, firstInput.tx_output_n);
+    return feeOpReturnImpl.computeOpReturn(
+        feePaymentCode, feePayload, maskingOutpoint, firstInputKey);
   }
 }

@@ -50,13 +50,14 @@ public class Tx0ServiceV1Test extends AbstractTest {
         new WhirlpoolWalletConfig(
             dataSourceFactory, null, null, null, null, server.getParams(), false);
     config.setTx0MaxOutputs(10);
+    config.getFeeOpReturnImpl().setTestMode(true); // generate static key for reproductible test
     tx0PreviewService = new Tx0PreviewService(mockMinerFeeSupplier(), config);
-    tx0Service = new Tx0Service(config, tx0PreviewService, config.computeFeeOpReturnImpl());
+    tx0Service = new Tx0Service(config, tx0PreviewService, config.getFeeOpReturnImpl());
     utxoKeyProvider = new SimpleUtxoKeyProvider();
   }
 
   private byte[] encodeFeePayload(int feeIndice, short scodePayload, short partner) {
-    return config.computeFeeOpReturnImpl().computeFeePayload(feeIndice, scodePayload, partner);
+    return config.getFeeOpReturnImpl().computeFeePayload(feeIndice, scodePayload, partner);
   }
 
   @Test
@@ -99,6 +100,7 @@ public class Tx0ServiceV1Test extends AbstractTest {
     Assertions.assertEquals(1000201, tx0Param.getPremixValue());
     Tx0Preview tx0Preview =
         tx0PreviewService.tx0Preview(tx0Param, tx0Data, Arrays.asList(spendFromUtxo));
+    check(tx0Preview);
     Assertions.assertEquals(572, tx0Preview.getTx0MinerFee());
     Assertions.assertEquals(feeValue, tx0Preview.getFeeValue());
     Assertions.assertEquals(feeChange, tx0Preview.getFeeChange());
@@ -147,18 +149,21 @@ public class Tx0ServiceV1Test extends AbstractTest {
     Assertions.assertEquals(1000201, tx0Param.getPremixValue());
     Tx0Preview tx0Preview =
         tx0PreviewService.tx0Preview(tx0Param, tx0Data, Arrays.asList(spendFromUtxo));
+    check(tx0Preview);
     Assertions.assertEquals(1000201, tx0Preview.getPremixValue());
 
     // overspend too low => min
     tx0Param = new Tx0Param(feeSatPerByte, feeSatPerByte, pool01btc, 1L);
     Assertions.assertEquals(pool01btc.getMustMixBalanceMin(), tx0Param.getPremixValue());
     tx0Preview = tx0PreviewService.tx0Preview(tx0Param, tx0Data, Arrays.asList(spendFromUtxo));
+    check(tx0Preview);
     Assertions.assertEquals(pool01btc.getMustMixBalanceMin(), tx0Preview.getPremixValue());
 
     // overspend too high => max
     tx0Param = new Tx0Param(feeSatPerByte, feeSatPerByte, pool01btc, 999999999L);
     Assertions.assertEquals(pool01btc.getMustMixBalanceCap(), tx0Param.getPremixValue());
     tx0Preview = tx0PreviewService.tx0Preview(tx0Param, tx0Data, Arrays.asList(spendFromUtxo));
+    check(tx0Preview);
     Assertions.assertEquals(pool01btc.getMustMixBalanceCap(), tx0Preview.getPremixValue());
   }
 
@@ -205,18 +210,21 @@ public class Tx0ServiceV1Test extends AbstractTest {
     tx0Param = new Tx0Param(feeTx0, feeSatPerByte, pool01btc, null);
     Tx0Preview tx0Preview =
         tx0PreviewService.tx0Preview(tx0Param, tx0Data, Arrays.asList(spendFromUtxo));
+    check(tx0Preview);
     Assertions.assertEquals(TX0_SIZE * feeTx0, tx0Preview.getTx0MinerFee());
 
     // feeTx0
     feeTx0 = 5;
     tx0Param = new Tx0Param(feeTx0, feeSatPerByte, pool01btc, null);
     tx0Preview = tx0PreviewService.tx0Preview(tx0Param, tx0Data, Arrays.asList(spendFromUtxo));
+    check(tx0Preview);
     Assertions.assertEquals(TX0_SIZE * feeTx0, tx0Preview.getTx0MinerFee());
 
     // feeTx0
     feeTx0 = 50;
     tx0Param = new Tx0Param(feeTx0, feeSatPerByte, pool01btc, null);
     tx0Preview = tx0PreviewService.tx0Preview(tx0Param, tx0Data, Arrays.asList(spendFromUtxo));
+    check(tx0Preview);
     Assertions.assertEquals(TX0_SIZE * feeTx0, tx0Preview.getTx0MinerFee());
   }
 
@@ -263,18 +271,21 @@ public class Tx0ServiceV1Test extends AbstractTest {
     tx0Param = new Tx0Param(feeSatPerByte, feePremix, pool01btc, null);
     Tx0Preview tx0Preview =
         tx0PreviewService.tx0Preview(tx0Param, tx0Data, Arrays.asList(spendFromUtxo));
+    check(tx0Preview);
     Assertions.assertEquals(1000201, tx0Preview.getPremixValue());
 
     // feePremix
     feePremix = 5;
     tx0Param = new Tx0Param(feeSatPerByte, feePremix, pool01btc, null);
     tx0Preview = tx0PreviewService.tx0Preview(tx0Param, tx0Data, Arrays.asList(spendFromUtxo));
+    check(tx0Preview);
     Assertions.assertEquals(1001008, tx0Preview.getPremixValue());
 
     // feePremix
     feePremix = 20;
     tx0Param = new Tx0Param(feeSatPerByte, feePremix, pool01btc, null);
     tx0Preview = tx0PreviewService.tx0Preview(tx0Param, tx0Data, Arrays.asList(spendFromUtxo));
+    check(tx0Preview);
     Assertions.assertEquals(1004033, tx0Preview.getPremixValue());
 
     // feePremix max
@@ -317,7 +328,7 @@ public class Tx0ServiceV1Test extends AbstractTest {
     BipWallet badbankWallet = new BipWallet(bip84w, indexHandlerSupplier, BIP_WALLET.BADBANK_BIP84);
     Tx0Config tx0Config =
         new Tx0Config(
-            mockTx0PreviewService(),
+            tx0PreviewService,
             mockPoolSupplier().getPools(),
             Tx0FeeTarget.BLOCKS_24,
             Tx0FeeTarget.BLOCKS_24,
@@ -369,6 +380,7 @@ public class Tx0ServiceV1Test extends AbstractTest {
             tx0Config,
             tx0Preview,
             utxoKeyProvider);
+    check(tx0);
 
     assertEquals(tx0Preview, tx0);
     Assertions.assertEquals(tx0MinerFee, tx0Preview.getTx0MinerFee());
@@ -389,9 +401,9 @@ public class Tx0ServiceV1Test extends AbstractTest {
     String tx0Hex = TxUtil.getInstance().getTxHex(tx);
     log.info(tx0.getTx().toString());
     Assertions.assertEquals(
-        "affe462b36217052a59a394d887d49996ad8272253ce7c134383988adf14df25", tx0Hash);
+        "bd24ca49350534ca6b80e17512f94fc52653a4842f34853deb08540b4e52712c", tx0Hash);
     Assertions.assertEquals(
-        "01000000000101ae24e3f5dbcee7971ae0e5b83fcb1eb67057901f2d371ca494f868b3dc8c58cc0100000000ffffffff0d0000000000000000536a4c509ae6649a7b1fc9a917f408cbf7b41e27f3a5484650aafdf5167852bd348afa8aa8213dda856188683ab187a902920349baf197181fe53937d225d0e7bd14d8b5f921813c038a95d7c2648500c119b0011027000000000000160014f6a884f18f4d7e78a4167c3e56773c3ae58e0164d6420f00000000001600141dffe6e395c95927e4a16e8e6bd6d05604447e4dd6420f00000000001600142540e8d450b7114a8b0b429709508735b4b1bbfbd6420f00000000001600145b1cdb2e6ae13f98034b84957d9e0975ad7e6da5d6420f000000000016001472df8c59071778ec20264e2aeb54dd4024bcee0ad6420f00000000001600147aca3eeaecc2ffefd434c70ed67bd579e629c29dd6420f0000000000160014833e54dd2bdc90a6d92aedbecef1ca9cdb24a4c4d6420f00000000001600148535df3b314d3191037e38c698ddb6bac83ba95ad6420f00000000001600149676ec398c2fe0736d61e09e1136958b4bf40cdad6420f0000000000160014adb93750e1ffcfcefc54c6be67bd3011878a5aa5d6420f0000000000160014ff715cbded0e6205a68a1f66a52ee56d56b44c8193a1341d000000001600141bd05eb7c9cb516fddd8187cecb2e0cb4e21ac8702483045022100ec8a7c4633e46dedaca8f0d68f13b57bded07ba31e93fcf5dbbbd57a489685de022039cf5d5547f9e59957c6389318ba30d02728ba637eeb85ee6ffa9d2ae1b38af201210349baf197181fe53937d225d0e7bd14d8b5f921813c038a95d7c2648500c119b000000000",
+        "01000000000101ae24e3f5dbcee7971ae0e5b83fcb1eb67057901f2d371ca494f868b3dc8c58cc0100000000ffffffff0d0000000000000000536a4c504d51fe709cbdb9ad363057318d1898fc2c024da31dca9796e1aa290e7db2c7226f83da6bc62fc79f15a3fe70694c036e350b47817fe80c931d2e7317d46b6017af2427f201bec425e41ae8d89a029d011027000000000000160014f6a884f18f4d7e78a4167c3e56773c3ae58e0164d6420f00000000001600141dffe6e395c95927e4a16e8e6bd6d05604447e4dd6420f00000000001600142540e8d450b7114a8b0b429709508735b4b1bbfbd6420f00000000001600145b1cdb2e6ae13f98034b84957d9e0975ad7e6da5d6420f000000000016001472df8c59071778ec20264e2aeb54dd4024bcee0ad6420f00000000001600147aca3eeaecc2ffefd434c70ed67bd579e629c29dd6420f0000000000160014833e54dd2bdc90a6d92aedbecef1ca9cdb24a4c4d6420f00000000001600148535df3b314d3191037e38c698ddb6bac83ba95ad6420f00000000001600149676ec398c2fe0736d61e09e1136958b4bf40cdad6420f0000000000160014adb93750e1ffcfcefc54c6be67bd3011878a5aa5d6420f0000000000160014ff715cbded0e6205a68a1f66a52ee56d56b44c8193a1341d000000001600141bd05eb7c9cb516fddd8187cecb2e0cb4e21ac8702473044022055ffb10eb05dde6d99db193aea74f803af1d34d265075bf3e633c9e2b2494472022011283da9892d6c8f6e08a508ea705977187d6fc96e7d67afa0d2f4084545aa8001210349baf197181fe53937d225d0e7bd14d8b5f921813c038a95d7c2648500c119b000000000",
         tx0Hex);
   }
 
@@ -570,7 +582,7 @@ public class Tx0ServiceV1Test extends AbstractTest {
     BipWallet badbankWallet = new BipWallet(bip84w, indexHandlerSupplier, BIP_WALLET.PREMIX_BIP84);
     Tx0Config tx0Config =
         new Tx0Config(
-            mockTx0PreviewService(),
+            tx0PreviewService,
             mockPoolSupplier().getPools(),
             Tx0FeeTarget.BLOCKS_24,
             Tx0FeeTarget.BLOCKS_24,
@@ -624,6 +636,7 @@ public class Tx0ServiceV1Test extends AbstractTest {
             tx0Preview,
             utxoKeyProvider);
 
+    check(tx0);
     assertEquals(tx0Preview, tx0);
     Assertions.assertEquals(tx0MinerFee, tx0Preview.getTx0MinerFee());
     Assertions.assertEquals(premixMinerFee, tx0Preview.getPremixMinerFee());
@@ -643,9 +656,9 @@ public class Tx0ServiceV1Test extends AbstractTest {
     String tx0Hex = TxUtil.getInstance().getTxHex(tx);
     log.info(tx0.getTx().toString());
     Assertions.assertEquals(
-        "14a2977991010dd3a2b8223e0f50c9018b4bf79c38b6f679f4c50d3b73117493", tx0Hash);
+        "35fcb9366fc80b01609de812c024da922675211c12d7abc49ace29d825d315f6", tx0Hash);
     Assertions.assertEquals(
-        "01000000000101ae24e3f5dbcee7971ae0e5b83fcb1eb67057901f2d371ca494f868b3dc8c58cc0100000000ffffffff040000000000000000536a4c509ae6649a7b1ec9a917f408cbf7b41e27f3a5484650aafdf5167852bd348afa8aa8213dda856188683ab187a902920349baf197181fe53937d225d0e7bd14d8b5f921813c038a95d7c2648500c119b0011027000000000000160014f6a884f18f4d7e78a4167c3e56773c3ae58e0164ee2b0000000000001600141bd05eb7c9cb516fddd8187cecb2e0cb4e21ac87d6420f00000000001600141dffe6e395c95927e4a16e8e6bd6d05604447e4d024830450221009d7b64eaa03ab5e4ee27d394eb6cd44669fa97cc4b437a82da45d15d55b340ca022003af4b01cad11e090a176d19492a062f1ade78d15691dabc851ce5b13a4df91801210349baf197181fe53937d225d0e7bd14d8b5f921813c038a95d7c2648500c119b000000000",
+        "01000000000101ae24e3f5dbcee7971ae0e5b83fcb1eb67057901f2d371ca494f868b3dc8c58cc0100000000ffffffff040000000000000000536a4c504d51fe709cbcb9ad363057318d1898fc2c024da31dca9796e1aa290e7db2c7226f83da6bc62fc79f15a3fe70694c036e350b47817fe80c931d2e7317d46b6017af2427f201bec425e41ae8d89a029d011027000000000000160014f6a884f18f4d7e78a4167c3e56773c3ae58e0164ee2b0000000000001600141bd05eb7c9cb516fddd8187cecb2e0cb4e21ac87d6420f00000000001600141dffe6e395c95927e4a16e8e6bd6d05604447e4d02473044022037cb7ab0cc47cd12396a08a24cb65f8ba88f0a2ace0dfc40c52933647bc30e6d02207b15a0adfa6fff0fc673424ffd9551e39c71a4e840a39493b186fa51d9d6c29001210349baf197181fe53937d225d0e7bd14d8b5f921813c038a95d7c2648500c119b000000000",
         tx0Hex);
   }
 
@@ -673,7 +686,7 @@ public class Tx0ServiceV1Test extends AbstractTest {
     BipWallet badbankWallet = new BipWallet(bip84w, indexHandlerSupplier, BIP_WALLET.PREMIX_BIP84);
     Tx0Config tx0Config =
         new Tx0Config(
-            mockTx0PreviewService(),
+            tx0PreviewService,
             mockPoolSupplier().getPools(),
             Tx0FeeTarget.BLOCKS_24,
             Tx0FeeTarget.BLOCKS_24,
@@ -727,6 +740,7 @@ public class Tx0ServiceV1Test extends AbstractTest {
             tx0Preview,
             utxoKeyProvider);
 
+    check(tx0);
     assertEquals(tx0Preview, tx0);
     Assertions.assertEquals(tx0MinerFee, tx0Preview.getTx0MinerFee());
     Assertions.assertEquals(premixMinerFee, tx0Preview.getPremixMinerFee());
@@ -746,9 +760,9 @@ public class Tx0ServiceV1Test extends AbstractTest {
     String tx0Hex = TxUtil.getInstance().getTxHex(tx);
     log.info(tx0.getTx().toString());
     Assertions.assertEquals(
-        "bca4fbeac7a5d60eeff6c546d1d1c9bc3868bb37333661e706ed9892eb50045e", tx0Hash);
+        "b735c9aea2052bc32eec0bfe2470904f74488a19c33a7b71e56029dc4ace2762", tx0Hash);
     Assertions.assertEquals(
-        "01000000000101ae24e3f5dbcee7971ae0e5b83fcb1eb67057901f2d371ca494f868b3dc8c58cc0100000000ffffffff040000000000000000536a4c509ae6649a7b1fc9a917f408cbf7b41e27f3a5484650aafdf5167852bd348afa8aa8213dda856188683ab187a902920349baf197181fe53937d225d0e7bd14d8b5f921813c038a95d7c2648500c119b00188130000000000001600149747d7abc760e033a19d477d2091582f76b4308b763f000000000000160014f6a884f18f4d7e78a4167c3e56773c3ae58e0164d6420f00000000001600141dffe6e395c95927e4a16e8e6bd6d05604447e4d024730440220109f7eaaa119698633355b15e65444f7c18dbd19cdc122c1417da2eb5e3c847a022006be6d1647e4f5fce549aef0e14d2f55acc5bc480fd772ecd020cfa3b34a0e2901210349baf197181fe53937d225d0e7bd14d8b5f921813c038a95d7c2648500c119b000000000",
+        "01000000000101ae24e3f5dbcee7971ae0e5b83fcb1eb67057901f2d371ca494f868b3dc8c58cc0100000000ffffffff040000000000000000536a4c504d51fe709cbdb9ad363057318d1898fc2c024da31dca9796e1aa290e7db2c7226f83da6bc62fc79f15a3fe70694c036e350b47817fe80c931d2e7317d46b6017af2427f201bec425e41ae8d89a029d0188130000000000001600149747d7abc760e033a19d477d2091582f76b4308b763f000000000000160014f6a884f18f4d7e78a4167c3e56773c3ae58e0164d6420f00000000001600141dffe6e395c95927e4a16e8e6bd6d05604447e4d0247304402200c5eec088885f838c1c8db80efc5a084a59271952664f92d4d5fab26c607a2b3022030c0ec44776a45f15eea4ccc8fdff027311d3ed9e5a2597189f1d2f9e590f75e01210349baf197181fe53937d225d0e7bd14d8b5f921813c038a95d7c2648500c119b000000000",
         tx0Hex);
   }
 
@@ -775,7 +789,7 @@ public class Tx0ServiceV1Test extends AbstractTest {
     BipWallet badbankWallet = new BipWallet(bip84w, indexHandlerSupplier, BIP_WALLET.PREMIX_BIP84);
     Tx0Config tx0Config =
         new Tx0Config(
-            mockTx0PreviewService(),
+            tx0PreviewService,
             mockPoolSupplier().getPools(),
             Tx0FeeTarget.BLOCKS_24,
             Tx0FeeTarget.BLOCKS_24,
@@ -828,6 +842,7 @@ public class Tx0ServiceV1Test extends AbstractTest {
             tx0Preview,
             utxoKeyProvider);
 
+    check(tx0);
     assertEquals(tx0Preview, tx0);
     Assertions.assertEquals(tx0MinerFee, tx0Preview.getTx0MinerFee());
     Assertions.assertEquals(premixMinerFee, tx0Preview.getPremixMinerFee());
@@ -847,9 +862,9 @@ public class Tx0ServiceV1Test extends AbstractTest {
     String tx0Hex = TxUtil.getInstance().getTxHex(tx);
     log.info(tx0.getTx().toString());
     Assertions.assertEquals(
-        "9c2a6206b1d8185eae399f1a38721c77a28633b2a087396837514611c5bd501a", tx0Hash);
+        "7e308efa2df096bbe4c87b90612286fe7f1716dff5af85ea248d31bbbcd71d32", tx0Hash);
     Assertions.assertEquals(
-        "01000000000101ae24e3f5dbcee7971ae0e5b83fcb1eb67057901f2d371ca494f868b3dc8c58cc0100000000ffffffff040000000000000000536a4c509ae6649a7b1fc9ab17f408cbf7b41e27f3a5484650aafdf5167852bd348afa8aa8213dda856188683ab187a902920349baf197181fe53937d225d0e7bd14d8b5f921813c038a95d7c2648500c119b0011027000000000000160014f6a884f18f4d7e78a4167c3e56773c3ae58e0164ee2b0000000000001600141bd05eb7c9cb516fddd8187cecb2e0cb4e21ac87d6420f00000000001600141dffe6e395c95927e4a16e8e6bd6d05604447e4d02483045022100ca259c7f2e1719a0cbb02b941598f7b77785fbfe6b160c07b6c2c428ec95bcbd022026c0d3fbda4cf7eb9e654d9086002733f2668941ebd17033f1f1bee739d317c301210349baf197181fe53937d225d0e7bd14d8b5f921813c038a95d7c2648500c119b000000000",
+        "01000000000101ae24e3f5dbcee7971ae0e5b83fcb1eb67057901f2d371ca494f868b3dc8c58cc0100000000ffffffff040000000000000000536a4c504d51fe709cbdb9af363057318d1898fc2c024da31dca9796e1aa290e7db2c7226f83da6bc62fc79f15a3fe70694c036e350b47817fe80c931d2e7317d46b6017af2427f201bec425e41ae8d89a029d011027000000000000160014f6a884f18f4d7e78a4167c3e56773c3ae58e0164ee2b0000000000001600141bd05eb7c9cb516fddd8187cecb2e0cb4e21ac87d6420f00000000001600141dffe6e395c95927e4a16e8e6bd6d05604447e4d02483045022100a405f781cec3ffcd98bc0ff3dc4d9bfa09a01191c287e3be5950551f2d95306a0220275c5daef684ddade153515004aa6fcab4c3f21a6e8010337ff9e6e852bb63b801210349baf197181fe53937d225d0e7bd14d8b5f921813c038a95d7c2648500c119b000000000",
         tx0Hex);
   }
 
@@ -876,7 +891,7 @@ public class Tx0ServiceV1Test extends AbstractTest {
     BipWallet badbankWallet = new BipWallet(bip84w, indexHandlerSupplier, BIP_WALLET.PREMIX_BIP84);
     Tx0Config tx0Config =
         new Tx0Config(
-            mockTx0PreviewService(),
+            tx0PreviewService,
             mockPoolSupplier().getPools(),
             Tx0FeeTarget.BLOCKS_24,
             Tx0FeeTarget.BLOCKS_24,
@@ -929,6 +944,7 @@ public class Tx0ServiceV1Test extends AbstractTest {
             tx0Preview,
             utxoKeyProvider);
 
+    check(tx0);
     assertEquals(tx0Preview, tx0);
     Assertions.assertEquals(tx0MinerFee, tx0Preview.getTx0MinerFee());
     Assertions.assertEquals(premixMinerFee, tx0Preview.getPremixMinerFee());
@@ -947,10 +963,19 @@ public class Tx0ServiceV1Test extends AbstractTest {
     String tx0Hash = tx.getHashAsString();
     String tx0Hex = TxUtil.getInstance().getTxHex(tx);
     log.info(tx0.getTx().toString());
+
     Assertions.assertEquals(
-        "610679f1eb426221acda9a4c0279cca6e4952d431eac3be4f1f5ae3796ab0d45", tx0Hash);
+        "f3fab2ed98896cf3519862a1d0c22e65aad25812530adc528e7dd89bb2bddd7d", tx0Hash);
     Assertions.assertEquals(
-        "01000000000101ae24e3f5dbcee7971ae0e5b83fcb1eb67057901f2d371ca494f868b3dc8c58cc0100000000ffffffff040000000000000000536a4c509ae6649a7b1fc9ab17f408cbf7b41e27f3a5484650aafdf5167852bd348afa8aa8213dda856188683ab187a902920349baf197181fe53937d225d0e7bd14d8b5f921813c038a95d7c2648500c119b0011027000000000000160014f6a884f18f4d7e78a4167c3e56773c3ae58e0164ee2b000000000000160014d49377882fdc939d951aa51a3c0ad6dd4a152e26d6420f00000000001600141dffe6e395c95927e4a16e8e6bd6d05604447e4d02473044022010c282251bfed125c29f9e0e1800bf54182f3fb8c63d66375a6da36b6aa61aa302204f60cfa04695d366417bd978e6c1598d6c685e5904ce6d0327718060ec03719d01210349baf197181fe53937d225d0e7bd14d8b5f921813c038a95d7c2648500c119b000000000",
+        "01000000000101ae24e3f5dbcee7971ae0e5b83fcb1eb67057901f2d371ca494f868b3dc8c58cc0100000000ffffffff040000000000000000536a4c504d51fe709cbdb9af363057318d1898fc2c024da31dca9796e1aa290e7db2c7226f83da6bc62fc79f15a3fe70694c036e350b47817fe80c931d2e7317d46b6017af2427f201bec425e41ae8d89a029d011027000000000000160014f6a884f18f4d7e78a4167c3e56773c3ae58e0164ee2b000000000000160014d49377882fdc939d951aa51a3c0ad6dd4a152e26d6420f00000000001600141dffe6e395c95927e4a16e8e6bd6d05604447e4d02483045022100bf50930868965a091cd2b58c548344f96c4ded5c40faa978a40a57d0cb8192130220782a1fd8c0770c456870acd1ce192fd381865159c7cb90adbf40a5ccd286b19401210349baf197181fe53937d225d0e7bd14d8b5f921813c038a95d7c2648500c119b000000000",
         tx0Hex);
+  }
+
+  private void check(Tx0Preview tx0Preview) {
+    Assertions.assertEquals(46, tx0Preview.getTx0Data().getFeePayload().length);
+  }
+
+  private void check(Tx0 tx0) {
+    Assertions.assertEquals(46, tx0.getTx0Data().getFeePayload().length);
   }
 }

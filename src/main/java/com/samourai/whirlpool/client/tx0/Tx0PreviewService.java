@@ -224,7 +224,8 @@ public class Tx0PreviewService {
       Tx0DataRequestV2 tx0DataRequest = new Tx0DataRequestV2(config.getScode(), partnerId);
       Tx0DataResponseV2 tx0DatasResponse =
           AsyncUtil.getInstance()
-              .blockingSingle(config.getServerApi().fetchTx0Data(tx0DataRequest))
+              .blockingSingle(
+                  config.getServerApi().fetchTx0Data(tx0DataRequest, config.isOpReturnV0()))
               .get();
       for (Tx0DataResponseV2.Tx0Data tx0DataItem : tx0DatasResponse.tx0Datas) {
         Tx0Data tx0Data = new Tx0Data(tx0DataItem);

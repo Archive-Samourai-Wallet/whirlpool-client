@@ -161,7 +161,7 @@ public class MixClient {
       @Override
       public void exitOnInputRejected(String notifiableError) {
         if (!HEALTH_CHECK_SUCCESS.equals(notifiableError)) {
-          log.error("ERROR: " + notifiableError);
+          log.error("ERROR: input rejected: " + notifiableError);
         }
         failAndExit(MixFailReason.INPUT_REJECTED, notifiableError);
       }
