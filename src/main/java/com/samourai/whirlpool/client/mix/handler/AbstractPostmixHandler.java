@@ -34,13 +34,14 @@ public abstract class AbstractPostmixHandler implements IPostmixHandler {
   @Override
   public void onMixFail() {
     if (destination != null) {
+      // cancel unconfirmed postmix index if output was not registered yet
       indexHandler.cancelUnconfirmed(destination.getIndex());
     }
   }
 
   @Override
   public void onRegisterOutput() {
-    // confirm receive address even when REGISTER_OUTPUT fails, to avoid 'ouput already registered'
+    // confirm postmix index on REGISTER_OUTPUT success
     indexHandler.confirmUnconfirmed(destination.getIndex());
   }
 }

@@ -205,15 +205,20 @@ public class MixClient {
           ServerApi serverApi)
           throws Exception {
         listenerProgress(MixStep.REGISTERING_OUTPUT);
+
+        // this will increment unconfirmed postmix index
         RegisterOutputRequest registerOutputRequest =
             mixProcess.registerOutput(registerOutputMixStatusNotification);
-
-        mixParams.getPostmixHandler().onRegisterOutput();
 
         // send request
         Observable<Optional<String>> observable = serverApi.registerOutput(registerOutputRequest);
         Observable chainedObservable =
-            observable.doOnComplete(() -> listenerProgress(MixStep.REGISTERED_OUTPUT));
+            observable.doOnComplete(
+                () -> {
+                  // confirm postmix index on REGISTER_OUTPUT success
+                  mixParams.getPostmixHandler().onRegisterOutput();
+                  listenerProgress(MixStep.REGISTERED_OUTPUT);
+                });
         Completable completable = Completable.fromObservable(chainedObservable);
         return completable;
       }

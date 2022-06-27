@@ -76,11 +76,12 @@ public class Bip84PostmixHandlerTest extends AbstractTest {
     phCli.onRegisterOutput();
     phCli.onMixFail();
     Assertions.assertEquals(12, phCli.computeDestination().getIndex());
+    Assertions.assertEquals(14, phCli.computeDestination().getIndex());
 
     // reload
     load();
 
-    Assertions.assertEquals(12, phCli.computeDestination().getIndex());
+    Assertions.assertEquals(16, phCli.computeDestination().getIndex());
   }
 
   @Test
