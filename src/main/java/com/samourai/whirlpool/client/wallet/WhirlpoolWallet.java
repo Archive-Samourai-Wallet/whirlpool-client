@@ -801,8 +801,8 @@ public class WhirlpoolWallet {
     log.error(message);
   }
 
-  public SpendBuilder getSpendBuilder(Runnable restoreChangeIndexes) {
-    return new SpendBuilder(config.getNetworkParameters(), getUtxoSupplier(), restoreChangeIndexes);
+  public SpendBuilder getSpendBuilder() {
+    return new SpendBuilder(getUtxoSupplier());
   }
 
   public String getZpubDeposit() {
