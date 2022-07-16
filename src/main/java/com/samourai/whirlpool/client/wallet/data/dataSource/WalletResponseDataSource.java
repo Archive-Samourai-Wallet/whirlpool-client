@@ -74,7 +74,7 @@ public abstract class WalletResponseDataSource implements DataSource {
             chainSupplier,
             poolSupplier,
             bipFormatSupplier);
-    this.paynymSupplier = computePaynymSupplier(whirlpoolWallet, bip44w, walletStateSupplier);
+    this.paynymSupplier = computePaynymSupplier(whirlpoolWallet, walletStateSupplier);
   }
 
   protected WalletSupplierImpl computeWalletSupplier(
@@ -131,8 +131,9 @@ public abstract class WalletResponseDataSource implements DataSource {
   }
 
   protected PaynymSupplier computePaynymSupplier(
-      WhirlpoolWallet whirlpoolWallet, HD_Wallet bip44w, WalletStateSupplier walletStateSupplier) {
-    return ExpirablePaynymSupplier.create(whirlpoolWallet.getConfig(), bip44w, walletStateSupplier);
+      WhirlpoolWallet whirlpoolWallet, WalletStateSupplier walletStateSupplier) {
+    return ExpirablePaynymSupplier.create(
+        whirlpoolWallet.getConfig(), whirlpoolWallet.getBip47Wallet(), walletStateSupplier);
   }
 
   public void refresh() throws Exception {

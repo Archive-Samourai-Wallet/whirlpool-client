@@ -6,7 +6,6 @@ import com.samourai.wallet.api.paynym.PaynymApi;
 import com.samourai.wallet.api.paynym.PaynymServer;
 import com.samourai.wallet.api.paynym.beans.*;
 import com.samourai.wallet.bip47.rpc.BIP47Wallet;
-import com.samourai.wallet.hd.HD_Wallet;
 import com.samourai.wallet.util.AsyncUtil;
 import com.samourai.whirlpool.client.event.PaynymChangeEvent;
 import com.samourai.whirlpool.client.exception.NotifiableException;
@@ -45,10 +44,11 @@ public class ExpirablePaynymSupplier extends ExpirableSupplier<PaynymState>
   }
 
   public static ExpirablePaynymSupplier create(
-      WhirlpoolWalletConfig config, HD_Wallet bip44w, WalletStateSupplier walletStateSupplier) {
+      WhirlpoolWalletConfig config,
+      BIP47Wallet bip47Wallet,
+      WalletStateSupplier walletStateSupplier) {
     int refreshPaynymDelay = config.getRefreshPaynymDelay();
     PaynymApi paynymApi = computePaynymApi(config);
-    BIP47Wallet bip47Wallet = new BIP47Wallet(bip44w);
     return new ExpirablePaynymSupplier(
         refreshPaynymDelay, bip47Wallet, paynymApi, walletStateSupplier);
   }

@@ -3,6 +3,7 @@ import com.samourai.http.client.IHttpClientService;
 import com.samourai.stomp.client.IStompClientService;
 import com.samourai.tor.client.TorClientService;
 import com.samourai.wallet.api.backend.BackendServer;
+import com.samourai.wallet.api.backend.IPushTx;
 import com.samourai.wallet.api.backend.beans.UnspentOutput;
 import com.samourai.wallet.api.backend.beans.WalletResponse;
 import com.samourai.wallet.api.paynym.beans.PaynymState;
@@ -149,9 +150,8 @@ public class JavaExample {
           }
 
           @Override
-          public String pushTx(String txHex) throws Exception {
-            // provide pushTx service here
-            return "txid";
+          public IPushTx getPushTx() {
+            return null; // provide pushTx service here
           }
         };
       };

@@ -122,7 +122,7 @@ public class WalletAggregateService {
     // broadcast
     log.info(" • Broadcasting TxAggregate...");
     String txHex = TxUtil.getInstance().getTxHex(txAggregate);
-    whirlpoolWallet.pushTx(txHex);
+    whirlpoolWallet.getPushTx().pushTx(txHex);
   }
 
   private Transaction computeTxAggregate(

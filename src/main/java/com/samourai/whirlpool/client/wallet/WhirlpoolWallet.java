@@ -1,6 +1,7 @@
 package com.samourai.whirlpool.client.wallet;
 
 import com.google.common.primitives.Bytes;
+import com.samourai.wallet.api.backend.IPushTx;
 import com.samourai.wallet.api.backend.ISweepBackend;
 import com.samourai.wallet.api.backend.beans.UnspentOutput;
 import com.samourai.wallet.bip47.rpc.BIP47Wallet;
@@ -46,6 +47,7 @@ import com.samourai.whirlpool.protocol.beans.Utxo;
 import com.samourai.whirlpool.protocol.rest.PushTxErrorResponse;
 import com.samourai.whirlpool.protocol.rest.PushTxSuccessResponse;
 import com.samourai.whirlpool.protocol.rest.Tx0PushRequest;
+import com.samourai.xmanager.client.XManagerClient;
 import com.samourai.xmanager.protocol.XManagerService;
 import io.reactivex.Completable;
 import io.reactivex.Observable;
@@ -76,6 +78,8 @@ public class WhirlpoolWallet {
   private Optional<AutoTx0Orchestrator> autoTx0Orchestrator;
   private MixingStateEditable mixingState;
 
+  private XManagerClient xManagerClient;
+
   protected WhirlpoolWallet(WhirlpoolWallet whirlpoolWallet) throws Exception {
     this(whirlpoolWallet.config, whirlpoolWallet.bip44w, whirlpoolWallet.walletIdentifier);
   }
@@ -101,6 +105,7 @@ public class WhirlpoolWallet {
 
   public WhirlpoolWallet(WhirlpoolWalletConfig config, HD_Wallet bip44w, String walletIdentifier)
       throws Exception {
+    this.xManagerClient = null;
 
     if (walletIdentifier == null) {
       walletIdentifier =
@@ -508,8 +513,8 @@ public class WhirlpoolWallet {
     WhirlpoolEventService.getInstance().post(new WalletStopEvent(this));
   }
 
-  public String pushTx(String txHex) throws Exception {
-    return dataSource.pushTx(txHex);
+  public IPushTx getPushTx() {
+    return getDataSource().getPushTx();
   }
 
   public void mixQueue(WhirlpoolUtxo whirlpoolUtxo) throws NotifiableException {
@@ -844,17 +849,22 @@ public class WhirlpoolWallet {
     return ((DataSourceWithSweep) dataSource).getSweepBackend();
   }
 
+  public XManagerClient getXManagerClient() {
+    if (xManagerClient == null) {
+      xManagerClient = config.computeXManagerClient();
+    }
+    return xManagerClient;
+  }
+
   public RicochetConfig newRicochetConfig(
       int feePerB, boolean useTimeLock, WhirlpoolAccount spendAccount) {
     long latestBlock = getChainSupplier().getLatestBlock().height;
     BipWallet bipWalletRicochet = getWalletSupplier().getWallet(BIP_WALLET.RICOCHET_BIP84);
     BipWallet bipWalletChange =
         getWalletSupplier().getWallet(spendAccount, BIP_FORMAT.SEGWIT_NATIVE);
-    BIP47Wallet bip47Wallet = new BIP47Wallet(bip44w);
     int bip47WalletOutgoingIdx = 0; // TODO zl !!!
     boolean samouraiFeeViaBIP47 = getPaynymSupplier().getPaynymState().isClaimed();
-    String samouraiFeeAddress =
-        config.computeXManagerClient().getAddressOrDefault(XManagerService.RICOCHET);
+    String samouraiFeeAddress = getXManagerClient().getAddressOrDefault(XManagerService.RICOCHET);
     return new RicochetConfig(
         feePerB,
         samouraiFeeViaBIP47,
@@ -867,7 +877,11 @@ public class WhirlpoolWallet {
         bipWalletRicochet,
         bipWalletChange,
         spendAccount,
-        bip47Wallet,
+        getBip47Wallet(),
         bip47WalletOutgoingIdx);
+  }
+
+  public BIP47Wallet getBip47Wallet() {
+    return new BIP47Wallet(bip44w);
   }
 }
