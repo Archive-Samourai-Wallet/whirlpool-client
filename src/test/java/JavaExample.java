@@ -6,6 +6,8 @@ import com.samourai.wallet.api.backend.BackendServer;
 import com.samourai.wallet.api.backend.beans.UnspentOutput;
 import com.samourai.wallet.api.backend.beans.WalletResponse;
 import com.samourai.wallet.api.paynym.beans.PaynymState;
+import com.samourai.wallet.bip47.rpc.java.SecretPointFactoryJava;
+import com.samourai.wallet.bip47.rpc.secretPoint.ISecretPointFactory;
 import com.samourai.wallet.bipFormat.BIP_FORMAT;
 import com.samourai.wallet.bipFormat.BipFormat;
 import com.samourai.wallet.bipWallet.BipDerivation;
@@ -45,6 +47,7 @@ public class JavaExample {
     boolean onion = true; // use Tor onion services?
     IWebsocketClient wsClient = null; // provide impl, or null to disable real-time sync backend
     DataSourceFactory dataSourceFactory = new DojoDataSourceFactory(backendServer, onion, wsClient);
+    ISecretPointFactory secretPointFactory = SecretPointFactoryJava.getInstance();
 
     // option 2 - use Dojo backend
     String dojoUrl = ""; // provide Dojo onion URL
@@ -73,6 +76,7 @@ public class JavaExample {
     WhirlpoolWalletConfig whirlpoolWalletConfig =
         new WhirlpoolWalletConfig(
             dataSourceFactory,
+            secretPointFactory,
             httpClientService,
             stompClientService,
             torClientService,
