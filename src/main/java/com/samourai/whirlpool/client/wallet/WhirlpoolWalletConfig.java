@@ -6,7 +6,6 @@ import com.samourai.stomp.client.IStompClientService;
 import com.samourai.tor.client.TorClientService;
 import com.samourai.wallet.bip47.BIP47UtilGeneric;
 import com.samourai.wallet.bip47.rpc.java.Bip47UtilJava;
-import com.samourai.wallet.bip47.rpc.java.SecretPointFactoryJava;
 import com.samourai.wallet.bip47.rpc.secretPoint.ISecretPointFactory;
 import com.samourai.wallet.util.FormatsUtilGeneric;
 import com.samourai.whirlpool.client.exception.NotifiableException;
@@ -77,6 +76,7 @@ public class WhirlpoolWalletConfig extends WhirlpoolClientConfig
 
   public WhirlpoolWalletConfig(
       DataSourceFactory dataSourceFactory,
+      ISecretPointFactory secretPointFactory,
       IHttpClientService httpClientService,
       IStompClientService stompClientService,
       TorClientService torClientService,
@@ -94,6 +94,7 @@ public class WhirlpoolWalletConfig extends WhirlpoolClientConfig
         mobile ? IndexRange.ODD : IndexRange.EVEN);
 
     this.dataSourceFactory = dataSourceFactory;
+    this.secretPointFactory = secretPointFactory;
     this.dataPersisterFactory = new FileDataPersisterFactory();
     this.mobile = mobile;
 
@@ -128,9 +129,9 @@ public class WhirlpoolWalletConfig extends WhirlpoolClientConfig
     this.persistDelaySeconds = 10;
     this.partner = WhirlpoolProtocol.PARTNER_ID_SAMOURAI;
 
-    this.secretPointFactory = SecretPointFactoryJava.getInstance();
     this.bip47Util = Bip47UtilJava.getInstance();
 
+    // use OpReturnImplV1
     XorMask xorMask = XorMask.getInstance(secretPointFactory);
     feeOpReturnImpl = new FeeOpReturnImplV1(xorMask);
     opReturnV0 = false;
