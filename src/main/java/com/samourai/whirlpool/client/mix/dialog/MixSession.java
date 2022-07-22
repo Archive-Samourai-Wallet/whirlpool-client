@@ -309,10 +309,11 @@ public class MixSession {
     return AsyncUtil.getInstance()
         .runIOAsyncCompletable(
             () -> {
-              try {
-                wait(reconnectDelay);
-              } catch (Exception e) {
-                log.error("", e);
+              synchronized (this) {
+                try {
+                  wait(reconnectDelay);
+                } catch (InterruptedException e) {
+                }
               }
               connect();
             });
