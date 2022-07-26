@@ -11,7 +11,8 @@ See [JavaExample.java](src/test/java/JavaExample.java) for an overview of Whirlp
 
 
 ## II. DataSource configuration
-Configuring a [DataSource](/-/blob/develop/src/main/java/com/samourai/whirlpool/client/wallet/data/dataSource/DataSource.java) provides all the data required by the library, through multiple providers:
+Configuring a [DataSource](/-/blob/develop/src/main/java/com/samourai/whirlpool/client/wallet/data/dataSource/DataSource.java) provides all the data required by the library.  
+Such data is accessed through multiple providers:
 - `WalletSupplier` provides current wallet state (deposit, premix, postmix wallets)
 - `UtxoSupplier` provides UTXOs state
 - `MinerFeeSupplier` provides miner fee state
@@ -21,11 +22,23 @@ Configuring a [DataSource](/-/blob/develop/src/main/java/com/samourai/whirlpool/
 - `Tx0PreviewService` provides TX0 preview information
 - `pushTx()` provides TX broadcast service
 
-These providers are instanciated by the DataSource.
-As described in JavaExample, the DataSource can be:
-- a `DojoDataSourceFactory`: for using Samourai or Dojo backend
-- a simplified DataSource using `WalletResponseDataSource`: just implement `fetchWalletResponse()` to return all required datas as a `WalletResponse` object. The library will instanciate the providers for you.
-- a custom `DataSource`: by implementing each provider by yourself
+These providers are instanciated by the DataSource. You can configure it to use your own data rather than using the Samourai backend.
+
+### 1) Samourai or Dojo backend
+This is the easiest integration by instanciating a `DojoDataSourceFactory`.  
+Examples:
+- See [whirlpool-client-cli integration](https://code.samourai.io/whirlpool/whirlpool-client-cli/-/blob/develop/src/main/java/com/samourai/whirlpool/cli/config/CliConfig.java#L60)
+- See [Android integration](https://code.samourai.io/wallet/samourai-wallet-android/-/blob/develop/app/src/main/java/com/samourai/whirlpool/client/wallet/AndroidWhirlpoolWalletService.java#L110)
+
+### 2) Custom backend with `WalletResponseDataSource`
+This is another easy integration by instanciating a `WalletResponseDataSource`.  
+Just implement `fetchWalletResponse()` and return all required datas as a `WalletResponse` object. The library will instanciate the providers for you.
+Examples:
+- See [Sparrow integration](https://github.com/sparrowwallet/sparrow/blob/416fc83b4db864bce9b0e487cb3d25f0f57b2f07/src/main/java/com/sparrowwallet/sparrow/whirlpool/dataSource/SparrowDataSource.java)
+
+### 3) Custom backend with custom providers
+This is a more complicated integration with your own `DataSource`.  
+You get the full control on the library by implementing each provider by yourself.
 
 
 
