@@ -47,7 +47,6 @@ public class JavaExample {
     boolean onion = true; // use Tor onion services?
     IWebsocketClient wsClient = null; // provide impl, or null to disable real-time sync backend
     DataSourceFactory dataSourceFactory = new DojoDataSourceFactory(backendServer, onion, wsClient);
-    ISecretPointFactory secretPointFactory = SecretPointFactoryJava.getInstance();
 
     // option 2 - use Dojo backend
     String dojoUrl = ""; // provide Dojo onion URL
@@ -70,6 +69,7 @@ public class JavaExample {
     IHttpClientService httpClientService = null; // provide impl here, ie: new AndroidHttpClient();
     ServerApi serverApi = new ServerApi(serverUrl, httpClientService);
 
+    ISecretPointFactory secretPointFactory = SecretPointFactoryJava.getInstance(); // for Android, use AndroidSecretPointFactory from 'samourai-wallet-android'
     TorClientService torClientService = null; // provide impl here
     NetworkParameters params = whirlpoolServer.getParams();
     boolean mobile = false; // true for mobile configuration, false for desktop/CLI

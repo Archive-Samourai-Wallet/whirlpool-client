@@ -12,7 +12,7 @@ mvn clean install -Dmaven.test.skip=true
 ```
 
 ## Java integration
-See [JavaExample.java](src/test/java/JavaExample.java) for Java integration.
+See [doc/DEVELOPERS.md](doc/DEVELOPERS.md) for using this library.
 
 ## Resources
  * [whirlpool](https://code.samourai.io/whirlpool/Whirlpool)
