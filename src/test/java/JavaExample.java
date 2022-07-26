@@ -217,12 +217,12 @@ public class JavaExample {
     byte[] seed = null; // provide seed here
     String seedPassphrase = null; // provide seed passphrase here (or null if none)
     WhirlpoolWallet whirlpoolWallet = new WhirlpoolWallet(config, seed, seedPassphrase);
-    whirlpoolWallet.open(seedPassphrase);
+    whirlpoolWalletService.openWallet(whirlpoolWallet, seedPassphrase);
 
     // open wallet: alternate way
     HD_Wallet bip44w = null; // provide bip44 wallet here
     whirlpoolWallet = new WhirlpoolWallet(config, bip44w);
-    whirlpoolWallet.open(seedPassphrase);
+    whirlpoolWalletService.openWallet(whirlpoolWallet, seedPassphrase);
 
     // start whirlpool wallet
     whirlpoolWallet.startAsync().subscribe();
