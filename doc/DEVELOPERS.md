@@ -66,6 +66,12 @@ Example:
 - See [JavaExample.java](src/test/java/JavaExample.java) for more details
 
 
+## Mix to external/xpub
+Example:
+- See Sparrow
+- See [JavaExample.java](src/test/java/JavaExample.java)
+
+
 ## Resources
  * [whirlpool](https://code.samourai.io/whirlpool/Whirlpool)
  * [whirlpool-protocol](https://code.samourai.io/whirlpool/whirlpool-protocol)
