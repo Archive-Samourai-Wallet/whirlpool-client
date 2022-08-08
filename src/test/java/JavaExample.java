@@ -7,6 +7,8 @@ import com.samourai.wallet.api.backend.IPushTx;
 import com.samourai.wallet.api.backend.beans.UnspentOutput;
 import com.samourai.wallet.api.backend.beans.WalletResponse;
 import com.samourai.wallet.api.paynym.beans.PaynymState;
+import com.samourai.wallet.bip47.rpc.java.SecretPointFactoryJava;
+import com.samourai.wallet.bip47.rpc.secretPoint.ISecretPointFactory;
 import com.samourai.wallet.bipFormat.BIP_FORMAT;
 import com.samourai.wallet.bipFormat.BipFormat;
 import com.samourai.wallet.bipWallet.BipDerivation;
@@ -68,12 +70,17 @@ public class JavaExample {
     IHttpClientService httpClientService = null; // provide impl here, ie: new AndroidHttpClient();
     ServerApi serverApi = new ServerApi(serverUrl, httpClientService);
 
+    ISecretPointFactory secretPointFactory =
+        SecretPointFactoryJava
+            .getInstance(); // for Android, use AndroidSecretPointFactory from
+                            // 'samourai-wallet-android'
     TorClientService torClientService = null; // provide impl here
     NetworkParameters params = whirlpoolServer.getParams();
     boolean mobile = false; // true for mobile configuration, false for desktop/CLI
     WhirlpoolWalletConfig whirlpoolWalletConfig =
         new WhirlpoolWalletConfig(
             dataSourceFactory,
+            secretPointFactory,
             httpClientService,
             stompClientService,
             torClientService,
@@ -213,12 +220,12 @@ public class JavaExample {
     byte[] seed = null; // provide seed here
     String seedPassphrase = null; // provide seed passphrase here (or null if none)
     WhirlpoolWallet whirlpoolWallet = new WhirlpoolWallet(config, seed, seedPassphrase);
-    whirlpoolWallet.open(seedPassphrase);
+    whirlpoolWalletService.openWallet(whirlpoolWallet, seedPassphrase);
 
     // open wallet: alternate way
     HD_Wallet bip44w = null; // provide bip44 wallet here
     whirlpoolWallet = new WhirlpoolWallet(config, bip44w);
-    whirlpoolWallet.open(seedPassphrase);
+    whirlpoolWalletService.openWallet(whirlpoolWallet, seedPassphrase);
 
     // start whirlpool wallet
     whirlpoolWallet.startAsync().subscribe();

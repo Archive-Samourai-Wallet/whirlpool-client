@@ -2,6 +2,8 @@ package com.samourai.whirlpool.client.tx0;
 
 import com.samourai.wallet.api.backend.BackendServer;
 import com.samourai.wallet.api.backend.beans.UnspentOutput;
+import com.samourai.wallet.bip47.rpc.java.SecretPointFactoryJava;
+import com.samourai.wallet.bip47.rpc.secretPoint.ISecretPointFactory;
 import com.samourai.wallet.bipWallet.BipWallet;
 import com.samourai.wallet.client.indexHandler.MemoryIndexHandlerSupplier;
 import com.samourai.wallet.hd.BIP_WALLET;
@@ -46,9 +48,17 @@ public class Tx0ServiceV1Test extends AbstractTest {
     WhirlpoolServer server = WhirlpoolServer.LOCAL_TESTNET;
     DataSourceFactory dataSourceFactory =
         new DojoDataSourceFactory(BackendServer.TESTNET, false, null);
+    ISecretPointFactory secretPointFactory = SecretPointFactoryJava.getInstance();
     config =
         new WhirlpoolWalletConfig(
-            dataSourceFactory, null, null, null, null, server.getParams(), false);
+            dataSourceFactory,
+            secretPointFactory,
+            null,
+            null,
+            null,
+            null,
+            server.getParams(),
+            false);
     config.setTx0MaxOutputs(10);
     config.getFeeOpReturnImpl().setTestMode(true); // generate static key for reproductible test
     tx0PreviewService = new Tx0PreviewService(mockMinerFeeSupplier(), config);

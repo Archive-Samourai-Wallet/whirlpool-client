@@ -44,7 +44,7 @@ public class PostmixIndexService {
       throw e;
     } catch (Exception e) {
       // ignore other errors such as http timeout
-      log.error("ignoring checkPostmixIndexAsync failure", e);
+      log.warn("ignoring checkPostmixIndexAsync failure", e);
     } finally {
       postmixIndexHandler.cancelUnconfirmed(postmixIndex);
     }
@@ -93,7 +93,7 @@ public class PostmixIndexService {
         throw e;
       } catch (Exception e) {
         // ignore other errors such as http timeout
-        log.error("ignoring findPostmixIndexRange failure", e);
+        log.warn("ignoring findPostmixIndexRange failure", e);
         return;
       }
 

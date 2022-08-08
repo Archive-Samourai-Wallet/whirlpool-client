@@ -5,6 +5,8 @@ import com.samourai.http.client.*;
 import com.samourai.wallet.api.backend.BackendServer;
 import com.samourai.wallet.api.backend.beans.UnspentOutput;
 import com.samourai.wallet.api.backend.beans.WalletResponse;
+import com.samourai.wallet.bip47.rpc.java.SecretPointFactoryJava;
+import com.samourai.wallet.bip47.rpc.secretPoint.ISecretPointFactory;
 import com.samourai.wallet.hd.HD_Address;
 import com.samourai.wallet.hd.HD_WalletFactoryGeneric;
 import com.samourai.wallet.segwit.bech32.Bech32UtilGeneric;
@@ -232,10 +234,12 @@ public class AbstractTest {
   protected WhirlpoolWalletConfig computeWhirlpoolWalletConfig(ServerApi serverApi) {
     DataSourceFactory dataSourceFactory =
         new DojoDataSourceFactory(BackendServer.TESTNET, false, null);
+    ISecretPointFactory secretPointFactory = SecretPointFactoryJava.getInstance();
     IHttpClientService httpClientService = computeHttpClientService();
     WhirlpoolWalletConfig config =
         new WhirlpoolWalletConfig(
             dataSourceFactory,
+            secretPointFactory,
             httpClientService,
             null,
             null,
