@@ -10,7 +10,6 @@ import com.samourai.wallet.segwit.bech32.Bech32UtilGeneric;
 import com.samourai.whirlpool.client.exception.PostmixIndexAlreadyUsedException;
 import com.samourai.whirlpool.client.test.AbstractTest;
 import com.samourai.whirlpool.client.utils.ClientUtils;
-import com.samourai.whirlpool.client.wallet.beans.WhirlpoolServer;
 import com.samourai.whirlpool.client.whirlpool.ServerApi;
 import com.samourai.whirlpool.protocol.rest.CheckOutputRequest;
 import com.samourai.whirlpool.protocol.rest.RestErrorResponse;
@@ -51,9 +50,7 @@ public class PostmixIndexServiceTest extends AbstractTest {
 
   @Test
   public void checkPostmixIndex_alreadyUsed() throws Exception {
-    ServerApi serverApi =
-        new ServerApi(WhirlpoolServer.TESTNET.getServerUrlClear(), computeHttpClientService());
-    WhirlpoolWalletConfig config = computeWhirlpoolWalletConfig(serverApi);
+    WhirlpoolWalletConfig config = computeWhirlpoolWalletConfig();
     postmixIndexService = new PostmixIndexService(config, bech32Util);
 
     PostmixIndexAlreadyUsedException e =

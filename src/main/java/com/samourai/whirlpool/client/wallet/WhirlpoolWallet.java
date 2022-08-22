@@ -50,6 +50,7 @@ import com.samourai.xmanager.protocol.XManagerService;
 import io.reactivex.Completable;
 import io.reactivex.Observable;
 import java.util.Collection;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -566,6 +567,10 @@ public class WhirlpoolWallet {
 
   public Tx0PreviewService getTx0PreviewService() {
     return dataSource.getTx0PreviewService();
+  }
+
+  public Tx0Service getTx0Service() {
+    return tx0Service;
   }
 
   // used by Sparrow

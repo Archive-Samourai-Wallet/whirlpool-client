@@ -69,7 +69,8 @@ public class JavaExample {
     IHttpClientService httpClientService = null; // provide impl here, ie: new AndroidHttpClient();
     ServerApi serverApi = new ServerApi(serverUrl, httpClientService);
 
-    ISecretPointFactory secretPointFactory = SecretPointFactoryJava.getInstance(); // for Android, use AndroidSecretPointFactory from 'samourai-wallet-android'
+    // for Android, use AndroidSecretPointFactory from 'samourai-wallet-android'
+    ISecretPointFactory secretPointFactory = SecretPointFactoryJava.getInstance();
     TorClientService torClientService = null; // provide impl here
     NetworkParameters params = whirlpoolServer.getParams();
     boolean mobile = false; // true for mobile configuration, false for desktop/CLI

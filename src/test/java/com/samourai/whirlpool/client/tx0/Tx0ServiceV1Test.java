@@ -1,23 +1,10 @@
 package com.samourai.whirlpool.client.tx0;
 
-import com.samourai.wallet.api.backend.BackendServer;
 import com.samourai.wallet.api.backend.beans.UnspentOutput;
-import com.samourai.wallet.bip47.rpc.java.SecretPointFactoryJava;
-import com.samourai.wallet.bip47.rpc.secretPoint.ISecretPointFactory;
-import com.samourai.wallet.bipWallet.BipWallet;
-import com.samourai.wallet.client.indexHandler.MemoryIndexHandlerSupplier;
-import com.samourai.wallet.hd.BIP_WALLET;
 import com.samourai.wallet.hd.HD_Address;
-import com.samourai.wallet.hd.HD_Wallet;
-import com.samourai.wallet.send.provider.SimpleUtxoKeyProvider;
 import com.samourai.wallet.util.TxUtil;
-import com.samourai.whirlpool.client.test.AbstractTest;
-import com.samourai.whirlpool.client.wallet.WhirlpoolWalletConfig;
 import com.samourai.whirlpool.client.wallet.beans.Tx0FeeTarget;
 import com.samourai.whirlpool.client.wallet.beans.WhirlpoolAccount;
-import com.samourai.whirlpool.client.wallet.beans.WhirlpoolServer;
-import com.samourai.whirlpool.client.wallet.data.dataSource.DataSourceFactory;
-import com.samourai.whirlpool.client.wallet.data.dataSource.DojoDataSourceFactory;
 import com.samourai.whirlpool.client.whirlpool.beans.Tx0Data;
 import java.util.Arrays;
 import org.bitcoinj.core.Transaction;
@@ -27,63 +14,28 @@ import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class Tx0ServiceV1Test extends AbstractTest {
+public class Tx0ServiceV1Test extends AbstractTx0ServiceTest {
   private Logger log = LoggerFactory.getLogger(Tx0ServiceV1Test.class);
 
-  private static final long FEE_VALUE = 10000;
-
-  private Tx0Service tx0Service;
-  private Tx0PreviewService tx0PreviewService;
-
-  private WhirlpoolWalletConfig config;
-
-  private SimpleUtxoKeyProvider utxoKeyProvider;
-
   public Tx0ServiceV1Test() throws Exception {
-    super();
+    super(46);
   }
 
   @BeforeEach
   public void setup() throws Exception {
-    WhirlpoolServer server = WhirlpoolServer.LOCAL_TESTNET;
-    DataSourceFactory dataSourceFactory =
-        new DojoDataSourceFactory(BackendServer.TESTNET, false, null);
-    ISecretPointFactory secretPointFactory = SecretPointFactoryJava.getInstance();
-    config =
-        new WhirlpoolWalletConfig(
-            dataSourceFactory,
-            secretPointFactory,
-            null,
-            null,
-            null,
-            null,
-            server.getParams(),
-            false);
-    config.setTx0MaxOutputs(10);
-    config.getFeeOpReturnImpl().setTestMode(true); // generate static key for reproductible test
-    tx0PreviewService = new Tx0PreviewService(mockMinerFeeSupplier(), config);
-    tx0Service = new Tx0Service(config, tx0PreviewService, config.getFeeOpReturnImpl());
-    utxoKeyProvider = new SimpleUtxoKeyProvider();
-  }
-
-  private byte[] encodeFeePayload(int feeIndice, short scodePayload, short partner) {
-    return config.getFeeOpReturnImpl().computeFeePayload(feeIndice, scodePayload, partner);
+    super.setup();
   }
 
   @Test
   public void tx0Preview_scode_noFee() throws Exception {
-    String seedWords = "all all all all all all all all all all all all";
-    String passphrase = "whirlpool";
-    byte[] seed = hdWalletFactory.computeSeedFromWords(seedWords);
-    HD_Wallet bip84w = hdWalletFactory.getBIP84(seed, passphrase, params);
-
-    HD_Address address = bip84w.getAccount(0).getChain(0).getAddressAt(61);
+    HD_Address address = whirlpoolWallet.getWalletDeposit().getAddressAt(0, 61).getHdAddress();
     UnspentOutput spendFromUtxo =
         newUnspentOutput(
             "cc588cdcb368f894a41c372d1f905770b61ecb3fb8e5e01a97e7cedbf5e324ae",
             1,
             500000000,
             address);
+    mockUtxos(spendFromUtxo);
 
     int nbOutputsExpected = 10;
     long premixValue = 1000201;
@@ -122,18 +74,14 @@ public class Tx0ServiceV1Test extends AbstractTest {
 
   @Test
   public void tx0Preview_overspend() throws Exception {
-    String seedWords = "all all all all all all all all all all all all";
-    String passphrase = "whirlpool";
-    byte[] seed = hdWalletFactory.computeSeedFromWords(seedWords);
-    HD_Wallet bip84w = hdWalletFactory.getBIP84(seed, passphrase, params);
-
-    HD_Address address = bip84w.getAccount(0).getChain(0).getAddressAt(61);
+    HD_Address address = whirlpoolWallet.getWalletDeposit().getAddressAt(0, 61).getHdAddress();
     UnspentOutput spendFromUtxo =
         newUnspentOutput(
             "cc588cdcb368f894a41c372d1f905770b61ecb3fb8e5e01a97e7cedbf5e324ae",
             1,
             500000000,
             address);
+    mockUtxos(spendFromUtxo);
 
     String feePaymentCode =
         "PM8TJXp19gCE6hQzqRi719FGJzF6AreRwvoQKLRnQ7dpgaakakFns22jHUqhtPQWmfevPQRCyfFbdDrKvrfw9oZv5PjaCerQMa3BKkPyUf9yN1CDR3w6";
@@ -179,18 +127,14 @@ public class Tx0ServiceV1Test extends AbstractTest {
 
   @Test
   public void tx0Preview_feeTx0() throws Exception {
-    String seedWords = "all all all all all all all all all all all all";
-    String passphrase = "whirlpool";
-    byte[] seed = hdWalletFactory.computeSeedFromWords(seedWords);
-    HD_Wallet bip84w = hdWalletFactory.getBIP84(seed, passphrase, params);
-
-    HD_Address address = bip84w.getAccount(0).getChain(0).getAddressAt(61);
+    HD_Address address = whirlpoolWallet.getWalletDeposit().getAddressAt(0, 61).getHdAddress();
     UnspentOutput spendFromUtxo =
         newUnspentOutput(
             "cc588cdcb368f894a41c372d1f905770b61ecb3fb8e5e01a97e7cedbf5e324ae",
             1,
             500000000,
             address);
+    mockUtxos(spendFromUtxo);
 
     String feePaymentCode =
         "PM8TJXp19gCE6hQzqRi719FGJzF6AreRwvoQKLRnQ7dpgaakakFns22jHUqhtPQWmfevPQRCyfFbdDrKvrfw9oZv5PjaCerQMa3BKkPyUf9yN1CDR3w6";
@@ -240,18 +184,14 @@ public class Tx0ServiceV1Test extends AbstractTest {
 
   @Test
   public void tx0Preview_feePremix() throws Exception {
-    String seedWords = "all all all all all all all all all all all all";
-    String passphrase = "whirlpool";
-    byte[] seed = hdWalletFactory.computeSeedFromWords(seedWords);
-    HD_Wallet bip84w = hdWalletFactory.getBIP84(seed, passphrase, params);
-
-    HD_Address address = bip84w.getAccount(0).getChain(0).getAddressAt(61);
+    HD_Address address = whirlpoolWallet.getWalletDeposit().getAddressAt(0, 61).getHdAddress();
     UnspentOutput spendFromUtxo =
         newUnspentOutput(
             "cc588cdcb368f894a41c372d1f905770b61ecb3fb8e5e01a97e7cedbf5e324ae",
             1,
             500000000,
             address);
+    mockUtxos(spendFromUtxo);
 
     String feePaymentCode =
         "PM8TJXp19gCE6hQzqRi719FGJzF6AreRwvoQKLRnQ7dpgaakakFns22jHUqhtPQWmfevPQRCyfFbdDrKvrfw9oZv5PjaCerQMa3BKkPyUf9yN1CDR3w6";
@@ -305,37 +245,17 @@ public class Tx0ServiceV1Test extends AbstractTest {
     Assertions.assertEquals(1009500, tx0Preview.getPremixValue());
   }
 
-  private void assertEquals(Tx0Preview tp, Tx0Preview tp2) {
-    Assertions.assertEquals(tp.getTx0MinerFee(), tp2.getTx0MinerFee());
-    Assertions.assertEquals(tp.getFeeValue(), tp2.getFeeValue());
-    Assertions.assertEquals(tp.getFeeChange(), tp2.getFeeChange());
-    Assertions.assertEquals(tp.getFeeDiscountPercent(), tp2.getFeeDiscountPercent());
-    Assertions.assertEquals(tp.getPremixValue(), tp2.getPremixValue());
-    Assertions.assertEquals(tp.getChangeValue(), tp2.getChangeValue());
-    Assertions.assertEquals(tp.getNbPremix(), tp2.getNbPremix());
-  }
-
   @Test
   public void tx0_5premix_withChange_scode_noFee() throws Exception {
-    String seedWords = "all all all all all all all all all all all all";
-    String passphrase = "whirlpool";
-    byte[] seed = hdWalletFactory.computeSeedFromWords(seedWords);
-    HD_Wallet bip84w = hdWalletFactory.getBIP84(seed, passphrase, params);
-
-    HD_Address address = bip84w.getAccount(0).getChain(0).getAddressAt(61);
+    HD_Address address = whirlpoolWallet.getWalletDeposit().getAddressAt(0, 61).getHdAddress();
     UnspentOutput spendFromUtxo =
         newUnspentOutput(
             "cc588cdcb368f894a41c372d1f905770b61ecb3fb8e5e01a97e7cedbf5e324ae",
             1,
             500000000,
             address);
-    utxoKeyProvider.setKey(spendFromUtxo.computeOutpoint(params), address.getECKey());
+    mockUtxos(spendFromUtxo);
 
-    MemoryIndexHandlerSupplier indexHandlerSupplier = new MemoryIndexHandlerSupplier();
-    BipWallet depositWallet = new BipWallet(bip84w, indexHandlerSupplier, BIP_WALLET.DEPOSIT_BIP84);
-    BipWallet premixWallet = new BipWallet(bip84w, indexHandlerSupplier, BIP_WALLET.PREMIX_BIP84);
-    BipWallet postmixWallet = new BipWallet(bip84w, indexHandlerSupplier, BIP_WALLET.POSTMIX_BIP84);
-    BipWallet badbankWallet = new BipWallet(bip84w, indexHandlerSupplier, BIP_WALLET.BADBANK_BIP84);
     Tx0Config tx0Config =
         new Tx0Config(
             tx0PreviewService,
@@ -380,16 +300,7 @@ public class Tx0ServiceV1Test extends AbstractTest {
             changeValue,
             nbOutputsExpected);
 
-    Tx0 tx0 =
-        tx0Service.tx0(
-            Arrays.asList(spendFromUtxo),
-            depositWallet,
-            premixWallet,
-            postmixWallet,
-            badbankWallet,
-            tx0Config,
-            tx0Preview,
-            utxoKeyProvider);
+    Tx0 tx0 = tx0(new UnspentOutput[] {spendFromUtxo}, tx0Config, tx0Preview);
     check(tx0);
 
     assertEquals(tx0Preview, tx0);
@@ -425,7 +336,7 @@ public class Tx0ServiceV1Test extends AbstractTest {
     byte[] seed = hdWalletFactory.computeSeedFromWords(seedWords);
     HD_Wallet bip84w = hdWalletFactory.getBIP84(seed, passphrase, params);
 
-    HD_Address address = bip84w.getAccount(0).getChain(0).getAddressAt(61);
+    HD_Address address = whirlpoolWallet.getWalletDeposit().getAddressAt(0, 61).getHdAddress();
     ECKey spendFromKey = address.getECKey();
     UnspentOutput spendFrom =
         newUnspentOutput(
@@ -571,25 +482,15 @@ public class Tx0ServiceV1Test extends AbstractTest {
 
   @Test
   public void tx0_1premix_withChange_scode_nofee() throws Exception {
-    String seedWords = "all all all all all all all all all all all all";
-    String passphrase = "whirlpool";
-    byte[] seed = hdWalletFactory.computeSeedFromWords(seedWords);
-    HD_Wallet bip84w = hdWalletFactory.getBIP84(seed, passphrase, params);
-
-    HD_Address address = bip84w.getAccount(0).getChain(0).getAddressAt(61);
+    HD_Address address = whirlpoolWallet.getWalletDeposit().getAddressAt(0, 61).getHdAddress();
     UnspentOutput spendFromUtxo =
         newUnspentOutput(
             "cc588cdcb368f894a41c372d1f905770b61ecb3fb8e5e01a97e7cedbf5e324ae",
             1,
             1021397,
             address); // balance with 11000 change
-    utxoKeyProvider.setKey(spendFromUtxo.computeOutpoint(params), address.getECKey());
+    mockUtxos(spendFromUtxo);
 
-    MemoryIndexHandlerSupplier indexHandlerSupplier = new MemoryIndexHandlerSupplier();
-    BipWallet depositWallet = new BipWallet(bip84w, indexHandlerSupplier, BIP_WALLET.DEPOSIT_BIP84);
-    BipWallet premixWallet = new BipWallet(bip84w, indexHandlerSupplier, BIP_WALLET.PREMIX_BIP84);
-    BipWallet postmixWallet = new BipWallet(bip84w, indexHandlerSupplier, BIP_WALLET.POSTMIX_BIP84);
-    BipWallet badbankWallet = new BipWallet(bip84w, indexHandlerSupplier, BIP_WALLET.PREMIX_BIP84);
     Tx0Config tx0Config =
         new Tx0Config(
             tx0PreviewService,
@@ -635,16 +536,7 @@ public class Tx0ServiceV1Test extends AbstractTest {
             premixValue,
             changeValue,
             nbOutputsExpected);
-    Tx0 tx0 =
-        tx0Service.tx0(
-            Arrays.asList(spendFromUtxo),
-            depositWallet,
-            premixWallet,
-            postmixWallet,
-            badbankWallet,
-            tx0Config,
-            tx0Preview,
-            utxoKeyProvider);
+    Tx0 tx0 = tx0(new UnspentOutput[] {spendFromUtxo}, tx0Config, tx0Preview);
 
     check(tx0);
     assertEquals(tx0Preview, tx0);
@@ -674,26 +566,15 @@ public class Tx0ServiceV1Test extends AbstractTest {
 
   @Test
   public void tx0_1premix_withChange_scode_fee() throws Exception {
-    String seedWords = "all all all all all all all all all all all all";
-    String passphrase = "whirlpool";
-    byte[] seed = hdWalletFactory.computeSeedFromWords(seedWords);
-    HD_Wallet bip84w = hdWalletFactory.getBIP84(seed, passphrase, params);
-
-    HD_Address address = bip84w.getAccount(0).getChain(0).getAddressAt(61);
+    HD_Address address = whirlpoolWallet.getWalletDeposit().getAddressAt(0, 61).getHdAddress();
     UnspentOutput spendFromUtxo =
         newUnspentOutput(
             "cc588cdcb368f894a41c372d1f905770b61ecb3fb8e5e01a97e7cedbf5e324ae",
             1,
             1021397,
             address); // balance with 11000 change
+    mockUtxos(spendFromUtxo);
 
-    utxoKeyProvider.setKey(spendFromUtxo.computeOutpoint(params), address.getECKey());
-
-    MemoryIndexHandlerSupplier indexHandlerSupplier = new MemoryIndexHandlerSupplier();
-    BipWallet depositWallet = new BipWallet(bip84w, indexHandlerSupplier, BIP_WALLET.DEPOSIT_BIP84);
-    BipWallet premixWallet = new BipWallet(bip84w, indexHandlerSupplier, BIP_WALLET.PREMIX_BIP84);
-    BipWallet postmixWallet = new BipWallet(bip84w, indexHandlerSupplier, BIP_WALLET.POSTMIX_BIP84);
-    BipWallet badbankWallet = new BipWallet(bip84w, indexHandlerSupplier, BIP_WALLET.PREMIX_BIP84);
     Tx0Config tx0Config =
         new Tx0Config(
             tx0PreviewService,
@@ -739,16 +620,7 @@ public class Tx0ServiceV1Test extends AbstractTest {
             premixValue,
             changeValue,
             nbOutputsExpected);
-    Tx0 tx0 =
-        tx0Service.tx0(
-            Arrays.asList(spendFromUtxo),
-            depositWallet,
-            premixWallet,
-            postmixWallet,
-            badbankWallet,
-            tx0Config,
-            tx0Preview,
-            utxoKeyProvider);
+    Tx0 tx0 = tx0(new UnspentOutput[] {spendFromUtxo}, tx0Config, tx0Preview);
 
     check(tx0);
     assertEquals(tx0Preview, tx0);
@@ -778,25 +650,15 @@ public class Tx0ServiceV1Test extends AbstractTest {
 
   @Test
   public void tx0_1premix_withChange_noScode() throws Exception {
-    String seedWords = "all all all all all all all all all all all all";
-    String passphrase = "whirlpool";
-    byte[] seed = hdWalletFactory.computeSeedFromWords(seedWords);
-    HD_Wallet bip84w = hdWalletFactory.getBIP84(seed, passphrase, params);
-
-    HD_Address address = bip84w.getAccount(0).getChain(0).getAddressAt(61);
+    HD_Address address = whirlpoolWallet.getWalletDeposit().getAddressAt(0, 61).getHdAddress();
     UnspentOutput spendFromUtxo =
         newUnspentOutput(
             "cc588cdcb368f894a41c372d1f905770b61ecb3fb8e5e01a97e7cedbf5e324ae",
             1,
             1021397,
             address); // balance with 11000 change
-    utxoKeyProvider.setKey(spendFromUtxo.computeOutpoint(params), address.getECKey());
+    mockUtxos(spendFromUtxo);
 
-    MemoryIndexHandlerSupplier indexHandlerSupplier = new MemoryIndexHandlerSupplier();
-    BipWallet depositWallet = new BipWallet(bip84w, indexHandlerSupplier, BIP_WALLET.DEPOSIT_BIP84);
-    BipWallet premixWallet = new BipWallet(bip84w, indexHandlerSupplier, BIP_WALLET.PREMIX_BIP84);
-    BipWallet postmixWallet = new BipWallet(bip84w, indexHandlerSupplier, BIP_WALLET.POSTMIX_BIP84);
-    BipWallet badbankWallet = new BipWallet(bip84w, indexHandlerSupplier, BIP_WALLET.PREMIX_BIP84);
     Tx0Config tx0Config =
         new Tx0Config(
             tx0PreviewService,
@@ -841,16 +703,7 @@ public class Tx0ServiceV1Test extends AbstractTest {
             premixValue,
             changeValue,
             nbOutputsExpected);
-    Tx0 tx0 =
-        tx0Service.tx0(
-            Arrays.asList(spendFromUtxo),
-            depositWallet,
-            premixWallet,
-            postmixWallet,
-            badbankWallet,
-            tx0Config,
-            tx0Preview,
-            utxoKeyProvider);
+    Tx0 tx0 = tx0(new UnspentOutput[] {spendFromUtxo}, tx0Config, tx0Preview);
 
     check(tx0);
     assertEquals(tx0Preview, tx0);
@@ -880,25 +733,15 @@ public class Tx0ServiceV1Test extends AbstractTest {
 
   @Test
   public void tx0_1premix_withChangePostmix_noScode() throws Exception {
-    String seedWords = "all all all all all all all all all all all all";
-    String passphrase = "whirlpool";
-    byte[] seed = hdWalletFactory.computeSeedFromWords(seedWords);
-    HD_Wallet bip84w = hdWalletFactory.getBIP84(seed, passphrase, params);
-
-    HD_Address address = bip84w.getAccount(0).getChain(0).getAddressAt(61);
+    HD_Address address = whirlpoolWallet.getWalletDeposit().getAddressAt(0, 61).getHdAddress();
     UnspentOutput spendFromUtxo =
         newUnspentOutput(
             "cc588cdcb368f894a41c372d1f905770b61ecb3fb8e5e01a97e7cedbf5e324ae",
             1,
             1021397,
             address); // balance with 11000 change
-    utxoKeyProvider.setKey(spendFromUtxo.computeOutpoint(params), address.getECKey());
+    mockUtxos(spendFromUtxo);
 
-    MemoryIndexHandlerSupplier indexHandlerSupplier = new MemoryIndexHandlerSupplier();
-    BipWallet depositWallet = new BipWallet(bip84w, indexHandlerSupplier, BIP_WALLET.DEPOSIT_BIP84);
-    BipWallet premixWallet = new BipWallet(bip84w, indexHandlerSupplier, BIP_WALLET.PREMIX_BIP84);
-    BipWallet postmixWallet = new BipWallet(bip84w, indexHandlerSupplier, BIP_WALLET.POSTMIX_BIP84);
-    BipWallet badbankWallet = new BipWallet(bip84w, indexHandlerSupplier, BIP_WALLET.PREMIX_BIP84);
     Tx0Config tx0Config =
         new Tx0Config(
             tx0PreviewService,
@@ -943,16 +786,7 @@ public class Tx0ServiceV1Test extends AbstractTest {
             premixValue,
             changeValue,
             nbOutputsExpected);
-    Tx0 tx0 =
-        tx0Service.tx0(
-            Arrays.asList(spendFromUtxo),
-            depositWallet,
-            premixWallet,
-            postmixWallet,
-            badbankWallet,
-            tx0Config,
-            tx0Preview,
-            utxoKeyProvider);
+    Tx0 tx0 = tx0(new UnspentOutput[] {spendFromUtxo}, tx0Config, tx0Preview);
 
     check(tx0);
     assertEquals(tx0Preview, tx0);
@@ -979,13 +813,5 @@ public class Tx0ServiceV1Test extends AbstractTest {
     Assertions.assertEquals(
         "01000000000101ae24e3f5dbcee7971ae0e5b83fcb1eb67057901f2d371ca494f868b3dc8c58cc0100000000ffffffff040000000000000000536a4c504d51fe709cbdb9af363057318d1898fc2c024da31dca9796e1aa290e7db2c7226f83da6bc62fc79f15a3fe70694c036e350b47817fe80c931d2e7317d46b6017af2427f201bec425e41ae8d89a029d011027000000000000160014f6a884f18f4d7e78a4167c3e56773c3ae58e0164ee2b000000000000160014d49377882fdc939d951aa51a3c0ad6dd4a152e26d6420f00000000001600141dffe6e395c95927e4a16e8e6bd6d05604447e4d02483045022100bf50930868965a091cd2b58c548344f96c4ded5c40faa978a40a57d0cb8192130220782a1fd8c0770c456870acd1ce192fd381865159c7cb90adbf40a5ccd286b19401210349baf197181fe53937d225d0e7bd14d8b5f921813c038a95d7c2648500c119b000000000",
         tx0Hex);
-  }
-
-  private void check(Tx0Preview tx0Preview) {
-    Assertions.assertEquals(46, tx0Preview.getTx0Data().getFeePayload().length);
-  }
-
-  private void check(Tx0 tx0) {
-    Assertions.assertEquals(46, tx0.getTx0Data().getFeePayload().length);
   }
 }

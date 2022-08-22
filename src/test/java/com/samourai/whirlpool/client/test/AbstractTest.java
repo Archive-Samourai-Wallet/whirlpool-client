@@ -15,6 +15,9 @@ import com.samourai.whirlpool.client.tx0.ITx0PreviewServiceConfig;
 import com.samourai.whirlpool.client.tx0.Tx0PreviewService;
 import com.samourai.whirlpool.client.utils.ClientUtils;
 import com.samourai.whirlpool.client.wallet.WhirlpoolWalletConfig;
+import com.samourai.whirlpool.client.wallet.beans.WhirlpoolServer;
+import com.samourai.whirlpool.client.wallet.beans.WhirlpoolUtxo;
+import com.samourai.whirlpool.client.wallet.data.dataPersister.MemoryDataPersisterFactory;
 import com.samourai.whirlpool.client.wallet.data.dataSource.DataSourceFactory;
 import com.samourai.whirlpool.client.wallet.data.dataSource.DojoDataSourceFactory;
 import com.samourai.whirlpool.client.wallet.data.minerFee.BasicMinerFeeSupplier;
@@ -26,15 +29,24 @@ import com.samourai.whirlpool.client.wallet.data.walletState.WalletStatePersiste
 import com.samourai.whirlpool.client.wallet.data.walletState.WalletStateSupplier;
 import com.samourai.whirlpool.client.whirlpool.ServerApi;
 import com.samourai.whirlpool.client.whirlpool.beans.Pool;
+import com.samourai.whirlpool.protocol.WhirlpoolProtocol;
 import com.samourai.whirlpool.protocol.rest.PoolsResponse;
+import com.samourai.whirlpool.protocol.rest.PushTxSuccessResponse;
+import com.samourai.whirlpool.protocol.rest.Tx0PushRequest;
 import com.samourai.whirlpool.protocol.websocket.notifications.MixStatus;
+import io.reactivex.Observable;
 import java.io.File;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.List;
 import java.util.Optional;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 import org.bitcoinj.core.NetworkParameters;
+import org.bitcoinj.core.Transaction;
 import org.bitcoinj.params.TestNet3Params;
 import org.bouncycastle.util.encoders.Hex;
+import org.junit.jupiter.api.Assertions;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -65,7 +77,7 @@ public class AbstractTest {
     httpClient = new JettyHttpClient(5000, Optional.<HttpProxy>empty(), "test");
 
     pool01btc = new Pool();
-    pool01btc.setPoolId("0.1btc");
+    pool01btc.setPoolId("0.01btc");
     pool01btc.setDenomination(1000000);
     pool01btc.setFeeValue(50000);
     pool01btc.setMustMixBalanceMin(1000170);
@@ -198,10 +210,6 @@ public class AbstractTest {
     };
   }
 
-  protected Collection<Pool> getPools() {
-    return Arrays.asList(pool001btc, pool01btc, pool05btc);
-  }
-
   protected UnspentOutput newUnspentOutput(String hash, int index, long value, HD_Address hdAddress)
       throws Exception {
     String bech32Address = bech32Util.toBech32(hdAddress, params);
@@ -215,7 +223,9 @@ public class AbstractTest {
     spendFrom.addr = bech32Address;
     spendFrom.confirmations = 1234;
     spendFrom.xpub = new UnspentOutput.Xpub();
-    spendFrom.xpub.path = "foo";
+    spendFrom.xpub.path = "m/0/" + hdAddress.getAddressIndex();
+    spendFrom.xpub.m =
+        "vpub5YEQpEDPAZWVTkmWASSHyaUMsae7uV9FnRrhZ3cqV6RFbBQx7wjVsUfLqSE3hgNY8WQixurkbWNkfV2sRE7LPfNKQh2t3s5une4QZthwdCu";
     return spendFrom;
   }
 
@@ -229,6 +239,21 @@ public class AbstractTest {
       @Override
       public void stop() {}
     };
+  }
+
+  protected WhirlpoolWalletConfig computeWhirlpoolWalletConfig() {
+    ServerApi serverApi =
+        new ServerApi(WhirlpoolServer.TESTNET.getServerUrlClear(), computeHttpClientService()) {
+          @Override
+          public Observable<PushTxSuccessResponse> pushTx0(Tx0PushRequest request)
+              throws Exception {
+            // mock pushtx0
+            byte[] txBytes = WhirlpoolProtocol.decodeBytes(request.tx64);
+            Transaction tx = new Transaction(params, txBytes);
+            return Observable.just(new PushTxSuccessResponse(tx.getHashAsString()));
+          }
+        };
+    return computeWhirlpoolWalletConfig(serverApi);
   }
 
   protected WhirlpoolWalletConfig computeWhirlpoolWalletConfig(ServerApi serverApi) {
@@ -246,6 +271,7 @@ public class AbstractTest {
             serverApi,
             TestNet3Params.get(),
             false);
+    config.setDataPersisterFactory(new MemoryDataPersisterFactory());
     return config;
   }
 
@@ -268,5 +294,32 @@ public class AbstractTest {
 
   protected void resetWalletStateFile() throws Exception {
     resetFile(STATE_FILENAME);
+  }
+
+  protected UnspentOutput computeUtxo(String hash, int n, String xpub, int confirms) {
+    UnspentOutput utxo = new UnspentOutput();
+    utxo.tx_hash = hash;
+    utxo.tx_output_n = n;
+    utxo.xpub = new UnspentOutput.Xpub();
+    utxo.xpub.m = xpub;
+    utxo.confirmations = confirms;
+    return utxo;
+  }
+
+  protected void assertUtxoEquals(UnspentOutput[] utxos1, Collection<WhirlpoolUtxo> utxos2) {
+    Assertions.assertEquals(utxos1.length, utxos2.size());
+
+    List<String> utxos1Ids =
+        Arrays.asList(utxos1).stream()
+            .map((Function<UnspentOutput, String>) utxo -> computeUtxoId(utxo))
+            .collect(Collectors.<String>toList());
+    for (WhirlpoolUtxo whirlpoolUtxo : utxos2) {
+      // search utxo by id
+      Assertions.assertTrue(utxos1Ids.contains(computeUtxoId(whirlpoolUtxo.getUtxo())));
+    }
+  }
+
+  protected String computeUtxoId(UnspentOutput utxo) {
+    return utxo.tx_hash + ':' + utxo.tx_output_n;
   }
 }
