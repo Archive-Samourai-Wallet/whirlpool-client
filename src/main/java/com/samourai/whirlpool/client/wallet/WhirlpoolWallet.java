@@ -199,6 +199,31 @@ public class WhirlpoolWallet {
     }
   }
 
+  public List<Tx0> tx0Cascade(Collection<UnspentOutput> spendFroms, Tx0Config tx0Config, Pool pool)
+      throws Exception {
+    // TODO feature/tx0-cascade
+    // 1) execute first TX0 for given 'pool'
+    //    => this.tx0(whirlpoolUtxos, pool, tx0Config)
+    //
+    // 2) for each pool lower than given 'pool' in descending order - using
+    // getPoolSupplier().getPools()
+    //    execute one TX0 for the next lower pool with previous TX0 change outputs as TX0 input.
+    //    only one TX0 per pool.
+    //    if tx0 is not possible because change is too low, skip to next lower pool.
+    //    => this.tx0( tx0.getChangeOutputs(), nextLowerPool, tx0Config)
+    //
+    // 3) return TX0s list
+    return null;
+  }
+
+  public List<Tx0> tx0Cascade(
+      Collection<WhirlpoolUtxo> whirlpoolUtxos, Pool pool, Tx0Config tx0Config) throws Exception {
+    // adapt tx0Cascade() for WhirlpoolUtxo
+    Callable<List<Tx0>> runTx0Cascade =
+        () -> tx0Cascade(toUnspentOutputs(whirlpoolUtxos), tx0Config, pool);
+    return handleUtxoStatusForTx0(whirlpoolUtxos, runTx0Cascade);
+  }
+
   public Tx0 tx0(Collection<WhirlpoolUtxo> whirlpoolUtxos, Pool pool, Tx0Config tx0Config)
       throws Exception {
     // adapt tx0() for WhirlpoolUtxo

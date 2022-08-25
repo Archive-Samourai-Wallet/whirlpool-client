@@ -70,6 +70,68 @@ public class WhirlpoolWalletTx0Test extends Tx0ServiceV1Test {
     }
   }
 
+  @Test
+  public void tx0Cascade() throws Exception {
+    PoolSupplier poolSupplier = whirlpoolWallet.getPoolSupplier();
+
+    // mock initial data
+    HD_Address address = whirlpoolWallet.getWalletDeposit().getAddressAt(0, 61).getHdAddress();
+    UnspentOutput spendFromUtxo =
+        newUnspentOutput(
+            "cc588cdcb368f894a41c372d1f905770b61ecb3fb8e5e01a97e7cedbf5e324ae",
+            1,
+            5432999,
+            address);
+    mockUtxos(spendFromUtxo);
+
+    // configure TX0
+    Pool pool = poolSupplier.findPoolById("0.05btc");
+    Tx0Config tx0Config =
+        whirlpoolWallet.getTx0Config(Tx0FeeTarget.BLOCKS_12, Tx0FeeTarget.BLOCKS_12);
+
+    // run
+    List<Tx0> tx0s =
+        whirlpoolWallet.tx0Cascade(
+            Arrays.asList(spendFromUtxo), tx0Config, pool); // TODO not implemented
+
+    // verify
+    Assertions.assertEquals(3, tx0s.size());
+    Tx0 tx0_pool05 = tx0s.get(0);
+    Tx0 tx0_pool01 = tx0s.get(1);
+    Tx0 tx0_pool001 = tx0s.get(2);
+
+    log.info("tx0_pool05 = " + tx0_pool05);
+    log.info("tx0_pool01 = " + tx0_pool01);
+    log.info("tx0_pool001 = " + tx0_pool001);
+
+    Assertions.assertTrue(tx0_pool05.getNbPremix() > 0);
+    Assertions.assertTrue(tx0_pool01.getNbPremix() > 0);
+    Assertions.assertTrue(tx0_pool001.getNbPremix() > 0);
+
+    // tx0_pool05 spends from spendFroms
+    Assertions.assertTrue(
+        utxosContains(
+            tx0_pool05.getSpendFroms(), spendFromUtxo.tx_hash, spendFromUtxo.tx_output_n));
+
+    // tx0_pool01 spends from tx0_pool05 outputs
+    Assertions.assertEquals(
+        tx0_pool05.getChangeOutputs().size(), tx0_pool01.getSpendFroms().size());
+    for (TransactionOutput txOut : tx0_pool05.getChangeOutputs()) {
+      String txid = tx0_pool05.getTx().getHashAsString();
+      Assertions.assertTrue(
+          utxosContains(tx0_pool01.getSpendFroms(), txid, txOut.getIndex()));
+    }
+
+    // tx0_pool001 spends from tx0_pool01 outputs
+    Assertions.assertEquals(
+        tx0_pool01.getChangeOutputs().size(), tx0_pool001.getSpendFroms().size());
+    for (TransactionOutput txOut : tx0_pool01.getChangeOutputs()) {
+      String txid = tx0_pool01.getTx().getHashAsString();
+      Assertions.assertTrue(
+          utxosContains(tx0_pool001.getSpendFroms(), txid, txOut.getIndex()));
+    }
+  }
+
   private boolean utxosContains(Collection<UnspentOutput> unspentOutputs, String hash, int index) {
     return unspentOutputs.stream()
             .filter(
