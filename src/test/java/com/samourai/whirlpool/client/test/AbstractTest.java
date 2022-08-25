@@ -241,6 +241,10 @@ public class AbstractTest {
     };
   }
 
+  protected void onPushTx0(Tx0PushRequest request, Transaction tx) throws Exception {
+    // overridable
+  }
+
   protected WhirlpoolWalletConfig computeWhirlpoolWalletConfig() {
     ServerApi serverApi =
         new ServerApi(WhirlpoolServer.TESTNET.getServerUrlClear(), computeHttpClientService()) {
@@ -250,6 +254,7 @@ public class AbstractTest {
             // mock pushtx0
             byte[] txBytes = WhirlpoolProtocol.decodeBytes(request.tx64);
             Transaction tx = new Transaction(params, txBytes);
+            onPushTx0(request, tx);
             return Observable.just(new PushTxSuccessResponse(tx.getHashAsString()));
           }
         };
