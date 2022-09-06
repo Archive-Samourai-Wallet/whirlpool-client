@@ -49,13 +49,19 @@ import com.samourai.whirlpool.protocol.rest.Tx0PushRequest;
 import com.samourai.xmanager.protocol.XManagerService;
 import io.reactivex.Completable;
 import io.reactivex.Observable;
+
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.Callable;
 import java.util.stream.Collectors;
+
+import org.bitcoinj.core.Coin;
 import org.bitcoinj.core.NetworkParameters;
+import org.bitcoinj.core.TransactionOutput;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -201,19 +207,46 @@ public class WhirlpoolWallet {
 
   public List<Tx0> tx0Cascade(Collection<UnspentOutput> spendFroms, Tx0Config tx0Config, Pool pool)
       throws Exception {
+    List<Tx0> tx0List = new ArrayList<Tx0>();
+    Tx0 tx0 = this.tx0(spendFroms, tx0Config, pool); // initial Tx0
+    tx0List.add(tx0); // add to list of Tx0's
+    TransactionOutput change = tx0.getChangeOutputs().get(0); // might have to adjust this in case multiple change outputs from scode
+    long changeValue = change.getValue().getValue();
+
+    Collection<Pool> pools = this.getPoolSupplier().getPools();
+
+    for (Pool newpool: pools) {
+      System.out.println("POOL: " + newpool.getPoolId());
+
+      if (pool.getDenomination() <= newpool.getDenomination()) {
+        System.out.println("Continuing to lower pool...");
+        continue;
+      }
+
+      if (changeValue >= newpool.getDenomination()) {
+        System.out.println("New Mix");
+        System.out.println("Tx0 Change: " + tx0.getChangeOutputs());
+        System.out.println("New Pool: " + newpool.getPoolId());
+
+//        this.tx0(tx0.getChangeOutputs(), newpool, tx0Config);
+      }
+    }
+
+
+
     // TODO feature/tx0-cascade
     // 1) execute first TX0 for given 'pool'
     //    => this.tx0(whirlpoolUtxos, pool, tx0Config)
-    //
+
     // 2) for each pool lower than given 'pool' in descending order - using
     // getPoolSupplier().getPools()
     //    execute one TX0 for the next lower pool with previous TX0 change outputs as TX0 input.
     //    only one TX0 per pool.
     //    if tx0 is not possible because change is too low, skip to next lower pool.
     //    => this.tx0( tx0.getChangeOutputs(), nextLowerPool, tx0Config)
-    //
+
     // 3) return TX0s list
-    return null;
+    return tx0List;
   }
 
   public List<Tx0> tx0Cascade(
