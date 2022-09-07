@@ -57,6 +57,6 @@ public class AbstractWhirlpoolWalletTest extends AbstractTest {
 
   protected void mockUtxos(UnspentOutput... unspentOutputs) throws Exception {
     UtxoData utxoData = new UtxoData(unspentOutputs, new WalletResponse.Tx[] {});
-    ((BasicUtxoSupplier) whirlpoolWallet.getUtxoSupplier()).setValue(utxoData);
+    ((BasicUtxoSupplier) whirlpoolWallet.getUtxoSupplier())._mockValue(utxoData);
   }
 }
