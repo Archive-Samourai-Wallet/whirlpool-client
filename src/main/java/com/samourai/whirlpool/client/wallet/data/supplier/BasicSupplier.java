@@ -6,11 +6,13 @@ import org.slf4j.Logger;
 public abstract class BasicSupplier<D> {
   protected final Logger log;
   private D value;
+  private D mockValue; // forced value for tests
   private Long lastUpdate;
 
   public BasicSupplier(final Logger log) {
     this.log = log;
     this.value = null;
+    this.mockValue = null;
     this.lastUpdate = null;
   }
 
@@ -23,7 +25,7 @@ public abstract class BasicSupplier<D> {
     D oldValue = this.value;
 
     // set
-    this.value = value;
+    this.value = mockValue != null ? mockValue : value;
     this.lastUpdate = System.currentTimeMillis();
 
     // notify
@@ -42,5 +44,10 @@ public abstract class BasicSupplier<D> {
 
   public Long getLastUpdate() {
     return lastUpdate;
+  }
+
+  public void _mockValue(D mockValue) throws Exception {
+    this.mockValue = mockValue;
+    setValue(mockValue);
   }
 }

@@ -62,6 +62,7 @@ public class WhirlpoolWalletTx0Test extends Tx0ServiceV1Test {
         utxosContains(tx0.getSpendFroms(), spendFromUtxo.tx_hash, spendFromUtxo.tx_output_n));
 
     // current wallet utxos should be mocked from tx0 outputs
+    whirlpoolWallet.refreshUtxosAsync().blockingAwait();
     for (TransactionOutput txOut : tx0.getChangeOutputs()) {
       String hash = tx0.getTx().getHashAsString();
       int index = txOut.getIndex();
