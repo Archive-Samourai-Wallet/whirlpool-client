@@ -51,6 +51,7 @@ import io.reactivex.Completable;
 import io.reactivex.Observable;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
@@ -208,44 +209,36 @@ public class WhirlpoolWallet {
   public List<Tx0> tx0Cascade(Collection<UnspentOutput> spendFroms, Tx0Config tx0Config, Pool pool)
       throws Exception {
     List<Tx0> tx0List = new ArrayList<Tx0>();
-    Tx0 tx0 = this.tx0(spendFroms, tx0Config, pool); // initial Tx0
-    tx0List.add(tx0); // add to list of Tx0's
-    TransactionOutput change = tx0.getChangeOutputs().get(0); // might have to adjust this in case multiple change outputs from scode
-    long changeValue = change.getValue().getValue();
+    log.info("Tx0 Cascade: Starting in Pool: " + pool.getPoolId());
+
+    // initial Tx0
+    Tx0 tx0 = this.tx0(spendFroms, tx0Config, pool); // try catch ?
+    tx0List.add(tx0);
+
+    TransactionOutput changeOutput = tx0.getChangeOutputs().get(0); // might have to adjust this in case multiple change outputs from scode
+    WhirlpoolUtxo whirlpoolUtxo = getUtxoSupplier().findUtxo(tx0.getTx().getHashAsString(), changeOutput.getIndex());
+    UnspentOutput unspentOutput = whirlpoolUtxo.getUtxo();
 
     Collection<Pool> pools = this.getPoolSupplier().getPools();
-
-    for (Pool newpool: pools) {
-      System.out.println("POOL: " + newpool.getPoolId());
-
-      if (pool.getDenomination() <= newpool.getDenomination()) {
-        System.out.println("Continuing to lower pool...");
+    for (Pool currentPool: pools) {
+      if (pool.getDenomination() <= currentPool.getDenomination()) {
+        // hop to next lower pool
         continue;
       }
 
-      if (changeValue >= newpool.getDenomination()) {
-        System.out.println("New Mix");
-        System.out.println("Tx0 Change: " + tx0.getChangeOutputs());
-        System.out.println("New Pool: " + newpool.getPoolId());
+      // check if change is large enough to mix in pool
+      if (unspentOutput.value >= (currentPool.getMustMixBalanceMin() + currentPool.getFeeValue())) { // double check if this pool value is correct, scode might affect too
+        log.info("Making additional Tx0 in Pool: " + currentPool.getPoolId());
 
-//        this.tx0(tx0.getChangeOutputs(), newpool, tx0Config);
+        tx0 = this.tx0(Arrays.asList(unspentOutput), tx0Config, currentPool); // try catch ?
+        tx0List.add(tx0);
+
+        changeOutput = tx0.getChangeOutputs().get(0); // might have to adjust this in case multiple change outputs from scode
+        whirlpoolUtxo = getUtxoSupplier().findUtxo(tx0.getTx().getHashAsString(), changeOutput.getIndex());
+        unspentOutput = whirlpoolUtxo.getUtxo();
       }
     }
 
-
-
-    // TODO feature/tx0-cascade
-    // 1) execute first TX0 for given 'pool'
-    //    => this.tx0(whirlpoolUtxos, pool, tx0Config)
-
-    // 2) for each pool lower than given 'pool' in descending order - using
-    // getPoolSupplier().getPools()
-    //    execute one TX0 for the next lower pool with previous TX0 change outputs as TX0 input.
-    //    only one TX0 per pool.
-    //    if tx0 is not possible because change is too low, skip to next lower pool.
-    //    => this.tx0( tx0.getChangeOutputs(), nextLowerPool, tx0Config)
-
-    // 3) return TX0s list
     return tx0List;
   }
 
