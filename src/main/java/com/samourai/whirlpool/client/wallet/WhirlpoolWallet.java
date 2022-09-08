@@ -49,18 +49,14 @@ import com.samourai.whirlpool.protocol.rest.Tx0PushRequest;
 import com.samourai.xmanager.protocol.XManagerService;
 import io.reactivex.Completable;
 import io.reactivex.Observable;
-
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.Callable;
 import java.util.stream.Collectors;
-
-import org.bitcoinj.core.Coin;
 import org.bitcoinj.core.NetworkParameters;
 import org.bitcoinj.core.TransactionOutput;
 import org.slf4j.Logger;
@@ -208,37 +204,38 @@ public class WhirlpoolWallet {
 
   public List<Tx0> tx0Cascade(Collection<UnspentOutput> spendFroms, Tx0Config tx0Config, Pool pool)
       throws Exception {
-    List<Tx0> tx0List = new ArrayList<Tx0>();
     log.info("Tx0 Cascade: Starting in Pool: " + pool.getPoolId());
+    List<Tx0> tx0List = new ArrayList<Tx0>();
 
     // initial Tx0
     Tx0 tx0 = this.tx0(spendFroms, tx0Config, pool); // try catch ?
     tx0List.add(tx0);
 
-    TransactionOutput changeOutput = tx0.getChangeOutputs().get(0); // might have to adjust this in case multiple change outputs from scode
-    WhirlpoolUtxo whirlpoolUtxo = getUtxoSupplier().findUtxo(tx0.getTx().getHashAsString(), changeOutput.getIndex());
-    UnspentOutput unspentOutput = whirlpoolUtxo.getUtxo();
+    UnspentOutput unspentOutputChange =
+        getUtxoSupplier()
+        .findUtxo(
+            tx0.getTx().getHashAsString(),
+            tx0.getChangeOutputs().get(0).getIndex() // double check index with 100% SCODE
+        ).getUtxo();
 
     Collection<Pool> pools = this.getPoolSupplier().getPools();
-    for (Pool currentPool: pools) {
-      if (pool.getDenomination() <= currentPool.getDenomination()) {
-        // hop to next lower pool
-        continue;
-      }
-
+    for (Pool currentPool : pools) {
       // check if change is large enough to mix in pool
-      if (unspentOutput.value >= (currentPool.getMustMixBalanceMin() + currentPool.getFeeValue())) { // double check if this pool value is correct, scode might affect too
+      long poolAmount = currentPool.getMustMixBalanceMin() + currentPool.getFeeValue(); // double check if this pool value is correct, SCODE might affect too
+      if (unspentOutputChange.value >= poolAmount) {
         log.info("Making additional Tx0 in Pool: " + currentPool.getPoolId());
 
-        tx0 = this.tx0(Arrays.asList(unspentOutput), tx0Config, currentPool); // try catch ?
+        tx0 = this.tx0(Arrays.asList(unspentOutputChange), tx0Config, currentPool); // try catch ?
         tx0List.add(tx0);
 
-        changeOutput = tx0.getChangeOutputs().get(0); // might have to adjust this in case multiple change outputs from scode
-        whirlpoolUtxo = getUtxoSupplier().findUtxo(tx0.getTx().getHashAsString(), changeOutput.getIndex());
-        unspentOutput = whirlpoolUtxo.getUtxo();
+        unspentOutputChange =
+            getUtxoSupplier()
+            .findUtxo(
+                tx0.getTx().getHashAsString(),
+                tx0.getChangeOutputs().get(0).getIndex() // double check index with 100% SCODE
+            ).getUtxo();
       }
     }
-
     return tx0List;
   }
 
