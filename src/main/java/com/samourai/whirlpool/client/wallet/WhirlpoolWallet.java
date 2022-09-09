@@ -202,7 +202,64 @@ public class WhirlpoolWallet {
     }
   }
 
+  /* Tx0 Cascade using Tx0Previews()
+   * Checks if change is large enough with if(NbPremix > 0 && ChangeValue >= 0)
+   * Works on tests tx0Cascascade_test0 - tx0Cascade_test4
+   * Probably going to use this one
+   */
   public List<Tx0> tx0Cascade(Collection<UnspentOutput> spendFroms, Tx0Config tx0Config, Pool pool)
+      throws Exception {
+    log.info("Tx0 Cascade: Starting in Pool: " + pool.getPoolId());
+    List<Tx0> tx0List = new ArrayList<Tx0>();
+    Tx0Preview tx0Preview = null;
+
+    // initial Tx0
+    Tx0 tx0 = this.tx0(spendFroms, tx0Config, pool); // try catch ?
+    tx0List.add(tx0);
+
+    UnspentOutput unspentOutputChange =
+        getUtxoSupplier()
+        .findUtxo(
+            tx0.getTx().getHashAsString(),
+            tx0.getChangeOutputs().get(0).getIndex() // double check index with 100% SCODE
+        ).getUtxo();
+
+    Collection<Pool> pools = this.getPoolSupplier().getPools();
+    for (Pool currentPool : pools) {
+      if (pool.getDenomination() <= currentPool.getDenomination()) {
+        // hop to next lower pool
+        continue;
+      }
+
+      tx0Preview = this.tx0Previews(
+              tx0Config,
+              Arrays.asList(unspentOutputChange))
+          .getTx0Preview(currentPool.getPoolId());
+
+      // check if change is large enough to mix in pool
+      if (tx0Preview.getNbPremix() > 0 && tx0Preview.getChangeValue() >= 0) { // 2nd check of ChangeValue might not be necessary
+        log.info("Making additional Tx0 in Pool: " + currentPool.getPoolId());
+
+        tx0 = this.tx0(Arrays.asList(unspentOutputChange), tx0Config, currentPool); // try catch ?
+        tx0List.add(tx0);
+
+        unspentOutputChange =
+            getUtxoSupplier()
+            .findUtxo(
+                tx0.getTx().getHashAsString(),
+                tx0.getChangeOutputs().get(0).getIndex() // double check index with 100% SCODE
+            ).getUtxo();
+      }
+    }
+    return tx0List;
+  }
+
+  /* Tx0 Cascade not using Tx0Previews()
+   * Checks if change is large enough with if(change >= Pool.mustMixBalanceMin)
+   * Works on tests tx0Cascascade_v1_test0 - tx0Cascade_v1_test4
+   * Probably going to delete this one
+   */
+  public List<Tx0> tx0Cascade_v1(Collection<UnspentOutput> spendFroms, Tx0Config tx0Config, Pool pool)
       throws Exception {
     log.info("Tx0 Cascade: Starting in Pool: " + pool.getPoolId());
     List<Tx0> tx0List = new ArrayList<Tx0>();
@@ -221,8 +278,7 @@ public class WhirlpoolWallet {
     Collection<Pool> pools = this.getPoolSupplier().getPools();
     for (Pool currentPool : pools) {
       // check if change is large enough to mix in pool
-      long poolAmount = currentPool.getMustMixBalanceMin() + currentPool.getFeeValue(); // double check if this pool value is correct, SCODE might affect too
-      if (unspentOutputChange.value >= poolAmount) {
+      if (unspentOutputChange.value >= currentPool.getMustMixBalanceMin()) { // double check if this pool value is correct, SCODE might affect too
         log.info("Making additional Tx0 in Pool: " + currentPool.getPoolId());
 
         tx0 = this.tx0(Arrays.asList(unspentOutputChange), tx0Config, currentPool); // try catch ?

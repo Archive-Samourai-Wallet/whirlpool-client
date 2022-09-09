@@ -70,6 +70,12 @@ public class WhirlpoolWalletTx0Test extends Tx0ServiceV1Test {
     }
   }
 
+  /* Tx0 Cascade using tx0Cascade()
+   * Uses Tx0Previews()
+   * Checks if change is large enough with if(NbPremix > 0 && ChangeValue >= 0)
+   * Tests tx0Cascascade_test0 - tx0Cascade_test4
+   * Probably going to use these
+   */
   @Test
   public void tx0Cascade_test0() throws Exception {
     log.info("Testing 0.05432999 btc. Makes Tx0s for pools 0.05 & 0.001");
@@ -84,7 +90,7 @@ public class WhirlpoolWalletTx0Test extends Tx0ServiceV1Test {
             1,
             5432999,
             address);
-    mockUtxos(spendFromUtxo);
+        mockUtxos(spendFromUtxo);
 
     // configure TX0
     Pool pool = poolSupplier.findPoolById("0.05btc");
@@ -137,7 +143,7 @@ public class WhirlpoolWalletTx0Test extends Tx0ServiceV1Test {
             1,
             6432999,
             address);
-    mockUtxos(spendFromUtxo);
+        mockUtxos(spendFromUtxo);
 
     // configure TX0
     Pool pool = poolSupplier.findPoolById("0.05btc");
@@ -146,6 +152,312 @@ public class WhirlpoolWalletTx0Test extends Tx0ServiceV1Test {
 
     // run
     List<Tx0> tx0s = whirlpoolWallet.tx0Cascade(Arrays.asList(spendFromUtxo), tx0Config, pool);
+
+    // verify
+    Assertions.assertEquals(3, tx0s.size());
+    Tx0 tx0_pool05 = tx0s.get(0);
+    Tx0 tx0_pool01 = tx0s.get(1);
+    Tx0 tx0_pool001 = tx0s.get(2);
+
+    log.info("tx0_pool05 = " + tx0_pool05);
+    log.info("tx0_pool01 = " + tx0_pool01);
+    log.info("tx0_pool001 = " + tx0_pool001);
+
+    Assertions.assertTrue(tx0_pool05.getNbPremix() > 0);
+    Assertions.assertTrue(tx0_pool01.getNbPremix() > 0);
+    Assertions.assertTrue(tx0_pool001.getNbPremix() > 0);
+
+    int totalNbPremix = tx0_pool05.getNbPremix() + tx0_pool01.getNbPremix() + tx0_pool001.getNbPremix();
+    Assertions.assertEquals(4, totalNbPremix);
+    log.info("Total nbPremix: " + totalNbPremix);
+
+    // tx0_pool05 spends from spendFroms
+    Assertions.assertTrue(
+        utxosContains(
+            tx0_pool05.getSpendFroms(), spendFromUtxo.tx_hash, spendFromUtxo.tx_output_n));
+
+    // tx0_pool01 spends from tx0_pool05 outputs
+    Assertions.assertEquals(
+        tx0_pool05.getChangeOutputs().size(), tx0_pool01.getSpendFroms().size());
+    for (TransactionOutput txOut : tx0_pool05.getChangeOutputs()) {
+      String txid = tx0_pool05.getTx().getHashAsString();
+      Assertions.assertTrue(utxosContains(tx0_pool01.getSpendFroms(), txid, txOut.getIndex()));
+    }
+
+    // tx0_pool001 spends from tx0_pool01 outputs
+    Assertions.assertEquals(
+        tx0_pool01.getChangeOutputs().size(), tx0_pool001.getSpendFroms().size());
+    for (TransactionOutput txOut : tx0_pool01.getChangeOutputs()) {
+      String txid = tx0_pool01.getTx().getHashAsString();
+      Assertions.assertTrue(utxosContains(tx0_pool001.getSpendFroms(), txid, txOut.getIndex()));
+    }
+  }
+
+  @Test
+  public void tx0Cascade_test2() throws Exception {
+    log.info("Testing 0.74329991 btc. Makes Tx0s for pools 0.5, 0.05, 0.01, & 0.001");
+
+    PoolSupplier poolSupplier = whirlpoolWallet.getPoolSupplier();
+
+    // mock initial data
+    HD_Address address = whirlpoolWallet.getWalletDeposit().getAddressAt(0, 61).getHdAddress();
+    UnspentOutput spendFromUtxo =
+        newUnspentOutput(
+            "cc588cdcb368f894a41c372d1f905770b61ecb3fb8e5e01a97e7cedbf5e324ae",
+            1,
+            74329991,
+            address);
+        mockUtxos(spendFromUtxo);
+
+    // configure TX0
+    Pool pool = poolSupplier.findPoolById("0.5btc");
+    Tx0Config tx0Config =
+        whirlpoolWallet.getTx0Config(Tx0FeeTarget.BLOCKS_12, Tx0FeeTarget.BLOCKS_12);
+
+    // run
+    List<Tx0> tx0s = whirlpoolWallet.tx0Cascade(Arrays.asList(spendFromUtxo), tx0Config, pool);
+
+    // verify
+    Assertions.assertEquals(4, tx0s.size());
+    Tx0 tx0_pool5 = tx0s.get(0);
+    Tx0 tx0_pool05 = tx0s.get(1);
+    Tx0 tx0_pool01 = tx0s.get(2);
+    Tx0 tx0_pool001 = tx0s.get(3);
+
+    log.info("tx0_pool5 = " + tx0_pool5);
+    log.info("tx0_pool05 = " + tx0_pool05);
+    log.info("tx0_pool01 = " + tx0_pool01);
+    log.info("tx0_pool001 = " + tx0_pool001);
+
+    Assertions.assertTrue(tx0_pool5.getNbPremix() > 0);
+    Assertions.assertTrue(tx0_pool05.getNbPremix() > 0);
+    Assertions.assertTrue(tx0_pool01.getNbPremix() > 0);
+    Assertions.assertTrue(tx0_pool001.getNbPremix() > 0);
+
+    int totalNbPremix =
+        tx0_pool5.getNbPremix()
+        + tx0_pool05.getNbPremix()
+        + tx0_pool01.getNbPremix()
+        + tx0_pool001.getNbPremix();
+    Assertions.assertEquals(13, totalNbPremix);
+    log.info("Total nbPremix: " + totalNbPremix);
+
+    // tx0_pool5 spends from spendFroms
+    Assertions.assertTrue(
+        utxosContains(tx0_pool5.getSpendFroms(), spendFromUtxo.tx_hash, spendFromUtxo.tx_output_n));
+
+    // tx0_pool05 spends from tx0_pool5 outputs
+    Assertions.assertEquals(tx0_pool5.getChangeOutputs().size(), tx0_pool05.getSpendFroms().size());
+    for (TransactionOutput txOut : tx0_pool5.getChangeOutputs()) {
+      String txid = tx0_pool5.getTx().getHashAsString();
+      Assertions.assertTrue(utxosContains(tx0_pool05.getSpendFroms(), txid, txOut.getIndex()));
+    }
+
+    // tx0_pool01 spends from tx0_pool05 outputs
+    Assertions.assertEquals(
+        tx0_pool05.getChangeOutputs().size(), tx0_pool01.getSpendFroms().size());
+    for (TransactionOutput txOut : tx0_pool05.getChangeOutputs()) {
+      String txid = tx0_pool05.getTx().getHashAsString();
+      Assertions.assertTrue(utxosContains(tx0_pool01.getSpendFroms(), txid, txOut.getIndex()));
+    }
+
+    // tx0_pool001 spends from tx0_pool01 outputs
+    Assertions.assertEquals(
+        tx0_pool01.getChangeOutputs().size(), tx0_pool001.getSpendFroms().size());
+    for (TransactionOutput txOut : tx0_pool01.getChangeOutputs()) {
+      String txid = tx0_pool01.getTx().getHashAsString();
+      Assertions.assertTrue(utxosContains(tx0_pool001.getSpendFroms(), txid, txOut.getIndex()));
+    }
+  }
+
+  @Test
+  public void tx0Cascade_test3() throws Exception {
+    log.info("Testing 0.52329991 btc. Makes Tx0s for pools 0.5 & 0.001");
+
+    PoolSupplier poolSupplier = whirlpoolWallet.getPoolSupplier();
+
+    // mock initial data
+    HD_Address address = whirlpoolWallet.getWalletDeposit().getAddressAt(0, 61).getHdAddress();
+    UnspentOutput spendFromUtxo =
+        newUnspentOutput(
+            "cc588cdcb368f894a41c372d1f905770b61ecb3fb8e5e01a97e7cedbf5e324ae",
+            1,
+            52329991,
+            address);
+        mockUtxos(spendFromUtxo);
+
+    // configure TX0
+    Pool pool = poolSupplier.findPoolById("0.5btc");
+    Tx0Config tx0Config =
+        whirlpoolWallet.getTx0Config(Tx0FeeTarget.BLOCKS_12, Tx0FeeTarget.BLOCKS_12);
+
+    // run
+    List<Tx0> tx0s = whirlpoolWallet.tx0Cascade(Arrays.asList(spendFromUtxo), tx0Config, pool);
+
+    // verify
+    Assertions.assertEquals(2, tx0s.size());
+    Tx0 tx0_pool5 = tx0s.get(0);
+    Tx0 tx0_pool001 = tx0s.get(1);
+
+    log.info("tx0_pool5 = " + tx0_pool5);
+    log.info("tx0_pool001 = " + tx0_pool001);
+
+    Assertions.assertTrue(tx0_pool5.getNbPremix() > 0);
+    Assertions.assertTrue(tx0_pool001.getNbPremix() > 0);
+
+    int totalNbPremix = tx0_pool5.getNbPremix() + tx0_pool001.getNbPremix();
+    Assertions.assertEquals(9, totalNbPremix);
+    log.info("Total nbPremix: " + totalNbPremix);
+
+    // tx0_pool5 spends from spendFroms
+    Assertions.assertTrue(
+        utxosContains(tx0_pool5.getSpendFroms(), spendFromUtxo.tx_hash, spendFromUtxo.tx_output_n));
+
+    // tx0_pool001 spends from tx0_pool5 outputs
+    Assertions.assertEquals(
+        tx0_pool5.getChangeOutputs().size(), tx0_pool001.getSpendFroms().size());
+    for (TransactionOutput txOut : tx0_pool5.getChangeOutputs()) {
+      String txid = tx0_pool5.getTx().getHashAsString();
+      Assertions.assertTrue(utxosContains(tx0_pool001.getSpendFroms(), txid, txOut.getIndex()));
+    }
+  }
+
+  @Test
+  public void tx0Cascade_test4() throws Exception {
+    log.info("Testing 0.02329991 btc. Makes Tx0s for pools 0.01 & 0.001");
+
+    PoolSupplier poolSupplier = whirlpoolWallet.getPoolSupplier();
+
+    // mock initial data
+    HD_Address address = whirlpoolWallet.getWalletDeposit().getAddressAt(0, 61).getHdAddress();
+    UnspentOutput spendFromUtxo =
+        newUnspentOutput(
+            "cc588cdcb368f894a41c372d1f905770b61ecb3fb8e5e01a97e7cedbf5e324ae",
+            1,
+            2329991,
+            address);
+        mockUtxos(spendFromUtxo);
+
+    // configure TX0
+    Pool pool = poolSupplier.findPoolById("0.01btc");
+    Tx0Config tx0Config =
+        whirlpoolWallet.getTx0Config(Tx0FeeTarget.BLOCKS_12, Tx0FeeTarget.BLOCKS_12);
+
+    // run
+    List<Tx0> tx0s = whirlpoolWallet.tx0Cascade(Arrays.asList(spendFromUtxo), tx0Config, pool);
+
+    // verify
+    Assertions.assertEquals(2, tx0s.size());
+    Tx0 tx0_pool01 = tx0s.get(0);
+    Tx0 tx0_pool001 = tx0s.get(1);
+
+    log.info("tx0_pool5 = " + tx0_pool01);
+    log.info("tx0_pool001 = " + tx0_pool001);
+
+    Assertions.assertTrue(tx0_pool01.getNbPremix() > 0);
+    Assertions.assertTrue(tx0_pool001.getNbPremix() > 0);
+
+    int totalNbPremix = tx0_pool01.getNbPremix() + tx0_pool001.getNbPremix();
+    Assertions.assertEquals(4, totalNbPremix);
+    log.info("Total nbPremix: " + totalNbPremix);
+
+    // tx0_pool01 spends from spendFroms
+    Assertions.assertTrue(
+        utxosContains(
+            tx0_pool01.getSpendFroms(), spendFromUtxo.tx_hash, spendFromUtxo.tx_output_n));
+
+    // tx0_pool001 spends from tx0_pool01 outputs
+    Assertions.assertEquals(
+        tx0_pool01.getChangeOutputs().size(), tx0_pool001.getSpendFroms().size());
+    for (TransactionOutput txOut : tx0_pool01.getChangeOutputs()) {
+      String txid = tx0_pool01.getTx().getHashAsString();
+      Assertions.assertTrue(utxosContains(tx0_pool001.getSpendFroms(), txid, txOut.getIndex()));
+    }
+  }
+
+
+  /* Tx0 Cascade not using Tx0Previews()
+   * Uses tx0Cascade_v1()
+   * Checks if change is large enough with if(change >= Pool.mustMixBalanceMin)
+   * Tests tx0Cascascade_v1_test0 - tx0Cascade_v1_test4
+   * Probably going to delete these
+   */
+  @Test
+  public void tx0Cascade_v1_test0() throws Exception {
+    log.info("Testing 0.05432999 btc. Makes Tx0s for pools 0.05 & 0.001");
+
+    PoolSupplier poolSupplier = whirlpoolWallet.getPoolSupplier();
+
+    // mock initial data
+    HD_Address address = whirlpoolWallet.getWalletDeposit().getAddressAt(0, 61).getHdAddress();
+    UnspentOutput spendFromUtxo =
+        newUnspentOutput(
+            "cc588cdcb368f894a41c372d1f905770b61ecb3fb8e5e01a97e7cedbf5e324ae",
+            1,
+            5432999,
+            address);
+    mockUtxos(spendFromUtxo);
+
+    // configure TX0
+    Pool pool = poolSupplier.findPoolById("0.05btc");
+    Tx0Config tx0Config =
+        whirlpoolWallet.getTx0Config(Tx0FeeTarget.BLOCKS_12, Tx0FeeTarget.BLOCKS_12);
+
+    // run
+    List<Tx0> tx0s = whirlpoolWallet.tx0Cascade_v1(Arrays.asList(spendFromUtxo), tx0Config, pool);
+
+    // verify
+    Assertions.assertEquals(2, tx0s.size());
+    Tx0 tx0_pool05 = tx0s.get(0);
+    Tx0 tx0_pool001 = tx0s.get(1);
+
+    log.info("tx0_pool05 = " + tx0_pool05);
+    log.info("tx0_pool001 = " + tx0_pool001);
+
+    Assertions.assertTrue(tx0_pool05.getNbPremix() > 0);
+    Assertions.assertTrue(tx0_pool001.getNbPremix() > 0);
+
+    int totalNbPremix = tx0_pool05.getNbPremix() + tx0_pool001.getNbPremix();
+    Assertions.assertEquals(3, totalNbPremix);
+    log.info("Total nbPremix: " + totalNbPremix);
+
+    // tx0_pool05 spends from spendFroms
+    Assertions.assertTrue(
+        utxosContains(
+            tx0_pool05.getSpendFroms(), spendFromUtxo.tx_hash, spendFromUtxo.tx_output_n));
+
+    // tx0_pool001 spends from tx0_pool01 outputs
+    Assertions.assertEquals(
+        tx0_pool05.getChangeOutputs().size(), tx0_pool001.getSpendFroms().size());
+    for (TransactionOutput txOut : tx0_pool05.getChangeOutputs()) {
+      String txid = tx0_pool05.getTx().getHashAsString();
+      Assertions.assertTrue(utxosContains(tx0_pool001.getSpendFroms(), txid, txOut.getIndex()));
+    }
+  }
+
+  @Test
+  public void tx0Cascade_v1_test1() throws Exception {
+    log.info("Testing 0.06432999 btc. Makes Tx0s for pools 0.05, 0.01, & 0.001");
+
+    PoolSupplier poolSupplier = whirlpoolWallet.getPoolSupplier();
+
+    // mock initial data
+    HD_Address address = whirlpoolWallet.getWalletDeposit().getAddressAt(0, 61).getHdAddress();
+    UnspentOutput spendFromUtxo =
+        newUnspentOutput(
+            "cc588cdcb368f894a41c372d1f905770b61ecb3fb8e5e01a97e7cedbf5e324ae",
+            1,
+            6432999,
+            address);
+    mockUtxos(spendFromUtxo);
+
+    // configure TX0
+    Pool pool = poolSupplier.findPoolById("0.05btc");
+    Tx0Config tx0Config =
+        whirlpoolWallet.getTx0Config(Tx0FeeTarget.BLOCKS_12, Tx0FeeTarget.BLOCKS_12);
+
+    // run
+    List<Tx0> tx0s = whirlpoolWallet.tx0Cascade_v1(Arrays.asList(spendFromUtxo), tx0Config, pool);
 
     // verify
     Assertions.assertEquals(3, tx0s.size());
@@ -189,7 +501,7 @@ public class WhirlpoolWalletTx0Test extends Tx0ServiceV1Test {
   }
 
   @Test
-  public void tx0Cascade_test2() throws Exception {
+  public void tx0Cascade_v1_test2() throws Exception {
     log.info("Testing 0.74329991 btc. Makes Tx0s for pools 0.5, 0.05, 0.01, & 0.001");
 
     PoolSupplier poolSupplier = whirlpoolWallet.getPoolSupplier();
@@ -210,7 +522,7 @@ public class WhirlpoolWalletTx0Test extends Tx0ServiceV1Test {
         whirlpoolWallet.getTx0Config(Tx0FeeTarget.BLOCKS_12, Tx0FeeTarget.BLOCKS_12);
 
     // run
-    List<Tx0> tx0s = whirlpoolWallet.tx0Cascade(Arrays.asList(spendFromUtxo), tx0Config, pool);
+    List<Tx0> tx0s = whirlpoolWallet.tx0Cascade_v1(Arrays.asList(spendFromUtxo), tx0Config, pool);
 
     // verify
     Assertions.assertEquals(4, tx0s.size());
@@ -266,7 +578,7 @@ public class WhirlpoolWalletTx0Test extends Tx0ServiceV1Test {
   }
 
   @Test
-  public void tx0Cascade_test3() throws Exception {
+  public void tx0Cascade_v1_test3() throws Exception {
     log.info("Testing 0.52329991 btc. Makes Tx0s for pools 0.5 & 0.001");
 
     PoolSupplier poolSupplier = whirlpoolWallet.getPoolSupplier();
@@ -287,7 +599,7 @@ public class WhirlpoolWalletTx0Test extends Tx0ServiceV1Test {
         whirlpoolWallet.getTx0Config(Tx0FeeTarget.BLOCKS_12, Tx0FeeTarget.BLOCKS_12);
 
     // run
-    List<Tx0> tx0s = whirlpoolWallet.tx0Cascade(Arrays.asList(spendFromUtxo), tx0Config, pool);
+    List<Tx0> tx0s = whirlpoolWallet.tx0Cascade_v1(Arrays.asList(spendFromUtxo), tx0Config, pool);
 
     // verify
     Assertions.assertEquals(2, tx0s.size());
@@ -318,7 +630,7 @@ public class WhirlpoolWalletTx0Test extends Tx0ServiceV1Test {
   }
 
   @Test
-  public void tx0Cascade_test4() throws Exception {
+  public void tx0Cascade_v1_test4() throws Exception {
     log.info("Testing 0.02329991 btc. Makes Tx0s for pools 0.01 & 0.001");
 
     PoolSupplier poolSupplier = whirlpoolWallet.getPoolSupplier();
@@ -339,7 +651,7 @@ public class WhirlpoolWalletTx0Test extends Tx0ServiceV1Test {
         whirlpoolWallet.getTx0Config(Tx0FeeTarget.BLOCKS_12, Tx0FeeTarget.BLOCKS_12);
 
     // run
-    List<Tx0> tx0s = whirlpoolWallet.tx0Cascade(Arrays.asList(spendFromUtxo), tx0Config, pool);
+    List<Tx0> tx0s = whirlpoolWallet.tx0Cascade_v1(Arrays.asList(spendFromUtxo), tx0Config, pool);
 
     // verify
     Assertions.assertEquals(2, tx0s.size());
@@ -370,61 +682,7 @@ public class WhirlpoolWalletTx0Test extends Tx0ServiceV1Test {
     }
   }
 
-  @Test
-  public void tx0Cascade_scode_noFee() throws Exception {
-    // TODO Test with SCODE
-
-    PoolSupplier poolSupplier = whirlpoolWallet.getPoolSupplier();
-
-    // mock initial data
-    HD_Address address = whirlpoolWallet.getWalletDeposit().getAddressAt(0, 61).getHdAddress();
-    UnspentOutput spendFromUtxo =
-        newUnspentOutput(
-              "cc588cdcb368f894a41c372d1f905770b61ecb3fb8e5e01a97e7cedbf5e324ae",
-              1,
-              1021397,
-              address);
-    mockUtxos(spendFromUtxo);
-
-    long feeChange = FEE_VALUE;
-    int feeDiscountPercent = 100;
-
-    // configure TX0
-    Pool pool = poolSupplier.findPoolById("0.05btc");
-    Tx0Config tx0Config =
-            whirlpoolWallet.getTx0Config(Tx0FeeTarget.BLOCKS_12, Tx0FeeTarget.BLOCKS_12);
-
-    // run
-    List<Tx0> tx0s = whirlpoolWallet.tx0Cascade(Arrays.asList(spendFromUtxo), tx0Config, pool);
-
-    // verify
-    Assertions.assertEquals(2, tx0s.size());
-    Tx0 tx0_pool05 = tx0s.get(0);
-    Tx0 tx0_pool001 = tx0s.get(1);
-
-    log.info("tx0_pool05 = " + tx0_pool05);
-    log.info("tx0_pool001 = " + tx0_pool001);
-
-    Assertions.assertTrue(tx0_pool05.getNbPremix() > 0);
-    Assertions.assertTrue(tx0_pool001.getNbPremix() > 0);
-
-    int totalNbPremix = tx0_pool05.getNbPremix() + tx0_pool001.getNbPremix();
-    Assertions.assertEquals(3, totalNbPremix);
-    log.info("Total nbPremix: " + totalNbPremix);
-
-    // tx0_pool05 spends from spendFroms
-    Assertions.assertTrue(
-            utxosContains(
-                    tx0_pool05.getSpendFroms(), spendFromUtxo.tx_hash, spendFromUtxo.tx_output_n));
-
-    // tx0_pool001 spends from tx0_pool01 outputs
-    Assertions.assertEquals(
-            tx0_pool05.getChangeOutputs().size(), tx0_pool001.getSpendFroms().size());
-    for (TransactionOutput txOut : tx0_pool05.getChangeOutputs()) {
-      String txid = tx0_pool05.getTx().getHashAsString();
-      Assertions.assertTrue(utxosContains(tx0_pool001.getSpendFroms(), txid, txOut.getIndex()));
-    }
-  }
+  // TODO: SCODE Testing
 
   private boolean utxosContains(Collection<UnspentOutput> unspentOutputs, String hash, int index) {
     return unspentOutputs.stream()
