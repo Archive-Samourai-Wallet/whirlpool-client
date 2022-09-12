@@ -217,6 +217,8 @@ public class WhirlpoolWallet {
     Tx0 tx0 = this.tx0(spendFroms, tx0Config, pool); // try catch ?
     tx0List.add(tx0);
 
+    // await for change utxo
+    refreshUtxosAsync().blockingAwait();
     UnspentOutput unspentOutputChange =
         getUtxoSupplier()
         .findUtxo(
@@ -243,6 +245,8 @@ public class WhirlpoolWallet {
         tx0 = this.tx0(Arrays.asList(unspentOutputChange), tx0Config, currentPool); // try catch ?
         tx0List.add(tx0);
 
+        // await for change utxo
+        refreshUtxosAsync().blockingAwait();
         unspentOutputChange =
             getUtxoSupplier()
             .findUtxo(
