@@ -249,60 +249,14 @@ public class WhirlpoolWallet {
                     )
                 .getUtxo();
       } catch (Exception e) {
-        // TX0 is not possible for this pool, ignore it
+        // Tx0 is not possible for this pool, ignore it
         if (log.isDebugEnabled()) {
           log.debug(
-              "TX0 cascading skipped for poolId="
+              "Tx0 cascading skipped for poolId="
                   + currentPool.getPoolId()
                   + ": "
                   + e.getMessage());
         }
-      }
-    }
-    return tx0List;
-  }
-
-  /* Tx0 Cascade not using Tx0Previews()
-   * Checks if change is large enough with if(change >= Pool.mustMixBalanceMin)
-   * Works on tests tx0Cascascade_v1_test0 - tx0Cascade_v1_test4
-   * Probably going to delete this one
-   */
-  public List<Tx0> tx0Cascade_v1(
-      Collection<UnspentOutput> spendFroms, Tx0Config tx0Config, Pool pool) throws Exception {
-    log.info("Tx0 Cascade: Starting in Pool: " + pool.getPoolId());
-    List<Tx0> tx0List = new ArrayList<Tx0>();
-
-    // initial Tx0
-    Tx0 tx0 = this.tx0(spendFroms, tx0Config, pool); // try catch ?
-    tx0List.add(tx0);
-
-    UnspentOutput unspentOutputChange =
-        getUtxoSupplier()
-            .findUtxo(
-                tx0.getTx().getHashAsString(),
-                tx0.getChangeOutputs().get(0).getIndex() // double check index with 100% SCODE
-                )
-            .getUtxo();
-
-    Collection<Pool> pools = this.getPoolSupplier().getPools();
-    for (Pool currentPool : pools) {
-      // check if change is large enough to mix in pool
-      if (unspentOutputChange.value
-          >= currentPool
-              .getMustMixBalanceMin()) { // double check if this pool value is correct, SCODE might
-        // affect too
-        log.info("Making additional Tx0 in Pool: " + currentPool.getPoolId());
-
-        tx0 = this.tx0(Arrays.asList(unspentOutputChange), tx0Config, currentPool); // try catch ?
-        tx0List.add(tx0);
-
-        unspentOutputChange =
-            getUtxoSupplier()
-                .findUtxo(
-                    tx0.getTx().getHashAsString(),
-                    tx0.getChangeOutputs().get(0).getIndex() // double check index with 100% SCODE
-                    )
-                .getUtxo();
       }
     }
     return tx0List;
