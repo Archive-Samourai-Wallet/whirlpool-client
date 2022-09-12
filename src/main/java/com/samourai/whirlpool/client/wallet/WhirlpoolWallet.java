@@ -58,7 +58,6 @@ import java.util.Optional;
 import java.util.concurrent.Callable;
 import java.util.stream.Collectors;
 import org.bitcoinj.core.NetworkParameters;
-import org.bitcoinj.core.TransactionOutput;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -211,20 +210,20 @@ public class WhirlpoolWallet {
       throws Exception {
     log.info("Tx0 Cascade: Starting in Pool: " + pool.getPoolId());
     List<Tx0> tx0List = new ArrayList<Tx0>();
-    Tx0Preview tx0Preview = null;
 
     // initial Tx0
-    Tx0 tx0 = this.tx0(spendFroms, tx0Config, pool); // try catch ?
+    Tx0 tx0 = this.tx0(spendFroms, tx0Config, pool);
     tx0List.add(tx0);
 
     // await for change utxo
     refreshUtxosAsync().blockingAwait();
     UnspentOutput unspentOutputChange =
         getUtxoSupplier()
-        .findUtxo(
-            tx0.getTx().getHashAsString(),
-            tx0.getChangeOutputs().get(0).getIndex() // double check index with 100% SCODE
-        ).getUtxo();
+            .findUtxo(
+                tx0.getTx().getHashAsString(),
+                tx0.getChangeOutputs().get(0).getIndex() // double check index with 100% SCODE
+                )
+            .getUtxo();
 
     Collection<Pool> pools = this.getPoolSupplier().getPools();
     for (Pool currentPool : pools) {
@@ -233,26 +232,26 @@ public class WhirlpoolWallet {
         continue;
       }
 
-      tx0Preview = this.tx0Previews(
-              tx0Config,
-              Arrays.asList(unspentOutputChange))
-          .getTx0Preview(currentPool.getPoolId());
-
-      // check if change is large enough to mix in pool
-      if (tx0Preview.getNbPremix() > 0 && tx0Preview.getChangeValue() >= 0) { // 2nd check of ChangeValue might not be necessary
-        log.info("Making additional Tx0 in Pool: " + currentPool.getPoolId());
-
-        tx0 = this.tx0(Arrays.asList(unspentOutputChange), tx0Config, currentPool); // try catch ?
+      try {
+        // check if change is large enough to mix in pool
+        log.info("Trying additional Tx0 in Pool: " + currentPool.getPoolId());
+        tx0 = this.tx0(Arrays.asList(unspentOutputChange), tx0Config, currentPool);
         tx0List.add(tx0);
 
         // await for change utxo
         refreshUtxosAsync().blockingAwait();
         unspentOutputChange =
             getUtxoSupplier()
-            .findUtxo(
-                tx0.getTx().getHashAsString(),
-                tx0.getChangeOutputs().get(0).getIndex() // double check index with 100% SCODE
-            ).getUtxo();
+                .findUtxo(
+                    tx0.getTx().getHashAsString(),
+                    tx0.getChangeOutputs().get(0).getIndex() // double check index with 100% SCODE
+                    )
+                .getUtxo();
+      } catch (Exception e) {
+        // TX0 is not possible for this pool, ignore it
+        if (log.isDebugEnabled()) {
+          log.debug("TX0 cascading skipped for poolId="+currentPool.getPoolId()+": "+e.getMessage());
+        }
       }
     }
     return tx0List;
@@ -263,8 +262,8 @@ public class WhirlpoolWallet {
    * Works on tests tx0Cascascade_v1_test0 - tx0Cascade_v1_test4
    * Probably going to delete this one
    */
-  public List<Tx0> tx0Cascade_v1(Collection<UnspentOutput> spendFroms, Tx0Config tx0Config, Pool pool)
-      throws Exception {
+  public List<Tx0> tx0Cascade_v1(
+      Collection<UnspentOutput> spendFroms, Tx0Config tx0Config, Pool pool) throws Exception {
     log.info("Tx0 Cascade: Starting in Pool: " + pool.getPoolId());
     List<Tx0> tx0List = new ArrayList<Tx0>();
 
@@ -274,15 +273,19 @@ public class WhirlpoolWallet {
 
     UnspentOutput unspentOutputChange =
         getUtxoSupplier()
-        .findUtxo(
-            tx0.getTx().getHashAsString(),
-            tx0.getChangeOutputs().get(0).getIndex() // double check index with 100% SCODE
-        ).getUtxo();
+            .findUtxo(
+                tx0.getTx().getHashAsString(),
+                tx0.getChangeOutputs().get(0).getIndex() // double check index with 100% SCODE
+                )
+            .getUtxo();
 
     Collection<Pool> pools = this.getPoolSupplier().getPools();
     for (Pool currentPool : pools) {
       // check if change is large enough to mix in pool
-      if (unspentOutputChange.value >= currentPool.getMustMixBalanceMin()) { // double check if this pool value is correct, SCODE might affect too
+      if (unspentOutputChange.value
+          >= currentPool
+              .getMustMixBalanceMin()) { // double check if this pool value is correct, SCODE might
+        // affect too
         log.info("Making additional Tx0 in Pool: " + currentPool.getPoolId());
 
         tx0 = this.tx0(Arrays.asList(unspentOutputChange), tx0Config, currentPool); // try catch ?
@@ -290,10 +293,11 @@ public class WhirlpoolWallet {
 
         unspentOutputChange =
             getUtxoSupplier()
-            .findUtxo(
-                tx0.getTx().getHashAsString(),
-                tx0.getChangeOutputs().get(0).getIndex() // double check index with 100% SCODE
-            ).getUtxo();
+                .findUtxo(
+                    tx0.getTx().getHashAsString(),
+                    tx0.getChangeOutputs().get(0).getIndex() // double check index with 100% SCODE
+                    )
+                .getUtxo();
       }
     }
     return tx0List;
