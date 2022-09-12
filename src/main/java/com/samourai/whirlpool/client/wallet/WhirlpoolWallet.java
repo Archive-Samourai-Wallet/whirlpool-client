@@ -235,6 +235,7 @@ public class WhirlpoolWallet {
       try {
         // check if change is large enough to mix in pool
         log.info("Trying additional Tx0 in Pool: " + currentPool.getPoolId());
+        tx0Config.setCascading(true);
         tx0 = this.tx0(Arrays.asList(unspentOutputChange), tx0Config, currentPool);
         tx0List.add(tx0);
 
@@ -250,7 +251,11 @@ public class WhirlpoolWallet {
       } catch (Exception e) {
         // TX0 is not possible for this pool, ignore it
         if (log.isDebugEnabled()) {
-          log.debug("TX0 cascading skipped for poolId="+currentPool.getPoolId()+": "+e.getMessage());
+          log.debug(
+              "TX0 cascading skipped for poolId="
+                  + currentPool.getPoolId()
+                  + ": "
+                  + e.getMessage());
         }
       }
     }

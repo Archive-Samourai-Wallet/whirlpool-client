@@ -122,7 +122,8 @@ public class Tx0PreviewService {
   public Tx0Previews tx0Previews(
       Tx0PreviewConfig tx0PreviewConfig, Collection<UnspentOutput> spendFroms) throws Exception {
     // fetch fresh Tx0Data
-    Collection<Tx0Data> tx0Datas = fetchTx0Data(config.getPartner());
+    Collection<Tx0Data> tx0Datas =
+        fetchTx0Data(config.getPartner(), tx0PreviewConfig.isCascading());
 
     Map<String, Tx0Preview> tx0PreviewsByPoolId = new LinkedHashMap<String, Tx0Preview>();
     for (Tx0Data tx0Data : tx0Datas) {
@@ -218,10 +219,11 @@ public class Tx0PreviewService {
     return tx0Preview;
   }
 
-  protected Collection<Tx0Data> fetchTx0Data(String partnerId) throws Exception {
+  protected Collection<Tx0Data> fetchTx0Data(String partnerId, boolean cascading) throws Exception {
     Collection<Tx0Data> tx0Datas = new LinkedList<Tx0Data>();
     try {
-      Tx0DataRequestV2 tx0DataRequest = new Tx0DataRequestV2(config.getScode(), partnerId);
+      Tx0DataRequestV2 tx0DataRequest =
+          new Tx0DataRequestV2(config.getScode(), partnerId, cascading);
       Tx0DataResponseV2 tx0DatasResponse =
           AsyncUtil.getInstance()
               .blockingSingle(
