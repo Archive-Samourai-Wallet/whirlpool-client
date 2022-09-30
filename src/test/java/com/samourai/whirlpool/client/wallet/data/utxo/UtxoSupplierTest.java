@@ -13,18 +13,12 @@ import com.samourai.whirlpool.client.wallet.WhirlpoolEventService;
 import com.samourai.whirlpool.client.wallet.WhirlpoolWallet;
 import com.samourai.whirlpool.client.wallet.WhirlpoolWalletConfig;
 import com.samourai.whirlpool.client.wallet.beans.WhirlpoolAccount;
-import com.samourai.whirlpool.client.wallet.beans.WhirlpoolUtxo;
 import com.samourai.whirlpool.client.wallet.beans.WhirlpoolUtxoChanges;
 import com.samourai.whirlpool.client.wallet.data.dataPersister.DataPersister;
 import com.samourai.whirlpool.client.wallet.data.dataPersister.FileDataPersisterFactory;
 import com.samourai.whirlpool.client.wallet.data.dataSource.WalletResponseDataSource;
 import com.samourai.whirlpool.client.wallet.data.pool.ExpirablePoolSupplier;
 import com.samourai.whirlpool.client.wallet.data.utxoConfig.UtxoConfigSupplier;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.List;
-import java.util.function.Function;
-import java.util.stream.Collectors;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -196,33 +190,6 @@ public class UtxoSupplierTest extends AbstractTest {
 
   protected void doTest(UnspentOutput[] expected) throws Exception {
     assertUtxoEquals(expected, utxoSupplier.findUtxos(WhirlpoolAccount.values()));
-  }
-
-  private UnspentOutput computeUtxo(String hash, int n, String xpub, int confirms) {
-    UnspentOutput utxo = new UnspentOutput();
-    utxo.tx_hash = hash;
-    utxo.tx_output_n = n;
-    utxo.xpub = new UnspentOutput.Xpub();
-    utxo.xpub.m = xpub;
-    utxo.confirmations = confirms;
-    return utxo;
-  }
-
-  private void assertUtxoEquals(UnspentOutput[] utxos1, Collection<WhirlpoolUtxo> utxos2) {
-    Assertions.assertEquals(utxos1.length, utxos2.size());
-
-    List<String> utxos1Ids =
-        Arrays.asList(utxos1).stream()
-            .map((Function<UnspentOutput, String>) utxo -> computeUtxoId(utxo))
-            .collect(Collectors.<String>toList());
-    for (WhirlpoolUtxo whirlpoolUtxo : utxos2) {
-      // search utxo by id
-      Assertions.assertTrue(utxos1Ids.contains(computeUtxoId(whirlpoolUtxo.getUtxo())));
-    }
-  }
-
-  private String computeUtxoId(UnspentOutput utxo) {
-    return utxo.tx_hash + ':' + utxo.tx_output_n;
   }
 
   protected void assertUtxoChanges(

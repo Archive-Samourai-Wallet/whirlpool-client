@@ -72,8 +72,8 @@ public class Tx0PreviewService {
       long tx0MinerFee = ClientUtils.computeTx0MinerFee(nbPremix, feeTx0, spendFrom, params);
       long spendValue =
           ClientUtils.computeTx0SpendValue(premixValue, nbPremix, feeValueOrFeeChange, tx0MinerFee);
-      if (log.isDebugEnabled()) {
-        log.debug(
+      if (log.isTraceEnabled()) {
+        log.trace(
             "computeNbPremixMax: nbPremix="
                 + nbPremix
                 + " => spendValue="

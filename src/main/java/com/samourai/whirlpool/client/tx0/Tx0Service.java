@@ -342,7 +342,7 @@ public class Tx0Service {
     signTx0(tx, utxoKeyProvider);
     tx.verify();
 
-    Tx0 tx0 = new Tx0(tx0Preview, tx, premixOutputs, changeOutputs);
+    Tx0 tx0 = new Tx0(tx0Preview, sortedSpendFroms, tx, premixOutputs, changeOutputs);
     return tx0;
   }
 

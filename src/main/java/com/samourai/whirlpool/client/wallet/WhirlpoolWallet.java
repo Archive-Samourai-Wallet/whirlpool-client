@@ -54,6 +54,7 @@ import io.reactivex.Observable;
 import java.util.Collection;
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.Callable;
 import java.util.stream.Collectors;
 import org.bitcoinj.core.NetworkParameters;
 import org.slf4j.Logger;
@@ -159,7 +160,7 @@ public class WhirlpoolWallet {
     return dataSource.getTx0PreviewService().tx0Previews(tx0Config, whirlpoolUtxos);
   }
 
-  public Tx0 tx0(Collection<WhirlpoolUtxo> whirlpoolUtxos, Pool pool, Tx0Config tx0Config)
+  private <T> T handleUtxoStatusForTx0(Collection<WhirlpoolUtxo> whirlpoolUtxos, Callable<T> runTx0)
       throws Exception {
 
     // verify utxos
@@ -182,7 +183,7 @@ public class WhirlpoolWallet {
     }
     try {
       // run
-      Tx0 tx0 = tx0(toUnspentOutputs(whirlpoolUtxos), tx0Config, pool);
+      T tx0 = runTx0.call();
 
       // success
       for (WhirlpoolUtxo whirlpoolUtxo : whirlpoolUtxos) {
@@ -200,6 +201,13 @@ public class WhirlpoolWallet {
       }
       throw e;
     }
+  }
+
+  public Tx0 tx0(Collection<WhirlpoolUtxo> whirlpoolUtxos, Pool pool, Tx0Config tx0Config)
+      throws Exception {
+    // adapt tx0() for WhirlpoolUtxo
+    Callable<Tx0> runTx0 = () -> tx0(toUnspentOutputs(whirlpoolUtxos), tx0Config, pool);
+    return handleUtxoStatusForTx0(whirlpoolUtxos, runTx0);
   }
 
   public Tx0 tx0(Collection<UnspentOutput> spendFroms, Tx0Config tx0Config, Pool pool)
@@ -571,6 +579,10 @@ public class WhirlpoolWallet {
 
   public Tx0PreviewService getTx0PreviewService() {
     return dataSource.getTx0PreviewService();
+  }
+
+  public Tx0Service getTx0Service() {
+    return tx0Service;
   }
 
   // used by Sparrow

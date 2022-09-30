@@ -28,7 +28,10 @@ import com.samourai.whirlpool.client.wallet.WhirlpoolWalletService;
 import com.samourai.whirlpool.client.wallet.beans.*;
 import com.samourai.whirlpool.client.wallet.data.dataPersister.DataPersister;
 import com.samourai.whirlpool.client.wallet.data.dataPersister.DataPersisterFactory;
-import com.samourai.whirlpool.client.wallet.data.dataSource.*;
+import com.samourai.whirlpool.client.wallet.data.dataSource.DataSource;
+import com.samourai.whirlpool.client.wallet.data.dataSource.DataSourceFactory;
+import com.samourai.whirlpool.client.wallet.data.dataSource.DojoDataSourceFactory;
+import com.samourai.whirlpool.client.wallet.data.dataSource.WalletResponseDataSource;
 import com.samourai.whirlpool.client.wallet.data.paynym.PaynymSupplier;
 import com.samourai.whirlpool.client.wallet.data.pool.PoolSupplier;
 import com.samourai.whirlpool.client.wallet.data.utxo.UtxoSupplier;
@@ -70,10 +73,8 @@ public class JavaExample {
     IHttpClientService httpClientService = null; // provide impl here, ie: new AndroidHttpClient();
     ServerApi serverApi = new ServerApi(serverUrl, httpClientService);
 
-    ISecretPointFactory secretPointFactory =
-        SecretPointFactoryJava
-            .getInstance(); // for Android, use AndroidSecretPointFactory from
-                            // 'samourai-wallet-android'
+    // for Android, use AndroidSecretPointFactory from 'samourai-wallet-android'
+    ISecretPointFactory secretPointFactory = SecretPointFactoryJava.getInstance();
     TorClientService torClientService = null; // provide impl here
     NetworkParameters params = whirlpoolServer.getParams();
     boolean mobile = false; // true for mobile configuration, false for desktop/CLI
