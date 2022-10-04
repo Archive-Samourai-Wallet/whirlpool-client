@@ -111,25 +111,25 @@ public class ExpirablePaynymSupplier extends ExpirableSupplier<PaynymState>
   @Override
   public Completable claim() throws Exception {
     // create
-    return Completable.fromObservable(
+    return Completable.fromSingle(
         paynymApi
             .createPaynym(paymentCode)
-            .doOnComplete(
-                () -> {
+            .doAfterSuccess(
+                single -> {
                   String myToken = getToken();
 
                   // claim
                   asyncUtil.blockingSingle(paynymApi.claim(myToken, bip47Wallet));
                 })
-            .doOnComplete(
-                () -> {
+            .doAfterSuccess(
+                single -> {
                   String myToken = getToken();
 
                   // add
                   asyncUtil.blockingSingle(paynymApi.addPaynym(myToken, bip47Wallet));
                 })
-            .doOnComplete(
-                () -> {
+            .doAfterSuccess(
+                single -> {
                   // set claimed state
                   walletStateSupplier.setNymClaimed(true);
                   refresh();
@@ -138,14 +138,13 @@ public class ExpirablePaynymSupplier extends ExpirableSupplier<PaynymState>
 
   @Override
   public Completable follow(String paymentCodeTarget) throws Exception {
-    return Completable.fromObservable(paynymApi.follow(getToken(), bip47Wallet, paymentCodeTarget))
+    return Completable.fromSingle(paynymApi.follow(getToken(), bip47Wallet, paymentCodeTarget))
         .doOnComplete(() -> refresh());
   }
 
   @Override
   public Completable unfollow(String paymentCodeTarget) throws Exception {
-    return Completable.fromObservable(
-            paynymApi.unfollow(getToken(), bip47Wallet, paymentCodeTarget))
+    return Completable.fromSingle(paynymApi.unfollow(getToken(), bip47Wallet, paymentCodeTarget))
         .doOnComplete(() -> refresh());
   }
 

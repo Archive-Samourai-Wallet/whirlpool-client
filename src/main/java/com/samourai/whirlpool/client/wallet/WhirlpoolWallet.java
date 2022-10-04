@@ -8,11 +8,13 @@ import com.samourai.wallet.bip47.rpc.BIP47Wallet;
 import com.samourai.wallet.bipFormat.BIP_FORMAT;
 import com.samourai.wallet.bipWallet.BipWallet;
 import com.samourai.wallet.bipWallet.WalletSupplier;
+import com.samourai.wallet.cahoots.CahootsWallet;
 import com.samourai.wallet.hd.BIP_WALLET;
 import com.samourai.wallet.hd.HD_Wallet;
 import com.samourai.wallet.hd.HD_WalletFactoryGeneric;
 import com.samourai.wallet.ricochet.RicochetConfig;
 import com.samourai.wallet.segwit.bech32.Bech32UtilGeneric;
+import com.samourai.wallet.send.provider.SimpleCahootsUtxoProvider;
 import com.samourai.wallet.send.spend.SpendBuilder;
 import com.samourai.wallet.util.AsyncUtil;
 import com.samourai.whirlpool.client.event.*;
@@ -50,7 +52,7 @@ import com.samourai.whirlpool.protocol.rest.Tx0PushRequest;
 import com.samourai.xmanager.client.XManagerClient;
 import com.samourai.xmanager.protocol.XManagerService;
 import io.reactivex.Completable;
-import io.reactivex.Observable;
+import io.reactivex.Single;
 import java.util.Collection;
 import java.util.Map;
 import java.util.Optional;
@@ -78,6 +80,7 @@ public class WhirlpoolWallet {
   protected MixOrchestratorImpl mixOrchestrator;
   private Optional<AutoTx0Orchestrator> autoTx0Orchestrator;
   private MixingStateEditable mixingState;
+  private CahootsWallet cahootsWallet;
 
   private XManagerClient xManagerClient;
 
@@ -142,6 +145,13 @@ public class WhirlpoolWallet {
     this.mixOrchestrator = null;
     this.autoTx0Orchestrator = Optional.empty();
     this.mixingState = new MixingStateEditable(this, false);
+
+    this.cahootsWallet =
+        new CahootsWallet(
+            getWalletSupplier(),
+            BIP_FORMAT.PROVIDER,
+            config.getNetworkParameters(),
+            new SimpleCahootsUtxoProvider(getUtxoSupplier()));
   }
 
   protected static String computeWalletIdentifier(
@@ -330,7 +340,7 @@ public class WhirlpoolWallet {
     throw tx0Exception;
   }
 
-  protected Observable<PushTxSuccessResponse> pushTx0(Tx0 tx0) throws Exception {
+  protected Single<PushTxSuccessResponse> pushTx0(Tx0 tx0) throws Exception {
     String tx64 = WhirlpoolProtocol.encodeBytes(tx0.getTx().bitcoinSerialize());
     String poolId = tx0.getPool().getPoolId();
     Tx0PushRequest request = new Tx0PushRequest(tx64, poolId);
@@ -895,5 +905,9 @@ public class WhirlpoolWallet {
 
   public BIP47Wallet getBip47Wallet() {
     return new BIP47Wallet(bip44w);
+  }
+
+  public CahootsWallet getCahootsWallet() {
+    return cahootsWallet;
   }
 }

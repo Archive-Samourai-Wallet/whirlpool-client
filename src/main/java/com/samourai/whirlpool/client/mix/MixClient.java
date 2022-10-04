@@ -3,7 +3,8 @@ package com.samourai.whirlpool.client.mix;
 import com.samourai.whirlpool.client.exception.NotifiableException;
 import com.samourai.whirlpool.client.mix.dialog.MixDialogListener;
 import com.samourai.whirlpool.client.mix.dialog.MixSession;
-import com.samourai.whirlpool.client.mix.listener.*;
+import com.samourai.whirlpool.client.mix.listener.MixFailReason;
+import com.samourai.whirlpool.client.mix.listener.MixStep;
 import com.samourai.whirlpool.client.utils.ClientCryptoService;
 import com.samourai.whirlpool.client.whirlpool.ServerApi;
 import com.samourai.whirlpool.client.whirlpool.WhirlpoolClientConfig;
@@ -16,7 +17,7 @@ import com.samourai.whirlpool.protocol.websocket.notifications.RegisterOutputMix
 import com.samourai.whirlpool.protocol.websocket.notifications.RevealOutputMixStatusNotification;
 import com.samourai.whirlpool.protocol.websocket.notifications.SigningMixStatusNotification;
 import io.reactivex.Completable;
-import io.reactivex.Observable;
+import io.reactivex.Single;
 import java.util.Optional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -211,16 +212,15 @@ public class MixClient {
             mixProcess.registerOutput(registerOutputMixStatusNotification);
 
         // send request
-        Observable<Optional<String>> observable = serverApi.registerOutput(registerOutputRequest);
-        Observable chainedObservable =
-            observable.doOnComplete(
-                () -> {
+        Single<Optional<String>> result = serverApi.registerOutput(registerOutputRequest);
+        Single chainedResult =
+            result.doAfterSuccess(
+                single -> {
                   // confirm postmix index on REGISTER_OUTPUT success
                   mixParams.getPostmixHandler().onRegisterOutput();
                   listenerProgress(MixStep.REGISTERED_OUTPUT);
                 });
-        Completable completable = Completable.fromObservable(chainedObservable);
-        return completable;
+        return Completable.fromSingle(chainedResult);
       }
 
       @Override
