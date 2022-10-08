@@ -201,53 +201,54 @@ public class WhirlpoolWallet {
     }
   }
 
-  /* Tx0 Cascade using Tx0Previews()
-   * Checks if change is large enough with if(NbPremix > 0 && ChangeValue >= 0)
-   * Works on tests tx0Cascascade_test0 - tx0Cascade_test4
-   * Probably going to use this one
-   */
+  private UnspentOutput findTx0Change(Tx0 tx0) {
+    if (tx0.getChangeOutputs().isEmpty()) {
+      // no tx0 change
+      return null;
+    }
+
+    // await for tx0 change
+    refreshUtxosAsync().blockingAwait();
+
+    // find
+    String txid = tx0.getTx().getHashAsString();
+    int outputIndex = tx0.getChangeOutputs().get(0).getIndex();
+    WhirlpoolUtxo whirlpoolUtxo = getUtxoSupplier().findUtxo(txid, outputIndex);
+    if (whirlpoolUtxo == null) {
+      log.error("TX0 change not found: " + txid + ":" + outputIndex);
+      return null;
+    }
+    return whirlpoolUtxo.getUtxo();
+  }
+
   public List<Tx0> tx0Cascade(Collection<UnspentOutput> spendFroms, Tx0Config tx0Config, Pool pool)
       throws Exception {
-    log.info("Tx0 Cascade: Starting in Pool: " + pool.getPoolId());
-    List<Tx0> tx0List = new ArrayList<Tx0>();
+    List<Tx0> tx0List = new ArrayList<>();
 
     // initial Tx0
     Tx0 tx0 = this.tx0(spendFroms, tx0Config, pool);
     tx0List.add(tx0);
+    UnspentOutput unspentOutputChange = findTx0Change(tx0);
 
-    // await for change utxo
-    refreshUtxosAsync().blockingAwait();
-    UnspentOutput unspentOutputChange =
-        getUtxoSupplier()
-            .findUtxo(
-                tx0.getTx().getHashAsString(),
-                tx0.getChangeOutputs().get(0).getIndex() // double check index with 100% SCODE
-                )
-            .getUtxo();
-
+    // begin cascading
+    tx0Config.setCascading(true);
     Collection<Pool> pools = this.getPoolSupplier().getPools();
     for (Pool currentPool : pools) {
+      if (unspentOutputChange == null) {
+        break; // stop when no tx0 change
+      }
       if (pool.getDenomination() <= currentPool.getDenomination()) {
         // hop to next lower pool
         continue;
       }
 
       try {
-        // check if change is large enough to mix in pool
-        log.info("Trying additional Tx0 in Pool: " + currentPool.getPoolId());
-        tx0Config.setCascading(true);
+        if (log.isDebugEnabled()) {
+          log.debug("Trying Tx0 cascading: " + currentPool.getPoolId());
+        }
         tx0 = this.tx0(Arrays.asList(unspentOutputChange), tx0Config, currentPool);
         tx0List.add(tx0);
-
-        // await for change utxo
-        refreshUtxosAsync().blockingAwait();
-        unspentOutputChange =
-            getUtxoSupplier()
-                .findUtxo(
-                    tx0.getTx().getHashAsString(),
-                    tx0.getChangeOutputs().get(0).getIndex() // double check index with 100% SCODE
-                    )
-                .getUtxo();
+        unspentOutputChange = findTx0Change(tx0);
       } catch (Exception e) {
         // Tx0 is not possible for this pool, ignore it
         if (log.isDebugEnabled()) {
