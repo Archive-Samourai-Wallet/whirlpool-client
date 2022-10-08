@@ -198,8 +198,8 @@ public class AbstractTest {
     return minerFeeSupplier;
   }
 
-  protected IHttpClientService mockHttpClientService() {
-    return new IHttpClientService() {
+  protected IWhirlpoolHttpClientService mockHttpClientService() {
+    return new IWhirlpoolHttpClientService() {
       @Override
       public IHttpClient getHttpClient(HttpUsage httpUsage) {
         return null;
@@ -229,8 +229,8 @@ public class AbstractTest {
     return spendFrom;
   }
 
-  protected IHttpClientService computeHttpClientService() {
-    return new IHttpClientService() {
+  protected IWhirlpoolHttpClientService computeHttpClientService() {
+    return new IWhirlpoolHttpClientService() {
       @Override
       public IHttpClient getHttpClient(HttpUsage httpUsage) {
         return httpClient;
@@ -265,7 +265,7 @@ public class AbstractTest {
     DataSourceFactory dataSourceFactory =
         new DojoDataSourceFactory(BackendServer.TESTNET, false, null);
     ISecretPointFactory secretPointFactory = SecretPointFactoryJava.getInstance();
-    IHttpClientService httpClientService = computeHttpClientService();
+    IWhirlpoolHttpClientService httpClientService = computeHttpClientService();
     WhirlpoolWalletConfig config =
         new WhirlpoolWalletConfig(
             dataSourceFactory,

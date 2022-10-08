@@ -1,6 +1,6 @@
 package com.samourai.http.client;
 
-public interface IHttpClientService {
+public interface IWhirlpoolHttpClientService {
   IHttpClient getHttpClient(HttpUsage httpUsage);
 
   void stop();

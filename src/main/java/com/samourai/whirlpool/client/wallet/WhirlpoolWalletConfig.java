@@ -1,7 +1,7 @@
 package com.samourai.whirlpool.client.wallet;
 
 import com.samourai.http.client.HttpUsage;
-import com.samourai.http.client.IHttpClientService;
+import com.samourai.http.client.IWhirlpoolHttpClientService;
 import com.samourai.stomp.client.IStompClientService;
 import com.samourai.tor.client.TorClientService;
 import com.samourai.wallet.bip47.BIP47UtilGeneric;
@@ -77,7 +77,7 @@ public class WhirlpoolWalletConfig extends WhirlpoolClientConfig
   public WhirlpoolWalletConfig(
       DataSourceFactory dataSourceFactory,
       ISecretPointFactory secretPointFactory,
-      IHttpClientService httpClientService,
+      IWhirlpoolHttpClientService httpClientService,
       IStompClientService stompClientService,
       TorClientService torClientService,
       ServerApi serverApi,
