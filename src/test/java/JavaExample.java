@@ -1,5 +1,5 @@
 import com.google.common.eventbus.Subscribe;
-import com.samourai.http.client.IHttpClientService;
+import com.samourai.http.client.IWhirlpoolHttpClientService;
 import com.samourai.stomp.client.IStompClientService;
 import com.samourai.tor.client.TorClientService;
 import com.samourai.wallet.api.backend.BackendServer;
@@ -70,7 +70,8 @@ public class JavaExample {
 
     // coordinator configuration
     String serverUrl = whirlpoolServer.getServerUrl(onion);
-    IHttpClientService httpClientService = null; // provide impl here, ie: new AndroidHttpClient();
+    IWhirlpoolHttpClientService httpClientService =
+        null; // provide impl here, ie: new AndroidHttpClient();
     ServerApi serverApi = new ServerApi(serverUrl, httpClientService);
 
     // for Android, use AndroidSecretPointFactory from 'samourai-wallet-android'

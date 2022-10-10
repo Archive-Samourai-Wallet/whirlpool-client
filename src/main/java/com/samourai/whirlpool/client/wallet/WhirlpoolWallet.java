@@ -53,9 +53,7 @@ import com.samourai.xmanager.client.XManagerClient;
 import com.samourai.xmanager.protocol.XManagerService;
 import io.reactivex.Completable;
 import io.reactivex.Single;
-import java.util.Collection;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 import java.util.concurrent.Callable;
 import java.util.stream.Collectors;
 import org.bitcoinj.core.NetworkParameters;
@@ -211,6 +209,76 @@ public class WhirlpoolWallet {
       }
       throw e;
     }
+  }
+
+  private UnspentOutput findTx0Change(Tx0 tx0) {
+    if (tx0.getChangeOutputs().isEmpty()) {
+      // no tx0 change
+      return null;
+    }
+
+    // await for tx0 change
+    refreshUtxosAsync().blockingAwait();
+
+    // find
+    String txid = tx0.getTx().getHashAsString();
+    int outputIndex = tx0.getChangeOutputs().get(0).getIndex();
+    WhirlpoolUtxo whirlpoolUtxo = getUtxoSupplier().findUtxo(txid, outputIndex);
+    if (whirlpoolUtxo == null) {
+      log.error("TX0 change not found: " + txid + ":" + outputIndex);
+      return null;
+    }
+    return whirlpoolUtxo.getUtxo();
+  }
+
+  public List<Tx0> tx0Cascade(Collection<UnspentOutput> spendFroms, Tx0Config tx0Config, Pool pool)
+      throws Exception {
+    List<Tx0> tx0List = new ArrayList<>();
+
+    // initial Tx0
+    Tx0 tx0 = this.tx0(spendFroms, tx0Config, pool);
+    tx0List.add(tx0);
+    UnspentOutput unspentOutputChange = findTx0Change(tx0);
+
+    // begin cascading
+    tx0Config.setCascading(true);
+    Collection<Pool> pools = this.getPoolSupplier().getPools();
+    for (Pool currentPool : pools) {
+      if (unspentOutputChange == null) {
+        break; // stop when no tx0 change
+      }
+      if (pool.getDenomination() <= currentPool.getDenomination()) {
+        // hop to next lower pool
+        continue;
+      }
+
+      try {
+        if (log.isDebugEnabled()) {
+          log.debug("Trying Tx0 cascading: " + currentPool.getPoolId());
+        }
+        tx0 = this.tx0(Arrays.asList(unspentOutputChange), tx0Config, currentPool);
+        tx0List.add(tx0);
+        unspentOutputChange = findTx0Change(tx0);
+      } catch (Exception e) {
+        // Tx0 is not possible for this pool, ignore it
+        if (log.isDebugEnabled()) {
+          log.debug(
+              "Tx0 cascading skipped for poolId="
+                  + currentPool.getPoolId()
+                  + ": "
+                  + e.getMessage());
+        }
+      }
+    }
+    return tx0List;
+  }
+
+  public List<Tx0> tx0Cascade(
+      Collection<WhirlpoolUtxo> whirlpoolUtxos, Pool pool, Tx0Config tx0Config) throws Exception {
+    // adapt tx0Cascade() for WhirlpoolUtxo
+    Callable<List<Tx0>> runTx0Cascade =
+        () -> tx0Cascade(toUnspentOutputs(whirlpoolUtxos), tx0Config, pool);
+    return handleUtxoStatusForTx0(whirlpoolUtxos, runTx0Cascade);
   }
 
   public Tx0 tx0(Collection<WhirlpoolUtxo> whirlpoolUtxos, Pool pool, Tx0Config tx0Config)

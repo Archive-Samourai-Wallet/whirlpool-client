@@ -11,6 +11,7 @@ public class Tx0PreviewConfig {
   // not yet set)
   private Tx0FeeTarget tx0FeeTarget;
   private Tx0FeeTarget mixFeeTarget;
+  private boolean cascading;
 
   public Tx0PreviewConfig(
       Tx0PreviewService tx0PreviewService,
@@ -21,6 +22,7 @@ public class Tx0PreviewConfig {
     this.pools = pools;
     this.tx0FeeTarget = tx0FeeTarget;
     this.mixFeeTarget = mixFeeTarget;
+    this.cascading = false;
   }
 
   public Tx0Param getTx0Param(final String poolId) {
@@ -47,5 +49,13 @@ public class Tx0PreviewConfig {
 
   public void setMixFeeTarget(Tx0FeeTarget mixFeeTarget) {
     this.mixFeeTarget = mixFeeTarget;
+  }
+
+  public boolean isCascading() {
+    return cascading;
+  }
+
+  public void setCascading(boolean cascading) {
+    this.cascading = cascading;
   }
 }

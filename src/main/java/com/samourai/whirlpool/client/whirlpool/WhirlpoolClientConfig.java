@@ -2,7 +2,7 @@ package com.samourai.whirlpool.client.whirlpool;
 
 import com.samourai.http.client.HttpUsage;
 import com.samourai.http.client.IHttpClient;
-import com.samourai.http.client.IHttpClientService;
+import com.samourai.http.client.IWhirlpoolHttpClientService;
 import com.samourai.stomp.client.IStompClientService;
 import com.samourai.tor.client.TorClientService;
 import com.samourai.whirlpool.client.wallet.beans.ExternalDestination;
@@ -10,7 +10,7 @@ import com.samourai.whirlpool.client.wallet.beans.IndexRange;
 import org.bitcoinj.core.NetworkParameters;
 
 public class WhirlpoolClientConfig {
-  private IHttpClientService httpClientService;
+  private IWhirlpoolHttpClientService httpClientService;
   private IStompClientService stompClientService;
   private TorClientService torClientService;
   private ServerApi serverApi;
@@ -19,7 +19,7 @@ public class WhirlpoolClientConfig {
   private IndexRange indexRangePostmix;
 
   public WhirlpoolClientConfig(
-      IHttpClientService httpClientService,
+      IWhirlpoolHttpClientService httpClientService,
       IStompClientService stompClientService,
       TorClientService torClientService,
       ServerApi serverApi,
@@ -35,7 +35,7 @@ public class WhirlpoolClientConfig {
     this.indexRangePostmix = indexRangePostmix;
   }
 
-  public IHttpClientService getHttpClientService() {
+  public IWhirlpoolHttpClientService getHttpClientService() {
     return httpClientService;
   }
 
