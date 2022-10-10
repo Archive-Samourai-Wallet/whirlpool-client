@@ -72,7 +72,7 @@ public class ExpirablePaynymSupplier extends ExpirableSupplier<PaynymState>
       log.debug("fetching...");
     }
     try {
-      return asyncUtil.blockingSingle(
+      return asyncUtil.blockingGet(
           paynymApi
               .getNymInfo(paymentCode)
               .map(
@@ -103,7 +103,7 @@ public class ExpirablePaynymSupplier extends ExpirableSupplier<PaynymState>
 
   protected synchronized String getToken() throws Exception {
     if (token == null) {
-      token = asyncUtil.blockingSingle(paynymApi.getToken(paymentCode));
+      token = asyncUtil.blockingGet(paynymApi.getToken(paymentCode));
     }
     return token;
   }
@@ -119,14 +119,14 @@ public class ExpirablePaynymSupplier extends ExpirableSupplier<PaynymState>
                   String myToken = getToken();
 
                   // claim
-                  asyncUtil.blockingSingle(paynymApi.claim(myToken, bip47Wallet));
+                  asyncUtil.blockingGet(paynymApi.claim(myToken, bip47Wallet));
                 })
             .doAfterSuccess(
                 single -> {
                   String myToken = getToken();
 
                   // add
-                  asyncUtil.blockingSingle(paynymApi.addPaynym(myToken, bip47Wallet));
+                  asyncUtil.blockingGet(paynymApi.addPaynym(myToken, bip47Wallet));
                 })
             .doAfterSuccess(
                 single -> {

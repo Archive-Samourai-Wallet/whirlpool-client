@@ -27,7 +27,7 @@ import org.slf4j.LoggerFactory;
 
 public class WalletAggregateService {
   private Logger log = LoggerFactory.getLogger(WalletAggregateService.class);
-  private static final int AGGREGATED_UTXOS_PER_TX = 600;
+  private static final int AGGREGATED_UTXOS_PER_TX = 200;
   private static final FormatsUtilGeneric formatUtils = FormatsUtilGeneric.getInstance();
 
   private NetworkParameters params;

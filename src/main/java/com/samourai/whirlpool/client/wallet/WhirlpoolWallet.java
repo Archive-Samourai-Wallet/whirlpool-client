@@ -70,15 +70,15 @@ public class WhirlpoolWallet {
   private PostmixIndexService postmixIndexService;
 
   private HD_Wallet bip44w;
+  private DataPersister dataPersister;
   private DataSource dataSource;
   private Tx0Service tx0Service;
   private PaynymSupplier paynymSupplier;
-  private DataPersister dataPersister;
+  private CahootsWallet cahootsWallet;
 
   protected MixOrchestratorImpl mixOrchestrator;
   private Optional<AutoTx0Orchestrator> autoTx0Orchestrator;
   private MixingStateEditable mixingState;
-  private CahootsWallet cahootsWallet;
 
   private XManagerClient xManagerClient;
 
@@ -139,17 +139,11 @@ public class WhirlpoolWallet {
     this.dataSource = null;
     this.tx0Service = null; // will be set with datasource
     this.paynymSupplier = null; // will be set with datasource
+    this.cahootsWallet = null; // will be set with datasource
 
     this.mixOrchestrator = null;
     this.autoTx0Orchestrator = Optional.empty();
     this.mixingState = new MixingStateEditable(this, false);
-
-    this.cahootsWallet =
-        new CahootsWallet(
-            getWalletSupplier(),
-            BIP_FORMAT.PROVIDER,
-            config.getNetworkParameters(),
-            new SimpleCahootsUtxoProvider(getUtxoSupplier()));
   }
 
   protected static String computeWalletIdentifier(
@@ -349,7 +343,7 @@ public class WhirlpoolWallet {
 
       // pushT to coordinator retry on address reuse
       try {
-        asyncUtil.blockingSingle(pushTx0(tx0));
+        asyncUtil.blockingGet(pushTx0(tx0));
         return tx0;
       } catch (PushTxErrorResponseException e) {
         PushTxErrorResponse pushTxErrorResponse = e.getPushTxErrorResponse();
@@ -455,6 +449,12 @@ public class WhirlpoolWallet {
     this.tx0Service =
         new Tx0Service(config, dataSource.getTx0PreviewService(), config.getFeeOpReturnImpl());
     this.paynymSupplier = dataSource.getPaynymSupplier();
+    this.cahootsWallet =
+        new CahootsWallet(
+            getWalletSupplier(),
+            BIP_FORMAT.PROVIDER,
+            config.getNetworkParameters(),
+            new SimpleCahootsUtxoProvider(getUtxoSupplier()));
 
     // start orchestrators
     int loopDelay = config.getRefreshUtxoDelay() * 1000;
