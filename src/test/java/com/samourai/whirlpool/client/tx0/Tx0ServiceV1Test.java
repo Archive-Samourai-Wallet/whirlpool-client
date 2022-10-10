@@ -38,7 +38,7 @@ public class Tx0ServiceV1Test extends AbstractTx0ServiceTest {
     mockUtxos(spendFromUtxo);
 
     int nbOutputsExpected = 10;
-    long premixValue = 1000201;
+    long premixValue = 1000175;
     String feePaymentCode =
         "PM8TJXp19gCE6hQzqRi719FGJzF6AreRwvoQKLRnQ7dpgaakakFns22jHUqhtPQWmfevPQRCyfFbdDrKvrfw9oZv5PjaCerQMa3BKkPyUf9yN1CDR3w6";
     int feeSatPerByte = 1;
@@ -46,7 +46,7 @@ public class Tx0ServiceV1Test extends AbstractTx0ServiceTest {
     long feeValue = 0;
     long feeChange = FEE_VALUE;
     int feeDiscountPercent = 100;
-    long changeValue = 489987418;
+    long changeValue = 489987683;
 
     Tx0Data tx0Data =
         new Tx0Data(
@@ -59,11 +59,11 @@ public class Tx0ServiceV1Test extends AbstractTx0ServiceTest {
             feePayload,
             "tb1qjara0278vrsr8gvaga7jpy2c9amtgvytr44xym");
     Tx0Param tx0Param = new Tx0Param(feeSatPerByte, feeSatPerByte, pool01btc, null);
-    Assertions.assertEquals(1000201, tx0Param.getPremixValue());
+    Assertions.assertEquals(1000175, tx0Param.getPremixValue());
     Tx0Preview tx0Preview =
         tx0PreviewService.tx0Preview(tx0Param, tx0Data, Arrays.asList(spendFromUtxo));
     check(tx0Preview);
-    Assertions.assertEquals(572, tx0Preview.getTx0MinerFee());
+    Assertions.assertEquals(567, tx0Preview.getTx0MinerFee());
     Assertions.assertEquals(feeValue, tx0Preview.getFeeValue());
     Assertions.assertEquals(feeChange, tx0Preview.getFeeChange());
     Assertions.assertEquals(feeDiscountPercent, tx0Preview.getFeeDiscountPercent());
@@ -104,11 +104,11 @@ public class Tx0ServiceV1Test extends AbstractTx0ServiceTest {
 
     // no overspend
     Tx0Param tx0Param = new Tx0Param(feeSatPerByte, feeSatPerByte, pool01btc, null);
-    Assertions.assertEquals(1000201, tx0Param.getPremixValue());
+    Assertions.assertEquals(1000175, tx0Param.getPremixValue());
     Tx0Preview tx0Preview =
         tx0PreviewService.tx0Preview(tx0Param, tx0Data, Arrays.asList(spendFromUtxo));
     check(tx0Preview);
-    Assertions.assertEquals(1000201, tx0Preview.getPremixValue());
+    Assertions.assertEquals(1000175, tx0Preview.getPremixValue());
 
     // overspend too low => min
     tx0Param = new Tx0Param(feeSatPerByte, feeSatPerByte, pool01btc, 1L);
@@ -155,9 +155,9 @@ public class Tx0ServiceV1Test extends AbstractTx0ServiceTest {
             feePayload,
             "tb1qjara0278vrsr8gvaga7jpy2c9amtgvytr44xym");
     Tx0Param tx0Param = new Tx0Param(feeSatPerByte, feeSatPerByte, pool01btc, null);
-    Assertions.assertEquals(1000201, tx0Param.getPremixValue());
+    Assertions.assertEquals(1000175, tx0Param.getPremixValue());
 
-    int TX0_SIZE = 572;
+    int TX0_SIZE = 567;
 
     // feeTx0
     int feeTx0 = 1;
@@ -212,7 +212,7 @@ public class Tx0ServiceV1Test extends AbstractTx0ServiceTest {
             feePayload,
             "tb1qjara0278vrsr8gvaga7jpy2c9amtgvytr44xym");
     Tx0Param tx0Param = new Tx0Param(feeSatPerByte, feeSatPerByte, pool01btc, null);
-    Assertions.assertEquals(1000201, tx0Param.getPremixValue());
+    Assertions.assertEquals(1000175, tx0Param.getPremixValue());
 
     int TX0_SIZE = 572;
 
@@ -222,21 +222,21 @@ public class Tx0ServiceV1Test extends AbstractTx0ServiceTest {
     Tx0Preview tx0Preview =
         tx0PreviewService.tx0Preview(tx0Param, tx0Data, Arrays.asList(spendFromUtxo));
     check(tx0Preview);
-    Assertions.assertEquals(1000201, tx0Preview.getPremixValue());
+    Assertions.assertEquals(1000175, tx0Preview.getPremixValue());
 
     // feePremix
     feePremix = 5;
     tx0Param = new Tx0Param(feeSatPerByte, feePremix, pool01btc, null);
     tx0Preview = tx0PreviewService.tx0Preview(tx0Param, tx0Data, Arrays.asList(spendFromUtxo));
     check(tx0Preview);
-    Assertions.assertEquals(1001008, tx0Preview.getPremixValue());
+    Assertions.assertEquals(1000875, tx0Preview.getPremixValue());
 
     // feePremix
     feePremix = 20;
     tx0Param = new Tx0Param(feeSatPerByte, feePremix, pool01btc, null);
     tx0Preview = tx0PreviewService.tx0Preview(tx0Param, tx0Data, Arrays.asList(spendFromUtxo));
     check(tx0Preview);
-    Assertions.assertEquals(1004033, tx0Preview.getPremixValue());
+    Assertions.assertEquals(1003500, tx0Preview.getPremixValue());
 
     // feePremix max
     feePremix = 99999;
