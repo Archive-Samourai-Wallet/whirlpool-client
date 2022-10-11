@@ -208,7 +208,7 @@ public class WhirlpoolWallet {
     }
 
     // await for tx0 change
-    refreshUtxosAsync().blockingAwait();
+    refreshUtxosDelayAsync().blockingAwait();
 
     // find
     String txid = tx0.getTx().getHashAsString();

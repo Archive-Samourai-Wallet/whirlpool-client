@@ -119,6 +119,9 @@ public class Tx0Service {
     Collections.sort(sortedSpendFroms, new BIP69InputComparatorUnspentOutput());
 
     // op_return
+    if (sortedSpendFroms.isEmpty()) {
+      throw new IllegalArgumentException("spendFroms should be > 0");
+    }
     UnspentOutput firstInput = sortedSpendFroms.get(0);
     byte[] opReturn = computeOpReturn(firstInput, utxoKeyProvider, tx0Data);
     return tx0(
@@ -208,7 +211,7 @@ public class Tx0Service {
     long premixValue = tx0Preview.getPremixValue();
     long feeValueOrFeeChange = tx0Preview.getTx0Data().computeFeeValueOrFeeChange();
     int nbPremix = tx0PreviewService.capNbPremix(tx0Preview.getNbPremix(), tx0Preview.getPool());
-    long changeValueTotal = tx0Preview.getChangeValue();
+    long changeValueTotal = tx0Preview.getChangeValue()-1000;
 
     // verify
 
