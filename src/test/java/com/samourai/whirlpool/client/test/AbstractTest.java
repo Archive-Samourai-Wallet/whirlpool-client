@@ -269,6 +269,7 @@ public class AbstractTest {
         new WhirlpoolWalletConfig(
             dataSourceFactory,
             secretPointFactory,
+            null,
             httpClientService,
             null,
             null,

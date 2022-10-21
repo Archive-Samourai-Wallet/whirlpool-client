@@ -1,5 +1,6 @@
 import com.google.common.eventbus.Subscribe;
 import com.samourai.http.client.IWhirlpoolHttpClientService;
+import com.samourai.soroban.client.wallet.SorobanWalletService;
 import com.samourai.stomp.client.IStompClientService;
 import com.samourai.tor.client.TorClientService;
 import com.samourai.wallet.api.backend.BackendServer;
@@ -77,12 +78,14 @@ public class JavaExample {
     // for Android, use AndroidSecretPointFactory from 'samourai-wallet-android'
     ISecretPointFactory secretPointFactory = SecretPointFactoryJava.getInstance();
     TorClientService torClientService = null; // provide impl here
+    SorobanWalletService sorobanWalletService = null; // provide impl or null if not using Soroban
     NetworkParameters params = whirlpoolServer.getParams();
     boolean mobile = false; // true for mobile configuration, false for desktop/CLI
     WhirlpoolWalletConfig whirlpoolWalletConfig =
         new WhirlpoolWalletConfig(
             dataSourceFactory,
             secretPointFactory,
+            sorobanWalletService,
             httpClientService,
             stompClientService,
             torClientService,

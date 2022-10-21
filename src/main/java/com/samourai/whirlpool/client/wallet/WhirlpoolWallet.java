@@ -1,6 +1,9 @@
 package com.samourai.whirlpool.client.wallet;
 
 import com.google.common.primitives.Bytes;
+import com.samourai.soroban.client.wallet.SorobanWalletService;
+import com.samourai.soroban.client.wallet.counterparty.SorobanWalletCounterparty;
+import com.samourai.soroban.client.wallet.sender.SorobanWalletInitiator;
 import com.samourai.wallet.api.backend.IPushTx;
 import com.samourai.wallet.api.backend.ISweepBackend;
 import com.samourai.wallet.api.backend.beans.UnspentOutput;
@@ -75,6 +78,8 @@ public class WhirlpoolWallet {
   private Tx0Service tx0Service;
   private PaynymSupplier paynymSupplier;
   private CahootsWallet cahootsWallet;
+  private SorobanWalletInitiator sorobanWalletInitiator;
+  private SorobanWalletCounterparty sorobanWalletCounterparty;
 
   protected MixOrchestratorImpl mixOrchestrator;
   private Optional<AutoTx0Orchestrator> autoTx0Orchestrator;
@@ -140,6 +145,8 @@ public class WhirlpoolWallet {
     this.tx0Service = null; // will be set with datasource
     this.paynymSupplier = null; // will be set with datasource
     this.cahootsWallet = null; // will be set with datasource
+    this.sorobanWalletInitiator = null; // will be set with getter
+    this.sorobanWalletCounterparty = null; // will be set with getter
 
     this.mixOrchestrator = null;
     this.autoTx0Orchestrator = Optional.empty();
@@ -977,5 +984,31 @@ public class WhirlpoolWallet {
 
   public CahootsWallet getCahootsWallet() {
     return cahootsWallet;
+  }
+
+  public SorobanWalletInitiator getSorobanWalletInitiator() {
+    if (sorobanWalletInitiator == null) {
+      SorobanWalletService sorobanWalletService = config.getSorobanWalletService();
+      if (sorobanWalletService == null) {
+        log.error("whirlpoolWalletConfig.sorobanWalletService is NULL");
+        return null;
+      }
+      this.sorobanWalletInitiator =
+          sorobanWalletService.getSorobanWalletInitiator(getCahootsWallet());
+    }
+    return sorobanWalletInitiator;
+  }
+
+  public SorobanWalletCounterparty getSorobanWalletCounterparty() {
+    if (sorobanWalletCounterparty == null) {
+      SorobanWalletService sorobanWalletService = config.getSorobanWalletService();
+      if (sorobanWalletService == null) {
+        log.error("whirlpoolWalletConfig.sorobanWalletService is NULL");
+        return null;
+      }
+      this.sorobanWalletCounterparty =
+          sorobanWalletService.getSorobanWalletCounterparty(getCahootsWallet());
+    }
+    return sorobanWalletCounterparty;
   }
 }
