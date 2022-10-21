@@ -13,7 +13,7 @@ import com.samourai.whirlpool.client.utils.ClientUtils;
 import com.samourai.whirlpool.client.whirlpool.ServerApi;
 import com.samourai.whirlpool.protocol.rest.CheckOutputRequest;
 import com.samourai.whirlpool.protocol.rest.RestErrorResponse;
-import io.reactivex.Observable;
+import io.reactivex.Single;
 import io.reactivex.schedulers.Schedulers;
 import java.util.LinkedList;
 import java.util.List;
@@ -101,8 +101,7 @@ public class PostmixIndexServiceTest extends AbstractTest {
     ServerApi serverApi =
         new ServerApi(null, mockHttpClientService()) {
           @Override
-          public Observable<Optional<String>> checkOutput(
-              final CheckOutputRequest checkOutputRequest) {
+          public Single<Optional<String>> checkOutput(final CheckOutputRequest checkOutputRequest) {
             return httpObservable(
                 () -> {
                   if (alreadyUsedAddresses.contains(checkOutputRequest.receiveAddress)) {
@@ -121,8 +120,8 @@ public class PostmixIndexServiceTest extends AbstractTest {
     return serverApi;
   }
 
-  private <T> Observable<Optional<T>> httpObservable(final Callable<T> supplier) {
-    return Observable.fromCallable(() -> Optional.ofNullable(supplier.call()))
+  private <T> Single<Optional<T>> httpObservable(final Callable<T> supplier) {
+    return Single.fromCallable(() -> Optional.ofNullable(supplier.call()))
         .subscribeOn(Schedulers.io());
   }
 }

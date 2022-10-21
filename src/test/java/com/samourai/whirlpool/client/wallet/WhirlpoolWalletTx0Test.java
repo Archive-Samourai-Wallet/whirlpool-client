@@ -13,6 +13,10 @@ import com.samourai.whirlpool.client.wallet.data.pool.PoolSupplier;
 import com.samourai.whirlpool.client.whirlpool.ServerApi;
 import com.samourai.whirlpool.client.whirlpool.beans.Pool;
 import com.samourai.whirlpool.protocol.rest.Tx0PushRequest;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.LinkedList;
+import java.util.List;
 import org.bitcoinj.core.Transaction;
 import org.bitcoinj.core.TransactionOutput;
 import org.junit.jupiter.api.Assertions;
@@ -21,11 +25,6 @@ import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.LinkedList;
-import java.util.List;
 
 public class WhirlpoolWalletTx0Test extends Tx0ServiceV1Test {
   private Logger log = LoggerFactory.getLogger(WhirlpoolWalletTx0Test.class);
@@ -384,25 +383,28 @@ public class WhirlpoolWalletTx0Test extends Tx0ServiceV1Test {
 
     // init whirlpoolWallet
     WhirlpoolWalletService whirlpoolWalletService = new WhirlpoolWalletService();
-    ServerApi serverApi = new ServerApi(WhirlpoolServer.TESTNET.getServerUrlClear(), computeHttpClientService());
+    ServerApi serverApi =
+        new ServerApi(WhirlpoolServer.TESTNET.getServerUrlClear(), computeHttpClientService());
     WhirlpoolWalletConfig whirlpoolWalletConfig = computeWhirlpoolWalletConfig(serverApi);
     byte[] seed = hdWalletFactory.computeSeedFromWords(seedWords);
     WhirlpoolWallet whirlpoolWallet = new WhirlpoolWallet(whirlpoolWalletConfig, seed, passphrase);
     whirlpoolWallet = whirlpoolWalletService.openWallet(whirlpoolWallet, passphrase);
-    log.info("Deposit address: "+whirlpoolWallet.getDepositAddress(false));
+    log.info("Deposit address: " + whirlpoolWallet.getDepositAddress(false));
 
     // configure TX0
     PoolSupplier poolSupplier = whirlpoolWallet.getPoolSupplier();
     Pool pool = poolSupplier.findPoolById("0.01btc");
-    log.info("Min deposit for TX0: "+pool.computePremixBalanceMin(false));
-    Tx0Config tx0Config = whirlpoolWallet.getTx0Config(Tx0FeeTarget.BLOCKS_12, Tx0FeeTarget.BLOCKS_12);
+    log.info("Min deposit for TX0: " + pool.computePremixBalanceMin(false));
+    Tx0Config tx0Config =
+        whirlpoolWallet.getTx0Config(Tx0FeeTarget.BLOCKS_12, Tx0FeeTarget.BLOCKS_12);
 
     // run
-    Collection<WhirlpoolUtxo> spendFroms = whirlpoolWallet.getUtxoSupplier().findUtxos(WhirlpoolAccount.DEPOSIT);
+    Collection<WhirlpoolUtxo> spendFroms =
+        whirlpoolWallet.getUtxoSupplier().findUtxos(WhirlpoolAccount.DEPOSIT);
     List<Tx0> tx0s = whirlpoolWallet.tx0Cascade(spendFroms, pool, tx0Config);
 
     for (Tx0 tx0 : tx0s) {
-      log.info("Tx0: "+tx0.getSpendFroms()+" "+tx0.getTx());
+      log.info("Tx0: " + tx0.getSpendFroms() + " " + tx0.getTx());
     }
   }
 
@@ -414,24 +416,27 @@ public class WhirlpoolWalletTx0Test extends Tx0ServiceV1Test {
 
     // init whirlpoolWallet
     WhirlpoolWalletService whirlpoolWalletService = new WhirlpoolWalletService();
-    ServerApi serverApi = new ServerApi(WhirlpoolServer.TESTNET.getServerUrlClear(), computeHttpClientService());
+    ServerApi serverApi =
+        new ServerApi(WhirlpoolServer.TESTNET.getServerUrlClear(), computeHttpClientService());
     WhirlpoolWalletConfig whirlpoolWalletConfig = computeWhirlpoolWalletConfig(serverApi);
     byte[] seed = hdWalletFactory.computeSeedFromWords(seedWords);
     WhirlpoolWallet whirlpoolWallet = new WhirlpoolWallet(whirlpoolWalletConfig, seed, passphrase);
     whirlpoolWallet = whirlpoolWalletService.openWallet(whirlpoolWallet, passphrase);
-    log.info("Deposit address: "+whirlpoolWallet.getDepositAddress(false));
+    log.info("Deposit address: " + whirlpoolWallet.getDepositAddress(false));
 
     // configure TX0
     PoolSupplier poolSupplier = whirlpoolWallet.getPoolSupplier();
     Pool pool = poolSupplier.findPoolById("0.001btc");
-    log.info("Min deposit for TX0: "+pool.computePremixBalanceMin(false));
-    Tx0Config tx0Config = whirlpoolWallet.getTx0Config(Tx0FeeTarget.BLOCKS_12, Tx0FeeTarget.BLOCKS_12);
+    log.info("Min deposit for TX0: " + pool.computePremixBalanceMin(false));
+    Tx0Config tx0Config =
+        whirlpoolWallet.getTx0Config(Tx0FeeTarget.BLOCKS_12, Tx0FeeTarget.BLOCKS_12);
     tx0Config.setCascading(true); // fake TX0 cascading
 
     // run
-    Collection<WhirlpoolUtxo> spendFroms = whirlpoolWallet.getUtxoSupplier().findUtxos(WhirlpoolAccount.DEPOSIT);
+    Collection<WhirlpoolUtxo> spendFroms =
+        whirlpoolWallet.getUtxoSupplier().findUtxos(WhirlpoolAccount.DEPOSIT);
     Tx0 tx0 = whirlpoolWallet.tx0(spendFroms, pool, tx0Config);
-    log.info("Tx0: "+tx0.getSpendFroms()+" "+tx0.getTx());
+    log.info("Tx0: " + tx0.getSpendFroms() + " " + tx0.getTx());
   }
 
   private boolean utxosContains(Collection<UnspentOutput> unspentOutputs, String hash, int index) {

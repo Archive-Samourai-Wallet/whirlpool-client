@@ -1,5 +1,6 @@
 package com.samourai.whirlpool.client.wallet.data.dataSource;
 
+import com.samourai.wallet.api.backend.IPushTx;
 import com.samourai.wallet.bipWallet.WalletSupplier;
 import com.samourai.whirlpool.client.tx0.Tx0PreviewService;
 import com.samourai.whirlpool.client.wallet.data.chain.ChainSupplier;
@@ -14,7 +15,7 @@ public interface DataSource {
 
   void close() throws Exception;
 
-  String pushTx(String txHex) throws Exception;
+  IPushTx getPushTx();
 
   WalletSupplier getWalletSupplier();
 

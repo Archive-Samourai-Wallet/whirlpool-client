@@ -1,17 +1,23 @@
 package com.samourai.whirlpool.client.wallet;
 
 import com.google.common.primitives.Bytes;
+import com.samourai.soroban.client.wallet.SorobanWalletService;
+import com.samourai.soroban.client.wallet.counterparty.SorobanWalletCounterparty;
+import com.samourai.soroban.client.wallet.sender.SorobanWalletInitiator;
+import com.samourai.wallet.api.backend.IPushTx;
 import com.samourai.wallet.api.backend.ISweepBackend;
 import com.samourai.wallet.api.backend.beans.UnspentOutput;
 import com.samourai.wallet.bip47.rpc.BIP47Wallet;
 import com.samourai.wallet.bipFormat.BIP_FORMAT;
 import com.samourai.wallet.bipWallet.BipWallet;
 import com.samourai.wallet.bipWallet.WalletSupplier;
+import com.samourai.wallet.cahoots.CahootsWallet;
 import com.samourai.wallet.hd.BIP_WALLET;
 import com.samourai.wallet.hd.HD_Wallet;
 import com.samourai.wallet.hd.HD_WalletFactoryGeneric;
 import com.samourai.wallet.ricochet.RicochetConfig;
 import com.samourai.wallet.segwit.bech32.Bech32UtilGeneric;
+import com.samourai.wallet.send.provider.SimpleCahootsUtxoProvider;
 import com.samourai.wallet.send.spend.SpendBuilder;
 import com.samourai.wallet.util.AsyncUtil;
 import com.samourai.whirlpool.client.event.*;
@@ -46,15 +52,11 @@ import com.samourai.whirlpool.protocol.beans.Utxo;
 import com.samourai.whirlpool.protocol.rest.PushTxErrorResponse;
 import com.samourai.whirlpool.protocol.rest.PushTxSuccessResponse;
 import com.samourai.whirlpool.protocol.rest.Tx0PushRequest;
+import com.samourai.xmanager.client.XManagerClient;
 import com.samourai.xmanager.protocol.XManagerService;
 import io.reactivex.Completable;
-import io.reactivex.Observable;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import io.reactivex.Single;
+import java.util.*;
 import java.util.concurrent.Callable;
 import java.util.stream.Collectors;
 import org.bitcoinj.core.NetworkParameters;
@@ -71,14 +73,19 @@ public class WhirlpoolWallet {
   private PostmixIndexService postmixIndexService;
 
   private HD_Wallet bip44w;
+  private DataPersister dataPersister;
   private DataSource dataSource;
   private Tx0Service tx0Service;
   private PaynymSupplier paynymSupplier;
-  private DataPersister dataPersister;
+  private CahootsWallet cahootsWallet;
+  private SorobanWalletInitiator sorobanWalletInitiator;
+  private SorobanWalletCounterparty sorobanWalletCounterparty;
 
   protected MixOrchestratorImpl mixOrchestrator;
   private Optional<AutoTx0Orchestrator> autoTx0Orchestrator;
   private MixingStateEditable mixingState;
+
+  private XManagerClient xManagerClient;
 
   protected WhirlpoolWallet(WhirlpoolWallet whirlpoolWallet) throws Exception {
     this(whirlpoolWallet.config, whirlpoolWallet.bip44w, whirlpoolWallet.walletIdentifier);
@@ -105,6 +112,7 @@ public class WhirlpoolWallet {
 
   public WhirlpoolWallet(WhirlpoolWalletConfig config, HD_Wallet bip44w, String walletIdentifier)
       throws Exception {
+    this.xManagerClient = null;
 
     if (walletIdentifier == null) {
       walletIdentifier =
@@ -136,6 +144,9 @@ public class WhirlpoolWallet {
     this.dataSource = null;
     this.tx0Service = null; // will be set with datasource
     this.paynymSupplier = null; // will be set with datasource
+    this.cahootsWallet = null; // will be set with datasource
+    this.sorobanWalletInitiator = null; // will be set with getter
+    this.sorobanWalletCounterparty = null; // will be set with getter
 
     this.mixOrchestrator = null;
     this.autoTx0Orchestrator = Optional.empty();
@@ -339,7 +350,7 @@ public class WhirlpoolWallet {
 
       // pushT to coordinator retry on address reuse
       try {
-        asyncUtil.blockingSingle(pushTx0(tx0));
+        asyncUtil.blockingGet(pushTx0(tx0));
         return tx0;
       } catch (PushTxErrorResponseException e) {
         PushTxErrorResponse pushTxErrorResponse = e.getPushTxErrorResponse();
@@ -398,7 +409,7 @@ public class WhirlpoolWallet {
     throw tx0Exception;
   }
 
-  protected Observable<PushTxSuccessResponse> pushTx0(Tx0 tx0) throws Exception {
+  protected Single<PushTxSuccessResponse> pushTx0(Tx0 tx0) throws Exception {
     String tx64 = WhirlpoolProtocol.encodeBytes(tx0.getTx().bitcoinSerialize());
     String poolId = tx0.getPool().getPoolId();
     Tx0PushRequest request = new Tx0PushRequest(tx64, poolId);
@@ -445,6 +456,12 @@ public class WhirlpoolWallet {
     this.tx0Service =
         new Tx0Service(config, dataSource.getTx0PreviewService(), config.getFeeOpReturnImpl());
     this.paynymSupplier = dataSource.getPaynymSupplier();
+    this.cahootsWallet =
+        new CahootsWallet(
+            getWalletSupplier(),
+            BIP_FORMAT.PROVIDER,
+            config.getNetworkParameters(),
+            new SimpleCahootsUtxoProvider(getUtxoSupplier()));
 
     // start orchestrators
     int loopDelay = config.getRefreshUtxoDelay() * 1000;
@@ -589,8 +606,8 @@ public class WhirlpoolWallet {
     WhirlpoolEventService.getInstance().post(new WalletStopEvent(this));
   }
 
-  public String pushTx(String txHex) throws Exception {
-    return dataSource.pushTx(txHex);
+  public IPushTx getPushTx() {
+    return getDataSource().getPushTx();
   }
 
   public void mixQueue(WhirlpoolUtxo whirlpoolUtxo) throws NotifiableException {
@@ -929,17 +946,22 @@ public class WhirlpoolWallet {
     return ((DataSourceWithSweep) dataSource).getSweepBackend();
   }
 
+  public XManagerClient getXManagerClient() {
+    if (xManagerClient == null) {
+      xManagerClient = config.computeXManagerClient();
+    }
+    return xManagerClient;
+  }
+
   public RicochetConfig newRicochetConfig(
       int feePerB, boolean useTimeLock, WhirlpoolAccount spendAccount) {
     long latestBlock = getChainSupplier().getLatestBlock().height;
     BipWallet bipWalletRicochet = getWalletSupplier().getWallet(BIP_WALLET.RICOCHET_BIP84);
     BipWallet bipWalletChange =
         getWalletSupplier().getWallet(spendAccount, BIP_FORMAT.SEGWIT_NATIVE);
-    BIP47Wallet bip47Wallet = new BIP47Wallet(bip44w);
     int bip47WalletOutgoingIdx = 0; // TODO zl !!!
     boolean samouraiFeeViaBIP47 = getPaynymSupplier().getPaynymState().isClaimed();
-    String samouraiFeeAddress =
-        config.computeXManagerClient().getAddressOrDefault(XManagerService.RICOCHET);
+    String samouraiFeeAddress = getXManagerClient().getAddressOrDefault(XManagerService.RICOCHET);
     return new RicochetConfig(
         feePerB,
         samouraiFeeViaBIP47,
@@ -952,7 +974,41 @@ public class WhirlpoolWallet {
         bipWalletRicochet,
         bipWalletChange,
         spendAccount,
-        bip47Wallet,
+        getBip47Wallet(),
         bip47WalletOutgoingIdx);
+  }
+
+  public BIP47Wallet getBip47Wallet() {
+    return new BIP47Wallet(bip44w);
+  }
+
+  public CahootsWallet getCahootsWallet() {
+    return cahootsWallet;
+  }
+
+  public SorobanWalletInitiator getSorobanWalletInitiator() {
+    if (sorobanWalletInitiator == null) {
+      SorobanWalletService sorobanWalletService = config.getSorobanWalletService();
+      if (sorobanWalletService == null) {
+        log.error("whirlpoolWalletConfig.sorobanWalletService is NULL");
+        return null;
+      }
+      this.sorobanWalletInitiator =
+          sorobanWalletService.getSorobanWalletInitiator(getCahootsWallet());
+    }
+    return sorobanWalletInitiator;
+  }
+
+  public SorobanWalletCounterparty getSorobanWalletCounterparty() {
+    if (sorobanWalletCounterparty == null) {
+      SorobanWalletService sorobanWalletService = config.getSorobanWalletService();
+      if (sorobanWalletService == null) {
+        log.error("whirlpoolWalletConfig.sorobanWalletService is NULL");
+        return null;
+      }
+      this.sorobanWalletCounterparty =
+          sorobanWalletService.getSorobanWalletCounterparty(getCahootsWallet());
+    }
+    return sorobanWalletCounterparty;
   }
 }

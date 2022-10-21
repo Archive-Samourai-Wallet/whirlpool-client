@@ -61,7 +61,7 @@ public class PostmixIndexService {
 
     try {
       AsyncUtil.getInstance()
-          .blockingSingle(config.getServerApi().checkOutput(checkOutputRequest))
+          .blockingGet(config.getServerApi().checkOutput(checkOutputRequest))
           .get(); // throws on error
     } catch (Exception e) {
       // forward index errors as PostmixIndexAlreadyUsedException

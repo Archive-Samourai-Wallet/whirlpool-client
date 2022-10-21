@@ -2,6 +2,7 @@ package com.samourai.whirlpool.client.wallet;
 
 import com.samourai.http.client.HttpUsage;
 import com.samourai.http.client.IWhirlpoolHttpClientService;
+import com.samourai.soroban.client.wallet.SorobanWalletService;
 import com.samourai.stomp.client.IStompClientService;
 import com.samourai.tor.client.TorClientService;
 import com.samourai.wallet.bip47.BIP47UtilGeneric;
@@ -70,6 +71,7 @@ public class WhirlpoolWalletConfig extends WhirlpoolClientConfig
   private String partner;
 
   private ISecretPointFactory secretPointFactory;
+  private SorobanWalletService sorobanWalletService; // may be null
   private BIP47UtilGeneric bip47Util;
   private FeeOpReturnImpl feeOpReturnImpl;
   private boolean opReturnV0;
@@ -77,6 +79,7 @@ public class WhirlpoolWalletConfig extends WhirlpoolClientConfig
   public WhirlpoolWalletConfig(
       DataSourceFactory dataSourceFactory,
       ISecretPointFactory secretPointFactory,
+      SorobanWalletService sorobanWalletService,
       IWhirlpoolHttpClientService httpClientService,
       IStompClientService stompClientService,
       TorClientService torClientService,
@@ -95,6 +98,7 @@ public class WhirlpoolWalletConfig extends WhirlpoolClientConfig
 
     this.dataSourceFactory = dataSourceFactory;
     this.secretPointFactory = secretPointFactory;
+    this.sorobanWalletService = sorobanWalletService;
     this.dataPersisterFactory = new FileDataPersisterFactory();
     this.mobile = mobile;
 
@@ -404,6 +408,10 @@ public class WhirlpoolWalletConfig extends WhirlpoolClientConfig
     this.secretPointFactory = secretPointFactory;
   }
 
+  public SorobanWalletService getSorobanWalletService() {
+    return sorobanWalletService;
+  }
+
   public BIP47UtilGeneric getBip47Util() {
     return bip47Util;
   }
@@ -479,6 +487,9 @@ public class WhirlpoolWalletConfig extends WhirlpoolClientConfig
     configInfo.put("postmixIndexAutoFix", Boolean.toString(postmixIndexAutoFix));
     configInfo.put("persistDelaySeconds", Integer.toString(persistDelaySeconds));
     configInfo.put("secretPointFactory", secretPointFactory.getClass().getName());
+    configInfo.put(
+        "sorobanWalletService",
+        sorobanWalletService != null ? sorobanWalletService.getClass().getName() : "null");
     configInfo.put("bip47Util", bip47Util.getClass().getName());
     return configInfo;
   }

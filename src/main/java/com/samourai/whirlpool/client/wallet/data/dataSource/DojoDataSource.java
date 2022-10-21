@@ -1,6 +1,7 @@
 package com.samourai.whirlpool.client.wallet.data.dataSource;
 
 import com.samourai.wallet.api.backend.BackendApi;
+import com.samourai.wallet.api.backend.IPushTx;
 import com.samourai.wallet.api.backend.ISweepBackend;
 import com.samourai.wallet.api.backend.beans.TxsResponse;
 import com.samourai.wallet.api.backend.beans.WalletResponse;
@@ -216,8 +217,8 @@ public class DojoDataSource extends WalletResponseDataSource
   }
 
   @Override
-  public String pushTx(String txHex) throws Exception {
-    return backendApi.pushTx(txHex);
+  public IPushTx getPushTx() {
+    return backendApi;
   }
 
   @Override

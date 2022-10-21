@@ -8,7 +8,7 @@ import com.samourai.whirlpool.client.exception.PushTxErrorResponseException;
 import com.samourai.whirlpool.client.utils.ClientUtils;
 import com.samourai.whirlpool.protocol.WhirlpoolProtocol;
 import com.samourai.whirlpool.protocol.rest.*;
-import io.reactivex.Observable;
+import io.reactivex.Single;
 import java.util.Optional;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
@@ -44,7 +44,7 @@ public class ServerApi {
     return httpClientRest.getJson(url, PoolsResponse.class, null);
   }
 
-  public Observable<Optional<Tx0DataResponseV2>> fetchTx0Data(
+  public Single<Optional<Tx0DataResponseV2>> fetchTx0Data(
       Tx0DataRequestV2 tx0DataRequest, boolean opReturnV0) throws Exception {
     httpClientRest.connect();
     String url = WhirlpoolProtocol.getUrlTx0Data(urlServer, opReturnV0);
@@ -58,7 +58,7 @@ public class ServerApi {
     return WhirlpoolProtocol.getUrlConnect(urlServer);
   }
 
-  public Observable<Optional<String>> checkOutput(CheckOutputRequest checkOutputRequest)
+  public Single<Optional<String>> checkOutput(CheckOutputRequest checkOutputRequest)
       throws Exception {
     // POST request through a different identity for mix privacy
     httpClientRegOutput.connect();
@@ -70,7 +70,7 @@ public class ServerApi {
     return httpClientRegOutput.postJson(checkOutputUrl, String.class, null, checkOutputRequest);
   }
 
-  public Observable<Optional<String>> registerOutput(RegisterOutputRequest registerOutputRequest)
+  public Single<Optional<String>> registerOutput(RegisterOutputRequest registerOutputRequest)
       throws Exception {
     // POST request through a different identity for mix privacy
     httpClientRegOutput.connect();
@@ -84,7 +84,7 @@ public class ServerApi {
         registerOutputUrl, String.class, null, registerOutputRequest);
   }
 
-  public Observable<PushTxSuccessResponse> pushTx0(Tx0PushRequest request) throws Exception {
+  public Single<PushTxSuccessResponse> pushTx0(Tx0PushRequest request) throws Exception {
     httpClientRest.connect();
 
     String url = WhirlpoolProtocol.getUrlTx0Push(urlServer);
@@ -96,7 +96,7 @@ public class ServerApi {
         .map(o -> o.get())
         .onErrorResumeNext(
             throwable -> {
-              return Observable.error(responseError(throwable));
+              return Single.error(responseError(throwable));
             });
   }
 

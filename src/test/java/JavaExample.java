@@ -1,8 +1,10 @@
 import com.google.common.eventbus.Subscribe;
 import com.samourai.http.client.IWhirlpoolHttpClientService;
+import com.samourai.soroban.client.wallet.SorobanWalletService;
 import com.samourai.stomp.client.IStompClientService;
 import com.samourai.tor.client.TorClientService;
 import com.samourai.wallet.api.backend.BackendServer;
+import com.samourai.wallet.api.backend.IPushTx;
 import com.samourai.wallet.api.backend.beans.UnspentOutput;
 import com.samourai.wallet.api.backend.beans.WalletResponse;
 import com.samourai.wallet.api.paynym.beans.PaynymState;
@@ -27,7 +29,10 @@ import com.samourai.whirlpool.client.wallet.WhirlpoolWalletService;
 import com.samourai.whirlpool.client.wallet.beans.*;
 import com.samourai.whirlpool.client.wallet.data.dataPersister.DataPersister;
 import com.samourai.whirlpool.client.wallet.data.dataPersister.DataPersisterFactory;
-import com.samourai.whirlpool.client.wallet.data.dataSource.*;
+import com.samourai.whirlpool.client.wallet.data.dataSource.DataSource;
+import com.samourai.whirlpool.client.wallet.data.dataSource.DataSourceFactory;
+import com.samourai.whirlpool.client.wallet.data.dataSource.DojoDataSourceFactory;
+import com.samourai.whirlpool.client.wallet.data.dataSource.WalletResponseDataSource;
 import com.samourai.whirlpool.client.wallet.data.paynym.PaynymSupplier;
 import com.samourai.whirlpool.client.wallet.data.pool.PoolSupplier;
 import com.samourai.whirlpool.client.wallet.data.utxo.UtxoSupplier;
@@ -73,12 +78,14 @@ public class JavaExample {
     // for Android, use AndroidSecretPointFactory from 'samourai-wallet-android'
     ISecretPointFactory secretPointFactory = SecretPointFactoryJava.getInstance();
     TorClientService torClientService = null; // provide impl here
+    SorobanWalletService sorobanWalletService = null; // provide impl or null if not using Soroban
     NetworkParameters params = whirlpoolServer.getParams();
     boolean mobile = false; // true for mobile configuration, false for desktop/CLI
     WhirlpoolWalletConfig whirlpoolWalletConfig =
         new WhirlpoolWalletConfig(
             dataSourceFactory,
             secretPointFactory,
+            sorobanWalletService,
             httpClientService,
             stompClientService,
             torClientService,
@@ -155,9 +162,8 @@ public class JavaExample {
           }
 
           @Override
-          public String pushTx(String txHex) throws Exception {
-            // provide pushTx service here
-            return "txid";
+          public IPushTx getPushTx() {
+            return null; // provide pushTx service here
           }
         };
       };

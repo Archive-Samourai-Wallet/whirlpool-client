@@ -34,7 +34,7 @@ import com.samourai.whirlpool.protocol.rest.PoolsResponse;
 import com.samourai.whirlpool.protocol.rest.PushTxSuccessResponse;
 import com.samourai.whirlpool.protocol.rest.Tx0PushRequest;
 import com.samourai.whirlpool.protocol.websocket.notifications.MixStatus;
-import io.reactivex.Observable;
+import io.reactivex.Single;
 import java.io.File;
 import java.util.Arrays;
 import java.util.Collection;
@@ -249,13 +249,12 @@ public class AbstractTest {
     ServerApi serverApi =
         new ServerApi(WhirlpoolServer.TESTNET.getServerUrlClear(), computeHttpClientService()) {
           @Override
-          public Observable<PushTxSuccessResponse> pushTx0(Tx0PushRequest request)
-              throws Exception {
+          public Single<PushTxSuccessResponse> pushTx0(Tx0PushRequest request) throws Exception {
             // mock pushtx0
             byte[] txBytes = WhirlpoolProtocol.decodeBytes(request.tx64);
             Transaction tx = new Transaction(params, txBytes);
             onPushTx0(request, tx);
-            return Observable.just(new PushTxSuccessResponse(tx.getHashAsString()));
+            return Single.just(new PushTxSuccessResponse(tx.getHashAsString()));
           }
         };
     return computeWhirlpoolWalletConfig(serverApi);
@@ -270,6 +269,7 @@ public class AbstractTest {
         new WhirlpoolWalletConfig(
             dataSourceFactory,
             secretPointFactory,
+            null,
             httpClientService,
             null,
             null,
