@@ -12,6 +12,7 @@ public class Tx0PreviewConfig {
   private Tx0FeeTarget tx0FeeTarget;
   private Tx0FeeTarget mixFeeTarget;
   private boolean cascading;
+  private Tx0 cascadingParent; // set when cascading
 
   public Tx0PreviewConfig(
       Tx0PreviewService tx0PreviewService,
@@ -57,5 +58,13 @@ public class Tx0PreviewConfig {
 
   public void setCascading(boolean cascading) {
     this.cascading = cascading;
+  }
+
+  public Tx0 getCascadingParent() {
+    return cascadingParent;
+  }
+
+  public void setCascadingParent(Tx0 cascadingParent) {
+    this.cascadingParent = cascadingParent;
   }
 }

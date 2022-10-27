@@ -232,17 +232,20 @@ public class WhirlpoolWallet {
     return whirlpoolUtxo.getUtxo();
   }
 
-  public List<Tx0> tx0Cascade(Collection<UnspentOutput> spendFroms, Tx0Config tx0Config, Pool pool)
+  protected List<Tx0> runTx0Cascade(Collection<UnspentOutput> spendFroms, Tx0Config tx0Config, Pool pool)
       throws Exception {
+    if (!tx0Config.isCascading()) {
+      throw new Exception("Invalid tx0Config.cascading");
+    }
     List<Tx0> tx0List = new ArrayList<>();
 
     // initial Tx0
-    Tx0 tx0 = this.tx0(spendFroms, tx0Config, pool);
+    Tx0 tx0 = this.runTx0(spendFroms, tx0Config, pool);
     tx0List.add(tx0);
+    tx0Config.setCascadingParent(tx0);
     UnspentOutput unspentOutputChange = findTx0Change(tx0);
 
     // begin cascading
-    tx0Config.setCascading(true);
     Collection<Pool> pools = this.getPoolSupplier().getPools();
     for (Pool currentPool : pools) {
       if (unspentOutputChange == null) {
@@ -257,8 +260,9 @@ public class WhirlpoolWallet {
         if (log.isDebugEnabled()) {
           log.debug("Trying Tx0 cascading: " + currentPool.getPoolId());
         }
-        tx0 = this.tx0(Arrays.asList(unspentOutputChange), tx0Config, currentPool);
+        tx0 = this.runTx0(Arrays.asList(unspentOutputChange), tx0Config, currentPool);
         tx0List.add(tx0);
+        tx0Config.setCascadingParent(tx0);
         unspentOutputChange = findTx0Change(tx0);
       } catch (Exception e) {
         // Tx0 is not possible for this pool, ignore it
@@ -274,14 +278,6 @@ public class WhirlpoolWallet {
     return tx0List;
   }
 
-  public List<Tx0> tx0Cascade(
-      Collection<WhirlpoolUtxo> whirlpoolUtxos, Pool pool, Tx0Config tx0Config) throws Exception {
-    // adapt tx0Cascade() for WhirlpoolUtxo
-    Callable<List<Tx0>> runTx0Cascade =
-        () -> tx0Cascade(toUnspentOutputs(whirlpoolUtxos), tx0Config, pool);
-    return handleUtxoStatusForTx0(whirlpoolUtxos, runTx0Cascade);
-  }
-
   public Tx0 tx0(Collection<WhirlpoolUtxo> whirlpoolUtxos, Pool pool, Tx0Config tx0Config)
       throws Exception {
     // adapt tx0() for WhirlpoolUtxo
@@ -289,7 +285,16 @@ public class WhirlpoolWallet {
     return handleUtxoStatusForTx0(whirlpoolUtxos, runTx0);
   }
 
-  public Tx0 tx0(Collection<UnspentOutput> spendFroms, Tx0Config tx0Config, Pool pool)
+  public Tx0 tx0(Collection<UnspentOutput> spendFroms, Tx0Config tx0Config, Pool pool) throws Exception {
+    if (tx0Config.isCascading() && tx0Config.getCascadingParent() == null) {
+      // entry point for cascading
+      // returns the first TX0 of the cascading list
+      return runTx0Cascade(spendFroms, tx0Config, pool).stream().findFirst().get();
+    }
+    return runTx0(spendFroms, tx0Config, pool);
+  }
+
+  public Tx0 runTx0(Collection<UnspentOutput> spendFroms, Tx0Config tx0Config, Pool pool)
       throws Exception {
 
     // check confirmations

@@ -122,8 +122,8 @@ public class Tx0PreviewService {
   public Tx0Previews tx0Previews(
       Tx0PreviewConfig tx0PreviewConfig, Collection<UnspentOutput> spendFroms) throws Exception {
     // fetch fresh Tx0Data
-    Collection<Tx0Data> tx0Datas =
-        fetchTx0Data(config.getPartner(), tx0PreviewConfig.isCascading());
+    boolean useCascading = tx0PreviewConfig.isCascading() && tx0PreviewConfig.getCascadingParent() != null;
+    Collection<Tx0Data> tx0Datas = fetchTx0Data(config.getPartner(), useCascading);
 
     Map<String, Tx0Preview> tx0PreviewsByPoolId = new LinkedHashMap<String, Tx0Preview>();
     for (Tx0Data tx0Data : tx0Datas) {

@@ -76,7 +76,43 @@ public class WhirlpoolWalletTx0Test extends Tx0ServiceV1Test {
   }
 
   @Test
-  public void tx0Cascade_test0() throws Exception {
+  public void tx0_cascading() throws Exception {
+    log.info("Testing 0.05432999 btc. Makes Tx0s for pools 0.05 & 0.001");
+
+    PoolSupplier poolSupplier = whirlpoolWallet.getPoolSupplier();
+
+    // mock initial data
+    HD_Address address = whirlpoolWallet.getWalletDeposit().getAddressAt(0, 61).getHdAddress();
+    UnspentOutput spendFromUtxo =
+            newUnspentOutput(
+                    "cc588cdcb368f894a41c372d1f905770b61ecb3fb8e5e01a97e7cedbf5e324ae",
+                    1,
+                    5432999,
+                    address);
+    mockUtxos(spendFromUtxo);
+
+    // configure TX0
+    Pool pool = poolSupplier.findPoolById("0.05btc");
+    Tx0Config tx0Config =
+            whirlpoolWallet.getTx0Config(Tx0FeeTarget.BLOCKS_12, Tx0FeeTarget.BLOCKS_12);
+    tx0Config.setCascading(true);
+
+    // run
+    Tx0 tx0_pool05 = whirlpoolWallet.tx0(Arrays.asList(spendFromUtxo), tx0Config, pool);
+
+    // verify
+    log.info("tx0_pool05 = " + tx0_pool05);
+
+    Assertions.assertEquals(1, tx0_pool05.getNbPremix());
+
+    // tx0_pool05 spends from spendFroms
+    Assertions.assertTrue(
+            utxosContains(
+                    tx0_pool05.getSpendFroms(), spendFromUtxo.tx_hash, spendFromUtxo.tx_output_n));
+  }
+
+  @Test
+  public void runTx0Cascade_test0() throws Exception {
     log.info("Testing 0.05432999 btc. Makes Tx0s for pools 0.05 & 0.001");
 
     PoolSupplier poolSupplier = whirlpoolWallet.getPoolSupplier();
@@ -95,9 +131,10 @@ public class WhirlpoolWalletTx0Test extends Tx0ServiceV1Test {
     Pool pool = poolSupplier.findPoolById("0.05btc");
     Tx0Config tx0Config =
         whirlpoolWallet.getTx0Config(Tx0FeeTarget.BLOCKS_12, Tx0FeeTarget.BLOCKS_12);
+    tx0Config.setCascading(true);
 
     // run
-    List<Tx0> tx0s = whirlpoolWallet.tx0Cascade(Arrays.asList(spendFromUtxo), tx0Config, pool);
+    List<Tx0> tx0s = whirlpoolWallet.runTx0Cascade(Arrays.asList(spendFromUtxo), tx0Config, pool);
 
     // verify
     Assertions.assertEquals(2, tx0s.size());
@@ -129,7 +166,7 @@ public class WhirlpoolWalletTx0Test extends Tx0ServiceV1Test {
   }
 
   @Test
-  public void tx0Cascade_test1() throws Exception {
+  public void runTx0Cascade_test1() throws Exception {
     log.info("Testing 0.06432999 btc. Makes Tx0s for pools 0.05, 0.01, & 0.001");
 
     PoolSupplier poolSupplier = whirlpoolWallet.getPoolSupplier();
@@ -148,9 +185,10 @@ public class WhirlpoolWalletTx0Test extends Tx0ServiceV1Test {
     Pool pool = poolSupplier.findPoolById("0.05btc");
     Tx0Config tx0Config =
         whirlpoolWallet.getTx0Config(Tx0FeeTarget.BLOCKS_12, Tx0FeeTarget.BLOCKS_12);
+    tx0Config.setCascading(true);
 
     // run
-    List<Tx0> tx0s = whirlpoolWallet.tx0Cascade(Arrays.asList(spendFromUtxo), tx0Config, pool);
+    List<Tx0> tx0s = whirlpoolWallet.runTx0Cascade(Arrays.asList(spendFromUtxo), tx0Config, pool);
 
     // verify
     Assertions.assertEquals(3, tx0s.size());
@@ -194,7 +232,7 @@ public class WhirlpoolWalletTx0Test extends Tx0ServiceV1Test {
   }
 
   @Test
-  public void tx0Cascade_test2() throws Exception {
+  public void runTx0Cascade_test2() throws Exception {
     log.info("Testing 0.74329991 btc. Makes Tx0s for pools 0.5, 0.05, 0.01, & 0.001");
 
     PoolSupplier poolSupplier = whirlpoolWallet.getPoolSupplier();
@@ -213,9 +251,10 @@ public class WhirlpoolWalletTx0Test extends Tx0ServiceV1Test {
     Pool pool = poolSupplier.findPoolById("0.5btc");
     Tx0Config tx0Config =
         whirlpoolWallet.getTx0Config(Tx0FeeTarget.BLOCKS_12, Tx0FeeTarget.BLOCKS_12);
+    tx0Config.setCascading(true);
 
     // run
-    List<Tx0> tx0s = whirlpoolWallet.tx0Cascade(Arrays.asList(spendFromUtxo), tx0Config, pool);
+    List<Tx0> tx0s = whirlpoolWallet.runTx0Cascade(Arrays.asList(spendFromUtxo), tx0Config, pool);
 
     // verify
     Assertions.assertEquals(4, tx0s.size());
@@ -271,7 +310,7 @@ public class WhirlpoolWalletTx0Test extends Tx0ServiceV1Test {
   }
 
   @Test
-  public void tx0Cascade_test3() throws Exception {
+  public void runTx0Cascade_test3() throws Exception {
     log.info("Testing 0.52329991 btc. Makes Tx0s for pools 0.5 & 0.001");
 
     PoolSupplier poolSupplier = whirlpoolWallet.getPoolSupplier();
@@ -290,9 +329,10 @@ public class WhirlpoolWalletTx0Test extends Tx0ServiceV1Test {
     Pool pool = poolSupplier.findPoolById("0.5btc");
     Tx0Config tx0Config =
         whirlpoolWallet.getTx0Config(Tx0FeeTarget.BLOCKS_12, Tx0FeeTarget.BLOCKS_12);
+    tx0Config.setCascading(true);
 
     // run
-    List<Tx0> tx0s = whirlpoolWallet.tx0Cascade(Arrays.asList(spendFromUtxo), tx0Config, pool);
+    List<Tx0> tx0s = whirlpoolWallet.runTx0Cascade(Arrays.asList(spendFromUtxo), tx0Config, pool);
 
     // verify
     Assertions.assertEquals(2, tx0s.size());
@@ -323,7 +363,7 @@ public class WhirlpoolWalletTx0Test extends Tx0ServiceV1Test {
   }
 
   @Test
-  public void tx0Cascade_test4() throws Exception {
+  public void runTx0Cascade_test4() throws Exception {
     log.info("Testing 0.02329991 btc. Makes Tx0s for pools 0.01 & 0.001");
 
     PoolSupplier poolSupplier = whirlpoolWallet.getPoolSupplier();
@@ -342,9 +382,10 @@ public class WhirlpoolWalletTx0Test extends Tx0ServiceV1Test {
     Pool pool = poolSupplier.findPoolById("0.01btc");
     Tx0Config tx0Config =
         whirlpoolWallet.getTx0Config(Tx0FeeTarget.BLOCKS_12, Tx0FeeTarget.BLOCKS_12);
+    tx0Config.setCascading(true);
 
     // run
-    List<Tx0> tx0s = whirlpoolWallet.tx0Cascade(Arrays.asList(spendFromUtxo), tx0Config, pool);
+    List<Tx0> tx0s = whirlpoolWallet.runTx0Cascade(Arrays.asList(spendFromUtxo), tx0Config, pool);
 
     // verify
     Assertions.assertEquals(2, tx0s.size());
@@ -397,15 +438,14 @@ public class WhirlpoolWalletTx0Test extends Tx0ServiceV1Test {
     log.info("Min deposit for TX0: " + pool.computePremixBalanceMin(false));
     Tx0Config tx0Config =
         whirlpoolWallet.getTx0Config(Tx0FeeTarget.BLOCKS_12, Tx0FeeTarget.BLOCKS_12);
+    tx0Config.setCascading(true);
 
     // run
     Collection<WhirlpoolUtxo> spendFroms =
         whirlpoolWallet.getUtxoSupplier().findUtxos(WhirlpoolAccount.DEPOSIT);
-    List<Tx0> tx0s = whirlpoolWallet.tx0Cascade(spendFroms, pool, tx0Config);
+    Tx0 firstTx0 = whirlpoolWallet.tx0(spendFroms, pool, tx0Config);
 
-    for (Tx0 tx0 : tx0s) {
-      log.info("Tx0: " + tx0.getSpendFroms() + " " + tx0.getTx());
-    }
+    log.info("Tx0: " + firstTx0.getSpendFroms() + " " + firstTx0.getTx());
   }
 
   @Disabled // uncomment to manually broadcast a new fake tx0Cascade
