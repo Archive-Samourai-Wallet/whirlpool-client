@@ -232,8 +232,8 @@ public class WhirlpoolWallet {
     return whirlpoolUtxo.getUtxo();
   }
 
-  protected List<Tx0> runTx0Cascade(Collection<UnspentOutput> spendFroms, Tx0Config tx0Config, Pool pool)
-      throws Exception {
+  protected List<Tx0> runTx0Cascade(
+      Collection<UnspentOutput> spendFroms, Tx0Config tx0Config, Pool pool) throws Exception {
     if (!tx0Config.isCascading()) {
       throw new Exception("Invalid tx0Config.cascading");
     }
@@ -285,7 +285,8 @@ public class WhirlpoolWallet {
     return handleUtxoStatusForTx0(whirlpoolUtxos, runTx0);
   }
 
-  public Tx0 tx0(Collection<UnspentOutput> spendFroms, Tx0Config tx0Config, Pool pool) throws Exception {
+  public Tx0 tx0(Collection<UnspentOutput> spendFroms, Tx0Config tx0Config, Pool pool)
+      throws Exception {
     if (tx0Config.isCascading() && tx0Config.getCascadingParent() == null) {
       // entry point for cascading
       // returns the first TX0 of the cascading list

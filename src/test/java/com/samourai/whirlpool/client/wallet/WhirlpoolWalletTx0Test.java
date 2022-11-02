@@ -84,17 +84,17 @@ public class WhirlpoolWalletTx0Test extends Tx0ServiceV1Test {
     // mock initial data
     HD_Address address = whirlpoolWallet.getWalletDeposit().getAddressAt(0, 61).getHdAddress();
     UnspentOutput spendFromUtxo =
-            newUnspentOutput(
-                    "cc588cdcb368f894a41c372d1f905770b61ecb3fb8e5e01a97e7cedbf5e324ae",
-                    1,
-                    5432999,
-                    address);
+        newUnspentOutput(
+            "cc588cdcb368f894a41c372d1f905770b61ecb3fb8e5e01a97e7cedbf5e324ae",
+            1,
+            5432999,
+            address);
     mockUtxos(spendFromUtxo);
 
     // configure TX0
     Pool pool = poolSupplier.findPoolById("0.05btc");
     Tx0Config tx0Config =
-            whirlpoolWallet.getTx0Config(Tx0FeeTarget.BLOCKS_12, Tx0FeeTarget.BLOCKS_12);
+        whirlpoolWallet.getTx0Config(Tx0FeeTarget.BLOCKS_12, Tx0FeeTarget.BLOCKS_12);
     tx0Config.setCascading(true);
 
     // run
@@ -107,8 +107,8 @@ public class WhirlpoolWalletTx0Test extends Tx0ServiceV1Test {
 
     // tx0_pool05 spends from spendFroms
     Assertions.assertTrue(
-            utxosContains(
-                    tx0_pool05.getSpendFroms(), spendFromUtxo.tx_hash, spendFromUtxo.tx_output_n));
+        utxosContains(
+            tx0_pool05.getSpendFroms(), spendFromUtxo.tx_hash, spendFromUtxo.tx_output_n));
   }
 
   @Test
