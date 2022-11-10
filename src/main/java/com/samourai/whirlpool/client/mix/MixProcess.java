@@ -1,5 +1,6 @@
 package com.samourai.whirlpool.client.mix;
 
+import com.samourai.wallet.chain.ChainSupplier;
 import com.samourai.wallet.segwit.bech32.Bech32UtilGeneric;
 import com.samourai.wallet.util.TxUtil;
 import com.samourai.whirlpool.client.exception.NotifiableException;
@@ -9,7 +10,6 @@ import com.samourai.whirlpool.client.mix.handler.MixDestination;
 import com.samourai.whirlpool.client.mix.handler.UtxoWithBalance;
 import com.samourai.whirlpool.client.utils.ClientCryptoService;
 import com.samourai.whirlpool.client.utils.ClientUtils;
-import com.samourai.whirlpool.client.wallet.data.chain.ChainSupplier;
 import com.samourai.whirlpool.protocol.WhirlpoolProtocol;
 import com.samourai.whirlpool.protocol.beans.Utxo;
 import com.samourai.whirlpool.protocol.rest.RegisterOutputRequest;
