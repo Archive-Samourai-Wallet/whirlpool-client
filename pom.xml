@@ -30,7 +30,7 @@
         <dependency>
             <groupId>io.samourai.code.wallet</groupId>
             <artifactId>soroban-client-java</artifactId>
-            <version>0.1.0</version>
+            <version>54119e14</version>
             <scope>compile</scope>
         </dependency>
         <dependency>
