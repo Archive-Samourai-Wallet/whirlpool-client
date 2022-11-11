@@ -12,6 +12,7 @@ import com.samourai.wallet.bipFormat.BIP_FORMAT;
 import com.samourai.wallet.bipWallet.BipWallet;
 import com.samourai.wallet.bipWallet.WalletSupplier;
 import com.samourai.wallet.cahoots.CahootsWallet;
+import com.samourai.wallet.chain.ChainSupplier;
 import com.samourai.wallet.hd.BIP_WALLET;
 import com.samourai.wallet.hd.HD_Wallet;
 import com.samourai.wallet.hd.HD_WalletFactoryGeneric;
@@ -33,7 +34,6 @@ import com.samourai.whirlpool.client.tx0.*;
 import com.samourai.whirlpool.client.utils.ClientUtils;
 import com.samourai.whirlpool.client.utils.DebugUtils;
 import com.samourai.whirlpool.client.wallet.beans.*;
-import com.samourai.whirlpool.client.wallet.data.chain.ChainSupplier;
 import com.samourai.whirlpool.client.wallet.data.dataPersister.DataPersister;
 import com.samourai.whirlpool.client.wallet.data.dataSource.DataSource;
 import com.samourai.whirlpool.client.wallet.data.dataSource.DataSourceWithSweep;
@@ -465,6 +465,7 @@ public class WhirlpoolWallet {
     this.cahootsWallet =
         new CahootsWallet(
             getWalletSupplier(),
+            getChainSupplier(),
             BIP_FORMAT.PROVIDER,
             config.getNetworkParameters(),
             new SimpleCahootsUtxoProvider(getUtxoSupplier()));

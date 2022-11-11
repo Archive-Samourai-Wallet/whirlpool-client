@@ -1,6 +1,7 @@
 package com.samourai.whirlpool.client.wallet.data.chain;
 
 import com.samourai.wallet.api.backend.beans.WalletResponse;
+import com.samourai.wallet.chain.ChainSupplier;
 import com.samourai.whirlpool.client.event.ChainBlockChangeEvent;
 import com.samourai.whirlpool.client.wallet.WhirlpoolEventService;
 import com.samourai.whirlpool.client.wallet.data.supplier.BasicSupplier;

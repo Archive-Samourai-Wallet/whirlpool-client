@@ -1,9 +1,9 @@
 package com.samourai.whirlpool.client.mix;
 
+import com.samourai.wallet.chain.ChainSupplier;
 import com.samourai.whirlpool.client.mix.handler.IPostmixHandler;
 import com.samourai.whirlpool.client.mix.handler.IPremixHandler;
 import com.samourai.whirlpool.client.wallet.beans.WhirlpoolUtxo;
-import com.samourai.whirlpool.client.wallet.data.chain.ChainSupplier;
 import com.samourai.whirlpool.client.whirlpool.beans.Pool;
 
 public class MixParams {

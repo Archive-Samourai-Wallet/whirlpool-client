@@ -25,12 +25,12 @@
         <dependency>
             <groupId>io.samourai.code.wallet</groupId>
             <artifactId>extlibj</artifactId>
-            <version>0.0.35</version>
+            <version>81088505</version>
         </dependency>
         <dependency>
             <groupId>io.samourai.code.wallet</groupId>
             <artifactId>soroban-client-java</artifactId>
-            <version>0.1.0</version>
+            <version>a9d9ac0b</version>
             <scope>compile</scope>
         </dependency>
         <dependency>
