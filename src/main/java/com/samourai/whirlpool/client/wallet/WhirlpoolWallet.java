@@ -465,6 +465,7 @@ public class WhirlpoolWallet {
     this.cahootsWallet =
         new CahootsWallet(
             getWalletSupplier(),
+            getChainSupplier(),
             BIP_FORMAT.PROVIDER,
             config.getNetworkParameters(),
             new SimpleCahootsUtxoProvider(getUtxoSupplier()));
