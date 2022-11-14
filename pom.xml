@@ -3,7 +3,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>io.samourai.code.whirlpool</groupId>
     <artifactId>whirlpool-client</artifactId>
-    <version>0.24.1</version>
+    <version>0.24.2-SNAPSHOT</version>
     <name>whirlpool-client</name>
     <properties>
         <maven.compiler.source>1.8</maven.compiler.source>
@@ -25,12 +25,12 @@
         <dependency>
             <groupId>io.samourai.code.wallet</groupId>
             <artifactId>extlibj</artifactId>
-            <version>81088505</version>
+            <version>0.0.37</version>
         </dependency>
         <dependency>
             <groupId>io.samourai.code.wallet</groupId>
             <artifactId>soroban-client-java</artifactId>
-            <version>a9d9ac0b</version>
+            <version>0.1.0</version>
             <scope>compile</scope>
         </dependency>
         <dependency>
