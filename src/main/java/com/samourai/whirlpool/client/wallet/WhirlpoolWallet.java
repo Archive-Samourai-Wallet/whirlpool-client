@@ -6,12 +6,16 @@ import com.samourai.soroban.client.wallet.counterparty.SorobanWalletCounterparty
 import com.samourai.soroban.client.wallet.sender.SorobanWalletInitiator;
 import com.samourai.wallet.api.backend.IPushTx;
 import com.samourai.wallet.api.backend.ISweepBackend;
+import com.samourai.wallet.api.backend.MinerFeeTarget;
 import com.samourai.wallet.api.backend.beans.UnspentOutput;
 import com.samourai.wallet.bip47.rpc.BIP47Wallet;
+import com.samourai.wallet.bip47.rpc.PaymentCode;
 import com.samourai.wallet.bipFormat.BIP_FORMAT;
 import com.samourai.wallet.bipWallet.BipWallet;
 import com.samourai.wallet.bipWallet.WalletSupplier;
+import com.samourai.wallet.cahoots.Cahoots;
 import com.samourai.wallet.cahoots.CahootsWallet;
+import com.samourai.wallet.cahoots.tx0x2.Tx0x2Context;
 import com.samourai.wallet.chain.ChainSupplier;
 import com.samourai.wallet.hd.BIP_WALLET;
 import com.samourai.wallet.hd.HD_Wallet;
@@ -157,6 +161,36 @@ public class WhirlpoolWallet {
       byte[] seed, String seedPassphrase, NetworkParameters params) {
     return ClientUtils.sha256Hash(
         Bytes.concat(seed, seedPassphrase.getBytes(), params.getId().getBytes()));
+  }
+
+  public Single<Cahoots> tx0x2(
+      Collection<WhirlpoolUtxo> whirlpoolUtxos,
+      Pool pool,
+      Tx0Config tx0Config,
+      PaymentCode paymentCodeCounterparty)
+      throws Exception {
+    // adapt tx0() for WhirlpoolUtxo
+    Callable<Single<Cahoots>> runTx0x2 =
+        () -> tx0x2(toUnspentOutputs(whirlpoolUtxos), tx0Config, pool, paymentCodeCounterparty);
+    return handleUtxoStatusForTx0(whirlpoolUtxos, runTx0x2);
+  }
+
+  public Single<Cahoots> tx0x2(
+      Collection<UnspentOutput> spendFroms,
+      Tx0Config tx0Config,
+      Pool pool,
+      PaymentCode paymentCodeCounterparty)
+      throws Exception {
+    // build initial TX0
+    Tx0 tx0Initial =
+        tx0Service.tx0(spendFroms, getWalletSupplier(), pool, tx0Config, getUtxoSupplier());
+
+    // start Cahoots
+    long minerFee = getMinerFeeSupplier().getFee(MinerFeeTarget.BLOCKS_4); // never used
+    int account = 0; // never used
+    Tx0x2Context tx0x2Context =
+        Tx0x2Context.newInitiator(getCahootsWallet(), account, minerFee, tx0Service, tx0Initial);
+    return getSorobanWalletInitiator().meetAndInitiate(tx0x2Context, paymentCodeCounterparty);
   }
 
   public Tx0Previews tx0Previews(Collection<WhirlpoolUtxo> whirlpoolUtxos, Tx0Config tx0Config)

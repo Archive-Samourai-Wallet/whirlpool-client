@@ -7,6 +7,9 @@ import com.samourai.wallet.api.backend.beans.UnspentOutput;
 import com.samourai.wallet.api.backend.beans.WalletResponse;
 import com.samourai.wallet.bip47.rpc.java.SecretPointFactoryJava;
 import com.samourai.wallet.bip47.rpc.secretPoint.ISecretPointFactory;
+import com.samourai.wallet.bipFormat.BIP_FORMAT;
+import com.samourai.wallet.bipFormat.BipFormatSupplier;
+import com.samourai.wallet.chain.ChainSupplier;
 import com.samourai.wallet.hd.HD_Address;
 import com.samourai.wallet.hd.HD_WalletFactoryGeneric;
 import com.samourai.wallet.segwit.bech32.Bech32UtilGeneric;
@@ -29,19 +32,13 @@ import com.samourai.whirlpool.client.wallet.data.walletState.WalletStatePersiste
 import com.samourai.whirlpool.client.wallet.data.walletState.WalletStateSupplier;
 import com.samourai.whirlpool.client.whirlpool.ServerApi;
 import com.samourai.whirlpool.client.whirlpool.beans.Pool;
+import com.samourai.whirlpool.client.whirlpool.beans.Tx0Data;
 import com.samourai.whirlpool.protocol.WhirlpoolProtocol;
 import com.samourai.whirlpool.protocol.rest.PoolsResponse;
 import com.samourai.whirlpool.protocol.rest.PushTxSuccessResponse;
 import com.samourai.whirlpool.protocol.rest.Tx0PushRequest;
 import com.samourai.whirlpool.protocol.websocket.notifications.MixStatus;
 import io.reactivex.Single;
-import java.io.File;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.List;
-import java.util.Optional;
-import java.util.function.Function;
-import java.util.stream.Collectors;
 import org.bitcoinj.core.NetworkParameters;
 import org.bitcoinj.core.Transaction;
 import org.bitcoinj.params.TestNet3Params;
@@ -49,6 +46,14 @@ import org.bouncycastle.util.encoders.Hex;
 import org.junit.jupiter.api.Assertions;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.io.File;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.List;
+import java.util.Optional;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 public class AbstractTest {
   protected static final Logger log = LoggerFactory.getLogger(AbstractTest.class);
@@ -59,6 +64,14 @@ public class AbstractTest {
 
   protected IHttpClient httpClient;
 
+  protected ChainSupplier mockChainSupplier =
+      () -> {
+        WalletResponse.InfoBlock infoBlock = new WalletResponse.InfoBlock();
+        infoBlock.height = 1234;
+        return infoBlock;
+      };
+
+  protected BipFormatSupplier bipFormatSupplier = BIP_FORMAT.PROVIDER;
   protected NetworkParameters params = TestNet3Params.get();
   protected HD_WalletFactoryGeneric hdWalletFactory = HD_WalletFactoryGeneric.getInstance();
   protected Bech32UtilGeneric bech32Util = Bech32UtilGeneric.getInstance();
@@ -70,6 +83,10 @@ public class AbstractTest {
       "{\"pools\":[{\"poolId\":\"0.01btc\",\"denomination\":1000000,\"feeValue\":50000,\"mustMixBalanceMin\":1000170,\"mustMixBalanceCap\":1009690,\"mustMixBalanceMax\":1019125,\"minAnonymitySet\":5,\"minMustMix\":2,\"tx0MaxOutputs\":70,\"nbRegistered\":180,\"mixAnonymitySet\":5,\"mixStatus\":\"CONFIRM_INPUT\",\"elapsedTime\":672969,\"nbConfirmed\":2},{\"poolId\":\"0.001btc\",\"denomination\":100000,\"feeValue\":5000,\"mustMixBalanceMin\":100170,\"mustMixBalanceCap\":109690,\"mustMixBalanceMax\":119125,\"minAnonymitySet\":5,\"minMustMix\":2,\"tx0MaxOutputs\":25,\"nbRegistered\":157,\"mixAnonymitySet\":5,\"mixStatus\":\"CONFIRM_INPUT\",\"elapsedTime\":217766,\"nbConfirmed\":2},{\"poolId\":\"0.05btc\",\"denomination\":5000000,\"feeValue\":175000,\"mustMixBalanceMin\":5000170,\"mustMixBalanceCap\":5009690,\"mustMixBalanceMax\":5019125,\"minAnonymitySet\":5,\"minMustMix\":2,\"tx0MaxOutputs\":70,\"nbRegistered\":126,\"mixAnonymitySet\":5,\"mixStatus\":\"CONFIRM_INPUT\",\"elapsedTime\":4237382,\"nbConfirmed\":2},{\"poolId\":\"0.5btc\",\"denomination\":50000000,\"feeValue\":1750000,\"mustMixBalanceMin\":50000170,\"mustMixBalanceCap\":50009690,\"mustMixBalanceMax\":50019125,\"minAnonymitySet\":5,\"minMustMix\":2,\"tx0MaxOutputs\":70,\"nbRegistered\":34,\"mixAnonymitySet\":5,\"mixStatus\":\"CONFIRM_INPUT\",\"elapsedTime\":5971543,\"nbConfirmed\":2}]}";
   private static final String WALLET_RESPONSE =
       "{\"wallet\": {\"final_balance\": 116640227},\"info\": {\"fees\": {\"2\": 1,\"4\": 1,\"6\": 1,\"12\": 1,\"24\": 1},\"latest_block\": {\"height\": 2064015,\"hash\": \"00000000000000409297f8e0c0e73475cdd215ef675ad82802a08507b1c1d0e1\",\"time\": 1628498860}},\"addresses\": [{\"address\": \"vpub5YEhBtZy85KxLBxQB4MiHZvjjhz5DcYT9DV2gLshFykuWXjqSzLxpLd4TwS8nFxJmXAX8RrxRxpanndBh5a9AJPbrJEtqCcTKAnRYcP4Aed\",\"final_balance\": 116640227,\"account_index\": 511,\"change_index\": 183,\"n_tx\": 137}],\"txs\": [],\"unspent_outputs\": []}";
+
+  protected MockPushTx pushTx = new MockPushTx(params);
+  protected Collection<Tx0Data> mockTx0Datas = null;
+  protected static final String MOCK_SAMOURAI_FEE_ADDRESS = "tb1qfd0ukes4xw3xvxwhj9m53nt2huh75khrrdm5dv";
 
   public AbstractTest() throws Exception {
     ClientUtils.setLogLevel(Level.DEBUG, Level.DEBUG);
@@ -180,7 +197,15 @@ public class AbstractTest {
           public boolean isOpReturnV0() {
             return isOpReturnV0;
           }
-        });
+        }) {
+      @Override
+      protected Collection<Tx0Data> fetchTx0Data(String partnerId, boolean cascading) throws Exception {
+        if (mockTx0Datas != null) {
+          return mockTx0Datas;
+        }
+        return super.fetchTx0Data(partnerId, cascading);
+      }
+    };
   }
 
   protected ExpirablePoolSupplier mockPoolSupplier() {
@@ -326,5 +351,13 @@ public class AbstractTest {
 
   protected String computeUtxoId(UnspentOutput utxo) {
     return utxo.tx_hash + ':' + utxo.tx_output_n;
+  }
+
+  protected void mockTx0Datas() throws Exception {
+    byte[] feePayload = computeWhirlpoolWalletConfig().getFeeOpReturnImpl().computeFeePayload(0, (short)0, (short)0);
+    mockTx0Datas = Arrays.asList(
+            new Tx0Data("0.01btc",
+                    "PM8TJbEnXU7JpR8yMdQee9H5C4RNWTpWAgmb2TVyQ4zfnaQBDMTJ4yYVP9Re8NVsZDSwXvogYbssrqkfVwac9U1QnxdCU2G1zH7Gq6L3JJjzcuWGjB9N",
+                    42500,0, 0, null, feePayload, MOCK_SAMOURAI_FEE_ADDRESS));
   }
 }
