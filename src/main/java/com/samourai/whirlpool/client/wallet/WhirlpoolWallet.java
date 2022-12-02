@@ -334,16 +334,7 @@ public class WhirlpoolWallet {
       int premixIndex = getWalletPremix().getIndexHandlerReceive().get();
       int changeIndex = getWalletDeposit().getIndexHandlerChange().get();
 
-      Tx0 tx0 =
-          tx0Service.tx0(
-              spendFroms,
-              getWalletDeposit(),
-              getWalletPremix(),
-              getWalletPostmix(),
-              getWalletBadbank(),
-              pool,
-              tx0Config,
-              getUtxoSupplier());
+      Tx0 tx0 = tx0Service.tx0(spendFroms, getWalletSupplier(), pool, tx0Config, getUtxoSupplier());
 
       log.info(
           " • Tx0 result: txid="
@@ -460,7 +451,10 @@ public class WhirlpoolWallet {
                 dataPersister.getWalletStateSupplier(),
                 dataPersister.getUtxoConfigSupplier());
     this.tx0Service =
-        new Tx0Service(config, dataSource.getTx0PreviewService(), config.getFeeOpReturnImpl());
+        new Tx0Service(
+            config.getNetworkParameters(),
+            dataSource.getTx0PreviewService(),
+            config.getFeeOpReturnImpl());
     this.paynymSupplier = dataSource.getPaynymSupplier();
     this.cahootsWallet =
         new CahootsWallet(

@@ -49,10 +49,7 @@ public class AbstractTx0ServiceTest extends AbstractWhirlpoolWalletTest {
             .getTx0Service()
             .tx0(
                 Arrays.asList(spendFromUtxos),
-                whirlpoolWallet.getWalletDeposit(),
-                whirlpoolWallet.getWalletPremix(),
-                whirlpoolWallet.getWalletPostmix(),
-                whirlpoolWallet.getWalletBadbank(),
+                whirlpoolWallet.getWalletSupplier(),
                 tx0Config,
                 tx0Preview,
                 whirlpoolWallet.getUtxoSupplier());

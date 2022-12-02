@@ -125,7 +125,7 @@ public abstract class WalletResponseDataSource implements DataSource {
       @Override
       protected void onUtxoChanges(UtxoData utxoData) {
         super.onUtxoChanges(utxoData);
-        whirlpoolWallet.onUtxoChanges(utxoData);
+        whirlpoolWallet.onUtxoChanges(utxoData); // TODO implement globally
       }
     };
   }

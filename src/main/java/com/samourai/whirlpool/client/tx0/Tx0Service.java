@@ -2,7 +2,10 @@ package com.samourai.whirlpool.client.tx0;
 
 import com.samourai.wallet.api.backend.beans.UnspentOutput;
 import com.samourai.wallet.bip69.BIP69OutputComparator;
+import com.samourai.wallet.bipFormat.BIP_FORMAT;
 import com.samourai.wallet.bipWallet.BipWallet;
+import com.samourai.wallet.bipWallet.WalletSupplier;
+import com.samourai.wallet.hd.BIP_WALLET;
 import com.samourai.wallet.hd.BipAddress;
 import com.samourai.wallet.segwit.bech32.Bech32UtilGeneric;
 import com.samourai.wallet.send.SendFactoryGeneric;
@@ -10,7 +13,6 @@ import com.samourai.wallet.send.provider.UtxoKeyProvider;
 import com.samourai.wallet.util.TxUtil;
 import com.samourai.whirlpool.client.exception.NotifiableException;
 import com.samourai.whirlpool.client.utils.BIP69InputComparatorUnspentOutput;
-import com.samourai.whirlpool.client.wallet.WhirlpoolWalletConfig;
 import com.samourai.whirlpool.client.whirlpool.beans.Pool;
 import com.samourai.whirlpool.client.whirlpool.beans.Tx0Data;
 import com.samourai.whirlpool.protocol.feeOpReturn.FeeOpReturnImpl;
@@ -26,15 +28,15 @@ public class Tx0Service {
   private Logger log = LoggerFactory.getLogger(Tx0Service.class);
 
   private Tx0PreviewService tx0PreviewService;
-  private WhirlpoolWalletConfig config;
+  private NetworkParameters params;
   private FeeOpReturnImpl feeOpReturnImpl;
   private final Bech32UtilGeneric bech32Util = Bech32UtilGeneric.getInstance();
 
   public Tx0Service(
-      WhirlpoolWalletConfig config,
+      NetworkParameters params,
       Tx0PreviewService tx0PreviewService,
       FeeOpReturnImpl feeOpReturnImpl) {
-    this.config = config;
+    this.params = params;
     this.tx0PreviewService = tx0PreviewService;
     this.feeOpReturnImpl = feeOpReturnImpl;
     if (log.isDebugEnabled()) {
@@ -49,10 +51,7 @@ public class Tx0Service {
   /** Generate maxOutputs premixes outputs max. */
   public Tx0 tx0(
       Collection<UnspentOutput> spendFroms,
-      BipWallet depositWallet,
-      BipWallet premixWallet,
-      BipWallet postmixWallet,
-      BipWallet badbankWallet,
+      WalletSupplier walletSupplier,
       Pool pool,
       Tx0Config tx0Config,
       UtxoKeyProvider utxoKeyProvider)
@@ -74,23 +73,12 @@ public class Tx0Service {
             + tx0Preview
             + "}");
 
-    return tx0(
-        spendFroms,
-        depositWallet,
-        premixWallet,
-        postmixWallet,
-        badbankWallet,
-        tx0Config,
-        tx0Preview,
-        utxoKeyProvider);
+    return tx0(spendFroms, walletSupplier, tx0Config, tx0Preview, utxoKeyProvider);
   }
 
   public Tx0 tx0(
       Collection<UnspentOutput> spendFroms,
-      BipWallet depositWallet,
-      BipWallet premixWallet,
-      BipWallet postmixWallet,
-      BipWallet badbankWallet,
+      WalletSupplier walletSupplier,
       Tx0Config tx0Config,
       Tx0Preview tx0Preview,
       UtxoKeyProvider utxoKeyProvider)
@@ -107,6 +95,7 @@ public class Tx0Service {
       }
     } else {
       // pay to deposit
+      BipWallet depositWallet = walletSupplier.getWallet(BIP_WALLET.DEPOSIT_BIP84);
       feeOrBackAddressBech32 = depositWallet.getNextChangeAddress().getAddressString();
       if (log.isDebugEnabled()) {
         log.debug("feeAddressDestination: back to deposit => " + feeOrBackAddressBech32);
@@ -126,10 +115,7 @@ public class Tx0Service {
     byte[] opReturn = computeOpReturn(firstInput, utxoKeyProvider, tx0Data);
     return tx0(
         sortedSpendFroms,
-        depositWallet,
-        premixWallet,
-        postmixWallet,
-        badbankWallet,
+        walletSupplier,
         tx0Config,
         tx0Preview,
         opReturn,
@@ -139,10 +125,7 @@ public class Tx0Service {
 
   protected Tx0 tx0(
       List<UnspentOutput> sortedSpendFroms,
-      BipWallet depositWallet,
-      BipWallet premixWallet,
-      BipWallet postmixWallet,
-      BipWallet badbankWallet,
+      WalletSupplier walletSupplier,
       Tx0Config tx0Config,
       Tx0Preview tx0Preview,
       byte[] opReturn,
@@ -151,21 +134,9 @@ public class Tx0Service {
       throws Exception {
 
     // find change wallet
-    BipWallet changeWallet;
-    switch (tx0Config.getChangeWallet()) {
-      case PREMIX:
-        changeWallet = premixWallet;
-        break;
-      case POSTMIX:
-        changeWallet = postmixWallet;
-        break;
-      case BADBANK:
-        changeWallet = badbankWallet;
-        break;
-      default:
-        changeWallet = depositWallet;
-        break;
-    }
+    BipWallet changeWallet =
+        walletSupplier.getWallet(tx0Config.getChangeWallet(), BIP_FORMAT.SEGWIT_NATIVE);
+    BipWallet premixWallet = walletSupplier.getWallet(BIP_WALLET.PREMIX_BIP84);
 
     //
     // tx0
@@ -179,7 +150,6 @@ public class Tx0Service {
             opReturn,
             feeOrBackAddressBech32,
             changeWallet,
-            config.getNetworkParameters(),
             utxoKeyProvider);
 
     Transaction tx = tx0.getTx();
@@ -204,7 +174,6 @@ public class Tx0Service {
       byte[] opReturn,
       String feeOrBackAddressBech32,
       BipWallet changeWallet,
-      NetworkParameters params,
       UtxoKeyProvider utxoKeyProvider)
       throws Exception {
 
@@ -355,7 +324,6 @@ public class Tx0Service {
 
   protected byte[] computeOpReturn(
       UnspentOutput firstInput, UtxoKeyProvider utxoKeyProvider, Tx0Data tx0Data) throws Exception {
-    NetworkParameters params = config.getNetworkParameters();
 
     // use input0 for masking
     TransactionOutPoint maskingOutpoint = firstInput.computeOutpoint(params);
@@ -364,5 +332,9 @@ public class Tx0Service {
     byte[] firstInputKey = utxoKeyProvider._getPrivKey(firstInput.tx_hash, firstInput.tx_output_n);
     return feeOpReturnImpl.computeOpReturn(
         feePaymentCode, feePayload, maskingOutpoint, firstInputKey);
+  }
+
+  public Tx0PreviewService getTx0PreviewService() {
+    return tx0PreviewService;
   }
 }
