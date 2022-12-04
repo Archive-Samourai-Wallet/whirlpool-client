@@ -274,9 +274,9 @@ public class Tx0Service {
     }
 
     // samourai fee (or back deposit)
-    TransactionOutput txSWFee =
+    TransactionOutput samouraiFeeOutput =
         bech32Util.getTransactionOutput(feeOrBackAddressBech32, feeValueOrFeeChange, params);
-    outputs.add(txSWFee);
+    outputs.add(samouraiFeeOutput);
     if (log.isDebugEnabled()) {
       log.debug(
           "Tx0 out (fee): feeAddress="
@@ -289,9 +289,9 @@ public class Tx0Service {
     // add OP_RETURN output
     Script op_returnOutputScript =
         new ScriptBuilder().op(ScriptOpCodes.OP_RETURN).data(opReturn).build();
-    TransactionOutput txFeeOutput =
+    TransactionOutput opReturnOutput =
         new TransactionOutput(params, null, Coin.valueOf(0L), op_returnOutputScript.getProgram());
-    outputs.add(txFeeOutput);
+    outputs.add(opReturnOutput);
     if (log.isDebugEnabled()) {
       log.debug("Tx0 out (OP_RETURN): " + opReturn.length + " bytes");
     }
@@ -314,7 +314,15 @@ public class Tx0Service {
     signTx0(tx, utxoKeyProvider);
     tx.verify();
 
-    Tx0 tx0 = new Tx0(tx0Preview, sortedSpendFroms, tx, premixOutputs, changeOutputs);
+    Tx0 tx0 =
+        new Tx0(
+            tx0Preview,
+            sortedSpendFroms,
+            tx,
+            premixOutputs,
+            changeOutputs,
+            opReturnOutput,
+            samouraiFeeOutput);
     return tx0;
   }
 

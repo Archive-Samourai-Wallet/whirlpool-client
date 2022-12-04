@@ -39,14 +39,6 @@ import com.samourai.whirlpool.protocol.rest.PushTxSuccessResponse;
 import com.samourai.whirlpool.protocol.rest.Tx0PushRequest;
 import com.samourai.whirlpool.protocol.websocket.notifications.MixStatus;
 import io.reactivex.Single;
-import org.bitcoinj.core.NetworkParameters;
-import org.bitcoinj.core.Transaction;
-import org.bitcoinj.params.TestNet3Params;
-import org.bouncycastle.util.encoders.Hex;
-import org.junit.jupiter.api.Assertions;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.io.File;
 import java.util.Arrays;
 import java.util.Collection;
@@ -54,6 +46,13 @@ import java.util.List;
 import java.util.Optional;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+import org.bitcoinj.core.NetworkParameters;
+import org.bitcoinj.core.Transaction;
+import org.bitcoinj.params.TestNet3Params;
+import org.bouncycastle.util.encoders.Hex;
+import org.junit.jupiter.api.Assertions;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class AbstractTest {
   protected static final Logger log = LoggerFactory.getLogger(AbstractTest.class);
@@ -86,7 +85,8 @@ public class AbstractTest {
 
   protected MockPushTx pushTx = new MockPushTx(params);
   protected Collection<Tx0Data> mockTx0Datas = null;
-  protected static final String MOCK_SAMOURAI_FEE_ADDRESS = "tb1qfd0ukes4xw3xvxwhj9m53nt2huh75khrrdm5dv";
+  protected static final String MOCK_SAMOURAI_FEE_ADDRESS =
+      "tb1qfd0ukes4xw3xvxwhj9m53nt2huh75khrrdm5dv";
 
   public AbstractTest() throws Exception {
     ClientUtils.setLogLevel(Level.DEBUG, Level.DEBUG);
@@ -199,7 +199,8 @@ public class AbstractTest {
           }
         }) {
       @Override
-      protected Collection<Tx0Data> fetchTx0Data(String partnerId, boolean cascading) throws Exception {
+      protected Collection<Tx0Data> fetchTx0Data(String partnerId, boolean cascading)
+          throws Exception {
         if (mockTx0Datas != null) {
           return mockTx0Datas;
         }
@@ -354,10 +355,20 @@ public class AbstractTest {
   }
 
   protected void mockTx0Datas() throws Exception {
-    byte[] feePayload = computeWhirlpoolWalletConfig().getFeeOpReturnImpl().computeFeePayload(0, (short)0, (short)0);
-    mockTx0Datas = Arrays.asList(
-            new Tx0Data("0.01btc",
-                    "PM8TJbEnXU7JpR8yMdQee9H5C4RNWTpWAgmb2TVyQ4zfnaQBDMTJ4yYVP9Re8NVsZDSwXvogYbssrqkfVwac9U1QnxdCU2G1zH7Gq6L3JJjzcuWGjB9N",
-                    42500,0, 0, null, feePayload, MOCK_SAMOURAI_FEE_ADDRESS));
+    byte[] feePayload =
+        computeWhirlpoolWalletConfig()
+            .getFeeOpReturnImpl()
+            .computeFeePayload(0, (short) 0, (short) 0);
+    mockTx0Datas =
+        Arrays.asList(
+            new Tx0Data(
+                "0.01btc",
+                "PM8TJbEnXU7JpR8yMdQee9H5C4RNWTpWAgmb2TVyQ4zfnaQBDMTJ4yYVP9Re8NVsZDSwXvogYbssrqkfVwac9U1QnxdCU2G1zH7Gq6L3JJjzcuWGjB9N",
+                42500,
+                0,
+                0,
+                null,
+                feePayload,
+                MOCK_SAMOURAI_FEE_ADDRESS));
   }
 }

@@ -11,18 +11,24 @@ public class Tx0 extends Tx0Preview {
   private Transaction tx;
   private List<TransactionOutput> premixOutputs;
   private List<TransactionOutput> changeOutputs;
+  private TransactionOutput opReturnOutput;
+  private TransactionOutput samouraiFeeOutput;
 
   public Tx0(
       Tx0Preview tx0Preview,
       Collection<UnspentOutput> spendFroms,
       Transaction tx,
       List<TransactionOutput> premixOutputs,
-      List<TransactionOutput> changeOutputs) {
+      List<TransactionOutput> changeOutputs,
+      TransactionOutput opReturnOutput,
+      TransactionOutput samouraiFeeOutput) {
     super(tx0Preview);
     this.spendFroms = spendFroms;
     this.tx = tx;
     this.premixOutputs = premixOutputs;
     this.changeOutputs = changeOutputs;
+    this.opReturnOutput = opReturnOutput;
+    this.samouraiFeeOutput = samouraiFeeOutput;
   }
 
   public Collection<UnspentOutput> getSpendFroms() {
@@ -39,5 +45,13 @@ public class Tx0 extends Tx0Preview {
 
   public List<TransactionOutput> getChangeOutputs() {
     return changeOutputs;
+  }
+
+  public TransactionOutput getOpReturnOutput() {
+    return opReturnOutput;
+  }
+
+  public TransactionOutput getSamouraiFeeOutput() {
+    return samouraiFeeOutput;
   }
 }

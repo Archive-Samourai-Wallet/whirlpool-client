@@ -204,21 +204,21 @@ public abstract class AbstractCahootsTest extends AbstractWhirlpoolWalletTest {
     SENDER_PREMIX_84 = new String[40];
     for (int i = 0; i < 40; i++) {
       SENDER_PREMIX_84[i] =
-              BIP_FORMAT.SEGWIT_NATIVE.getAddressString(
-                      walletSupplierSender
-                              .getWallet(BIP_WALLET.PREMIX_BIP84)
-                              .getAddressAt(Chain.RECEIVE.getIndex(), i)
-                              .getHdAddress());
+          BIP_FORMAT.SEGWIT_NATIVE.getAddressString(
+              walletSupplierSender
+                  .getWallet(BIP_WALLET.PREMIX_BIP84)
+                  .getAddressAt(Chain.RECEIVE.getIndex(), i)
+                  .getHdAddress());
     }
 
     COUNTERPARTY_PREMIX_84 = new String[40];
     for (int i = 0; i < 40; i++) {
       COUNTERPARTY_PREMIX_84[i] =
-              BIP_FORMAT.SEGWIT_NATIVE.getAddressString(
-                      walletSupplierCounterparty
-                              .getWallet(BIP_WALLET.PREMIX_BIP84)
-                              .getAddressAt(Chain.RECEIVE.getIndex(), i)
-                              .getHdAddress());
+          BIP_FORMAT.SEGWIT_NATIVE.getAddressString(
+              walletSupplierCounterparty
+                  .getWallet(BIP_WALLET.PREMIX_BIP84)
+                  .getAddressAt(Chain.RECEIVE.getIndex(), i)
+                  .getHdAddress());
     }
   }
 

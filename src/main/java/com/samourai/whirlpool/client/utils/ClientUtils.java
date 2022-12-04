@@ -281,6 +281,18 @@ public class ClientUtils {
     return tx0Size;
   }
 
+  public static int computeTx0Size(int nbPremix, int nbSpendFrom, NetworkParameters params) {
+    int nbOutputsNonOpReturn = nbPremix + 2; // outputs + change + fee
+
+    int nbP2PKH = 0;
+    int nbP2SH = 0;
+    int nbP2WPKH = 0;
+
+    nbP2WPKH += nbSpendFrom; // estimate inputs with P2WPKH
+    int tx0Size = feeUtil.estimatedSizeSegwit(nbP2PKH, nbP2SH, nbP2WPKH, nbOutputsNonOpReturn, 1);
+    return tx0Size;
+  }
+
   public static long computeTx0SpendValue(
       long premixValue, int nbPremix, long feeValueOrFeeChange, long tx0MinerFee) {
     long spendValue = (premixValue * nbPremix) + feeValueOrFeeChange + tx0MinerFee;
