@@ -18,7 +18,10 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
+
+import org.bitcoinj.core.Coin;
 import org.bitcoinj.core.NetworkParameters;
+import org.bitcoinj.core.Transaction;
 import org.bitcoinj.core.TransactionInput;
 import org.bitcoinj.core.TransactionOutput;
 import org.slf4j.Logger;
@@ -140,6 +143,7 @@ public class Tx0x2Service extends AbstractCahoots2xService<Tx0x2, Tx0x2Context> 
   private List<CahootsUtxo> contributeInputs(
       List<CahootsUtxo> utxos, long spendMin, long spendTarget) throws Exception {
     long totalBalance = CahootsUtxo.sumValue(utxos).longValue();
+
     if (totalBalance < spendMin) {
       throw new Exception("Cannot compose #Cahoots: insufficient wallet balance");
     }
@@ -148,10 +152,29 @@ public class Tx0x2Service extends AbstractCahoots2xService<Tx0x2, Tx0x2Context> 
       return utxos; // use whole balance
     }
 
-    List<CahootsUtxo> selectedUTXO =
-        utxos; // TODO TX0X2 select random utxo-set >= spendTarget. Prefer only one UTXO when
-               // possible.
-    return selectedUTXO;
+    // TODO TX0X2 select random utxo-set >= spendTarget. Prefer only one UTXO when possible.
+    // Could maybe minimize change output, or optimize closest to Sender change. Would probably negate random selection.
+    shuffleUtxos(utxos);
+
+    List<CahootsUtxo> selectedUTXOs = new ArrayList<CahootsUtxo>();
+    long sumSelectedUTXOs = 0;
+
+    for (CahootsUtxo utxo : utxos) {
+      long utxoValue = utxo.getOutpoint().getValue().longValue();
+
+      if(utxoValue >= spendTarget) {
+        // select single utxo
+        List<CahootsUtxo> singleSelectedUTXO = new ArrayList<CahootsUtxo>();
+        singleSelectedUTXO.add(utxo);
+        return singleSelectedUTXO;
+      } else if (sumSelectedUTXOs < spendTarget) {
+        // add utxos until target reached
+        selectedUTXOs.add(utxo);
+        sumSelectedUTXOs += utxoValue;
+      }
+    }
+
+    return selectedUTXOs;
   }
 
   private List<TransactionOutput> contributePremixOutputs(
@@ -211,26 +234,86 @@ public class Tx0x2Service extends AbstractCahoots2xService<Tx0x2, Tx0x2Context> 
     long minerFeePaid = fee / 2L;
     cahootsContext.setMinerFeePaid(minerFeePaid); // sender & counterparty pay half minerFee
 
-    // add spender inputs
+    // add sender inputs
     List<CahootsUtxo> cahootsInputs = toCahootsUtxos(tx0Initiator.getSpendFroms(), cahootsContext);
     List<TransactionInput> inputs = cahootsContext.addInputs(cahootsInputs);
 
+    // add sender outputs
     List<TransactionOutput> outputs = new ArrayList<>();
 
     // TODO TX0X2 add opReturnOutput (from tx0Initiator)
+    // add OP_RETURN output
+    TransactionOutput opReturnOutput = tx0Initiator.getOpReturnOutput();
+    outputs.add(opReturnOutput);
 
     // TODO TX0X2 add samouraiFeeOutput (from tx0Initiator)
+    // add samourai fee output
+    TransactionOutput samouraiFeeOutput = tx0Initiator.getSamouraiFeeOutput();
+    outputs.add(samouraiFeeOutput);
 
     // TODO add spender premix outputs (from tx0Initiator) (limit to maxOutputsEach)
+    // add sender premix outputs (limit to maxOutputsEach)
+    List<TransactionOutput> premixOutputs = tx0Initiator.getPremixOutputs();
+    int maxOutputsEach = payload2.getMaxOutputsEach();
+    int position = 0;
+    for (TransactionOutput premixOutput : premixOutputs) {
+      if (position >= maxOutputsEach) {
+        break;
+      }
+      outputs.add(premixOutput);
+      position++;
+    }
+
+    // TODO add sender change output (senderInputsSum - senderPremixOutputsSum - samouraiFeeValueEach - minerFeePaid)
+    // add sender change output (senderInputsSum - senderPremixOutputsSum - samouraiFeeValueEach - minerFeePaid)
+    long senderInputsSum = CahootsUtxo.sumValue(cahootsInputs).longValue();
+    long senderPremixOutputsSum = 0;
+    if (premixOutputs.size() < maxOutputsEach){
+      senderPremixOutputsSum = payload2.getPremixValue() * premixOutputs.size();
+    } else {
+      senderPremixOutputsSum = payload2.getPremixValue() * maxOutputsEach;
+    }
+
+    long senderChangeAmount =
+      senderInputsSum
+      - senderPremixOutputsSum
+      - payload2.getSamouraiFeeValueEach()
+      - minerFeePaid;
 
     // use changeAddress from tx0Initiator to avoid index gap
     String changeAddress =
-        getBipFormatSupplier().getToAddress(tx0Initiator.getChangeOutputs().iterator().next());
-    // TODO add sender change output (senderInputsSum - senderPremixOutputsSum -
-    // samouraiFeeValueEach - minerFeePaid)
+            getBipFormatSupplier().getToAddress(tx0Initiator.getChangeOutputs().iterator().next());
 
-    // TODO TX0X2 update counterparty change output to deduce minerFeePaid (see STONEWALLX2Service
-    // as example)
+    if (log.isDebugEnabled()) {
+      log.debug("+output (Sender change) = " + changeAddress + ", value=" + senderChangeAmount);
+    }
+
+    TransactionOutput senderChangeOutput = computeTxOutput(changeAddress, senderChangeAmount, cahootsContext);
+    payload2.setCollabChange(changeAddress);
+    outputs.add(senderChangeOutput);
+
+    // TODO TX0X2 update counterparty change output to deduce minerFeePaid (see STONEWALLX2Service as example)
+    // update counterparty change output to deduce minerFeePaid
+    Transaction transaction = payload1.getTransaction();
+    TransactionOutput counterpartyChangeOutput = null;
+    for (TransactionOutput transactionOutput : transaction.getOutputs()) {
+      String toAddress = getBipFormatSupplier().getToAddress(transactionOutput);
+      if(toAddress.equalsIgnoreCase(payload1.getCollabChange())) {
+        counterpartyChangeOutput = transactionOutput;
+        break;
+      }
+    }
+    if (counterpartyChangeOutput == null) {
+      throw new Exception("Cannot compose #Cahoots: invalid tx outputs");
+    }
+
+    // counterparty pays half of fees
+    Coin counterpartyChangeValue = Coin.valueOf(counterpartyChangeOutput.getValue().longValue() - minerFeePaid);
+    if (log.isDebugEnabled()) {
+      log.debug("counterparty change output value post fee:" + counterpartyChangeValue);
+    }
+    counterpartyChangeOutput.setValue(counterpartyChangeValue);
+    payload2.getPSBT().setTransaction(transaction);
 
     payload2.doStep2(inputs, outputs);
     return payload2;
