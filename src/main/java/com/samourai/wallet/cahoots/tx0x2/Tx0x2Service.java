@@ -34,6 +34,9 @@ public class Tx0x2Service extends AbstractCahoots2xService<Tx0x2, Tx0x2Context> 
     super(CahootsType.TX0X2, bipFormatSupplier, params);
   }
 
+  //
+  // sender: step 0
+  //
   @Override
   public Tx0x2 startInitiator(Tx0x2Context cahootsContext) throws Exception {
     Tx0 tx0Initiator = cahootsContext.getTx0Initiator();
@@ -51,6 +54,9 @@ public class Tx0x2Service extends AbstractCahoots2xService<Tx0x2, Tx0x2Context> 
     return payload0;
   }
 
+  //
+  // counterparty: step 1
+  //
   @Override
   public Tx0x2 startCollaborator(Tx0x2Context cahootsContext, Tx0x2 tx0x20) throws Exception {
     Tx0x2 tx0x21 = doStep1(tx0x20, cahootsContext);
@@ -152,16 +158,14 @@ public class Tx0x2Service extends AbstractCahoots2xService<Tx0x2, Tx0x2Context> 
       return utxos; // use whole balance
     }
 
-    // TODO TX0X2 select random utxo-set >= spendTarget. Prefer only one UTXO when possible.
-    // Could maybe minimize change output, or optimize closest to Sender change. Would probably negate random selection.
-    shuffleUtxos(utxos);
-
+    // select random utxo-set >= spendTarget, prefer only one utxo when possible
     List<CahootsUtxo> selectedUTXOs = new ArrayList<CahootsUtxo>();
     long sumSelectedUTXOs = 0;
 
+    shuffleUtxos(utxos);
+
     for (CahootsUtxo utxo : utxos) {
       long utxoValue = utxo.getOutpoint().getValue().longValue();
-
       if(utxoValue >= spendTarget) {
         // select single utxo
         List<CahootsUtxo> singleSelectedUTXO = new ArrayList<CahootsUtxo>();
@@ -240,46 +244,25 @@ public class Tx0x2Service extends AbstractCahoots2xService<Tx0x2, Tx0x2Context> 
 
     // add sender outputs
     List<TransactionOutput> outputs = new ArrayList<>();
+    int maxOutputsEach = payload2.getMaxOutputsEach();
 
-    // TODO TX0X2 add opReturnOutput (from tx0Initiator)
     // add OP_RETURN output
     TransactionOutput opReturnOutput = tx0Initiator.getOpReturnOutput();
     outputs.add(opReturnOutput);
 
-    // TODO TX0X2 add samouraiFeeOutput (from tx0Initiator)
     // add samourai fee output
     TransactionOutput samouraiFeeOutput = tx0Initiator.getSamouraiFeeOutput();
     outputs.add(samouraiFeeOutput);
 
-    // TODO add spender premix outputs (from tx0Initiator) (limit to maxOutputsEach)
     // add sender premix outputs (limit to maxOutputsEach)
-    List<TransactionOutput> premixOutputs = tx0Initiator.getPremixOutputs();
-    int maxOutputsEach = payload2.getMaxOutputsEach();
-    int position = 0;
-    for (TransactionOutput premixOutput : premixOutputs) {
-      if (position >= maxOutputsEach) {
-        break;
-      }
+    contributeSenderPremixOutputs(cahootsContext, tx0Initiator, outputs, maxOutputsEach);
 
-      long premixOutputValue = premixOutput.getValue().longValue();
-      String changeAddress =
-              getBipFormatSupplier().getToAddress(premixOutput);
-
-      if (log.isDebugEnabled()) {
-        log.debug("+output (Sender change) = " + changeAddress + ", value=" + premixOutputValue);
-      }
-
-      TransactionOutput senderChangeOutput = computeTxOutput(changeAddress, premixOutputValue, cahootsContext);
-      outputs.add(premixOutput);
-      position++;
-    }
-
-    // TODO add sender change output (senderInputsSum - senderPremixOutputsSum - samouraiFeeValueEach - minerFeePaid)
     // add sender change output (senderInputsSum - senderPremixOutputsSum - samouraiFeeValueEach - minerFeePaid)
     long senderInputsSum = CahootsUtxo.sumValue(cahootsInputs).longValue();
+
     long senderPremixOutputsSum = 0;
-    if (premixOutputs.size() < maxOutputsEach){
-      senderPremixOutputsSum = payload2.getPremixValue() * premixOutputs.size();
+    if (nbPremixSender < maxOutputsEach){
+      senderPremixOutputsSum = payload2.getPremixValue() * nbPremixSender;
     } else {
       senderPremixOutputsSum = payload2.getPremixValue() * maxOutputsEach;
     }
@@ -302,7 +285,6 @@ public class Tx0x2Service extends AbstractCahoots2xService<Tx0x2, Tx0x2Context> 
     payload2.setCollabChange(changeAddress);
     outputs.add(senderChangeOutput);
 
-    // TODO TX0X2 update counterparty change output to deduce minerFeePaid (see STONEWALLX2Service as example)
     // update counterparty change output to deduce minerFeePaid
     Transaction transaction = payload1.getTransaction();
     TransactionOutput counterpartyChangeOutput = null;
@@ -329,6 +311,33 @@ public class Tx0x2Service extends AbstractCahoots2xService<Tx0x2, Tx0x2Context> 
     return payload2;
   }
 
+  private void contributeSenderPremixOutputs(
+      Tx0x2Context cahootsContext,
+      Tx0 tx0Initiator,
+      List<TransactionOutput> outputs,
+      int maxOutputsEach) throws Exception {
+    List<TransactionOutput> premixOutputs = tx0Initiator.getPremixOutputs();
+    int position = 0;
+    for (TransactionOutput premixOutput : premixOutputs) {
+      if (position >= maxOutputsEach) {
+        break;
+      }
+
+      long premixOutputValue = premixOutput.getValue().longValue();
+      String changeAddress =
+              getBipFormatSupplier().getToAddress(premixOutput);
+
+      if (log.isDebugEnabled()) {
+        log.debug("+output (Sender change) = " + changeAddress + ", value=" + premixOutputValue);
+      }
+
+      // add correct addresses to cahootsContext
+      TransactionOutput senderChangeOutput = computeTxOutput(changeAddress, premixOutputValue, cahootsContext);
+      outputs.add(premixOutput);
+      position++;
+    }
+  }
+  
   private List<CahootsUtxo> toCahootsUtxos(
       Collection<UnspentOutput> inputs, CahootsContext cahootsContext) throws Exception {
     CahootsWallet cahootsWallet = cahootsContext.getCahootsWallet();
@@ -361,6 +370,7 @@ public class Tx0x2Service extends AbstractCahoots2xService<Tx0x2, Tx0x2Context> 
   //
   @Override
   public Tx0x2 doStep3(Tx0x2 payload2, Tx0x2Context cahootsContext) throws Exception {
+    // set samourai fee for max spend check
     long samouraiFeeValueEach = payload2.getSamouraiFeeValueEach();
     cahootsContext.setSamouraiFee(samouraiFeeValueEach * 2);
 
@@ -374,6 +384,7 @@ public class Tx0x2Service extends AbstractCahoots2xService<Tx0x2, Tx0x2Context> 
   //
   @Override
   public Tx0x2 doStep4(Tx0x2 payload2, Tx0x2Context cahootsContext) throws Exception {
+    // set samourai fee for max spend check
     long samouraiFeeValueEach = payload2.getSamouraiFeeValueEach();
     cahootsContext.setSamouraiFee(samouraiFeeValueEach * 2);
 
@@ -382,15 +393,14 @@ public class Tx0x2Service extends AbstractCahoots2xService<Tx0x2, Tx0x2Context> 
     return payload3;
   }
 
+  //
+  // used in steps 3 & 4 to verify
+  //
   @Override
-  protected long computeMaxSpendAmount(long minerFee, Tx0x2Context cahootsContext)
-      throws Exception {
-    // TODO TX0X2 implement security checks
-
-    long maxSpendAmount;
+  protected long computeMaxSpendAmount(long minerFee, Tx0x2Context cahootsContext) {
     long sharedMinerFee = minerFee / 2; // splits miner fee
     long samouraiFeeValueEach = cahootsContext.getSamouraiFee() / 2;// splits samourai fee
-    maxSpendAmount = samouraiFeeValueEach + sharedMinerFee;
+    long maxSpendAmount = samouraiFeeValueEach + sharedMinerFee;
 
     if (log.isDebugEnabled()) {
       String prefix = "[" + cahootsContext.getCahootsType() + "/"+cahootsContext.getTypeUser() + "] ";
