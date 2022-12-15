@@ -69,13 +69,13 @@ public class Tx0x2Service extends AbstractCahoots2xService<Tx0x2, Tx0x2Context> 
     Tx0x2 payload;
     switch (step) {
       case 1:
-        payload = doStep2(cahoots, cahootsContext);
+        payload = doStep2(cahoots, cahootsContext); // sender
         break;
       case 2:
-        payload = doStep3(cahoots, cahootsContext);
+        payload = doStep3(cahoots, cahootsContext); // counterparty
         break;
       case 3:
-        payload = doStep4(cahoots, cahootsContext);
+        payload = doStep4(cahoots, cahootsContext); // sender
         break;
       default:
         throw new Exception("Unrecognized #Cahoots step");
@@ -260,6 +260,16 @@ public class Tx0x2Service extends AbstractCahoots2xService<Tx0x2, Tx0x2Context> 
       if (position >= maxOutputsEach) {
         break;
       }
+
+      long premixOutputValue = premixOutput.getValue().longValue();
+      String changeAddress =
+              getBipFormatSupplier().getToAddress(premixOutput);
+
+      if (log.isDebugEnabled()) {
+        log.debug("+output (Sender change) = " + changeAddress + ", value=" + premixOutputValue);
+      }
+
+      TransactionOutput senderChangeOutput = computeTxOutput(changeAddress, premixOutputValue, cahootsContext);
       outputs.add(premixOutput);
       position++;
     }
@@ -346,9 +356,51 @@ public class Tx0x2Service extends AbstractCahoots2xService<Tx0x2, Tx0x2Context> 
     return cahootsUtxos;
   }
 
+  //
+  // counterparty
+  //
+  @Override
+  public Tx0x2 doStep3(Tx0x2 payload2, Tx0x2Context cahootsContext) throws Exception {
+    long samouraiFeeValueEach = payload2.getSamouraiFeeValueEach();
+    cahootsContext.setSamouraiFee(samouraiFeeValueEach * 2);
+
+    Tx0x2 payload3 = super.doStep3(payload2, cahootsContext);
+
+    return payload3;
+  }
+
+  //
+  // sender
+  //
+  @Override
+  public Tx0x2 doStep4(Tx0x2 payload2, Tx0x2Context cahootsContext) throws Exception {
+    long samouraiFeeValueEach = payload2.getSamouraiFeeValueEach();
+    cahootsContext.setSamouraiFee(samouraiFeeValueEach * 2);
+
+    Tx0x2 payload3 = super.doStep4(payload2, cahootsContext);
+
+    return payload3;
+  }
+
   @Override
   protected long computeMaxSpendAmount(long minerFee, Tx0x2Context cahootsContext)
       throws Exception {
-    return 999999999; // TODO TX0X2 implement security checks
+    // TODO TX0X2 implement security checks
+
+    long maxSpendAmount;
+    long sharedMinerFee = minerFee / 2; // splits miner fee
+    long samouraiFeeValueEach = cahootsContext.getSamouraiFee() / 2;// splits samourai fee
+    maxSpendAmount = samouraiFeeValueEach + sharedMinerFee;
+
+    if (log.isDebugEnabled()) {
+      String prefix = "[" + cahootsContext.getCahootsType() + "/"+cahootsContext.getTypeUser() + "] ";
+      log.debug(
+        prefix
+        + "maxSpendAmount = " + maxSpendAmount
+        + ": samouraiFeeValueEach=" + samouraiFeeValueEach
+        + " + sharedMinerFee=" + sharedMinerFee);
+    }
+
+    return maxSpendAmount;
   }
 }
