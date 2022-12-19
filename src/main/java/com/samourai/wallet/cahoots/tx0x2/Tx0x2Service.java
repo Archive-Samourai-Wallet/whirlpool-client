@@ -10,6 +10,7 @@ import com.samourai.wallet.cahoots.CahootsUtxo;
 import com.samourai.wallet.cahoots.CahootsWallet;
 import com.samourai.wallet.hd.BipAddress;
 import com.samourai.wallet.util.FeeUtil;
+import com.samourai.wallet.util.TxUtil;
 import com.samourai.whirlpool.client.tx0.Tx0;
 import com.samourai.whirlpool.client.utils.ClientUtils;
 import com.samourai.whirlpool.client.wallet.beans.SamouraiAccountIndex;
@@ -18,7 +19,6 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
-
 import org.bitcoinj.core.Coin;
 import org.bitcoinj.core.NetworkParameters;
 import org.bitcoinj.core.Transaction;
@@ -166,7 +166,7 @@ public class Tx0x2Service extends AbstractCahoots2xService<Tx0x2, Tx0x2Context> 
 
     for (CahootsUtxo utxo : utxos) {
       long utxoValue = utxo.getOutpoint().getValue().longValue();
-      if(utxoValue >= spendTarget) {
+      if (utxoValue >= spendTarget) {
         // select single utxo
         List<CahootsUtxo> singleSelectedUTXO = new ArrayList<CahootsUtxo>();
         singleSelectedUTXO.add(utxo);
@@ -261,21 +261,17 @@ public class Tx0x2Service extends AbstractCahoots2xService<Tx0x2, Tx0x2Context> 
     long senderInputsSum = CahootsUtxo.sumValue(cahootsInputs).longValue();
 
     long senderPremixOutputsSum = 0;
-    if (nbPremixSender < maxOutputsEach){
-      senderPremixOutputsSum = payload2.getPremixValue() * nbPremixSender;
-    } else {
-      senderPremixOutputsSum = payload2.getPremixValue() * maxOutputsEach;
-    }
+    senderPremixOutputsSum = payload2.getPremixValue() * nbPremixSender;
 
     long senderChangeAmount =
-      senderInputsSum
-      - senderPremixOutputsSum
-      - payload2.getSamouraiFeeValueEach()
-      - minerFeePaid;
+        senderInputsSum
+            - senderPremixOutputsSum
+            - payload2.getSamouraiFeeValueEach()
+            - minerFeePaid;
 
     // use changeAddress from tx0Initiator to avoid index gap
     String changeAddress =
-            getBipFormatSupplier().getToAddress(tx0Initiator.getChangeOutputs().iterator().next());
+        getBipFormatSupplier().getToAddress(tx0Initiator.getChangeOutputs().iterator().next());
 
     if (log.isDebugEnabled()) {
       log.debug("+output (Sender change) = " + changeAddress + ", value=" + senderChangeAmount);
@@ -286,26 +282,20 @@ public class Tx0x2Service extends AbstractCahoots2xService<Tx0x2, Tx0x2Context> 
     outputs.add(senderChangeOutput);
 
     // update counterparty change output to deduce minerFeePaid
-    Transaction transaction = payload1.getTransaction();
-    TransactionOutput counterpartyChangeOutput = null;
-    for (TransactionOutput transactionOutput : transaction.getOutputs()) {
-      String toAddress = getBipFormatSupplier().getToAddress(transactionOutput);
-      if(toAddress.equalsIgnoreCase(payload1.getCollabChange())) {
-        counterpartyChangeOutput = transactionOutput;
-        break;
-      }
-    }
-    if (counterpartyChangeOutput == null) {
-      throw new Exception("Cannot compose #Cahoots: invalid tx outputs");
-    }
+    Transaction tx = payload1.getTransaction();
+    String collabChangeAddress = payload1.getCollabChange();
+    TransactionOutput counterpartyChangeOutput =
+        TxUtil.getInstance().findOutputByAddress(tx, collabChangeAddress, getBipFormatSupplier());
 
     // counterparty pays half of fees
     Coin counterpartyChangeValue = Coin.valueOf(counterpartyChangeOutput.getValue().longValue() - minerFeePaid);
+
     if (log.isDebugEnabled()) {
       log.debug("counterparty change output value post fee:" + counterpartyChangeValue);
     }
+
     counterpartyChangeOutput.setValue(counterpartyChangeValue);
-    payload2.getPSBT().setTransaction(transaction);
+    payload2.getPSBT().setTransaction(tx);
 
     payload2.doStep2(inputs, outputs);
     return payload2;
@@ -324,20 +314,20 @@ public class Tx0x2Service extends AbstractCahoots2xService<Tx0x2, Tx0x2Context> 
       }
 
       long premixOutputValue = premixOutput.getValue().longValue();
-      String changeAddress =
-              getBipFormatSupplier().getToAddress(premixOutput);
+      String changeAddress = getBipFormatSupplier().getToAddress(premixOutput);
 
       if (log.isDebugEnabled()) {
         log.debug("+output (Sender change) = " + changeAddress + ", value=" + premixOutputValue);
       }
 
       // add correct addresses to cahootsContext
-      TransactionOutput senderChangeOutput = computeTxOutput(changeAddress, premixOutputValue, cahootsContext);
+      TransactionOutput senderChangeOutput =
+          computeTxOutput(changeAddress, premixOutputValue, cahootsContext);
       outputs.add(premixOutput);
       position++;
     }
   }
-  
+
   private List<CahootsUtxo> toCahootsUtxos(
       Collection<UnspentOutput> inputs, CahootsContext cahootsContext) throws Exception {
     CahootsWallet cahootsWallet = cahootsContext.getCahootsWallet();
@@ -399,16 +389,20 @@ public class Tx0x2Service extends AbstractCahoots2xService<Tx0x2, Tx0x2Context> 
   @Override
   protected long computeMaxSpendAmount(long minerFee, Tx0x2Context cahootsContext) {
     long sharedMinerFee = minerFee / 2; // splits miner fee
-    long samouraiFeeValueEach = cahootsContext.getSamouraiFee() / 2;// splits samourai fee
+    long samouraiFeeValueEach = cahootsContext.getSamouraiFee() / 2; // splits samourai fee
     long maxSpendAmount = samouraiFeeValueEach + sharedMinerFee;
 
     if (log.isDebugEnabled()) {
-      String prefix = "[" + cahootsContext.getCahootsType() + "/"+cahootsContext.getTypeUser() + "] ";
+      String prefix =
+          "[" + cahootsContext.getCahootsType() + "/" + cahootsContext.getTypeUser() + "] ";
       log.debug(
-        prefix
-        + "maxSpendAmount = " + maxSpendAmount
-        + ": samouraiFeeValueEach=" + samouraiFeeValueEach
-        + " + sharedMinerFee=" + sharedMinerFee);
+          prefix
+              + "maxSpendAmount = "
+              + maxSpendAmount
+              + ": samouraiFeeValueEach="
+              + samouraiFeeValueEach
+              + " + sharedMinerFee="
+              + sharedMinerFee);
     }
 
     return maxSpendAmount;
