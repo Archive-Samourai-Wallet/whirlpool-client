@@ -286,6 +286,9 @@ public class Tx0x2Service extends AbstractCahoots2xService<Tx0x2, Tx0x2Context> 
     String collabChangeAddress = payload1.getCollabChange();
     TransactionOutput counterpartyChangeOutput =
         TxUtil.getInstance().findOutputByAddress(tx, collabChangeAddress, getBipFormatSupplier());
+    if (counterpartyChangeOutput == null) {
+      throw new Exception("Cannot compose #Cahoots: counterpartyChangeOutput not found");
+    }
 
     // counterparty pays half of fees
     Coin counterpartyChangeValue = Coin.valueOf(counterpartyChangeOutput.getValue().longValue() - minerFeePaid);
