@@ -1,26 +1,20 @@
 package com.samourai.whirlpool.client.wallet.data.walletState;
 
-import com.samourai.wallet.bipWallet.BipDerivation;
 import com.samourai.wallet.bipWallet.BipWallet;
 import com.samourai.wallet.client.indexHandler.AbstractIndexHandler;
 import com.samourai.wallet.client.indexHandler.IIndexHandler;
 import com.samourai.wallet.hd.Chain;
 import com.samourai.whirlpool.client.wallet.beans.ExternalDestination;
-import com.samourai.whirlpool.client.wallet.beans.WhirlpoolAccount;
 import com.samourai.whirlpool.client.wallet.data.supplier.AbstractPersistableSupplier;
 import com.samourai.whirlpool.client.wallet.data.supplier.IPersister;
-import java.util.LinkedHashMap;
-import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class WalletStatePersistableSupplier extends AbstractPersistableSupplier<WalletStateData>
     implements WalletStateSupplier {
   private static final Logger log = LoggerFactory.getLogger(WalletStatePersistableSupplier.class);
-  private static final String EXTERNAL_INDEX_HANDLER = "external";
 
-  private final IIndexHandler indexHandlerExternal;
-  private Map<String, IIndexHandler> indexHandlerWallets;
+  private final IndexHandlerManager indexHandlerManager;
 
   public WalletStatePersistableSupplier(
       IPersister<WalletStateData> persister, ExternalDestination externalDestination) {
@@ -28,8 +22,31 @@ public class WalletStatePersistableSupplier extends AbstractPersistableSupplier<
 
     int externalIndexDefault =
         externalDestination != null ? externalDestination.getStartIndex() : 0;
-    this.indexHandlerExternal = createIndexHandler(EXTERNAL_INDEX_HANDLER, externalIndexDefault);
-    this.indexHandlerWallets = new LinkedHashMap<String, IIndexHandler>();
+    this.indexHandlerManager =
+        new IndexHandlerManager(externalIndexDefault) {
+          @Override
+          protected IIndexHandler createIndexHandler(String persistKey, int defaultValue) {
+            return new AbstractIndexHandler() {
+              @Override
+              public int getAndIncrement() {
+                return getValue().getAndIncrement(persistKey, defaultValue);
+              }
+
+              @Override
+              public int get() {
+                return getValue().get(persistKey, defaultValue);
+              }
+
+              @Override
+              protected void set(int value) {
+                getValue().set(persistKey, value);
+                if (log.isDebugEnabled()) {
+                  log.debug("set: [" + persistKey + "]=" + value);
+                }
+              }
+            };
+          }
+        };
   }
 
   @Override
@@ -44,41 +61,12 @@ public class WalletStatePersistableSupplier extends AbstractPersistableSupplier<
 
   @Override
   public IIndexHandler getIndexHandlerWallet(BipWallet bipWallet, Chain chain) {
-    String persistKey =
-        computePersistKeyWallet(bipWallet.getAccount(), bipWallet.getDerivation(), chain);
-    IIndexHandler indexHandlerWallet = indexHandlerWallets.get(persistKey);
-    if (indexHandlerWallet == null) {
-      indexHandlerWallet = createIndexHandler(persistKey, 0);
-      indexHandlerWallets.put(persistKey, indexHandlerWallet);
-    }
-    return indexHandlerWallet;
+    return indexHandlerManager.getIndexHandlerWallet(bipWallet, chain);
   }
 
-  protected IIndexHandler createIndexHandler(final String persistKey, final int defaultValue) {
-    return new AbstractIndexHandler() {
-      @Override
-      public int getAndIncrement() {
-        return getValue().getAndIncrement(persistKey, defaultValue);
-      }
-
-      @Override
-      public int get() {
-        return getValue().get(persistKey, defaultValue);
-      }
-
-      @Override
-      protected void set(int value) {
-        getValue().set(persistKey, value);
-        if (log.isDebugEnabled()) {
-          log.debug("set: [" + persistKey + "]=" + value);
-        }
-      }
-    };
-  }
-
-  protected String computePersistKeyWallet(
-      WhirlpoolAccount account, BipDerivation bipDerivation, Chain chain) {
-    return account.name() + "_" + bipDerivation.getPurpose() + "_" + chain.getIndex();
+  @Override
+  public IIndexHandler getIndexHandlerExternal() {
+    return indexHandlerManager.getIndexHandlerExternal();
   }
 
   @Override
@@ -99,10 +87,5 @@ public class WalletStatePersistableSupplier extends AbstractPersistableSupplier<
   @Override
   public void setNymClaimed(boolean value) {
     getValue().setNymClaimed(value);
-  }
-
-  @Override
-  public IIndexHandler getIndexHandlerExternal() {
-    return indexHandlerExternal;
   }
 }
