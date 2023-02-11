@@ -81,17 +81,13 @@ public class AutoTx0Orchestrator extends AbstractOrchestrator {
     Collection<WhirlpoolUtxo> readyUtxos = new LinkedList<WhirlpoolUtxo>();
     for (WhirlpoolUtxo whirlpoolUtxo : spendFroms) {
       // check confirmation
-      int latestBlockHeight = whirlpoolWallet.getChainSupplier().getLatestBlock().height;
-      int confirmations = whirlpoolUtxo.computeConfirmations(latestBlockHeight);
-      if (confirmations >= config.getTx0MinConfirmations()) {
-        WhirlpoolUtxoStatus utxoStatus = whirlpoolUtxo.getUtxoState().getStatus();
-        if (utxoStatus != WhirlpoolUtxoStatus.TX0
-            && utxoStatus != WhirlpoolUtxoStatus.TX0_SUCCESS
-            && utxoStatus != WhirlpoolUtxoStatus.MIX_STARTED
-            && utxoStatus != WhirlpoolUtxoStatus.MIX_SUCCESS) {
-          // spend from ready utxos
-          readyUtxos.add(whirlpoolUtxo);
-        }
+      WhirlpoolUtxoStatus utxoStatus = whirlpoolUtxo.getUtxoState().getStatus();
+      if (utxoStatus != WhirlpoolUtxoStatus.TX0
+          && utxoStatus != WhirlpoolUtxoStatus.TX0_SUCCESS
+          && utxoStatus != WhirlpoolUtxoStatus.MIX_STARTED
+          && utxoStatus != WhirlpoolUtxoStatus.MIX_SUCCESS) {
+        // spend from ready utxos
+        readyUtxos.add(whirlpoolUtxo);
       }
     }
 
@@ -203,21 +199,8 @@ public class AutoTx0Orchestrator extends AbstractOrchestrator {
     boolean notify = false;
 
     // DETECTED
-    for (WhirlpoolUtxo whirlpoolUtxo : whirlpoolUtxoChanges.getUtxosAdded()) {
-      int latestBlockHeight = whirlpoolWallet.getChainSupplier().getLatestBlock().height;
-      if (whirlpoolUtxo.computeConfirmations(latestBlockHeight)
-          >= config.getTx0MinConfirmations()) {
-        notify = true;
-      }
-    }
-
-    // UPDATED
-    for (WhirlpoolUtxo whirlpoolUtxo : whirlpoolUtxoChanges.getUtxosAdded()) {
-      int latestBlockHeight = whirlpoolWallet.getChainSupplier().getLatestBlock().height;
-      if (whirlpoolUtxo.computeConfirmations(latestBlockHeight)
-          >= config.getTx0MinConfirmations()) {
-        notify = true;
-      }
+    if (!whirlpoolUtxoChanges.getUtxosAdded().isEmpty()) {
+      notify = true;
     }
 
     if (notify) {

@@ -29,7 +29,6 @@ import com.samourai.whirlpool.client.event.*;
 import com.samourai.whirlpool.client.exception.NotifiableException;
 import com.samourai.whirlpool.client.exception.PostmixIndexAlreadyUsedException;
 import com.samourai.whirlpool.client.exception.PushTxErrorResponseException;
-import com.samourai.whirlpool.client.exception.UnconfirmedUtxoException;
 import com.samourai.whirlpool.client.mix.MixParams;
 import com.samourai.whirlpool.client.mix.handler.MixDestination;
 import com.samourai.whirlpool.client.mix.listener.MixFailReason;
@@ -331,15 +330,6 @@ public class WhirlpoolWallet {
 
   public Tx0 runTx0(Collection<UnspentOutput> spendFroms, Tx0Config tx0Config, Pool pool)
       throws Exception {
-
-    // check confirmations
-    for (UnspentOutput spendFrom : spendFroms) {
-      if (spendFrom.confirmations < config.getTx0MinConfirmations()) {
-        log.error("Minimum confirmation(s) for tx0: " + config.getTx0MinConfirmations());
-        throw new UnconfirmedUtxoException(spendFrom);
-      }
-    }
-
     int initialPremixIndex = getWalletPremix().getIndexHandlerReceive().get();
     int initialChangeIndex = getWalletDeposit().getIndexHandlerChange().get();
     try {

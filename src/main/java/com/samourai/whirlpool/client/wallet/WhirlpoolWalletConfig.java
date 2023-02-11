@@ -55,7 +55,6 @@ public class WhirlpoolWalletConfig extends WhirlpoolClientConfig
   private int tx0MaxRetry;
   private Map<String, Long> overspend;
 
-  private int tx0MinConfirmations;
   private int refreshUtxoDelay;
   private int refreshPoolsDelay;
   private int refreshPaynymDelay;
@@ -118,7 +117,6 @@ public class WhirlpoolWalletConfig extends WhirlpoolClientConfig
     this.overspend = new LinkedHashMap<String, Long>();
 
     // technical settings
-    this.tx0MinConfirmations = 0;
     this.refreshUtxoDelay = 60; // 1min
     this.refreshPoolsDelay = 600; // 10min
     this.refreshPaynymDelay = 3600; // 1h
@@ -302,14 +300,6 @@ public class WhirlpoolWalletConfig extends WhirlpoolClientConfig
 
   public void setOverspend(Map<String, Long> overspend) {
     this.overspend = overspend;
-  }
-
-  public int getTx0MinConfirmations() {
-    return tx0MinConfirmations;
-  }
-
-  public void setTx0MinConfirmations(int tx0MinConfirmations) {
-    this.tx0MinConfirmations = tx0MinConfirmations;
   }
 
   public int getRefreshUtxoDelay() {
