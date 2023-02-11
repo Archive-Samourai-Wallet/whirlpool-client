@@ -3,6 +3,7 @@ package com.samourai.whirlpool.client.wallet;
 import com.google.common.eventbus.Subscribe;
 import com.samourai.wallet.api.backend.beans.UnspentOutput;
 import com.samourai.wallet.api.backend.beans.WalletResponse;
+import com.samourai.wallet.bipWallet.BipWallet;
 import com.samourai.wallet.util.MessageListener;
 import com.samourai.whirlpool.client.event.UtxoChangesEvent;
 import com.samourai.whirlpool.client.test.AbstractTest;
@@ -52,6 +53,12 @@ public class AbstractWhirlpoolWalletTest extends AbstractTest {
     WhirlpoolWalletConfig whirlpoolWalletConfig = computeWhirlpoolWalletConfig();
     WhirlpoolWallet whirlpoolWallet = new WhirlpoolWallet(whirlpoolWalletConfig, seed, passphrase);
     whirlpoolWallet = whirlpoolWalletService.openWallet(whirlpoolWallet, passphrase);
+
+    // reset
+    for (BipWallet bipWallet : whirlpoolWallet.getWalletSupplier().getWallets()) {
+      bipWallet.getIndexHandlerReceive().set(0, true);
+      bipWallet.getIndexHandlerChange().set(0, true);
+    }
     return whirlpoolWallet;
   }
 
