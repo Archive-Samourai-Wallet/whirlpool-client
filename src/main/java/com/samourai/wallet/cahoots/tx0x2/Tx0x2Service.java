@@ -257,7 +257,8 @@ public class Tx0x2Service extends AbstractCahoots2xService<Tx0x2, Tx0x2Context> 
     // add sender premix outputs (limit to maxOutputsEach)
     contributeSenderPremixOutputs(cahootsContext, tx0Initiator, outputs, maxOutputsEach);
 
-    // add sender change output (senderInputsSum - senderPremixOutputsSum - samouraiFeeValueEach - minerFeePaid)
+    // add sender change output (senderInputsSum - senderPremixOutputsSum - samouraiFeeValueEach -
+    // minerFeePaid)
     long senderInputsSum = CahootsUtxo.sumValue(cahootsInputs).longValue();
 
     long senderPremixOutputsSum = 0;
@@ -277,7 +278,8 @@ public class Tx0x2Service extends AbstractCahoots2xService<Tx0x2, Tx0x2Context> 
       log.debug("+output (Sender change) = " + changeAddress + ", value=" + senderChangeAmount);
     }
 
-    TransactionOutput senderChangeOutput = computeTxOutput(changeAddress, senderChangeAmount, cahootsContext);
+    TransactionOutput senderChangeOutput =
+        computeTxOutput(changeAddress, senderChangeAmount, cahootsContext);
     payload2.setCollabChange(changeAddress);
     outputs.add(senderChangeOutput);
 
@@ -291,7 +293,8 @@ public class Tx0x2Service extends AbstractCahoots2xService<Tx0x2, Tx0x2Context> 
     }
 
     // counterparty pays half of fees
-    Coin counterpartyChangeValue = Coin.valueOf(counterpartyChangeOutput.getValue().longValue() - minerFeePaid);
+    Coin counterpartyChangeValue =
+        Coin.valueOf(counterpartyChangeOutput.getValue().longValue() - minerFeePaid);
 
     if (log.isDebugEnabled()) {
       log.debug("counterparty change output value post fee:" + counterpartyChangeValue);
@@ -308,7 +311,8 @@ public class Tx0x2Service extends AbstractCahoots2xService<Tx0x2, Tx0x2Context> 
       Tx0x2Context cahootsContext,
       Tx0 tx0Initiator,
       List<TransactionOutput> outputs,
-      int maxOutputsEach) throws Exception {
+      int maxOutputsEach)
+      throws Exception {
     List<TransactionOutput> premixOutputs = tx0Initiator.getPremixOutputs();
     int position = 0;
     for (TransactionOutput premixOutput : premixOutputs) {
