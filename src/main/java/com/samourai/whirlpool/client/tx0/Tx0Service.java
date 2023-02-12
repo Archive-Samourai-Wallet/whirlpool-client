@@ -14,12 +14,25 @@ import com.samourai.wallet.segwit.bech32.Bech32UtilGeneric;
 import com.samourai.wallet.send.MyTransactionOutPoint;
 import com.samourai.wallet.send.SendFactoryGeneric;
 import com.samourai.wallet.send.provider.UtxoKeyProvider;
+import com.samourai.wallet.util.AsyncUtil;
 import com.samourai.wallet.util.TxUtil;
+import com.samourai.whirlpool.client.event.Tx0Event;
 import com.samourai.whirlpool.client.exception.NotifiableException;
+import com.samourai.whirlpool.client.exception.PushTxErrorResponseException;
 import com.samourai.whirlpool.client.utils.BIP69InputComparatorUnspentOutput;
+import com.samourai.whirlpool.client.utils.ClientUtils;
+import com.samourai.whirlpool.client.wallet.WhirlpoolEventService;
+import com.samourai.whirlpool.client.wallet.WhirlpoolWallet;
+import com.samourai.whirlpool.client.wallet.data.pool.PoolSupplier;
+import com.samourai.whirlpool.client.whirlpool.ServerApi;
 import com.samourai.whirlpool.client.whirlpool.beans.Pool;
 import com.samourai.whirlpool.client.whirlpool.beans.Tx0Data;
+import com.samourai.whirlpool.protocol.WhirlpoolProtocol;
 import com.samourai.whirlpool.protocol.feeOpReturn.FeeOpReturnImpl;
+import com.samourai.whirlpool.protocol.rest.PushTxErrorResponse;
+import com.samourai.whirlpool.protocol.rest.PushTxSuccessResponse;
+import com.samourai.whirlpool.protocol.rest.Tx0PushRequest;
+import io.reactivex.Single;
 import java.util.*;
 import org.bitcoinj.core.*;
 import org.bitcoinj.script.Script;
@@ -166,6 +179,17 @@ public class Tx0Service {
       log.debug("Tx0 size: " + tx.getVirtualTransactionSize() + "b, feePrice=" + feePrice + "s/b");
     }
     return tx0;
+  }
+
+  protected byte[] computeOpReturn(UnspentOutput firstInput, byte[] firstInputKey, Tx0Data tx0Data)
+      throws Exception {
+
+    // use input0 for masking
+    TransactionOutPoint maskingOutpoint = firstInput.computeOutpoint(params);
+    String feePaymentCode = tx0Data.getFeePaymentCode();
+    byte[] feePayload = tx0Data.getFeePayload();
+    return feeOpReturnImpl.computeOpReturn(
+        feePaymentCode, feePayload, maskingOutpoint, firstInputKey);
   }
 
   protected Tx0 buildTx0(
@@ -362,20 +386,177 @@ public class Tx0Service {
     return changeUtxos;
   }
 
+  public List<Tx0> tx0Cascade(
+      Collection<UnspentOutput> spendFroms,
+      WalletSupplier walletSupplier,
+      PoolSupplier poolSupplier,
+      Pool pool,
+      Tx0Config tx0Config,
+      UtxoKeyProvider utxoKeyProvider)
+      throws Exception {
+    if (!tx0Config.isCascading()) {
+      throw new Exception("Invalid tx0Config.cascading");
+    }
+    List<Tx0> tx0List = new ArrayList<>();
+
+    // initial Tx0
+    if (log.isDebugEnabled()) {
+      log.debug(" +Tx0 cascading for poolId=" + pool.getPoolId() + "... (1/x)");
+    }
+    Tx0 tx0 = tx0(spendFroms, walletSupplier, pool, tx0Config, utxoKeyProvider);
+    tx0List.add(tx0);
+    tx0Config.setCascadingParent(tx0);
+    UnspentOutput unspentOutputChange = findTx0Change(tx0);
+
+    // begin cascading
+    Collection<Pool> pools = poolSupplier.getPools();
+    for (Pool currentPool : pools) {
+      if (unspentOutputChange == null) {
+        break; // stop when no tx0 change
+      }
+      if (pool.getDenomination() <= currentPool.getDenomination()) {
+        // hop to next lower pool
+        continue;
+      }
+
+      try {
+        if (log.isDebugEnabled()) {
+          log.debug(
+              " +Tx0 cascading for poolId="
+                  + currentPool.getPoolId()
+                  + "... ("
+                  + (tx0List.size() + 1)
+                  + "/x)");
+        }
+        tx0 =
+            tx0(
+                Collections.singletonList(unspentOutputChange),
+                walletSupplier,
+                currentPool,
+                tx0Config,
+                utxoKeyProvider);
+        tx0List.add(tx0);
+        tx0Config.setCascadingParent(tx0);
+        unspentOutputChange = findTx0Change(tx0);
+      } catch (Exception e) {
+        // Tx0 is not possible for this pool, ignore it
+        if (log.isDebugEnabled()) {
+          log.debug(
+              "Tx0 cascading skipped for poolId=" + currentPool.getPoolId() + ": " + e.getMessage(),
+              e);
+        }
+      }
+    }
+    return tx0List;
+  }
+
+  private UnspentOutput findTx0Change(Tx0 tx0) {
+    if (tx0.getChangeUtxos().isEmpty()) {
+      // no tx0 change
+      return null;
+    }
+    return tx0.getChangeUtxos().get(0);
+  }
+
   protected void signTx0(Transaction tx, KeyBag keyBag, BipFormatSupplier bipFormatSupplier)
       throws Exception {
     SendFactoryGeneric.getInstance().signTransaction(tx, keyBag, bipFormatSupplier);
   }
 
-  protected byte[] computeOpReturn(UnspentOutput firstInput, byte[] firstInputKey, Tx0Data tx0Data)
+  public Single<PushTxSuccessResponse> pushTx0(Tx0 tx0, WhirlpoolWallet whirlpoolWallet)
       throws Exception {
+    // push to coordinator
+    String tx64 = WhirlpoolProtocol.encodeBytes(tx0.getTx().bitcoinSerialize());
+    String poolId = tx0.getPool().getPoolId();
+    Tx0PushRequest request = new Tx0PushRequest(tx64, poolId);
+    ServerApi serverApi = whirlpoolWallet.getConfig().getServerApi();
+    return serverApi
+        .pushTx0(request)
+        .doOnSuccess(
+            pushTxSuccessResponse -> {
+              // notify
+              WhirlpoolEventService.getInstance().post(new Tx0Event(whirlpoolWallet, tx0));
+            });
+  }
 
-    // use input0 for masking
-    TransactionOutPoint maskingOutpoint = firstInput.computeOutpoint(params);
-    String feePaymentCode = tx0Data.getFeePaymentCode();
-    byte[] feePayload = tx0Data.getFeePayload();
-    return feeOpReturnImpl.computeOpReturn(
-        feePaymentCode, feePayload, maskingOutpoint, firstInputKey);
+  public PushTxSuccessResponse pushTx0WithRetryOnAddressReuse(
+      Tx0 tx0, WhirlpoolWallet whirlpoolWallet) throws Exception {
+    int tx0MaxRetry = whirlpoolWallet.getConfig().getTx0MaxRetry();
+
+    // pushTx0 with multiple attempts on address-reuse
+    Exception pushTx0Exception = null;
+    for (int i = 0; i < tx0MaxRetry; i++) {
+      log.info(" • Pushing Tx0: txid=" + tx0.getTx().getHashAsString());
+      if (log.isDebugEnabled()) {
+        log.debug(tx0.getTx().toString());
+      }
+      try {
+        return AsyncUtil.getInstance().blockingGet(pushTx0(tx0, whirlpoolWallet));
+      } catch (PushTxErrorResponseException e) {
+        PushTxErrorResponse pushTxErrorResponse = e.getPushTxErrorResponse();
+        log.warn(
+            "tx0 failed: "
+                + e.getMessage()
+                + ", attempt="
+                + (i + 1)
+                + "/"
+                + tx0MaxRetry
+                + ", pushTxErrorCode="
+                + pushTxErrorResponse.pushTxErrorCode);
+
+        if (pushTxErrorResponse.voutsAddressReuse == null
+            || pushTxErrorResponse.voutsAddressReuse.isEmpty()) {
+          throw e; // not an address-reuse
+        }
+
+        // retry on address-reuse
+        pushTx0Exception = e;
+        tx0 =
+            tx0Retry(
+                tx0,
+                pushTxErrorResponse,
+                whirlpoolWallet.getWalletSupplier(),
+                whirlpoolWallet.getUtxoSupplier());
+      }
+    }
+    throw pushTx0Exception;
+  }
+
+  private Tx0 tx0Retry(
+      Tx0 tx0,
+      PushTxErrorResponse pushTxErrorResponse,
+      WalletSupplier walletSupplier,
+      UtxoKeyProvider utxoKeyProvider)
+      throws Exception {
+    // manage premix address reuses
+    Collection<Integer> premixOutputIndexs = ClientUtils.getOutputIndexs(tx0.getPremixOutputs());
+    boolean isPremixReuse =
+        pushTxErrorResponse.voutsAddressReuse != null
+            && !ClientUtils.intersect(pushTxErrorResponse.voutsAddressReuse, premixOutputIndexs)
+                .isEmpty();
+    if (!isPremixReuse) {
+      if (log.isDebugEnabled()) {
+        log.debug("isPremixReuse=false => reverting tx0 premix index");
+      }
+      tx0.getTx0Context().revertIndexPremix();
+    }
+
+    // manage change address reuses
+    Collection<Integer> changeOutputIndexs = ClientUtils.getOutputIndexs(tx0.getChangeOutputs());
+    boolean isChangeReuse =
+        pushTxErrorResponse.voutsAddressReuse != null
+            && !ClientUtils.intersect(pushTxErrorResponse.voutsAddressReuse, changeOutputIndexs)
+                .isEmpty();
+
+    if (!isChangeReuse) {
+      if (log.isDebugEnabled()) {
+        log.debug("isChangeReuse=false => reverting tx0 change index");
+      }
+      tx0.getTx0Context().revertIndexChange();
+    }
+
+    // rebuild a TX0 with new indexes
+    return tx0(tx0.getSpendFroms(), walletSupplier, tx0.getTx0Config(), tx0, utxoKeyProvider);
   }
 
   public Tx0PreviewService getTx0PreviewService() {
