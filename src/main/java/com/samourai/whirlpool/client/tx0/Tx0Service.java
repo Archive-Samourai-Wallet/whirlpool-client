@@ -23,9 +23,9 @@ import com.samourai.whirlpool.client.utils.BIP69InputComparatorUnspentOutput;
 import com.samourai.whirlpool.client.utils.ClientUtils;
 import com.samourai.whirlpool.client.wallet.WhirlpoolEventService;
 import com.samourai.whirlpool.client.wallet.WhirlpoolWallet;
-import com.samourai.whirlpool.client.wallet.data.pool.PoolSupplier;
 import com.samourai.whirlpool.client.whirlpool.ServerApi;
 import com.samourai.whirlpool.client.whirlpool.beans.Pool;
+import com.samourai.whirlpool.client.whirlpool.beans.PoolComparatorByDenominationDesc;
 import com.samourai.whirlpool.client.whirlpool.beans.Tx0Data;
 import com.samourai.whirlpool.protocol.WhirlpoolProtocol;
 import com.samourai.whirlpool.protocol.feeOpReturn.FeeOpReturnImpl;
@@ -389,41 +389,39 @@ public class Tx0Service {
   public List<Tx0> tx0Cascade(
       Collection<UnspentOutput> spendFroms,
       WalletSupplier walletSupplier,
-      PoolSupplier poolSupplier,
-      Pool pool,
+      Collection<Pool> poolsChoice,
       Tx0Config tx0Config,
       UtxoKeyProvider utxoKeyProvider)
       throws Exception {
-    if (!tx0Config.isCascading()) {
-      throw new Exception("Invalid tx0Config.cascading");
-    }
     List<Tx0> tx0List = new ArrayList<>();
 
-    // initial Tx0
+    // sort pools by denomination
+    List<Pool> pools = new LinkedList<>(poolsChoice);
+    Collections.sort(pools, new PoolComparatorByDenominationDesc());
+
+    // initial Tx0 on highest pool
+    Iterator<Pool> poolsIter = pools.iterator();
+    Pool poolInitial = poolsIter.next();
     if (log.isDebugEnabled()) {
-      log.debug(" +Tx0 cascading for poolId=" + pool.getPoolId() + "... (1/x)");
+      log.debug(" +Tx0 cascading for poolId=" + poolInitial.getPoolId() + "... (1/x)");
     }
-    Tx0 tx0 = tx0(spendFroms, walletSupplier, pool, tx0Config, utxoKeyProvider);
+    Tx0 tx0 = tx0(spendFroms, walletSupplier, poolInitial, tx0Config, utxoKeyProvider);
     tx0List.add(tx0);
     tx0Config.setCascadingParent(tx0);
     UnspentOutput unspentOutputChange = findTx0Change(tx0);
 
-    // begin cascading
-    Collection<Pool> pools = poolSupplier.getPools();
-    for (Pool currentPool : pools) {
+    // Tx0 cascading for remaining pools
+    while (poolsIter.hasNext()) {
+      Pool pool = poolsIter.next();
       if (unspentOutputChange == null) {
         break; // stop when no tx0 change
-      }
-      if (pool.getDenomination() <= currentPool.getDenomination()) {
-        // hop to next lower pool
-        continue;
       }
 
       try {
         if (log.isDebugEnabled()) {
           log.debug(
               " +Tx0 cascading for poolId="
-                  + currentPool.getPoolId()
+                  + pool.getPoolId()
                   + "... ("
                   + (tx0List.size() + 1)
                   + "/x)");
@@ -432,7 +430,7 @@ public class Tx0Service {
             tx0(
                 Collections.singletonList(unspentOutputChange),
                 walletSupplier,
-                currentPool,
+                pool,
                 tx0Config,
                 utxoKeyProvider);
         tx0List.add(tx0);
@@ -442,8 +440,7 @@ public class Tx0Service {
         // Tx0 is not possible for this pool, ignore it
         if (log.isDebugEnabled()) {
           log.debug(
-              "Tx0 cascading skipped for poolId=" + currentPool.getPoolId() + ": " + e.getMessage(),
-              e);
+              "Tx0 cascading skipped for poolId=" + pool.getPoolId() + ": " + e.getMessage(), e);
         }
       }
     }

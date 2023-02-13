@@ -244,13 +244,22 @@ public class WhirlpoolWallet {
     }
   }
 
-  protected List<Tx0> runTx0Cascade(
-      Collection<UnspentOutput> spendFroms, Tx0Config tx0Config, Pool pool) throws Exception {
+  public List<Tx0> tx0Cascade(
+      Collection<WhirlpoolUtxo> whirlpoolUtxos, Collection<Pool> pools, Tx0Config tx0Config)
+      throws Exception {
+    // adapt tx0Cascade() for WhirlpoolUtxo
+    Callable<List<Tx0>> runTx0 =
+        () -> tx0Cascade(WhirlpoolUtxo.toUnspentOutputs(whirlpoolUtxos), tx0Config, pools);
+    return handleUtxoStatusForTx0(whirlpoolUtxos, runTx0);
+  }
+
+  public List<Tx0> tx0Cascade(
+      Collection<UnspentOutput> spendFroms, Tx0Config tx0Config, Collection<Pool> pools)
+      throws Exception {
 
     // create TX0s
     List<Tx0> tx0List =
-        tx0Service.tx0Cascade(
-            spendFroms, getWalletSupplier(), getPoolSupplier(), pool, tx0Config, getUtxoSupplier());
+        tx0Service.tx0Cascade(spendFroms, getWalletSupplier(), pools, tx0Config, getUtxoSupplier());
 
     // broadcast each TX0
     for (Tx0 tx0 : tx0List) {
@@ -274,16 +283,6 @@ public class WhirlpoolWallet {
   }
 
   public Tx0 tx0(Collection<UnspentOutput> spendFroms, Tx0Config tx0Config, Pool pool)
-      throws Exception {
-    if (tx0Config.isCascading() && tx0Config.getCascadingParent() == null) {
-      // entry point for cascading
-      // returns the first TX0 of the cascading list
-      return runTx0Cascade(spendFroms, tx0Config, pool).stream().findFirst().get();
-    }
-    return runTx0(spendFroms, tx0Config, pool);
-  }
-
-  public Tx0 runTx0(Collection<UnspentOutput> spendFroms, Tx0Config tx0Config, Pool pool)
       throws Exception {
     int initialPremixIndex = getWalletPremix().getIndexHandlerReceive().get();
     int initialChangeIndex = getWalletDeposit().getIndexHandlerChange().get();
