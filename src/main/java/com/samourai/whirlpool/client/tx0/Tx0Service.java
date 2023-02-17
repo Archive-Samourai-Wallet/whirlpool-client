@@ -21,6 +21,7 @@ import com.samourai.whirlpool.client.exception.NotifiableException;
 import com.samourai.whirlpool.client.exception.PushTxErrorResponseException;
 import com.samourai.whirlpool.client.utils.BIP69InputComparatorUnspentOutput;
 import com.samourai.whirlpool.client.utils.ClientUtils;
+import com.samourai.whirlpool.client.utils.SpendFromsComparator;
 import com.samourai.whirlpool.client.wallet.WhirlpoolEventService;
 import com.samourai.whirlpool.client.wallet.WhirlpoolWallet;
 import com.samourai.whirlpool.client.whirlpool.ServerApi;
@@ -73,6 +74,11 @@ public class Tx0Service {
       Tx0Config tx0Config,
       UtxoKeyProvider utxoKeyProvider)
       throws Exception {
+
+    // if decoy Tx0x2 flag set, verify wallet can construct
+    if (tx0Config.isDecoyTx0x2() && tx0Config.getCascadingParent() == null) {
+      checkDecoyTx0x2Eligible(spendFroms, pool);
+    }
 
     // compute & preview
     Tx0Previews tx0Previews = tx0PreviewService.tx0Previews(tx0Config, spendFroms);
@@ -271,27 +277,102 @@ public class Tx0Service {
     }
 
     //
-    // 1 or 2 change output(s)
+    // 1 or 2 change output(s) [Tx0]
+    // 2 or 3 change outputs [Decoy Tx0x2]
     //
     List<TransactionOutput> changeOutputs = new LinkedList<>();
     List<BipAddress> changeOutputsAddresses = new LinkedList<>();
     if (changeValueTotal > 0) {
-      BipAddress changeAddress = changeWallet.getNextChangeAddress();
-      String changeAddressBech32 = changeAddress.getAddressString();
-      TransactionOutput changeOutput =
-          bech32Util.getTransactionOutput(changeAddressBech32, changeValueTotal, params);
-      outputs.add(changeOutput);
-      changeOutputs.add(changeOutput);
-      changeOutputsAddresses.add(changeAddress);
-      if (log.isDebugEnabled()) {
-        log.debug(
-            "Tx0 out (change): address="
-                + changeAddressBech32
-                + ", path="
-                + changeAddress.getPathAddress()
-                + " ("
-                + changeValueTotal
-                + " sats)");
+      if (!tx0Config.isDecoyTx0x2()) {
+        // normal Tx0
+        BipAddress changeAddress = changeWallet.getNextChangeAddress();
+        String changeAddressBech32 = changeAddress.getAddressString();
+        TransactionOutput changeOutput =
+            bech32Util.getTransactionOutput(changeAddressBech32, changeValueTotal, params);
+        outputs.add(changeOutput);
+        changeOutputs.add(changeOutput);
+        changeOutputsAddresses.add(changeAddress);
+        if (log.isDebugEnabled()) {
+          log.debug(
+              "Tx0 out (change): address="
+                  + changeAddressBech32
+                  + ", path="
+                  + changeAddress.getPathAddress()
+                  + " ("
+                  + changeValueTotal
+                  + " sats)");
+        }
+      } else {
+        // decoy Tx0x2: split change between 2 change addresses
+        BipAddress changeAddressDecoyA = changeWallet.getNextChangeAddress();
+        BipAddress changeAddressDecoyB = changeWallet.getNextChangeAddress();
+        String changeAddressBech32DecoyA = changeAddressDecoyA.getAddressString();
+        String changeAddressBech32DecoyB = changeAddressDecoyB.getAddressString();
+        long changeValueTotalA = 0L;
+        long changeValueTotalB = 0L;
+        long changeValueDifference = 0L;
+
+        String pool = tx0Preview.getPool().getPoolId();
+        if (pool.equals("0.001btc")) {
+          // lowest pool - split change evenly
+          changeValueTotalA = changeValueTotal / 2L;
+          changeValueTotalB = changeValueTotalA;
+          changeValueDifference = changeValueTotal - changeValueTotalA - changeValueTotalB;
+          if (changeValueDifference == 1) {
+            // add 1 sat to miner fee
+            tx0Preview.incrementTx0MinerFee();
+          } else if (changeValueDifference != 0) {
+            throw new Exception(
+                "Issue generating change for Decoy Tx0x2, please report this bug. changeValueDifference="
+                + changeValueDifference
+                + pool);
+          }
+        } else {
+          // higher pools - splits change randomly (10-90% range)
+          Random rand = new Random();
+          double r = (rand.nextDouble() * 0.8) + 0.1;
+          changeValueTotalA = (long) (changeValueTotal * r);
+          changeValueTotalB = (long) (changeValueTotal * (1 - r));
+          changeValueDifference = changeValueTotal - changeValueTotalA - changeValueTotalB;
+          if (changeValueDifference == 1) {
+            changeValueTotalA += 1;
+          } else if (changeValueDifference != 0) {
+            throw new Exception(
+                "Issue generating change for Decoy Tx0x2, please report this bug. changeValueDifference="
+                + changeValueDifference
+                + pool);
+          }
+
+        }
+
+        TransactionOutput changeOutputDecoyA =
+            bech32Util.getTransactionOutput(changeAddressBech32DecoyA, changeValueTotalA, params);
+        TransactionOutput changeOutputDecoyB =
+            bech32Util.getTransactionOutput(changeAddressBech32DecoyB, changeValueTotalB, params);
+        outputs.add(changeOutputDecoyA);
+        outputs.add(changeOutputDecoyB);
+        changeOutputs.add(changeOutputDecoyA);
+        changeOutputs.add(changeOutputDecoyB);
+        changeOutputsAddresses.add(changeAddressDecoyA);
+        changeOutputsAddresses.add(changeAddressDecoyB);
+
+        if (log.isDebugEnabled()) {
+          log.debug(
+            "Decoy Tx0x2 out (change): address="
+              + changeAddressBech32DecoyA
+              + ", path="
+              + changeAddressDecoyA.getPathAddress()
+              + " ("
+              + changeValueTotalA
+              + " sats)"
+              + "; address="
+              + changeAddressBech32DecoyB
+              + ", path="
+              + changeAddressDecoyB.getPathAddress()
+              + " ("
+              + changeValueTotalB
+              + " sats)");
+        }
       }
     } else {
       if (log.isDebugEnabled()) {
@@ -410,6 +491,15 @@ public class Tx0Service {
     tx0Config.setCascadingParent(tx0);
     UnspentOutput unspentOutputChange = findTx0Change(tx0);
 
+    // decoy Tx0x2
+    UnspentOutput unspentDecoyChange = null;
+    Collection<UnspentOutput> decoyTx0x2Changes = new ArrayList<>();
+    if (tx0Config.isDecoyTx0x2()) {
+      unspentDecoyChange = findTx0Change(tx0, 1);
+      decoyTx0x2Changes.add(unspentOutputChange);
+      decoyTx0x2Changes.add(unspentDecoyChange);
+    }
+
     // Tx0 cascading for remaining pools
     while (poolsIter.hasNext()) {
       Pool pool = poolsIter.next();
@@ -426,16 +516,38 @@ public class Tx0Service {
                   + (tx0List.size() + 1)
                   + "/x)");
         }
-        tx0 =
-            tx0(
-                Collections.singletonList(unspentOutputChange),
-                walletSupplier,
-                pool,
-                tx0Config,
-                utxoKeyProvider);
+
+        if (!tx0Config.isDecoyTx0x2()) {
+          // normal Tx0
+          tx0 =
+              tx0(
+                  Collections.singletonList(unspentOutputChange),
+                  walletSupplier,
+                  pool,
+                  tx0Config,
+                  utxoKeyProvider);
+        } else {
+          // decoy Tx0x2
+          tx0 =
+              tx0(
+                  decoyTx0x2Changes,
+                  walletSupplier,
+                  pool,
+                  tx0Config,
+                  utxoKeyProvider);
+        }
         tx0List.add(tx0);
         tx0Config.setCascadingParent(tx0);
         unspentOutputChange = findTx0Change(tx0);
+
+
+        if (tx0Config.isDecoyTx0x2()) {
+          decoyTx0x2Changes.clear();
+          unspentDecoyChange = findTx0Change(tx0, 1);
+          decoyTx0x2Changes.add(unspentOutputChange);
+          decoyTx0x2Changes.add(unspentDecoyChange);
+        }
+
       } catch (Exception e) {
         // Tx0 is not possible for this pool, ignore it
         if (log.isDebugEnabled()) {
@@ -448,12 +560,64 @@ public class Tx0Service {
   }
 
   private UnspentOutput findTx0Change(Tx0 tx0) {
+    return findTx0Change(tx0, 0);
+  }
+
+  private UnspentOutput findTx0Change(Tx0 tx0, int index) {
     if (tx0.getChangeUtxos().isEmpty()) {
       // no tx0 change
       return null;
     }
-    return tx0.getChangeUtxos().get(0);
+
+    if(index >= tx0.getChangeUtxos().size() || index < 0) {
+      //index does not exists
+      return null;
+    }
+
+    return tx0.getChangeUtxos().get(index);
   }
+
+  protected void checkDecoyTx0x2Eligible(
+      Collection<UnspentOutput> spendFroms, Pool pool) throws Exception {
+    // TODO: Currently only checks needed amount to mock Tx0x2.
+    //       Should we check parent tx ids similar to stonewall algo?
+    if (spendFroms.size() == 1) {
+      String message = "Can't build Decoy Tx0x2 with 1 utxo";
+      log.error(message);
+      throw new NotifiableException(message);
+    }
+
+    // sort descending order to use largest utxos first (minimizes # of utxos)
+    List<UnspentOutput> sortedSpendFroms = new LinkedList<UnspentOutput>();
+    sortedSpendFroms.addAll(spendFroms);
+    Collections.sort(sortedSpendFroms, new SpendFromsComparator());
+
+    long requiredMixAmount = pool.getMustMixBalanceMin() + pool.getFeeValue() / 2;
+    long mockSenderSum = 0;
+    long mockCounterpartySum = 0;
+    boolean alternate = true;
+    for (UnspentOutput sortedSpendFrom : sortedSpendFroms) {
+      if (mockSenderSum < requiredMixAmount && alternate) {
+        mockSenderSum += sortedSpendFrom.value;
+        alternate = false;
+      } else if (mockCounterpartySum < requiredMixAmount) {
+        mockCounterpartySum += sortedSpendFrom.value;
+        alternate = true;
+      }
+
+      if (mockSenderSum > requiredMixAmount && mockCounterpartySum > requiredMixAmount) {
+        // required amount met, exit
+        return;
+      }
+    }
+
+    if (mockSenderSum < requiredMixAmount || mockCounterpartySum < requiredMixAmount) {
+      String message = "Can't build Decoy Tx0x2. Required amount not met.";
+      log.error(message);
+      throw new NotifiableException(message);
+    }
+  }
+
 
   protected void signTx0(Transaction tx, KeyBag keyBag, BipFormatSupplier bipFormatSupplier)
       throws Exception {

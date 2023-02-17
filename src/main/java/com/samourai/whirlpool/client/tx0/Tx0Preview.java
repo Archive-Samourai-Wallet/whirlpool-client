@@ -139,6 +139,10 @@ public class Tx0Preview {
     return totalValue;
   }
 
+  public void incrementTx0MinerFee() {
+    this.tx0MinerFee += 1;
+  }
+
   @Override
   public String toString() {
     return "poolId="
