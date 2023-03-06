@@ -342,7 +342,6 @@ public class Tx0Service {
                 + changeValueDifference
                 + pool);
           }
-
         }
 
         TransactionOutput changeOutputDecoyA =
@@ -540,7 +539,6 @@ public class Tx0Service {
         tx0Config.setCascadingParent(tx0);
         unspentOutputChange = findTx0Change(tx0);
 
-
         if (tx0Config.isDecoyTx0x2()) {
           decoyTx0x2Changes.clear();
           unspentDecoyChange = findTx0Change(tx0, 1);
@@ -570,7 +568,7 @@ public class Tx0Service {
     }
 
     if(index >= tx0.getChangeUtxos().size() || index < 0) {
-      //index does not exists
+      // index does not exists
       return null;
     }
 
@@ -617,7 +615,6 @@ public class Tx0Service {
       throw new NotifiableException(message);
     }
   }
-
 
   protected void signTx0(Transaction tx, KeyBag keyBag, BipFormatSupplier bipFormatSupplier)
       throws Exception {
@@ -722,5 +719,13 @@ public class Tx0Service {
 
   public Tx0PreviewService getTx0PreviewService() {
     return tx0PreviewService;
+  }
+
+  public static Long getTx0ListAmount(List<Tx0> tx0List) {
+    long amount = 0L;
+    for (Tx0 tx0 : tx0List) {
+      amount += (tx0.getSpendValue() - tx0.getTx0MinerFee());
+    }
+    return amount;
   }
 }

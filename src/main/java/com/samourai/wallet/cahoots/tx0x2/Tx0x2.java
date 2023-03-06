@@ -16,9 +16,7 @@ public class Tx0x2 extends Cahoots2x {
   private long samouraiFeeValueEach;
   protected String strCollabChange = null;
 
-  private Tx0x2() {
-    ;
-  }
+  private Tx0x2() { ; }
 
   private Tx0x2(Tx0x2 c) {
     super(c);

@@ -7,6 +7,7 @@ import com.samourai.wallet.bipWallet.WalletSupplier;
 import com.samourai.wallet.bipWallet.WalletSupplierImpl;
 import com.samourai.wallet.cahoots.*;
 import com.samourai.wallet.cahoots.tx0x2.Tx0x2Service;
+import com.samourai.wallet.cahoots.tx0x2.MultiTx0x2Service;
 import com.samourai.wallet.client.indexHandler.MemoryIndexHandlerSupplier;
 import com.samourai.wallet.hd.BIP_WALLET;
 import com.samourai.wallet.hd.Chain;
@@ -57,6 +58,7 @@ public abstract class AbstractCahootsTest extends AbstractWhirlpoolWalletTest {
   protected static String[] COUNTERPARTY_PREMIX_84;
 
   protected Tx0x2Service tx0x2Service = new Tx0x2Service(bipFormatSupplier, params);
+  protected MultiTx0x2Service multiTx0x2Service = new MultiTx0x2Service(bipFormatSupplier, params, tx0x2Service);
 
   public AbstractCahootsTest() throws Exception {
     super();

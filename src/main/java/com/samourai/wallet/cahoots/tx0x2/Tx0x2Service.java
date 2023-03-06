@@ -98,7 +98,7 @@ public class Tx0x2Service extends AbstractCahoots2xService<Tx0x2, Tx0x2Context> 
   //
   // counterparty
   //
-  private Tx0x2 doStep1(Tx0x2 payload0, Tx0x2Context cahootsContext) throws Exception {
+  protected Tx0x2 doStep1(Tx0x2 payload0, Tx0x2Context cahootsContext) throws Exception {
     Tx0x2 payload1 = payload0.copy();
     payload1.setCounterpartyAccount(cahootsContext.getAccount());
     CahootsWallet cahootsWallet = cahootsContext.getCahootsWallet();
@@ -203,7 +203,7 @@ public class Tx0x2Service extends AbstractCahoots2xService<Tx0x2, Tx0x2Context> 
   //
   // sender
   //
-  private Tx0x2 doStep2(Tx0x2 payload1, Tx0x2Context cahootsContext) throws Exception {
+  protected Tx0x2 doStep2(Tx0x2 payload1, Tx0x2Context cahootsContext) throws Exception {
     Tx0x2 payload2 = payload1.copy();
     Tx0 tx0Initiator = cahootsContext.getTx0Initiator();
 
