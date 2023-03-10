@@ -133,7 +133,7 @@ public class MultiTx0x2Service extends AbstractCahootsService<MultiTx0x2, MultiT
     multiCahoots.setStep(2);
 
     debug("END MULTI TX0X2 STEP 2", multiTx0x2Context);
-    return null;
+    return multiCahoots;
   }
 
   //
@@ -157,7 +157,7 @@ public class MultiTx0x2Service extends AbstractCahootsService<MultiTx0x2, MultiT
     multiCahoots.setStep(3);
 
     debug("END MULTI TX0X2 STEP 3", multiTx0x2Context);
-    return null;
+    return multiCahoots;
   }
 
   //
@@ -181,7 +181,7 @@ public class MultiTx0x2Service extends AbstractCahootsService<MultiTx0x2, MultiT
     multiCahoots.setStep(4);
 
     debug("END MULTI TX0X2 STEP 4", multiTx0x2Context);
-    return null;
+    return multiCahoots;
   }
 
   @Override
