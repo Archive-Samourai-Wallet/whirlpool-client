@@ -134,7 +134,7 @@ public class WhirlpoolWalletTx0x2Test extends AbstractCahootsTest {
     Tx0Service tx0Service = new Tx0Service(params, tx0PreviewService, feeOpReturnImpl);
 
     // initiator: build initial TX0
-    String xpub = walletSupplierSender.getWallet(BIP_WALLET.DEPOSIT_BIP84).getPub();
+    String xpub = bipWalletSender.getPub();
     Collection<UnspentOutput> spendFroms = utxoSender1.toUnspentOutputs(xpub);
     Tx0Config tx0Config =
         new Tx0Config(
@@ -214,12 +214,8 @@ public class WhirlpoolWalletTx0x2Test extends AbstractCahootsTest {
             Tx0FeeTarget.BLOCKS_24,
             WhirlpoolAccount.DEPOSIT);
 
-    Tx0 tx0Initiator =
-        tx0Service.tx0(spendFroms, walletSupplierSender, pool, tx0Config, utxoProviderSender); // TODO temp
-    List<Tx0> tx0Initiators = Arrays.asList(tx0Initiator); // TODO temp
-
     Collection<Pool> pools = findPoolsLowerOrEqual("0.01btc", whirlpoolWallet.getPoolSupplier());
-//    List<Tx0> tx0Initiators = whirlpoolWallet.tx0Cascade(spendFroms, tx0Config, pools); // TODO fails. Fix cascading tx0Initiator mock data?
+    List<Tx0> tx0Initiators = tx0Service.tx0Cascade(spendFroms, walletSupplierSender, pools, tx0Config, utxoProviderSender); // TODO fails. Fix cascading tx0Initiator mock data?
 
     // run Cahoots
     MultiTx0x2Context cahootsContextSender =
