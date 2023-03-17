@@ -387,12 +387,12 @@ public class Tx0Service {
 
     if (tx0Config.isDecoyTx0x2()) {
       // attempt to decoy Tx0x2: split change between 2 change addresses with STONEWALL
-      List<Long> changeAmountsBoltzmann = computeChangeAmountsStonewall(tx0Preview, sortedSpendFroms);
-      if (changeAmountsBoltzmann != null) {
+      List<Long> changeAmountsStonewall = computeChangeAmountsStonewall(tx0Preview, sortedSpendFroms);
+      if (changeAmountsStonewall != null) {
         if (log.isDebugEnabled()) {
           log.debug("Tx0: decoy Tx0, 2 changes");
         }
-        return changeAmountsBoltzmann;
+        return changeAmountsStonewall;
       }
     }
 
@@ -405,6 +405,10 @@ public class Tx0Service {
 
   List<Long> computeChangeAmountsStonewall(Tx0Preview tx0Preview, Collection<UnspentOutput> sortedSpendFroms) throws Exception {
     Pair<Long,Long> spendFromAmountsStonewall = computeSpendFromAmountsStonewall(sortedSpendFroms, tx0Preview);
+    if (spendFromAmountsStonewall == null) {
+      // stonewall is not possible
+      return null;
+    }
 
     // TODO use spendFromAmountsStonewall to compute changes rather than split change / random factor
 
@@ -470,6 +474,14 @@ public class Tx0Service {
         }
       }
     }
+
+    if (spendFromA < minSpendFrom || spendFromB < minSpendFrom) {
+      if (log.isDebugEnabled()) {
+        log.debug("Stonewall is not possible for TX0 decoy change: spendFromA="+spendFromA+", spendFromB="+spendFromB+", minSpendFrom="+minSpendFrom);
+      }
+      return null;
+    }
+
     return Pair.of(spendFromA, spendFromB);
   }
 
