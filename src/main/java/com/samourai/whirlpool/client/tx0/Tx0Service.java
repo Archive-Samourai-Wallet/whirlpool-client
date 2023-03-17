@@ -214,7 +214,6 @@ public class Tx0Service {
     long premixValue = tx0Preview.getPremixValue();
     long feeValueOrFeeChange = tx0Preview.getTx0Data().computeFeeValueOrFeeChange();
     int nbPremix = tx0PreviewService.capNbPremix(tx0Preview.getNbPremix(), tx0Preview.getPool());
-    long changeValueTotal = tx0Preview.getChangeValue();
 
     // verify
 
@@ -282,105 +281,27 @@ public class Tx0Service {
     //
     List<TransactionOutput> changeOutputs = new LinkedList<>();
     List<BipAddress> changeOutputsAddresses = new LinkedList<>();
-    if (changeValueTotal > 0) {
-      if (!tx0Config.isDecoyTx0x2()) {
-        // normal Tx0
+
+    List<Long> changeAmounts = computeChangeAmounts(tx0Config, tx0Preview);
+    if (!changeAmounts.isEmpty()) {
+      for (long changeAmount : changeAmounts) {
         BipAddress changeAddress = changeWallet.getNextChangeAddress();
         String changeAddressBech32 = changeAddress.getAddressString();
         TransactionOutput changeOutput =
-            bech32Util.getTransactionOutput(changeAddressBech32, changeValueTotal, params);
+                bech32Util.getTransactionOutput(changeAddressBech32, changeAmount, params);
         outputs.add(changeOutput);
         changeOutputs.add(changeOutput);
         changeOutputsAddresses.add(changeAddress);
         if (log.isDebugEnabled()) {
           log.debug(
-              "Tx0 out (change): address="
-                  + changeAddressBech32
-                  + ", path="
-                  + changeAddress.getPathAddress()
-                  + " ("
-                  + changeValueTotal
-                  + " sats)");
+                  "Tx0 out (change): address="
+                          + changeAddressBech32
+                          + ", path="
+                          + changeAddress.getPathAddress()
+                          + " ("
+                          + changeAmount
+                          + " sats)");
         }
-      } else {
-        // decoy Tx0x2: split change between 2 change addresses
-        BipAddress changeAddressDecoyA = changeWallet.getNextChangeAddress();
-        BipAddress changeAddressDecoyB = changeWallet.getNextChangeAddress();
-        String changeAddressBech32DecoyA = changeAddressDecoyA.getAddressString();
-        String changeAddressBech32DecoyB = changeAddressDecoyB.getAddressString();
-        long changeValueTotalA = 0L;
-        long changeValueTotalB = 0L;
-        long changeValueDifference = 0L;
-
-        String pool = tx0Preview.getPool().getPoolId();
-        if (pool.equals("0.001btc")) {
-          // lowest pool - split change evenly
-          changeValueTotalA = changeValueTotal / 2L;
-          changeValueTotalB = changeValueTotalA;
-          changeValueDifference = changeValueTotal - changeValueTotalA - changeValueTotalB;
-          if (changeValueDifference == 1) {
-            // add 1 sat to miner fee
-            tx0Preview.incrementTx0MinerFee();
-          } else if (changeValueDifference != 0) {
-            throw new Exception(
-                "Issue generating change for Decoy Tx0x2, please report this bug. changeValueDifference="
-                + changeValueDifference
-                + pool);
-          }
-        } else {
-          // higher pools - splits change randomly (10-90% range)
-          Random rand = new Random();
-          double r = (rand.nextDouble() * 0.8) + 0.1;
-          changeValueTotalA = (long) (changeValueTotal * r);
-          changeValueTotalB = (long) (changeValueTotal * (1 - r));
-          changeValueDifference = changeValueTotal - changeValueTotalA - changeValueTotalB;
-          if (changeValueDifference == 1) {
-            changeValueTotalA += 1;
-          } else if (changeValueDifference != 0) {
-            throw new Exception(
-                "Issue generating change for Decoy Tx0x2, please report this bug. changeValueDifference="
-                + changeValueDifference
-                + pool);
-          }
-
-        }
-
-        TransactionOutput changeOutputDecoyA =
-            bech32Util.getTransactionOutput(changeAddressBech32DecoyA, changeValueTotalA, params);
-        TransactionOutput changeOutputDecoyB =
-            bech32Util.getTransactionOutput(changeAddressBech32DecoyB, changeValueTotalB, params);
-        outputs.add(changeOutputDecoyA);
-        outputs.add(changeOutputDecoyB);
-        changeOutputs.add(changeOutputDecoyA);
-        changeOutputs.add(changeOutputDecoyB);
-        changeOutputsAddresses.add(changeAddressDecoyA);
-        changeOutputsAddresses.add(changeAddressDecoyB);
-
-        if (log.isDebugEnabled()) {
-          log.debug(
-            "Decoy Tx0x2 out (change): address="
-              + changeAddressBech32DecoyA
-              + ", path="
-              + changeAddressDecoyA.getPathAddress()
-              + " ("
-              + changeValueTotalA
-              + " sats)"
-              + "; address="
-              + changeAddressBech32DecoyB
-              + ", path="
-              + changeAddressDecoyB.getPathAddress()
-              + " ("
-              + changeValueTotalB
-              + " sats)");
-        }
-      }
-    } else {
-      if (log.isDebugEnabled()) {
-        log.debug("Tx0: spending whole utx0, no change");
-      }
-      if (changeValueTotal < 0) {
-        throw new Exception(
-            "Negative change detected, please report this bug. tx0Preview=" + tx0Preview);
       }
     }
 
@@ -444,6 +365,73 @@ public class Tx0Service {
             opReturnOutput,
             samouraiFeeOutput);
     return tx0;
+  }
+
+  private List<Long> computeChangeAmounts(Tx0Config tx0Config, Tx0Preview tx0Preview) throws Exception {
+    long changeValueTotal = tx0Preview.getChangeValue();
+    List<Long> changeAmounts = new LinkedList<>();
+
+    if (changeValueTotal < 0) {
+      throw new Exception(
+              "Negative change detected, please report this bug. tx0Preview=" + tx0Preview);
+    }
+    if (changeValueTotal == 0) {
+      if (log.isDebugEnabled()) {
+        log.debug("Tx0: spending whole utx0, no change");
+      }
+      return changeAmounts;
+    }
+
+    if (!tx0Config.isDecoyTx0x2()) {
+      // normal Tx0
+      if (log.isDebugEnabled()) {
+        log.debug("Tx0: normal Tx0, 1 change");
+      }
+      changeAmounts.add(changeValueTotal);
+    } else {
+      // decoy Tx0x2: split change between 2 change addresses
+      if (log.isDebugEnabled()) {
+        log.debug("Tx0: decoy Tx0, 2 changes");
+      }
+      long changeValueTotalA = 0L;
+      long changeValueTotalB = 0L;
+      long changeValueDifference = 0L;
+
+      String pool = tx0Preview.getPool().getPoolId();
+      if (pool.equals("0.001btc")) {
+        // lowest pool - split change evenly
+        changeValueTotalA = changeValueTotal / 2L;
+        changeValueTotalB = changeValueTotalA;
+        changeValueDifference = changeValueTotal - changeValueTotalA - changeValueTotalB;
+        if (changeValueDifference == 1) {
+          // add 1 sat to miner fee
+          tx0Preview.incrementTx0MinerFee();
+        } else if (changeValueDifference != 0) {
+          throw new Exception(
+                  "Issue generating change for Decoy Tx0x2, please report this bug. changeValueDifference="
+                          + changeValueDifference
+                          + pool);
+        }
+      } else {
+        // higher pools - splits change randomly (10-90% range)
+        Random rand = new Random();
+        double r = (rand.nextDouble() * 0.8) + 0.1;
+        changeValueTotalA = (long) (changeValueTotal * r);
+        changeValueTotalB = (long) (changeValueTotal * (1 - r));
+        changeValueDifference = changeValueTotal - changeValueTotalA - changeValueTotalB;
+        if (changeValueDifference == 1) {
+          changeValueTotalA += 1;
+        } else if (changeValueDifference != 0) {
+          throw new Exception(
+                  "Issue generating change for Decoy Tx0x2, please report this bug. changeValueDifference="
+                          + changeValueDifference
+                          + pool);
+        }
+      }
+      changeAmounts.add(changeValueTotalA);
+      changeAmounts.add(changeValueTotalB);
+    }
+    return changeAmounts;
   }
 
   private List<UnspentOutput> computeChangeUtxos(
