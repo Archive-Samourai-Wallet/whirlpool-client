@@ -1,5 +1,6 @@
 package com.samourai.whirlpool.client.tx0;
 
+import com.google.common.collect.Lists;
 import com.samourai.wallet.api.backend.beans.UnspentOutput;
 import com.samourai.wallet.bip69.BIP69OutputComparator;
 import com.samourai.wallet.bipFormat.BIP_FORMAT;
@@ -15,6 +16,8 @@ import com.samourai.wallet.send.MyTransactionOutPoint;
 import com.samourai.wallet.send.SendFactoryGeneric;
 import com.samourai.wallet.send.provider.UtxoKeyProvider;
 import com.samourai.wallet.util.AsyncUtil;
+import com.samourai.wallet.util.Pair;
+import com.samourai.wallet.util.RandomUtil;
 import com.samourai.wallet.util.TxUtil;
 import com.samourai.whirlpool.client.event.Tx0Event;
 import com.samourai.whirlpool.client.exception.NotifiableException;
@@ -34,13 +37,14 @@ import com.samourai.whirlpool.protocol.rest.PushTxErrorResponse;
 import com.samourai.whirlpool.protocol.rest.PushTxSuccessResponse;
 import com.samourai.whirlpool.protocol.rest.Tx0PushRequest;
 import io.reactivex.Single;
-import java.util.*;
 import org.bitcoinj.core.*;
 import org.bitcoinj.script.Script;
 import org.bitcoinj.script.ScriptBuilder;
 import org.bitcoinj.script.ScriptOpCodes;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.util.*;
 
 public class Tx0Service {
   private Logger log = LoggerFactory.getLogger(Tx0Service.class);
@@ -282,7 +286,7 @@ public class Tx0Service {
     List<TransactionOutput> changeOutputs = new LinkedList<>();
     List<BipAddress> changeOutputsAddresses = new LinkedList<>();
 
-    List<Long> changeAmounts = computeChangeAmounts(tx0Config, tx0Preview);
+    List<Long> changeAmounts = computeChangeAmounts(tx0Config, tx0Preview, sortedSpendFroms);
     if (!changeAmounts.isEmpty()) {
       for (long changeAmount : changeAmounts) {
         BipAddress changeAddress = changeWallet.getNextChangeAddress();
@@ -367,9 +371,8 @@ public class Tx0Service {
     return tx0;
   }
 
-  private List<Long> computeChangeAmounts(Tx0Config tx0Config, Tx0Preview tx0Preview) throws Exception {
+  private List<Long> computeChangeAmounts(Tx0Config tx0Config, Tx0Preview tx0Preview, Collection<UnspentOutput> sortedSpendFroms) throws Exception {
     long changeValueTotal = tx0Preview.getChangeValue();
-    List<Long> changeAmounts = new LinkedList<>();
 
     if (changeValueTotal < 0) {
       throw new Exception(
@@ -379,59 +382,95 @@ public class Tx0Service {
       if (log.isDebugEnabled()) {
         log.debug("Tx0: spending whole utx0, no change");
       }
-      return changeAmounts;
+      return Lists.newLinkedList();
     }
 
-    if (!tx0Config.isDecoyTx0x2()) {
-      // normal Tx0
-      if (log.isDebugEnabled()) {
-        log.debug("Tx0: normal Tx0, 1 change");
+    if (tx0Config.isDecoyTx0x2()) {
+      // attempt to decoy Tx0x2: split change between 2 change addresses with STONEWALL
+      List<Long> changeAmountsBoltzmann = computeChangeAmountsStonewall(tx0Preview, sortedSpendFroms);
+      if (changeAmountsBoltzmann != null) {
+        if (log.isDebugEnabled()) {
+          log.debug("Tx0: decoy Tx0, 2 changes");
+        }
+        return changeAmountsBoltzmann;
       }
-      changeAmounts.add(changeValueTotal);
+    }
+
+    // normal Tx0
+    if (log.isDebugEnabled()) {
+      log.debug("Tx0: normal Tx0, 1 change");
+    }
+    return Arrays.asList(changeValueTotal);
+  }
+
+  List<Long> computeChangeAmountsStonewall(Tx0Preview tx0Preview, Collection<UnspentOutput> sortedSpendFroms) throws Exception {
+    Pair<Long,Long> spendFromAmountsStonewall = computeSpendFromAmountsStonewall(sortedSpendFroms, tx0Preview);
+
+    // TODO use spendFromAmountsStonewall to compute changes rather than split change / random factor
+
+    long changeValueTotal = tx0Preview.getChangeValue();
+
+    long changeValueTotalA = 0L;
+    long changeValueTotalB = 0L;
+    long changeValueDifference = 0L;
+
+    String pool = tx0Preview.getPool().getPoolId();
+    if (pool.equals("0.001btc")) {
+      // lowest pool - split change evenly
+      changeValueTotalA = changeValueTotal / 2L;
+      changeValueTotalB = changeValueTotalA;
+      changeValueDifference = changeValueTotal - changeValueTotalA - changeValueTotalB;
+      if (changeValueDifference == 1) {
+        // add 1 sat to miner fee
+        tx0Preview.incrementTx0MinerFee();
+      } else if (changeValueDifference != 0) {
+        throw new Exception(
+                "Issue generating change for Decoy Tx0x2, please report this bug. changeValueDifference="
+                        + changeValueDifference
+                        + pool);
+      }
     } else {
-      // decoy Tx0x2: split change between 2 change addresses
-      if (log.isDebugEnabled()) {
-        log.debug("Tx0: decoy Tx0, 2 changes");
+      // higher pools - splits change randomly (10-90% range)
+      Random rand = new Random();
+      double r = (rand.nextDouble() * 0.8) + 0.1;
+      changeValueTotalA = (long) (changeValueTotal * r);
+      changeValueTotalB = (long) (changeValueTotal * (1 - r));
+      changeValueDifference = changeValueTotal - changeValueTotalA - changeValueTotalB;
+      if (changeValueDifference == 1) {
+        changeValueTotalA += 1;
+      } else if (changeValueDifference != 0) {
+        throw new Exception(
+                "Issue generating change for Decoy Tx0x2, please report this bug. changeValueDifference="
+                        + changeValueDifference
+                        + pool);
       }
-      long changeValueTotalA = 0L;
-      long changeValueTotalB = 0L;
-      long changeValueDifference = 0L;
-
-      String pool = tx0Preview.getPool().getPoolId();
-      if (pool.equals("0.001btc")) {
-        // lowest pool - split change evenly
-        changeValueTotalA = changeValueTotal / 2L;
-        changeValueTotalB = changeValueTotalA;
-        changeValueDifference = changeValueTotal - changeValueTotalA - changeValueTotalB;
-        if (changeValueDifference == 1) {
-          // add 1 sat to miner fee
-          tx0Preview.incrementTx0MinerFee();
-        } else if (changeValueDifference != 0) {
-          throw new Exception(
-                  "Issue generating change for Decoy Tx0x2, please report this bug. changeValueDifference="
-                          + changeValueDifference
-                          + pool);
-        }
-      } else {
-        // higher pools - splits change randomly (10-90% range)
-        Random rand = new Random();
-        double r = (rand.nextDouble() * 0.8) + 0.1;
-        changeValueTotalA = (long) (changeValueTotal * r);
-        changeValueTotalB = (long) (changeValueTotal * (1 - r));
-        changeValueDifference = changeValueTotal - changeValueTotalA - changeValueTotalB;
-        if (changeValueDifference == 1) {
-          changeValueTotalA += 1;
-        } else if (changeValueDifference != 0) {
-          throw new Exception(
-                  "Issue generating change for Decoy Tx0x2, please report this bug. changeValueDifference="
-                          + changeValueDifference
-                          + pool);
-        }
-      }
-      changeAmounts.add(changeValueTotalA);
-      changeAmounts.add(changeValueTotalB);
     }
-    return changeAmounts;
+    return Arrays.asList(changeValueTotalA, changeValueTotalB);
+  }
+
+  private Pair<Long,Long> computeSpendFromAmountsStonewall(Collection<UnspentOutput> spendFroms, Tx0Preview tx0Preview) {
+    long spendFromA = 0;
+    long spendFromB = 0;
+
+    long feeParticipation = 0; // TODO include real fees participation
+    long minSpendFrom = feeParticipation + tx0Preview.getPool().getDenomination(); // at least 1 mustmix each
+    for (UnspentOutput spendFrom : spendFroms) {
+      if (spendFromA < minSpendFrom) {
+        // must reach minSpendFrom for A
+        spendFromA += spendFrom.value;
+      } else if (spendFromB < minSpendFrom) {
+        // must reach minSpendFrom for B
+        spendFromB += spendFrom.value;
+      } else {
+        // random factor when minSpendFrom is reached
+        if (RandomUtil.getInstance().random(0, 1) == 1) {
+          spendFromA += spendFrom.value;
+        } else {
+          spendFromB += spendFrom.value;
+        }
+      }
+    }
+    return Pair.of(spendFromA, spendFromB);
   }
 
   private List<UnspentOutput> computeChangeUtxos(
