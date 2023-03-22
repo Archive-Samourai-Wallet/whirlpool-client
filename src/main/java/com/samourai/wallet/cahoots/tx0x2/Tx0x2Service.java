@@ -4,17 +4,24 @@ import com.samourai.soroban.cahoots.CahootsContext;
 import com.samourai.wallet.api.backend.beans.UnspentOutput;
 import com.samourai.wallet.bipFormat.BIP_FORMAT;
 import com.samourai.wallet.bipFormat.BipFormatSupplier;
+import com.samourai.wallet.bipWallet.BipWallet;
 import com.samourai.wallet.cahoots.AbstractCahoots2xService;
 import com.samourai.wallet.cahoots.CahootsType;
 import com.samourai.wallet.cahoots.CahootsUtxo;
 import com.samourai.wallet.cahoots.CahootsWallet;
+import com.samourai.wallet.hd.BIP_WALLET;
 import com.samourai.wallet.hd.BipAddress;
+import com.samourai.wallet.hd.Chain;
+import com.samourai.wallet.hd.HD_Address;
+import com.samourai.wallet.hd.HD_Wallet;
+import com.samourai.wallet.send.MyTransactionOutPoint;
 import com.samourai.wallet.util.FeeUtil;
 import com.samourai.wallet.util.TxUtil;
 import com.samourai.whirlpool.client.tx0.Tx0;
 import com.samourai.whirlpool.client.utils.ClientUtils;
 import com.samourai.whirlpool.client.wallet.beans.SamouraiAccountIndex;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 import java.util.Set;
@@ -118,10 +125,9 @@ public class Tx0x2Service extends AbstractCahoots2xService<Tx0x2, Tx0x2Context> 
     // counterparty premix outputs
     long myInputsSum = CahootsUtxo.sumValue(selectedUTXO).longValue();
     int nbPremixs =
-        (int)
-            Math.min(
-                (myInputsSum - payload0.getSamouraiFeeValueEach()) / payload0.getPremixValue(),
-                payload0.getMaxOutputsEach());
+        (int) Math.min(
+            (myInputsSum - payload0.getSamouraiFeeValueEach()) / payload0.getPremixValue(),
+            payload0.getMaxOutputsEach());
     List<TransactionOutput> outputs = contributePremixOutputs(payload0, cahootsContext, nbPremixs);
     long myPremixOutputsSum = outputs.size() * payload0.getPremixValue();
 
@@ -140,6 +146,65 @@ public class Tx0x2Service extends AbstractCahoots2xService<Tx0x2, Tx0x2Context> 
       TransactionOutput changeOutput = computeTxOutput(changeAddress, changeAmount, cahootsContext);
       payload1.setCollabChange(changeAddress.getAddressString());
       outputs.add(changeOutput);
+    }
+
+    payload1.doStep1(inputs, outputs, cahootsWallet.getChainSupplier());
+    return payload1;
+  }
+
+  //
+  // counterparty
+  //
+  protected Tx0x2 doMultiStep1(Tx0x2 payloadInitial, Tx0x2Context cahootsContextInitial, Tx0x2 payload0, Tx0x2Context cahootsContext) throws Exception {
+    // TODO - Work in progress
+
+    Tx0x2 payload1 = payload0.copy();
+    payload1.setCounterpartyAccount(cahootsContext.getAccount());
+    CahootsWallet cahootsWallet = cahootsContext.getCahootsWallet();
+    byte[] fingerprint = cahootsWallet.getFingerprint();
+    payload1.setFingerprintCollab(fingerprint);
+
+    // higher pool tx0x2 change => lower pool tx0x2 counterparty input
+    long changeIndex = payloadInitial.getPSBT().getTransaction().getOutputs().size() - 1;
+    TransactionOutput changeOutput = payloadInitial.getPSBT().getTransaction().getOutput(changeIndex);
+
+    int account = cahootsContext.getAccount();
+    BipWallet bipWallet = cahootsWallet.getReceiveWallet(account, BIP_FORMAT.SEGWIT_NATIVE);
+    BipAddress bipAddress = bipWallet.getAddressAt(Chain.CHANGE.getIndex(), 0);
+    HD_Address hd_address = bipAddress.getHdAddress();
+    String hd_address_string = hd_address.getAddressString();
+    String path = UnspentOutput.computePath(hd_address);
+    String xpub = bipWallet.getPub();
+
+    UnspentOutput changeUtxo =
+        new UnspentOutput(
+            new MyTransactionOutPoint(changeOutput, hd_address_string, 0),
+            null,
+            path,
+            xpub);
+
+    List<CahootsUtxo> cahootsInputs = toCahootsUtxos(Arrays.asList(changeUtxo), cahootsContext); // TODO - Failing here
+//    List<CahootsUtxo> cahootsInputs = toCahootsUtxos(Arrays.asList(changeUtxo), cahootsContextInitial);
+    List<TransactionInput> inputs = cahootsContext.addInputs(cahootsInputs);
+
+    // counterparty premix outputs
+    long myInputsSum = CahootsUtxo.sumValue(cahootsInputs).longValue();
+    int nbPremixs = (int) Math.min(myInputsSum / payload0.getPremixValue(), payload0.getMaxOutputsEach());
+    List<TransactionOutput> outputs = contributePremixOutputs(payload0, cahootsContext, nbPremixs);
+    long myPremixOutputsSum = outputs.size() * payload0.getPremixValue();
+
+    // counterparty change output
+    long changeAmount = myInputsSum - myPremixOutputsSum; // not including minerFee yet
+    if (changeAmount > 0) {
+      BipAddress changeAddress =
+          cahootsWallet.fetchAddressChange(
+              payload0.getCounterpartyAccount(), true, BIP_FORMAT.SEGWIT_NATIVE);
+      if (log.isDebugEnabled()) {
+        log.debug("+output (CounterParty change) = " + changeAddress + ", value=" + changeAmount);
+      }
+      TransactionOutput changeOutput1 = computeTxOutput(changeAddress, changeAmount, cahootsContext);
+      payload1.setCollabChange(changeAddress.getAddressString());
+      outputs.add(changeOutput1);
     }
 
     payload1.doStep1(inputs, outputs, cahootsWallet.getChainSupplier());
@@ -295,6 +360,115 @@ public class Tx0x2Service extends AbstractCahoots2xService<Tx0x2, Tx0x2Context> 
     // counterparty pays half of fees
     Coin counterpartyChangeValue =
         Coin.valueOf(counterpartyChangeOutput.getValue().longValue() - minerFeePaid);
+
+    if (log.isDebugEnabled()) {
+      log.debug("counterparty change output value post fee:" + counterpartyChangeValue);
+    }
+
+    counterpartyChangeOutput.setValue(counterpartyChangeValue);
+    payload2.getPSBT().setTransaction(tx);
+
+    payload2.doStep2(inputs, outputs);
+    return payload2;
+  }
+
+  //
+  // sender
+  //
+  protected Tx0x2 doMultiStep2(Tx0x2 payload1, Tx0x2Context cahootsContext) throws Exception {
+    // TODO - Work in Progress
+
+    Tx0x2 payload2 = payload1.copy();
+    Tx0 tx0Initiator = cahootsContext.getTx0Initiator();
+
+    // compute minerFee
+    int nbPremixCounterparty = payload1.getTransaction().getOutputs().size() - 1;
+    int nbPremixSender = Math.min(tx0Initiator.getNbPremix(), payload1.getMaxOutputsEach());
+    int nbPremix = nbPremixCounterparty + nbPremixSender;
+    int nbInputsCounterparty = payload1.getTransaction().getInputs().size();
+    int nbInputsSender = tx0Initiator.getSpendFroms().size();
+    int nbInputs = nbInputsCounterparty + nbInputsSender;
+    int tx0Size = ClientUtils.computeTx0Size(nbPremix, nbInputs, params);
+    long fee = FeeUtil.getInstance().calculateFee(tx0Size, tx0Initiator.getTx0MinerFeePrice());
+    if (fee % 2L != 0) {
+      fee++;
+    }
+    payload2.setFeeAmount(fee);
+    if (log.isDebugEnabled()) {
+      log.debug(
+              "nbPremixCounterparty="
+                      + nbPremixCounterparty
+                      + ", nbPremixSender="
+                      + nbPremixSender
+                      + ", nbInputsCounterparty="
+                      + nbInputsCounterparty
+                      + ", nbInputsSender="
+                      + nbInputsSender
+                      + ", fee="
+                      + fee);
+    }
+
+    // keep track of minerFeePaid
+    long minerFeePaid = fee / 2L;
+    cahootsContext.setMinerFeePaid(minerFeePaid); // sender & counterparty pay half minerFee
+
+    // add sender inputs
+    List<CahootsUtxo> cahootsInputs = toCahootsUtxos(tx0Initiator.getSpendFroms(), cahootsContext);
+    List<TransactionInput> inputs = cahootsContext.addInputs(cahootsInputs);
+
+    // add sender outputs
+    List<TransactionOutput> outputs = new ArrayList<>();
+    int maxOutputsEach = payload2.getMaxOutputsEach();
+
+    // add OP_RETURN output
+    TransactionOutput opReturnOutput = tx0Initiator.getOpReturnOutput();
+    outputs.add(opReturnOutput);
+
+    // add samourai fee output
+    TransactionOutput samouraiFeeOutput = tx0Initiator.getSamouraiFeeOutput();
+    outputs.add(samouraiFeeOutput);
+
+    // add sender premix outputs (limit to maxOutputsEach)
+    contributeSenderPremixOutputs(cahootsContext, tx0Initiator, outputs, maxOutputsEach);
+
+    // add sender change output (senderInputsSum - senderPremixOutputsSum - samouraiFeeValueEach -
+    // minerFeePaid)
+    long senderInputsSum = CahootsUtxo.sumValue(cahootsInputs).longValue();
+
+    long senderPremixOutputsSum = 0;
+    senderPremixOutputsSum = payload2.getPremixValue() * nbPremixSender;
+
+    long senderChangeAmount =
+            senderInputsSum
+                    - senderPremixOutputsSum
+                    - payload2.getSamouraiFeeValueEach()
+                    - minerFeePaid;
+
+    // use changeAddress from tx0Initiator to avoid index gap
+    String changeAddress =
+            getBipFormatSupplier().getToAddress(tx0Initiator.getChangeOutputs().iterator().next());
+
+    if (log.isDebugEnabled()) {
+      log.debug("+output (Sender change) = " + changeAddress + ", value=" + senderChangeAmount);
+    }
+
+    TransactionOutput senderChangeOutput =
+            computeTxOutput(changeAddress, senderChangeAmount, cahootsContext);
+    payload2.setCollabChange(changeAddress);
+    outputs.add(senderChangeOutput);
+
+    // update counterparty change output to deduce minerFeePaid
+    Transaction tx = payload1.getTransaction();
+    String collabChangeAddress = payload1.getCollabChange();
+    TransactionOutput counterpartyChangeOutput =
+            TxUtil.getInstance().findOutputByAddress(tx, collabChangeAddress, getBipFormatSupplier());
+    if (counterpartyChangeOutput == null) {
+      throw new Exception("Cannot compose #Cahoots: counterpartyChangeOutput not found");
+    }
+
+    // counterparty pays half of fees
+    Coin counterpartyChangeValue =
+            Coin.valueOf(counterpartyChangeOutput.getValue().longValue() - minerFeePaid);
 
     if (log.isDebugEnabled()) {
       log.debug("counterparty change output value post fee:" + counterpartyChangeValue);

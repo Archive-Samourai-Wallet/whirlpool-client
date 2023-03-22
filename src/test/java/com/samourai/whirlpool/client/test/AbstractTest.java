@@ -40,6 +40,7 @@ import com.samourai.whirlpool.protocol.rest.Tx0PushRequest;
 import com.samourai.whirlpool.protocol.websocket.notifications.MixStatus;
 import io.reactivex.Single;
 import java.io.File;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
@@ -84,7 +85,7 @@ public class AbstractTest {
       "{\"wallet\": {\"final_balance\": 116640227},\"info\": {\"fees\": {\"2\": 1,\"4\": 1,\"6\": 1,\"12\": 1,\"24\": 1},\"latest_block\": {\"height\": 2064015,\"hash\": \"00000000000000409297f8e0c0e73475cdd215ef675ad82802a08507b1c1d0e1\",\"time\": 1628498860}},\"addresses\": [{\"address\": \"vpub5YEhBtZy85KxLBxQB4MiHZvjjhz5DcYT9DV2gLshFykuWXjqSzLxpLd4TwS8nFxJmXAX8RrxRxpanndBh5a9AJPbrJEtqCcTKAnRYcP4Aed\",\"final_balance\": 116640227,\"account_index\": 511,\"change_index\": 183,\"n_tx\": 137}],\"txs\": [],\"unspent_outputs\": []}";
 
   protected MockPushTx pushTx = new MockPushTx(params);
-  protected Collection<Tx0Data> mockTx0Datas = null;
+  protected Collection<Tx0Data> mockTx0Datas = new ArrayList<>();
   protected static final String MOCK_SAMOURAI_FEE_ADDRESS =
       "tb1qfd0ukes4xw3xvxwhj9m53nt2huh75khrrdm5dv";
 
@@ -359,16 +360,57 @@ public class AbstractTest {
         computeWhirlpoolWalletConfig()
             .getFeeOpReturnImpl()
             .computeFeePayload(0, (short) 0, (short) 0);
-    mockTx0Datas =
-        Arrays.asList(
-            new Tx0Data(
-                "0.01btc",
-                "PM8TJbEnXU7JpR8yMdQee9H5C4RNWTpWAgmb2TVyQ4zfnaQBDMTJ4yYVP9Re8NVsZDSwXvogYbssrqkfVwac9U1QnxdCU2G1zH7Gq6L3JJjzcuWGjB9N",
-                42500,
-                0,
-                0,
-                null,
-                feePayload,
-                MOCK_SAMOURAI_FEE_ADDRESS));
+    mockTx0Datas.add(
+        new Tx0Data(
+            "0.5btc",
+            "PM8TJbEnXU7JpR8yMdQee9H5C4RNWTpWAgmb2TVyQ4zfnaQBDMTJ4yYVP9Re8NVsZDSwXvogYbssrqkfVwac9U1QnxdCU2G1zH7Gq6L3JJjzcuWGjB9N",
+            1487500,
+            0,
+            0,
+            null,
+            feePayload,
+            MOCK_SAMOURAI_FEE_ADDRESS));
+    mockTx0Datas.add(
+        new Tx0Data(
+            "0.05btc",
+            "PM8TJbEnXU7JpR8yMdQee9H5C4RNWTpWAgmb2TVyQ4zfnaQBDMTJ4yYVP9Re8NVsZDSwXvogYbssrqkfVwac9U1QnxdCU2G1zH7Gq6L3JJjzcuWGjB9N",
+            148750,
+            0,
+            0,
+            null,
+            feePayload,
+            MOCK_SAMOURAI_FEE_ADDRESS));
+    mockTx0Datas.add(
+        new Tx0Data(
+            "0.01btc",
+            "PM8TJbEnXU7JpR8yMdQee9H5C4RNWTpWAgmb2TVyQ4zfnaQBDMTJ4yYVP9Re8NVsZDSwXvogYbssrqkfVwac9U1QnxdCU2G1zH7Gq6L3JJjzcuWGjB9N",
+            42500,
+            0,
+            0,
+            null,
+            feePayload,
+            MOCK_SAMOURAI_FEE_ADDRESS));
+    mockTx0Datas.add(
+        new Tx0Data(
+            "0.001btc",
+            "PM8TJbEnXU7JpR8yMdQee9H5C4RNWTpWAgmb2TVyQ4zfnaQBDMTJ4yYVP9Re8NVsZDSwXvogYbssrqkfVwac9U1QnxdCU2G1zH7Gq6L3JJjzcuWGjB9N",
+            5000,
+            0,
+            0,
+            null,
+            feePayload,
+            MOCK_SAMOURAI_FEE_ADDRESS));
+
+//    mockTx0Datas =
+//        Arrays.asList(
+//            new Tx0Data(
+//                "0.01btc",
+//                "PM8TJbEnXU7JpR8yMdQee9H5C4RNWTpWAgmb2TVyQ4zfnaQBDMTJ4yYVP9Re8NVsZDSwXvogYbssrqkfVwac9U1QnxdCU2G1zH7Gq6L3JJjzcuWGjB9N",
+//                42500,
+//                0,
+//                0,
+//                null,
+//                feePayload,
+//                MOCK_SAMOURAI_FEE_ADDRESS));
   }
 }

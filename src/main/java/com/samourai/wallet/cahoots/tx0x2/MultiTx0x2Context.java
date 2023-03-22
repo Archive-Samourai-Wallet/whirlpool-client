@@ -52,7 +52,10 @@ public class MultiTx0x2Context extends CahootsContext {
   private List<Tx0x2Context> computeTx0x2Context(Tx0Service tx0Service, List<Tx0> tx0Initiators) {
     List<Tx0x2Context> tx0x2ContextList = new ArrayList<>();
     if (getTypeUser().equals(CahootsTypeUser.COUNTERPARTY)) {
-      tx0x2ContextList = Arrays.asList(Tx0x2Context.newCounterparty(getCahootsWallet(), getAccount(), tx0Service));
+      // TODO - Make this better
+      for (int i = 0; i < 4; i++) {
+        tx0x2ContextList.add(Tx0x2Context.newCounterparty(getCahootsWallet(), getAccount(), tx0Service));
+      }
       return tx0x2ContextList;
     }
 

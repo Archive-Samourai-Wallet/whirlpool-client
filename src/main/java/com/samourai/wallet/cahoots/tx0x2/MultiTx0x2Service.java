@@ -48,7 +48,7 @@ public class MultiTx0x2Service extends AbstractCahootsService<MultiTx0x2, MultiT
   @Override
   public MultiTx0x2 startCollaborator(MultiTx0x2Context multiTx0x2Context, MultiTx0x2 multiTx0x2)
       throws Exception {
-    MultiTx0x2 multiPayload1 = doStep1(multiTx0x2Context, multiTx0x2);
+    MultiTx0x2 multiPayload1 = doStep1(multiTx0x2Context, multiTx0x2); // TODO
     if (log.isDebugEnabled()) {
       log.debug("# MULTI Tx0x2 COUNTERPARTY => step=" + multiPayload1.getStep());
     }
@@ -94,15 +94,29 @@ public class MultiTx0x2Service extends AbstractCahootsService<MultiTx0x2, MultiT
   private MultiTx0x2 doStep1(MultiTx0x2Context multiTx0x2Context, MultiTx0x2 multiTx0x2) throws Exception {
     debug("BEGINING MULTI TX0X2 STEP 1", multiTx0x2Context);
 
-    List<Tx0x2> tx0x2List = new ArrayList<>();
-    int size = multiTx0x2Context.getTx0x2ContextList().size();
+    // TODO - Work in Progress. Starting with 0.01 => 0.001 test.
 
-    for (int i = 0; i < size; i++) {
-      Tx0x2Context tx0x2Context = multiTx0x2Context.getTx0x2ContextList().get(i);
-      Tx0x2 tx0x2 = multiTx0x2.getTx0x2List().get(i);
-      Tx0x2 payload = tx0x2Service.doStep1(tx0x2, tx0x2Context);
-      tx0x2List.add(payload);
-    }
+    List<Tx0x2> tx0x2List = new ArrayList<>();
+
+    // initial pool
+    Tx0x2Context initialTx0x2Context = multiTx0x2Context.getTx0x2ContextList().get(0);
+    Tx0x2 tx0x2 = multiTx0x2.getTx0x2List().get(0);
+    Tx0x2 payloadInitialPool = tx0x2Service.doStep1(tx0x2, initialTx0x2Context);
+    tx0x2List.add(payloadInitialPool);
+
+    // lower pool
+    Tx0x2Context tx0x2Context = multiTx0x2Context.getTx0x2ContextList().get(1);
+    tx0x2 = multiTx0x2.getTx0x2List().get(1);
+    Tx0x2 payloadLower = tx0x2Service.doMultiStep1(payloadInitialPool, initialTx0x2Context, tx0x2, tx0x2Context); // Should fail currently
+    tx0x2List.add(payloadLower);
+
+//    for (int i = 0; i < multiTx0x2.getTx0x2List().size(); i++) {
+//      Tx0x2 tx0x2 = multiTx0x2.getTx0x2List().get(i);
+//      Tx0x2 payload = tx0x2Service.doStep1(
+//          multiTx0x2.getTx0x2List().get(i),
+//          multiTx0x2Context.getTx0x2ContextList().get(i));
+//      tx0x2List.add(payload);
+//    }
 
     MultiTx0x2 multiCahoots = new MultiTx0x2(multiTx0x2);
     multiCahoots.setTx0x2List(tx0x2List);
@@ -118,15 +132,31 @@ public class MultiTx0x2Service extends AbstractCahootsService<MultiTx0x2, MultiT
   private MultiTx0x2 doStep2(MultiTx0x2Context multiTx0x2Context, MultiTx0x2 multiTx0x2) throws Exception {
     debug("BEGING MULTI TX0X2 STEP 2", multiTx0x2Context);
 
-    List<Tx0x2> tx0x2List = new ArrayList<>();
-    int size = multiTx0x2Context.getTx0x2ContextList().size();
+    // TODO - Work in Progress
 
-    for (int i = 0; i < size; i++) {
-      Tx0x2Context tx0x2Context = multiTx0x2Context.getTx0x2ContextList().get(i);
-      Tx0x2 tx0x2 = multiTx0x2.getTx0x2List().get(i);
-      Tx0x2 payload = tx0x2Service.doStep2(tx0x2, tx0x2Context);
-      tx0x2List.add(payload);
-    }
+    List<Tx0x2> tx0x2List = new ArrayList<>();
+//    int size = multiTx0x2Context.getTx0x2ContextList().size();
+    int size = multiTx0x2.getTx0x2List().size();
+
+    // Initial
+    Tx0x2Context tx0x2Context = multiTx0x2Context.getTx0x2ContextList().get(0);
+    Tx0x2 tx0x2 = multiTx0x2.getTx0x2List().get(0);
+    Tx0x2 payloadInitialPool = tx0x2Service.doStep2(tx0x2, tx0x2Context);
+    tx0x2List.add(payloadInitialPool);
+
+    // lower pool
+//    tx0x2 = multiTx0x2.getTx0x2List().get(1);
+//    Tx0x2 payloadLower = tx0x2Service.doMultiStep2(tx0x2, tx0x2Context); // Should fail currently
+//    tx0x2List.add(payloadLower);
+
+
+//    Tx0x2Context tx0x2Context = multiTx0x2Context.getTx0x2ContextList().get(0);
+//    for (int i = 0; i < size; i++) {
+//      Tx0x2Context tx0x2Context = multiTx0x2Context.getTx0x2ContextList().get(i);
+//      Tx0x2 tx0x2 = multiTx0x2.getTx0x2List().get(i);
+//      Tx0x2 payload = tx0x2Service.doStep2(tx0x2, tx0x2Context);
+//      tx0x2List.add(payload);
+//    }
 
     MultiTx0x2 multiCahoots = new MultiTx0x2(multiTx0x2);
     multiCahoots.setTx0x2List(tx0x2List);
@@ -142,15 +172,24 @@ public class MultiTx0x2Service extends AbstractCahootsService<MultiTx0x2, MultiT
   private MultiTx0x2 doStep3(MultiTx0x2Context multiTx0x2Context, MultiTx0x2 multiTx0x2) throws Exception {
     debug("BEGING MULTI TX0X2 STEP 3", multiTx0x2Context);
 
-    List<Tx0x2> tx0x2List = new ArrayList<>();
-    int size = multiTx0x2Context.getTx0x2ContextList().size();
+    // TODO - Work in Progress
 
-    for (int i = 0; i < size; i++) {
-      Tx0x2Context tx0x2Context = multiTx0x2Context.getTx0x2ContextList().get(i);
-      Tx0x2 tx0x2 = multiTx0x2.getTx0x2List().get(i);
-      Tx0x2 payload = tx0x2Service.doStep3(tx0x2, tx0x2Context);
-      tx0x2List.add(payload);
-    }
+    List<Tx0x2> tx0x2List = new ArrayList<>();
+//    int size = multiTx0x2Context.getTx0x2ContextList().size();
+    int size = multiTx0x2.getTx0x2List().size();
+
+    Tx0x2Context tx0x2Context = multiTx0x2Context.getTx0x2ContextList().get(0);
+    Tx0x2 tx0x2 = multiTx0x2.getTx0x2List().get(0);
+    Tx0x2 payload = tx0x2Service.doStep3(tx0x2, tx0x2Context);
+    tx0x2List.add(payload);
+
+//    Tx0x2Context tx0x2Context = multiTx0x2Context.getTx0x2ContextList().get(0);
+//    for (int i = 0; i < size; i++) {
+//      Tx0x2Context tx0x2Context = multiTx0x2Context.getTx0x2ContextList().get(i);
+//      Tx0x2 tx0x2 = multiTx0x2.getTx0x2List().get(i);
+//      Tx0x2 payload = tx0x2Service.doStep3(tx0x2, tx0x2Context);
+//      tx0x2List.add(payload);
+//    }
 
     MultiTx0x2 multiCahoots = new MultiTx0x2(multiTx0x2);
     multiCahoots.setTx0x2List(tx0x2List);
@@ -166,15 +205,25 @@ public class MultiTx0x2Service extends AbstractCahootsService<MultiTx0x2, MultiT
   private MultiTx0x2 doStep4(MultiTx0x2Context multiTx0x2Context, MultiTx0x2 multiTx0x2) throws Exception {
     debug("BEGING MULTI TX0X2 STEP 4", multiTx0x2Context);
 
-    List<Tx0x2> tx0x2List = new ArrayList<>();
-    int size = multiTx0x2Context.getTx0x2ContextList().size();
+    // TODO - Work in Progress
 
-    for (int i = 0; i < size; i++) {
-      Tx0x2Context tx0x2Context = multiTx0x2Context.getTx0x2ContextList().get(i);
-      Tx0x2 tx0x2 = multiTx0x2.getTx0x2List().get(i);
-      Tx0x2 payload = tx0x2Service.doStep4(tx0x2, tx0x2Context);
-      tx0x2List.add(payload);
-    }
+    List<Tx0x2> tx0x2List = new ArrayList<>();
+//    int size = multiTx0x2Context.getTx0x2ContextList().size();
+    int size = multiTx0x2.getTx0x2List().size();
+
+    Tx0x2Context tx0x2Context = multiTx0x2Context.getTx0x2ContextList().get(0);
+    Tx0x2 tx0x2 = multiTx0x2.getTx0x2List().get(0);
+    Tx0x2 payload = tx0x2Service.doStep4(tx0x2, tx0x2Context);
+    tx0x2List.add(payload);
+
+
+//    Tx0x2Context tx0x2Context = multiTx0x2Context.getTx0x2ContextList().get(0);
+//    for (int i = 0; i < size; i++) {
+//      Tx0x2Context tx0x2Context = multiTx0x2Context.getTx0x2ContextList().get(i);
+//      Tx0x2 tx0x2 = multiTx0x2.getTx0x2List().get(i);
+//      Tx0x2 payload = tx0x2Service.doStep4(tx0x2, tx0x2Context);
+//      tx0x2List.add(payload);
+//    }
 
     MultiTx0x2 multiCahoots = new MultiTx0x2(multiTx0x2);
     multiCahoots.setTx0x2List(tx0x2List);
