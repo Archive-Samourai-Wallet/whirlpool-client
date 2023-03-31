@@ -34,7 +34,7 @@ public class PremixHandler implements IPremixHandler {
   protected void signInputSegwit(
       Transaction tx, int inputIdx, ECKey ecKey, long spendAmount, NetworkParameters params) {
     final SegwitAddress segwitAddress = new SegwitAddress(ecKey, params);
-    final Script redeemScript = segwitAddress.segWitRedeemScript();
+    final Script redeemScript = segwitAddress.segwitRedeemScript();
     final Script scriptCode = redeemScript.scriptCode();
 
     TransactionSignature sig =

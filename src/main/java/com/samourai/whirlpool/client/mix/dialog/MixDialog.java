@@ -6,6 +6,7 @@ import com.samourai.whirlpool.client.exception.NotifiableException;
 import com.samourai.whirlpool.client.utils.ClientUtils;
 import com.samourai.whirlpool.client.whirlpool.WhirlpoolClientConfig;
 import com.samourai.whirlpool.protocol.WhirlpoolEndpoint;
+import com.samourai.whirlpool.protocol.soroban.InviteMixSorobanMessage;
 import com.samourai.whirlpool.protocol.websocket.MixMessage;
 import com.samourai.whirlpool.protocol.websocket.messages.*;
 import com.samourai.whirlpool.protocol.websocket.notifications.*;
@@ -26,14 +27,12 @@ public class MixDialog {
   private MixDialogListener listener;
   private MixSession mixSession;
   private WhirlpoolClientConfig config;
+  private InviteMixSorobanMessage inviteMixSorobanMessage;
+  private String mixId;
 
   // mix data
-  private String mixId;
   private MixStatus mixStatus;
   private boolean gotConfirmInputResponse; // will get it after CONFIRM_INPUT
-  private RegisterOutputMixStatusNotification
-      earlyRegisterOutputMixStatusNotification; // we may get early REGISTER_OUTPUT notification
-  // (before registerInputResponse)
 
   // computed values
   private Set<MixStatus> mixStatusCompleted = new HashSet<MixStatus>();
@@ -43,11 +42,14 @@ public class MixDialog {
       MixDialogListener listener,
       MixSession mixSession,
       WhirlpoolClientConfig config,
-      String logPrefix) {
+      String logPrefix,
+      InviteMixSorobanMessage inviteMixSorobanMessage) {
     this.log = LoggerFactory.getLogger(MixDialog.class + "[" + logPrefix + "]");
     this.listener = listener;
     this.config = config;
     this.mixSession = mixSession;
+    this.inviteMixSorobanMessage = inviteMixSorobanMessage;
+    this.mixId = inviteMixSorobanMessage.mixId;
   }
 
   public synchronized void onPrivateReceived(MixMessage mixMessage) {
@@ -64,17 +66,7 @@ public class MixDialog {
         String errorMessage = ((ErrorResponse) mixMessage).message;
         exitOnResponseError(errorMessage);
       } else {
-        if (mixId == null) {
-          // track mixId as soon as we joined a mix (either ConfirmInputResponse or early
-          // RegisterOutputMixStatusNotification) but not ConfirmInputMixStatusNotification which
-          // doesn't garantee to join the mix
-          if (!ConfirmInputMixStatusNotification.class.isAssignableFrom(payloadClass)) {
-            mixId = mixMessage.mixId;
-            if (log.isDebugEnabled()) {
-              log.debug("mixId=" + mixId);
-            }
-          }
-        } else if (!mixMessage.mixId.equals(mixId)) {
+        if (!mixMessage.mixId.equals(mixId)) {
           log.error("Invalid mixId: expected=" + mixId + ", actual=" + mixMessage.mixId);
           throw new Exception("Invalid mixId");
         }
@@ -84,11 +76,6 @@ public class MixDialog {
         } else if (ConfirmInputResponse.class.isAssignableFrom(payloadClass)) {
           this.gotConfirmInputResponse = true;
           listener.onConfirmInputResponse((ConfirmInputResponse) mixMessage);
-
-          // if we received early REGISTER_OUTPUT notification, register ouput now
-          if (earlyRegisterOutputMixStatusNotification != null) {
-            doRegisterOutput(earlyRegisterOutputMixStatusNotification);
-          }
         } else {
           log.error(
               "Unexpected mixMessage, registeredInput=true: "
@@ -125,21 +112,14 @@ public class MixDialog {
     done = true;
   }
 
-  public void stop() {
-    this.done = true;
-  }
-
   private void onMixStatusNotificationChange(MixStatusNotification notification) throws Exception {
 
-    // ignore duplicate CONFIRM_INPUT: we may try to confirm for several mixes before joining
-    if (!MixStatus.CONFIRM_INPUT.equals(notification.status)) {
-      // check status chronology
-      if (mixStatusCompleted.contains(notification.status)) {
-        throw new Exception("mixStatus already completed: " + notification.status);
-      }
-      if (mixStatus != null && notification.status.equals(mixStatus)) {
-        throw new Exception("Duplicate mixStatusNotification: " + mixStatus);
-      }
+    // check status consistency
+    if (mixStatusCompleted.contains(notification.status)) {
+      throw new Exception("mixStatus already completed: " + notification.status);
+    }
+    if (mixStatus != null && notification.status.equals(mixStatus)) {
+      throw new Exception("Duplicate mixStatusNotification: " + mixStatus);
     }
     this.mixStatus = notification.status;
 
@@ -149,83 +129,65 @@ public class MixDialog {
       return;
     }
 
-    if (MixStatus.CONFIRM_INPUT.equals(notification.status)) {
-      ConfirmInputMixStatusNotification confirmInputMixStatusNotification =
-          (ConfirmInputMixStatusNotification) notification;
+    if (!mixStatusCompleted.contains(MixStatus.CONFIRM_INPUT) || !gotConfirmInputResponse) {
+      // not confirmed in time, missed the mix
+      log.info(" x Missed the mix");
+      done = true;
+      listener.onMixFail();
+      return;
+    }
 
-      ConfirmInputRequest confirmInputRequest =
-          listener.confirmInput(confirmInputMixStatusNotification);
-      mixSession.send(WhirlpoolEndpoint.WS_CONFIRM_INPUT, confirmInputRequest);
-      mixStatusCompleted.add(MixStatus.CONFIRM_INPUT);
-    } else if (mixStatusCompleted.contains(MixStatus.CONFIRM_INPUT)) {
-      if (gotConfirmInputResponse()) {
-
-        if (MixStatus.REGISTER_OUTPUT.equals(notification.status)) {
-          doRegisterOutput((RegisterOutputMixStatusNotification) notification); // async
-          mixStatusCompleted.add(MixStatus.REGISTER_OUTPUT);
-
-        } else if (mixStatusCompleted.contains(MixStatus.REGISTER_OUTPUT)) {
-
-          // don't reveal output if already signed
-          if (!mixStatusCompleted.contains(MixStatus.SIGNING)
-              && MixStatus.REVEAL_OUTPUT.equals(notification.status)) {
-            RevealOutputRequest revealOutputRequest =
-                listener.revealOutput((RevealOutputMixStatusNotification) notification);
-            mixSession.send(WhirlpoolEndpoint.WS_REVEAL_OUTPUT, revealOutputRequest);
-            mixStatusCompleted.add(MixStatus.REVEAL_OUTPUT);
-
-          } else if (!mixStatusCompleted.contains(
-              MixStatus.REVEAL_OUTPUT)) { // don't sign or success if output was revealed
-
-            if (MixStatus.SIGNING.equals(notification.status)) {
-              SigningRequest signingRequest =
-                  listener.signing((SigningMixStatusNotification) notification);
-              mixSession.send(WhirlpoolEndpoint.WS_SIGNING, signingRequest);
-              mixStatusCompleted.add(MixStatus.SIGNING);
-
-            } else if (mixStatusCompleted.contains(MixStatus.SIGNING)) {
-
-              if (MixStatus.SUCCESS.equals(notification.status)) {
-                listener.onMixSuccess();
-                done = true;
-                return;
-              }
-            } else {
-              log.warn(" x SIGNING not completed");
-              if (log.isDebugEnabled()) {
-                log.error(
-                    "Ignoring mixStatusNotification: " + ClientUtils.toJsonString(notification));
-              }
-            }
-          } else {
-            log.warn(" x REVEAL_OUTPUT already completed");
-            if (log.isDebugEnabled()) {
-              log.error(
-                  "Ignoring mixStatusNotification: " + ClientUtils.toJsonString(notification));
-            }
-          }
-        } else {
-          log.warn(" x REGISTER_OUTPUT not completed");
-          if (log.isDebugEnabled()) {
-            log.error("Ignoring mixStatusNotification: " + ClientUtils.toJsonString(notification));
-          }
-        }
-      } else {
-        if (MixStatus.REGISTER_OUTPUT.equals(notification.status)) {
-          // early REGISTER_OUTPUT notification (before RegisterInputResponse).
-          // keep it to register output as soon as we receive RegisterInputResponse
-          this.earlyRegisterOutputMixStatusNotification =
-              (RegisterOutputMixStatusNotification) notification;
-        }
-
-        log.info(" > Trying to join current mix...");
-      }
+    if (MixStatus.REGISTER_OUTPUT.equals(notification.status)) {
+      doRegisterOutput((RegisterOutputMixStatusNotification) notification); // async
+      mixStatusCompleted.add(MixStatus.REGISTER_OUTPUT);
     } else {
-      log.info(" > Waiting for next mix...");
-      if (log.isDebugEnabled()) {
-        log.debug("Current mix status: " + notification.status);
+      if (MixStatus.REVEAL_OUTPUT.equals(notification.status)) {
+        if (mixStatusCompleted.contains(MixStatus.SIGNING)) {
+          // don't reveal output if already signed
+          throw new Exception("not revealing output as we already signed");
+        }
+        RevealOutputRequest revealOutputRequest =
+            listener.revealOutput((RevealOutputMixStatusNotification) notification);
+        mixSession.send(WhirlpoolEndpoint.WS_REVEAL_OUTPUT, revealOutputRequest);
+        mixStatusCompleted.add(MixStatus.REVEAL_OUTPUT);
+
+      } else {
+
+        if (mixStatusCompleted.contains(MixStatus.REVEAL_OUTPUT)) {
+          // we shouldn't have REVEAL_OUTPUT
+          throw new Exception("not continuing as we revealed output");
+        }
+        if (!mixStatusCompleted.contains(MixStatus.REGISTER_OUTPUT)) {
+          // we should already have REGISTER_OUTPUT
+          throw new Exception("not continuing as we didn't REGISTER_OUTPUT");
+        }
+
+        if (MixStatus.SIGNING.equals(notification.status)) {
+          SigningRequest signingRequest =
+              listener.signing((SigningMixStatusNotification) notification);
+          mixSession.send(WhirlpoolEndpoint.WS_SIGNING, signingRequest);
+          mixStatusCompleted.add(MixStatus.SIGNING);
+        } else {
+          if (!mixStatusCompleted.contains(MixStatus.SIGNING)) {
+            // we should already have SIGNED
+            throw new Exception("not continuing as we didn't SIGN");
+          }
+          if (MixStatus.SUCCESS.equals(notification.status)) {
+            listener.onMixSuccess();
+            done = true;
+            return;
+          } else {
+            throw new Exception("Unexpected MixStatus: " + notification.status);
+          }
+        }
       }
     }
+  }
+
+  public void confirmInput() throws Exception {
+    ConfirmInputRequest confirmInputRequest = listener.confirmInput(inviteMixSorobanMessage);
+    mixSession.send(WhirlpoolEndpoint.WS_CONFIRM_INPUT, confirmInputRequest);
+    mixStatusCompleted.add(MixStatus.CONFIRM_INPUT);
   }
 
   private void doRegisterOutput(

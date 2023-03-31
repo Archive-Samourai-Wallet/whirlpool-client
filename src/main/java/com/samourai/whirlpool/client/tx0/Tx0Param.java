@@ -9,74 +9,44 @@ public class Tx0Param {
   private static final Logger log = LoggerFactory.getLogger(Tx0Param.class);
   private static final FeeUtil feeUtil = FeeUtil.getInstance();
 
-  private int feeTx0;
-  private int feePremix;
+  private int tx0MinerFeePrice;
+  private int mixMinerFeePrice;
   private Pool pool;
-  private Long overspendValueOrNull;
 
   // computed
-  private Long premixValue;
+  private long premixValue;
 
-  public Tx0Param(int feeTx0, int feePremix, Pool pool, Long overspendValueOrNull) {
-    this.feeTx0 = feeTx0;
-    this.feePremix = feePremix;
+  public Tx0Param(
+      int tx0MinerFeePrice, int mixMinerFeePrice, Pool pool, Long overspendValueOrNull) {
+    this.tx0MinerFeePrice = tx0MinerFeePrice;
+    this.mixMinerFeePrice = mixMinerFeePrice;
     this.pool = pool;
-    this.overspendValueOrNull = overspendValueOrNull;
-    this.premixValue = null;
+    this.premixValue = computePremixValue(overspendValueOrNull);
   }
 
-  private long computePremixValue() {
-    long premixOverspend;
+  private long computePremixValue(Long overspendValueOrNull) {
+    long premixValue = pool.getPremixValue();
+
     if (overspendValueOrNull != null && overspendValueOrNull > 0) {
-      premixOverspend = overspendValueOrNull;
-    } else {
-      // compute premixOverspend
-      long mixFeesEstimate =
-          feeUtil.estimatedFeeSegwit(
-              0, 0, pool.getMixAnonymitySet(), pool.getMixAnonymitySet(), 0, feePremix);
-      premixOverspend = mixFeesEstimate / pool.getMinMustMix();
-      if (log.isTraceEnabled()) {
-        log.trace(
-            "mixFeesEstimate="
-                + mixFeesEstimate
-                + " => premixOverspend="
-                + overspendValueOrNull
-                + " for poolId="
-                + pool.getPoolId());
-      }
+      // use premixValue from local config
+      long premixOverspend = overspendValueOrNull;
+
+      // make sure premixValue is acceptable for pool
+      long premixBalanceMin = pool.computePremixBalanceMin(false);
+      long premixBalanceMax = pool.computePremixBalanceMax(false);
+      premixValue = pool.getDenomination() + premixOverspend;
+      premixValue = Math.min(premixValue, premixBalanceMax);
+      premixValue = Math.max(premixValue, premixBalanceMin);
     }
-    long premixValue = pool.getDenomination() + premixOverspend;
-
-    // make sure destinationValue is acceptable for pool
-    long premixBalanceMin = pool.computePremixBalanceMin(false);
-    long premixBalanceCap = pool.computePremixBalanceCap(false);
-    long premixBalanceMax = pool.computePremixBalanceMax(false);
-
-    long premixValueFinal = premixValue;
-    premixValueFinal = Math.min(premixValueFinal, premixBalanceMax);
-    premixValueFinal = Math.min(premixValueFinal, premixBalanceCap);
-    premixValueFinal = Math.max(premixValueFinal, premixBalanceMin);
-
-    if (log.isDebugEnabled()) {
-      log.debug(
-          "premixValueFinal="
-              + premixValueFinal
-              + ", premixValue="
-              + premixValue
-              + ", premixOverspend="
-              + premixOverspend
-              + " for poolId="
-              + pool.getPoolId());
-    }
-    return premixValueFinal;
+    return premixValue;
   }
 
-  public int getFeeTx0() {
-    return feeTx0;
+  public int getTx0MinerFeePrice() {
+    return tx0MinerFeePrice;
   }
 
-  public int getFeePremix() {
-    return feePremix;
+  public int getMixMinerFeePrice() {
+    return mixMinerFeePrice;
   }
 
   public Pool getPool() {
@@ -84,9 +54,6 @@ public class Tx0Param {
   }
 
   public long getPremixValue() {
-    if (premixValue == null) {
-      premixValue = computePremixValue();
-    }
     return premixValue;
   }
 

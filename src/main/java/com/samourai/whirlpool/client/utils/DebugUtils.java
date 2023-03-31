@@ -357,7 +357,7 @@ public class DebugUtils {
                 pool.getPoolId(),
                 ClientUtils.satToBtc(pool.getDenomination()),
                 ClientUtils.satToBtc(pool.getTx0PreviewMinSpendValue()),
-                pool.getMinAnonymitySet(),
+                pool.getAnonymitySet(),
                 pool.getTx0MaxOutputs(),
                 ClientUtils.satToBtc(pool.getFeeValue())));
       }

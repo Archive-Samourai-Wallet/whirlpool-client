@@ -1,8 +1,8 @@
 package com.samourai.whirlpool.client.mix.dialog;
 
 import com.samourai.whirlpool.client.whirlpool.ServerApi;
+import com.samourai.whirlpool.protocol.soroban.InviteMixSorobanMessage;
 import com.samourai.whirlpool.protocol.websocket.messages.*;
-import com.samourai.whirlpool.protocol.websocket.notifications.ConfirmInputMixStatusNotification;
 import com.samourai.whirlpool.protocol.websocket.notifications.RegisterOutputMixStatusNotification;
 import com.samourai.whirlpool.protocol.websocket.notifications.RevealOutputMixStatusNotification;
 import com.samourai.whirlpool.protocol.websocket.notifications.SigningMixStatusNotification;
@@ -14,12 +14,10 @@ public interface MixDialogListener {
 
   void onConnectionFailWillRetry(int retryDelay);
 
-  void onConnectionLostWillRetry();
+  RegisterInputRequest registerInput() throws Exception;
 
-  RegisterInputRequest registerInput(SubscribePoolResponse subscribePoolResponse) throws Exception;
-
-  ConfirmInputRequest confirmInput(
-      ConfirmInputMixStatusNotification confirmInputMixStatusNotification) throws Exception;
+  ConfirmInputRequest confirmInput(InviteMixSorobanMessage inviteMixSorobanMessage)
+      throws Exception;
 
   Completable postRegisterOutput(
       RegisterOutputMixStatusNotification registerOutputMixStatusNotification, ServerApi serverApi)
@@ -36,8 +34,6 @@ public interface MixDialogListener {
   void onMixSuccess();
 
   void onMixFail();
-
-  void onResetMix();
 
   void exitOnProtocolError(String notifiableError);
 

@@ -122,17 +122,17 @@ public class Tx0ServiceV0Test extends AbstractTx0ServiceTest {
 
     // overspend too low => min
     tx0Param = new Tx0Param(feeSatPerByte, feeSatPerByte, pool01btc, 1L);
-    Assertions.assertEquals(pool01btc.getMustMixBalanceMin(), tx0Param.getPremixValue());
+    Assertions.assertEquals(pool01btc.getPremixValueMin(), tx0Param.getPremixValue());
     tx0Preview = tx0PreviewService.tx0Preview(tx0Param, tx0Data, Arrays.asList(spendFromUtxo));
     check(tx0Preview);
-    Assertions.assertEquals(pool01btc.getMustMixBalanceMin(), tx0Preview.getPremixValue());
+    Assertions.assertEquals(pool01btc.getPremixValueMin(), tx0Preview.getPremixValue());
 
     // overspend too high => max
     tx0Param = new Tx0Param(feeSatPerByte, feeSatPerByte, pool01btc, 999999999L);
-    Assertions.assertEquals(pool01btc.getMustMixBalanceCap(), tx0Param.getPremixValue());
+    Assertions.assertEquals(pool01btc.getPremixValueMax(), tx0Param.getPremixValue());
     tx0Preview = tx0PreviewService.tx0Preview(tx0Param, tx0Data, Arrays.asList(spendFromUtxo));
     check(tx0Preview);
-    Assertions.assertEquals(pool01btc.getMustMixBalanceCap(), tx0Preview.getPremixValue());
+    Assertions.assertEquals(pool01btc.getPremixValueMax(), tx0Preview.getPremixValue());
   }
 
   @Test

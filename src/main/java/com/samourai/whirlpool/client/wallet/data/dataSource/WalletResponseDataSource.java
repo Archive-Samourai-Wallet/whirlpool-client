@@ -87,8 +87,7 @@ public abstract class WalletResponseDataSource implements DataSource {
       throws Exception {
     WhirlpoolWalletConfig config = whirlpoolWallet.getConfig();
     BasicMinerFeeSupplier minerFeeSupplier =
-        new BasicMinerFeeSupplier(config.getFeeMin(), config.getFeeMax());
-    minerFeeSupplier.setValue(config.getFeeFallback());
+        new BasicMinerFeeSupplier(config.getFeeMin(), config.getFeeMax(), config.getFeeFallback());
     return minerFeeSupplier;
   }
 
@@ -96,7 +95,10 @@ public abstract class WalletResponseDataSource implements DataSource {
       WhirlpoolWallet whirlpoolWallet, Tx0PreviewService tx0PreviewService) throws Exception {
     WhirlpoolWalletConfig config = whirlpoolWallet.getConfig();
     return new ExpirablePoolSupplier(
-        config.getRefreshPoolsDelay(), config.getServerApi(), tx0PreviewService);
+        config.getRefreshPoolsDelay(),
+        config.getSorobanClientApi(),
+        config.getRpcClient(),
+        tx0PreviewService);
   }
 
   protected BasicChainSupplier computeChainSupplier() throws Exception {

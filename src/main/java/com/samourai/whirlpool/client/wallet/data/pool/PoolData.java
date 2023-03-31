@@ -4,7 +4,7 @@ import com.samourai.whirlpool.client.tx0.*;
 import com.samourai.whirlpool.client.wallet.beans.Tx0FeeTarget;
 import com.samourai.whirlpool.client.wallet.beans.WhirlpoolPoolByBalanceMinDescComparator;
 import com.samourai.whirlpool.client.whirlpool.beans.Pool;
-import com.samourai.whirlpool.protocol.rest.PoolsResponse;
+import com.samourai.whirlpool.protocol.soroban.PoolInfoSorobanMessage;
 import java.util.*;
 import java.util.stream.Collectors;
 import org.slf4j.Logger;
@@ -15,37 +15,37 @@ public class PoolData {
 
   private final Map<String, Pool> poolsById;
 
-  public PoolData(PoolsResponse poolsResponse, Tx0PreviewService tx0PreviewService)
+  public PoolData(
+      Collection<PoolInfoSorobanMessage> poolInfoSorobanMessages,
+      Tx0PreviewService tx0PreviewService)
       throws Exception {
-    this.poolsById = computePools(poolsResponse, tx0PreviewService);
+    this.poolsById = computePools(poolInfoSorobanMessages, tx0PreviewService);
   }
 
   private static Map<String, Pool> computePools(
-      PoolsResponse poolsResponse, final Tx0PreviewService tx0PreviewService) throws Exception {
+      Collection<PoolInfoSorobanMessage> poolInfoSorobanMessages,
+      final Tx0PreviewService tx0PreviewService)
+      throws Exception {
 
     // biggest balanceMin first
     List<Pool> poolsOrdered =
-        Arrays.stream(poolsResponse.pools)
-            .map(
-                poolInfo -> {
-                  Pool pool = new Pool();
-                  pool.setPoolId(poolInfo.poolId);
-                  pool.setDenomination(poolInfo.denomination);
-                  pool.setFeeValue(poolInfo.feeValue);
-                  pool.setMustMixBalanceMin(poolInfo.mustMixBalanceMin);
-                  pool.setMustMixBalanceCap(poolInfo.mustMixBalanceCap);
-                  pool.setMustMixBalanceMax(poolInfo.mustMixBalanceMax);
-                  pool.setMinAnonymitySet(poolInfo.minAnonymitySet);
-                  pool.setMinMustMix(poolInfo.minMustMix);
-                  pool.setTx0MaxOutputs(poolInfo.tx0MaxOutputs);
-                  pool.setNbRegistered(poolInfo.nbRegistered);
-
-                  pool.setMixAnonymitySet(poolInfo.mixAnonymitySet);
-                  pool.setMixStatus(poolInfo.mixStatus);
-                  pool.setElapsedTime(poolInfo.elapsedTime);
-                  pool.setNbConfirmed(poolInfo.nbConfirmed);
-                  return pool;
-                })
+        poolInfoSorobanMessages.stream()
+            .flatMap(
+                poolInfoSorobanMessage ->
+                    poolInfoSorobanMessage.poolInfo.stream()
+                        .map(
+                            poolInfo -> {
+                              Pool pool = new Pool();
+                              pool.setPoolId(poolInfo.poolId);
+                              pool.setDenomination(poolInfo.denomination);
+                              pool.setFeeValue(poolInfo.feeValue);
+                              pool.setPremixValue(poolInfo.premixValue);
+                              pool.setPremixValueMin(poolInfo.premixValueMin);
+                              pool.setPremixValueMax(poolInfo.premixValueMax);
+                              pool.setTx0MaxOutputs(poolInfo.tx0MaxOutputs);
+                              pool.setAnonymitySet(poolInfo.anonymitySet);
+                              return pool;
+                            }))
             .sorted(new WhirlpoolPoolByBalanceMinDescComparator())
             .collect(Collectors.<Pool>toList());
 

@@ -1,30 +1,28 @@
 package com.samourai.whirlpool.client.wallet.data.pool;
 
+import com.samourai.whirlpool.client.soroban.SorobanClientApi;
 import com.samourai.whirlpool.client.tx0.Tx0PreviewService;
-import com.samourai.whirlpool.client.whirlpool.ServerApi;
-import com.samourai.whirlpool.protocol.rest.PoolInfo;
-import com.samourai.whirlpool.protocol.rest.PoolsResponse;
+import com.samourai.whirlpool.protocol.soroban.PoolInfoSorobanMessage;
+import java.util.Arrays;
 
 public class MockPoolSupplier extends ExpirablePoolSupplier {
-  private static PoolsResponse poolsResponse;
 
-  public MockPoolSupplier(Tx0PreviewService tx0PreviewService, PoolInfo... pools) throws Exception {
-    super(9999999, computeServerApi(), tx0PreviewService);
-    mock(pools);
+  public MockPoolSupplier(
+      Tx0PreviewService tx0PreviewService,
+      SorobanClientApi sorobanClientApi,
+      PoolInfoSorobanMessage... poolInfoSorobanMessages)
+      throws Exception {
+    super(9999999, sorobanClientApi, null, tx0PreviewService);
+    mock(poolInfoSorobanMessages);
   }
 
-  private static ServerApi computeServerApi() {
-    return new ServerApi("http://mock", null, null) {
-
-      @Override
-      public PoolsResponse fetchPools() throws Exception {
-        return poolsResponse;
-      }
-    };
+  @Override
+  protected PoolData fetch() throws Exception {
+    // do nothing
+    return getValue();
   }
 
-  public void mock(PoolInfo... pools) throws Exception {
-    poolsResponse = new PoolsResponse(pools);
-    setValue(new PoolData(poolsResponse, tx0PreviewService));
+  public void mock(PoolInfoSorobanMessage... poolInfoSorobanMessages) throws Exception {
+    setValue(new PoolData(Arrays.asList(poolInfoSorobanMessages), tx0PreviewService));
   }
 }

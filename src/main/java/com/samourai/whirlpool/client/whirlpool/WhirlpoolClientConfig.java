@@ -3,8 +3,12 @@ package com.samourai.whirlpool.client.whirlpool;
 import com.samourai.http.client.HttpUsage;
 import com.samourai.http.client.IHttpClient;
 import com.samourai.http.client.IWhirlpoolHttpClientService;
+import com.samourai.soroban.client.rpc.RpcClient;
+import com.samourai.soroban.client.rpc.RpcClientService;
 import com.samourai.stomp.client.IStompClientService;
 import com.samourai.tor.client.TorClientService;
+import com.samourai.wallet.bip47.rpc.PaymentCode;
+import com.samourai.whirlpool.client.soroban.SorobanClientApi;
 import com.samourai.whirlpool.client.wallet.beans.ExternalDestination;
 import com.samourai.whirlpool.client.wallet.beans.IndexRange;
 import org.bitcoinj.core.NetworkParameters;
@@ -13,26 +17,35 @@ public class WhirlpoolClientConfig {
   private IWhirlpoolHttpClientService httpClientService;
   private IStompClientService stompClientService;
   private TorClientService torClientService;
+  private RpcClientService rpcClientService;
   private ServerApi serverApi;
+  private SorobanClientApi sorobanClientApi;
   private ExternalDestination externalDestination;
   private NetworkParameters networkParameters;
   private IndexRange indexRangePostmix;
+  private PaymentCode paymentCodeCoordinator;
 
   public WhirlpoolClientConfig(
       IWhirlpoolHttpClientService httpClientService,
       IStompClientService stompClientService,
       TorClientService torClientService,
+      RpcClientService rpcClientService,
       ServerApi serverApi,
+      SorobanClientApi sorobanClientApi,
       ExternalDestination externalDestination,
       NetworkParameters networkParameters,
-      IndexRange indexRangePostmix) {
+      IndexRange indexRangePostmix,
+      PaymentCode paymentCodeCoordinator) {
     this.httpClientService = httpClientService;
     this.stompClientService = stompClientService;
     this.torClientService = torClientService;
+    this.rpcClientService = rpcClientService;
     this.serverApi = serverApi;
+    this.sorobanClientApi = sorobanClientApi;
     this.externalDestination = externalDestination;
     this.networkParameters = networkParameters;
     this.indexRangePostmix = indexRangePostmix;
+    this.paymentCodeCoordinator = paymentCodeCoordinator;
   }
 
   public IWhirlpoolHttpClientService getHttpClientService() {
@@ -51,12 +64,24 @@ public class WhirlpoolClientConfig {
     return torClientService;
   }
 
+  public RpcClient getRpcClient() {
+    return rpcClientService.getRpcClient("whirlpoolClient");
+  }
+
   public ServerApi getServerApi() {
     return serverApi;
   }
 
   public void setServerApi(ServerApi serverApi) {
     this.serverApi = serverApi;
+  }
+
+  public SorobanClientApi getSorobanClientApi() {
+    return sorobanClientApi;
+  }
+
+  public void setSorobanClientApi(SorobanClientApi sorobanClientApi) {
+    this.sorobanClientApi = sorobanClientApi;
   }
 
   public ExternalDestination getExternalDestination() {
@@ -81,5 +106,13 @@ public class WhirlpoolClientConfig {
 
   public void setIndexRangePostmix(IndexRange indexRangePostmix) {
     this.indexRangePostmix = indexRangePostmix;
+  }
+
+  public PaymentCode getPaymentCodeCoordinator() {
+    return paymentCodeCoordinator;
+  }
+
+  public void setPaymentCodeCoordinator(PaymentCode paymentCodeCoordinator) {
+    this.paymentCodeCoordinator = paymentCodeCoordinator;
   }
 }

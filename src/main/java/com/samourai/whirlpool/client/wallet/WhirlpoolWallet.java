@@ -461,7 +461,6 @@ public class WhirlpoolWallet {
             getWalletSupplier(),
             getChainSupplier(),
             BIP_FORMAT.PROVIDER,
-            config.getNetworkParameters(),
             new SimpleCahootsUtxoProvider(getUtxoSupplier()));
 
     // start orchestrators

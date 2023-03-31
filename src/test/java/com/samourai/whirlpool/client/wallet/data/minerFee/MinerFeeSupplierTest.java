@@ -20,8 +20,7 @@ public class MinerFeeSupplierTest extends AbstractTest {
 
   @BeforeEach
   public void setup() throws Exception {
-    this.supplier = new BasicMinerFeeSupplier(FEE_MIN, FEE_MAX);
-    this.supplier.setValue(FEE_FALLBACK);
+    this.supplier = new BasicMinerFeeSupplier(FEE_MIN, FEE_MAX, FEE_FALLBACK);
   }
 
   @Test

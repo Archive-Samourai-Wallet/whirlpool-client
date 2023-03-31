@@ -16,10 +16,15 @@ public class BasicMinerFeeSupplier extends BasicSupplier<MinerFee> implements Mi
   protected int feeMin;
   protected int feeMax;
 
-  public BasicMinerFeeSupplier(int feeMin, int feeMax) {
+  public BasicMinerFeeSupplier(int feeMin, int feeMax, int feeFallback) {
     super(log);
     this.feeMin = feeMin;
     this.feeMax = feeMax;
+    try {
+      this.setValue(feeFallback);
+    } catch (Exception e) {
+      log.warn("invalid feeFallback!", e);
+    }
   }
 
   @Override

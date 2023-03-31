@@ -6,14 +6,11 @@ import com.samourai.stomp.client.StompTransport;
 import com.samourai.wallet.util.AsyncUtil;
 import com.samourai.wallet.util.MessageErrorListener;
 import com.samourai.wallet.util.RandomUtil;
-import com.samourai.whirlpool.client.exception.NotifiableException;
 import com.samourai.whirlpool.client.utils.ClientUtils;
 import com.samourai.whirlpool.client.whirlpool.WhirlpoolClientConfig;
-import com.samourai.whirlpool.protocol.WhirlpoolEndpoint;
 import com.samourai.whirlpool.protocol.WhirlpoolProtocol;
+import com.samourai.whirlpool.protocol.soroban.InviteMixSorobanMessage;
 import com.samourai.whirlpool.protocol.websocket.MixMessage;
-import com.samourai.whirlpool.protocol.websocket.messages.RegisterInputRequest;
-import com.samourai.whirlpool.protocol.websocket.messages.SubscribePoolResponse;
 import io.reactivex.Completable;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
@@ -31,6 +28,7 @@ public class MixSession {
   private String poolId;
   private StompTransport transport;
   private String logPrefix;
+  private InviteMixSorobanMessage inviteMixSorobanMessage;
   private boolean done;
 
   // connect data
@@ -38,14 +36,14 @@ public class MixSession {
 
   // session data
   private MixDialog dialog;
-  private SubscribePoolResponse subscribePoolResponse;
 
   public MixSession(
       MixDialogListener listener,
       WhirlpoolProtocol whirlpoolProtocol,
       WhirlpoolClientConfig config,
       String poolId,
-      String logPrefix) {
+      String logPrefix,
+      InviteMixSorobanMessage inviteMixSorobanMessage) {
     this.log = LoggerFactory.getLogger(MixSession.class + "[" + logPrefix + "]");
     this.listener = listener;
     this.whirlpoolProtocol = whirlpoolProtocol;
@@ -53,15 +51,8 @@ public class MixSession {
     this.poolId = poolId;
     this.transport = null;
     this.logPrefix = logPrefix;
-    resetDialog();
-  }
-
-  private void resetDialog() {
-    if (this.dialog != null) {
-      this.dialog.stop();
-    }
-    this.dialog = new MixDialog(listener, this, config, logPrefix);
-    listener.onResetMix();
+    this.inviteMixSorobanMessage = inviteMixSorobanMessage;
+    this.dialog = new MixDialog(listener, this, config, logPrefix, inviteMixSorobanMessage);
   }
 
   public synchronized void connect() {
@@ -87,10 +78,7 @@ public class MixSession {
     transport.connect(wsUrl, connectHeaders);
   }
 
-  private void subscribe() {
-    // reset session
-    subscribePoolResponse = null;
-
+  private void subscribeAndStart() {
     // subscribe to private queue
     final String privateQueue =
         whirlpoolProtocol.WS_PREFIX_USER_PRIVATE + whirlpoolProtocol.WS_PREFIX_USER_REPLY;
@@ -105,44 +93,15 @@ public class MixSession {
               }
               return;
             }
-            boolean isSubscribePoolResponse =
-                SubscribePoolResponse.class.isAssignableFrom(payload.getClass());
-            if (subscribePoolResponse == null) {
-              if (isSubscribePoolResponse) {
-                // 1) input not registered yet => should be a SubscribePoolResponse
-                subscribePoolResponse = (SubscribePoolResponse) payload;
 
-                // REGISTER_INPUT
-                try {
-                  registerInput(subscribePoolResponse);
-                } catch (Exception e) {
-                  log.error("Unable to register input", e);
-                  Exception notifiableException = NotifiableException.computeNotifiableException(e);
-                  listener.exitOnProtocolError(notifiableException.getMessage());
-                }
-              } else {
-                String notifiableError =
-                    "not a SubscribePoolResponse: " + ClientUtils.toJsonString(payload);
-                log.error("--> " + privateQueue + ": " + notifiableError);
-                listener.exitOnProtocolError(notifiableError);
-              }
+            // mix dialog
+            MixMessage mixMessage = checkMixMessage(payload);
+            if (mixMessage != null) {
+              dialog.onPrivateReceived(mixMessage);
             } else {
-              if (!isSubscribePoolResponse) {
-                // 2) input already registered => should be a MixMessage
-                MixMessage mixMessage = checkMixMessage(payload);
-                if (mixMessage != null) {
-                  dialog.onPrivateReceived(mixMessage);
-                } else {
-                  String notifiableError = "not a MixMessage: " + ClientUtils.toJsonString(payload);
-                  log.error("--> " + privateQueue + ": " + notifiableError);
-                  listener.exitOnProtocolError(notifiableError);
-                }
-              } else {
-                // ignore duplicate SubscribePoolResponse
-                log.warn(
-                    "Ignoring duplicate SubscribePoolResponse: "
-                        + ClientUtils.toJsonString(payload));
-              }
+              String notifiableError = "not a MixMessage: " + ClientUtils.toJsonString(payload);
+              log.error("--> " + privateQueue + ": " + notifiableError);
+              listener.exitOnProtocolError(notifiableError);
             }
           }
 
@@ -162,11 +121,13 @@ public class MixSession {
     if (log.isDebugEnabled()) {
       log.debug("subscribed to server");
     }
-  }
 
-  private void registerInput(SubscribePoolResponse subscribePoolResponse) throws Exception {
-    RegisterInputRequest registerInputRequest = listener.registerInput(subscribePoolResponse);
-    transport.send(WhirlpoolEndpoint.WS_REGISTER_INPUT, registerInputRequest);
+    // confirm input
+    try {
+      dialog.confirmInput();
+    } catch (Exception e) {
+      listener.exitOnProtocolError(e.getMessage());
+    }
   }
 
   private MixMessage checkMixMessage(Object payload) {
@@ -179,21 +140,6 @@ public class MixSession {
       listener.exitOnProtocolError(notifiableError);
       return null;
     }
-
-    MixMessage mixMessage = (MixMessage) payload;
-
-    // reset dialog on new mixId
-    if (mixMessage.mixId != null
-        && dialog.getMixId() != null
-        && !dialog
-            .getMixId()
-            .equals(mixMessage.mixId)) { // mixMessage.mixId is null for ErrorResponse
-      if (log.isDebugEnabled()) {
-        log.debug("new mixId detected: " + mixMessage.mixId);
-      }
-      resetDialog();
-    }
-
     return (MixMessage) payload;
   }
 
@@ -223,7 +169,6 @@ public class MixSession {
 
   private Map<String, String> computeSubscribeStompHeaders(String destination) {
     Map<String, String> stompHeaders = new HashMap<String, String>();
-    stompHeaders.put(WhirlpoolProtocol.HEADER_POOL_ID, poolId);
     if (destination != null) {
       stompHeaders.put(StompTransport.HEADER_DESTINATION, destination);
     }
@@ -240,10 +185,7 @@ public class MixSession {
           log.debug("Connected in " + elapsedTime + "s");
         }
         connectBeginTime = null;
-
-        // will get SubscribePoolResponse and start dialog
-        subscribe();
-
+        subscribeAndStart();
         listener.onConnected();
       }
 
@@ -282,9 +224,9 @@ public class MixSession {
           listener.onConnectionFailWillRetry(reconnectDelay);
         } else {
           // we just got disconnected
-          log.error(" ! connexion lost, reconnecting for a new mix...");
-          resetDialog();
-          listener.onConnectionLostWillRetry();
+          log.error(" ! connexion lost, aborting");
+          done = true;
+          return;
         }
 
         if (done) {

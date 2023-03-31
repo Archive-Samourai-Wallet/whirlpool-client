@@ -2,9 +2,9 @@ package com.samourai.whirlpool.client.wallet;
 
 import com.samourai.wallet.api.backend.beans.UnspentOutput;
 import com.samourai.wallet.hd.HD_Address;
+import com.samourai.whirlpool.client.tx0.AbstractTx0ServiceTest;
 import com.samourai.whirlpool.client.tx0.Tx0;
 import com.samourai.whirlpool.client.tx0.Tx0Config;
-import com.samourai.whirlpool.client.tx0.Tx0ServiceV1Test;
 import com.samourai.whirlpool.client.wallet.beans.Tx0FeeTarget;
 import com.samourai.whirlpool.client.wallet.beans.WhirlpoolAccount;
 import com.samourai.whirlpool.client.wallet.beans.WhirlpoolServer;
@@ -26,11 +26,11 @@ import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class WhirlpoolWalletTx0Test extends Tx0ServiceV1Test {
+public class WhirlpoolWalletTx0Test extends AbstractTx0ServiceTest {
   private Logger log = LoggerFactory.getLogger(WhirlpoolWalletTx0Test.class);
 
   public WhirlpoolWalletTx0Test() throws Exception {
-    super();
+    super(46);
   }
 
   @BeforeEach

@@ -6,7 +6,6 @@ import com.samourai.wallet.bipFormat.BIP_FORMAT;
 import com.samourai.wallet.bipWallet.WalletSupplier;
 import com.samourai.wallet.bipWallet.WalletSupplierImpl;
 import com.samourai.wallet.cahoots.*;
-import com.samourai.wallet.cahoots.tx0x2.Tx0x2Service;
 import com.samourai.wallet.client.indexHandler.MemoryIndexHandlerSupplier;
 import com.samourai.wallet.hd.BIP_WALLET;
 import com.samourai.wallet.hd.Chain;
@@ -54,8 +53,6 @@ public abstract class AbstractCahootsTest extends AbstractWhirlpoolWalletTest {
   protected static String[] COUNTERPARTY_CHANGE_POSTMIX_44;
   protected static String[] COUNTERPARTY_CHANGE_POSTMIX_84;
 
-  protected Tx0x2Service tx0x2Service = new Tx0x2Service(bipFormatSupplier, params);
-
   public AbstractCahootsTest() throws Exception {
     super();
   }
@@ -71,7 +68,6 @@ public abstract class AbstractCahootsTest extends AbstractWhirlpoolWalletTest {
             walletSupplierSender,
             mockChainSupplier,
             bipFormatSupplier,
-            params,
             utxoProviderSender.getCahootsUtxoProvider());
 
     final HD_Wallet bip84WalletCounterparty =
@@ -84,7 +80,6 @@ public abstract class AbstractCahootsTest extends AbstractWhirlpoolWalletTest {
             walletSupplierCounterparty,
             mockChainSupplier,
             bipFormatSupplier,
-            params,
             utxoProviderCounterparty.getCahootsUtxoProvider());
 
     SENDER_RECEIVE_84 = new String[4];

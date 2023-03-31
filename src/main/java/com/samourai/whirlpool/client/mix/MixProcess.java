@@ -13,8 +13,8 @@ import com.samourai.whirlpool.client.utils.ClientUtils;
 import com.samourai.whirlpool.protocol.WhirlpoolProtocol;
 import com.samourai.whirlpool.protocol.beans.Utxo;
 import com.samourai.whirlpool.protocol.rest.RegisterOutputRequest;
+import com.samourai.whirlpool.protocol.soroban.InviteMixSorobanMessage;
 import com.samourai.whirlpool.protocol.websocket.messages.*;
-import com.samourai.whirlpool.protocol.websocket.notifications.ConfirmInputMixStatusNotification;
 import com.samourai.whirlpool.protocol.websocket.notifications.RegisterOutputMixStatusNotification;
 import com.samourai.whirlpool.protocol.websocket.notifications.RevealOutputMixStatusNotification;
 import com.samourai.whirlpool.protocol.websocket.notifications.SigningMixStatusNotification;
@@ -33,6 +33,8 @@ public class MixProcess {
   private NetworkParameters params;
   private String poolId;
   private long poolDenomination;
+  private long mustMixBalanceMin;
+  private long mustMixBalanceMax;
   private IPremixHandler premixHandler;
   private IPostmixHandler postmixHandler;
   private ClientCryptoService clientCryptoService;
@@ -65,6 +67,8 @@ public class MixProcess {
       NetworkParameters params,
       String poolId,
       long poolDenomination,
+      long mustMixBalanceMin,
+      long mustMixBalanceMax,
       IPremixHandler premixHandler,
       IPostmixHandler postmixHandler,
       ClientCryptoService clientCryptoService,
@@ -72,6 +76,8 @@ public class MixProcess {
     this.params = params;
     this.poolId = poolId;
     this.poolDenomination = poolDenomination;
+    this.mustMixBalanceMin = mustMixBalanceMin;
+    this.mustMixBalanceMax = mustMixBalanceMax;
     this.premixHandler = premixHandler;
     this.postmixHandler = postmixHandler;
     this.clientCryptoService = clientCryptoService;
@@ -79,8 +85,7 @@ public class MixProcess {
     this.bech32Util = Bech32UtilGeneric.getInstance();
   }
 
-  protected RegisterInputRequest registerInput(SubscribePoolResponse subscribePoolResponse)
-      throws Exception {
+  protected RegisterInputRequest registerInput() throws Exception {
 
     // we may registerInput several times if disconnected
     if (
@@ -92,36 +97,22 @@ public class MixProcess {
       throwProtocolException();
     }
 
-    // check denomination
-    long actualDenomination = subscribePoolResponse.denomination;
-    if (poolDenomination != actualDenomination) {
-      log.error(
-          "Invalid denomination: expected=" + poolDenomination + ", actual=" + actualDenomination);
-      throw new NotifiableException("Unexpected denomination from server");
-    }
-
     // get mix settings
     UtxoWithBalance utxo = premixHandler.getUtxo();
-    String serverNetworkId = subscribePoolResponse.networkId;
-    if (!params.getPaymentProtocolId().equals(serverNetworkId)) {
-      throw new Exception(
-          "Client/server networkId mismatch: server is runinng "
-              + serverNetworkId
-              + ", client is expecting "
-              + params.getPaymentProtocolId());
-    }
     this.liquidity = utxo.getBalance() == poolDenomination;
 
     if (log.isDebugEnabled()) {
-      log.debug("Registering input as " + (this.liquidity ? "LIQUIDITY" : "MUSTMIX"));
+      log.debug(
+          "Registering input as "
+              + (this.liquidity ? "LIQUIDITY" : "MUSTMIX")
+              + ":"
+              + utxo.toString());
     }
 
     // verify fees acceptable
     checkFees(utxo.getBalance(), poolDenomination);
 
     // verify balance
-    long mustMixBalanceMin = subscribePoolResponse.mustMixBalanceMin;
-    long mustMixBalanceMax = subscribePoolResponse.mustMixBalanceMax;
     checkUtxoBalance(mustMixBalanceMin, mustMixBalanceMax);
 
     String signature = premixHandler.signMessage(poolId);
@@ -134,8 +125,8 @@ public class MixProcess {
     return registerInputRequest;
   }
 
-  protected ConfirmInputRequest confirmInput(
-      ConfirmInputMixStatusNotification confirmInputMixStatusNotification) throws Exception {
+  protected ConfirmInputRequest confirmInput(InviteMixSorobanMessage inviteMixSorobanMessage)
+      throws Exception {
     // we may confirmInput several times before getting confirmedInputResponse
     if (!registeredInput
         || /*confirmedInput ||*/ confirmedInputResponse
@@ -149,16 +140,18 @@ public class MixProcess {
     // bordereau will be provided with unblindedSignedBordereau to register POSTMIX with another
     // identity
     this.bordereau = ClientUtils.generateBordereau();
-    byte[] publicKey = WhirlpoolProtocol.decodeBytes(confirmInputMixStatusNotification.publicKey64);
-    RSAKeyParameters serverPublicKey = ClientUtils.publicKeyUnserialize(publicKey);
+    RSAKeyParameters serverPublicKey =
+        ClientUtils.publicKeyUnserialize(inviteMixSorobanMessage.mixPublicKey);
     this.blindingParams = clientCryptoService.computeBlindingParams(serverPublicKey);
 
-    String mixId = confirmInputMixStatusNotification.mixId;
+    String mixId = inviteMixSorobanMessage.mixId;
     String blindedBordereau64 =
         WhirlpoolProtocol.encodeBytes(clientCryptoService.blind(bordereau, blindingParams));
     String userHash = premixHandler.computeUserHash(mixId);
+    UtxoWithBalance utxo = premixHandler.getUtxo();
     ConfirmInputRequest confirmInputRequest =
-        new ConfirmInputRequest(mixId, blindedBordereau64, userHash);
+        new ConfirmInputRequest(
+            mixId, blindedBordereau64, userHash, utxo.getHash(), utxo.getIndex());
 
     confirmedInput = true;
     return confirmInputRequest;

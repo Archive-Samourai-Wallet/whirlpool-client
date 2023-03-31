@@ -2,7 +2,6 @@ package com.samourai.whirlpool.client.whirlpool.beans;
 
 import com.samourai.whirlpool.client.tx0.Tx0Preview;
 import com.samourai.whirlpool.protocol.WhirlpoolProtocol;
-import com.samourai.whirlpool.protocol.websocket.notifications.MixStatus;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -12,18 +11,11 @@ public class Pool {
   private String poolId;
   private long denomination;
   private long feeValue;
-  private long mustMixBalanceMin;
-  private long mustMixBalanceCap;
-  private long mustMixBalanceMax;
-  private int minAnonymitySet;
-  private int minMustMix;
+  private long premixValue;
+  private long premixValueMin;
+  private long premixValueMax;
   private int tx0MaxOutputs;
-  private int nbRegistered;
-
-  private int mixAnonymitySet;
-  private MixStatus mixStatus;
-  private long elapsedTime;
-  private int nbConfirmed;
+  private int anonymitySet;
   private Tx0Preview tx0PreviewMin;
 
   public Pool() {}
@@ -47,15 +39,11 @@ public class Pool {
   }
 
   public long computePremixBalanceMin(boolean liquidity) {
-    return WhirlpoolProtocol.computePremixBalanceMin(denomination, mustMixBalanceMin, liquidity);
+    return WhirlpoolProtocol.computePremixBalanceMin(denomination, premixValueMin, liquidity);
   }
 
   public long computePremixBalanceMax(boolean liquidity) {
-    return WhirlpoolProtocol.computePremixBalanceMax(denomination, mustMixBalanceMax, liquidity);
-  }
-
-  public long computePremixBalanceCap(boolean liquidity) {
-    return WhirlpoolProtocol.computePremixBalanceMax(denomination, mustMixBalanceCap, liquidity);
+    return WhirlpoolProtocol.computePremixBalanceMax(denomination, premixValueMax, liquidity);
   }
 
   public String getPoolId() {
@@ -82,44 +70,28 @@ public class Pool {
     this.feeValue = feeValue;
   }
 
-  public long getMustMixBalanceMin() {
-    return mustMixBalanceMin;
+  public long getPremixValue() {
+    return premixValue;
   }
 
-  public void setMustMixBalanceMin(long mustMixBalanceMin) {
-    this.mustMixBalanceMin = mustMixBalanceMin;
+  public void setPremixValue(long premixValue) {
+    this.premixValue = premixValue;
   }
 
-  public long getMustMixBalanceCap() {
-    return mustMixBalanceCap;
+  public long getPremixValueMin() {
+    return premixValueMin;
   }
 
-  public void setMustMixBalanceCap(long mustMixBalanceCap) {
-    this.mustMixBalanceCap = mustMixBalanceCap;
+  public void setPremixValueMin(long premixValueMin) {
+    this.premixValueMin = premixValueMin;
   }
 
-  public long getMustMixBalanceMax() {
-    return mustMixBalanceMax;
+  public long getPremixValueMax() {
+    return premixValueMax;
   }
 
-  public void setMustMixBalanceMax(long mustMixBalanceMax) {
-    this.mustMixBalanceMax = mustMixBalanceMax;
-  }
-
-  public int getMinAnonymitySet() {
-    return minAnonymitySet;
-  }
-
-  public void setMinAnonymitySet(int minAnonymitySet) {
-    this.minAnonymitySet = minAnonymitySet;
-  }
-
-  public int getMinMustMix() {
-    return minMustMix;
-  }
-
-  public void setMinMustMix(int minMustMix) {
-    this.minMustMix = minMustMix;
+  public void setPremixValueMax(long premixValueMax) {
+    this.premixValueMax = premixValueMax;
   }
 
   public int getTx0MaxOutputs() {
@@ -130,44 +102,12 @@ public class Pool {
     this.tx0MaxOutputs = tx0MaxOutputs;
   }
 
-  public int getNbRegistered() {
-    return nbRegistered;
+  public int getAnonymitySet() {
+    return anonymitySet;
   }
 
-  public void setNbRegistered(int nbRegistered) {
-    this.nbRegistered = nbRegistered;
-  }
-
-  public int getMixAnonymitySet() {
-    return mixAnonymitySet;
-  }
-
-  public void setMixAnonymitySet(int mixAnonymitySet) {
-    this.mixAnonymitySet = mixAnonymitySet;
-  }
-
-  public MixStatus getMixStatus() {
-    return mixStatus;
-  }
-
-  public void setMixStatus(MixStatus mixStatus) {
-    this.mixStatus = mixStatus;
-  }
-
-  public long getElapsedTime() {
-    return elapsedTime;
-  }
-
-  public void setElapsedTime(long elapsedTime) {
-    this.elapsedTime = elapsedTime;
-  }
-
-  public int getNbConfirmed() {
-    return nbConfirmed;
-  }
-
-  public void setNbConfirmed(int nbConfirmed) {
-    this.nbConfirmed = nbConfirmed;
+  public void setAnonymitySet(int anonymitySet) {
+    this.anonymitySet = anonymitySet;
   }
 
   /** @return smallest possible Tx0Preview for pool (without taking SCODE into account) */

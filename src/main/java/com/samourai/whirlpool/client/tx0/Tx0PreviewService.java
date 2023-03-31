@@ -56,7 +56,7 @@ public class Tx0PreviewService {
       Tx0Param tx0Param, Tx0Data tx0Data, Collection<UnspentOutput> spendFrom) {
     long premixValue = tx0Param.getPremixValue();
     long feeValueOrFeeChange = tx0Data.computeFeeValueOrFeeChange();
-    int feeTx0 = tx0Param.getFeeTx0();
+    int feeTx0 = tx0Param.getTx0MinerFeePrice();
     Pool pool = tx0Param.getPool();
 
     NetworkParameters params = config.getNetworkParameters();
@@ -161,7 +161,7 @@ public class Tx0PreviewService {
       throws Exception {
 
     // check fee (duplicate safety check)
-    int feeTx0 = tx0Param.getFeeTx0();
+    int feeTx0 = tx0Param.getTx0MinerFeePrice();
     if (feeTx0 < config.getFeeMin()) {
       throw new NotifiableException("Invalid fee for Tx0: " + feeTx0 + " < " + config.getFeeMin());
     }
@@ -199,8 +199,8 @@ public class Tx0PreviewService {
             tx0MinerFee,
             mixMinerFee,
             premixMinerFee,
-            tx0Param.getFeeTx0(),
-            tx0Param.getFeePremix(),
+            tx0Param.getTx0MinerFeePrice(),
+            tx0Param.getMixMinerFeePrice(),
             premixValue,
             changeValue,
             nbPremix);

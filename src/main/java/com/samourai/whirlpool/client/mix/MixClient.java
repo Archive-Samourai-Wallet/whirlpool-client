@@ -1,18 +1,21 @@
 package com.samourai.whirlpool.client.mix;
 
+import com.samourai.soroban.client.RpcWallet;
+import com.samourai.soroban.client.rpc.RpcClientEncrypted;
 import com.samourai.whirlpool.client.exception.NotifiableException;
 import com.samourai.whirlpool.client.mix.dialog.MixDialogListener;
 import com.samourai.whirlpool.client.mix.dialog.MixSession;
 import com.samourai.whirlpool.client.mix.listener.MixFailReason;
 import com.samourai.whirlpool.client.mix.listener.MixStep;
+import com.samourai.whirlpool.client.soroban.SorobanClientApi;
 import com.samourai.whirlpool.client.utils.ClientCryptoService;
 import com.samourai.whirlpool.client.whirlpool.ServerApi;
 import com.samourai.whirlpool.client.whirlpool.WhirlpoolClientConfig;
 import com.samourai.whirlpool.client.whirlpool.listener.WhirlpoolClientListener;
 import com.samourai.whirlpool.protocol.WhirlpoolProtocol;
 import com.samourai.whirlpool.protocol.rest.RegisterOutputRequest;
+import com.samourai.whirlpool.protocol.soroban.InviteMixSorobanMessage;
 import com.samourai.whirlpool.protocol.websocket.messages.*;
-import com.samourai.whirlpool.protocol.websocket.notifications.ConfirmInputMixStatusNotification;
 import com.samourai.whirlpool.protocol.websocket.notifications.RegisterOutputMixStatusNotification;
 import com.samourai.whirlpool.protocol.websocket.notifications.RevealOutputMixStatusNotification;
 import com.samourai.whirlpool.protocol.websocket.notifications.SigningMixStatusNotification;
@@ -39,37 +42,71 @@ public class MixClient {
   private ClientCryptoService clientCryptoService;
   private WhirlpoolProtocol whirlpoolProtocol;
   private String logPrefix;
+  private MixDialogListener mixDialogListener;
   private MixSession mixSession;
+  private MixClientSoroban mixClientSoroban;
 
-  public MixClient(WhirlpoolClientConfig config, String logPrefix) {
-    this(config, logPrefix, new ClientCryptoService(), new WhirlpoolProtocol());
+  public MixClient(
+      WhirlpoolClientConfig config,
+      String logPrefix,
+      MixParams mixParams,
+      WhirlpoolClientListener listener) {
+    this(
+        config,
+        logPrefix,
+        mixParams,
+        listener,
+        new ClientCryptoService(),
+        new WhirlpoolProtocol(),
+        new SorobanClientApi());
   }
 
   public MixClient(
       WhirlpoolClientConfig config,
       String logPrefix,
+      MixParams mixParams,
+      WhirlpoolClientListener listener,
       ClientCryptoService clientCryptoService,
-      WhirlpoolProtocol whirlpoolProtocol) {
+      WhirlpoolProtocol whirlpoolProtocol,
+      SorobanClientApi sorobanClientApi) {
     this.log = LoggerFactory.getLogger(MixClient.class + "[" + logPrefix + "]");
     this.config = config;
     this.logPrefix = logPrefix;
-    this.clientCryptoService = clientCryptoService;
-    this.whirlpoolProtocol = whirlpoolProtocol;
-  }
-
-  public void whirlpool(MixParams mixParams, WhirlpoolClientListener listener) {
     this.mixParams = mixParams;
     this.listener = listener;
-    connect();
+    this.clientCryptoService = clientCryptoService;
+    this.whirlpoolProtocol = whirlpoolProtocol;
+
+    RpcWallet rpcWallet = mixParams.getRpcWallet();
+    RpcClientEncrypted rpcClientEncrypted =
+        config.getRpcClient().createRpcClientEncrypted(rpcWallet);
+    this.mixClientSoroban =
+        new MixClientSoroban(
+            sorobanClientApi, rpcClientEncrypted, config.getPaymentCodeCoordinator());
+  }
+
+  public void whirlpool() {
+    this.mixDialogListener = computeMixDialogListener();
+    try {
+      // REGISTER_INPUT & wait for mix
+      RegisterInputRequest registerInputRequest = mixDialogListener.registerInput();
+      InviteMixSorobanMessage inviteMixSorobanMessage =
+          mixClientSoroban.registerInputAndWaitInviteMix(registerInputRequest);
+      mixWithCoordinator(inviteMixSorobanMessage);
+    } catch (Exception e) {
+      log.error("Unable to register input", e);
+      Exception notifiableException = NotifiableException.computeNotifiableException(e);
+      mixDialogListener.exitOnProtocolError(notifiableException.getMessage());
+    }
   }
 
   private void listenerProgress(MixStep mixStep) {
     this.listener.progress(mixStep);
   }
 
-  private void connect() {
+  private void mixWithCoordinator(InviteMixSorobanMessage inviteMixSorobanMessage) {
     if (this.mixSession != null) {
-      log.warn("connect() : already connected");
+      log.warn("mixWithCoordinator() : already connected");
       return;
     }
 
@@ -77,11 +114,12 @@ public class MixClient {
       listenerProgress(MixStep.CONNECTING);
       mixSession =
           new MixSession(
-              computeMixDialogListener(),
+              mixDialogListener,
               whirlpoolProtocol,
               config,
               mixParams.getPoolId(),
-              logPrefix);
+              logPrefix,
+              inviteMixSorobanMessage);
       mixSession.connect();
     } catch (Exception e) {
       // httpClientRegisterOutput failed
@@ -91,6 +129,7 @@ public class MixClient {
   }
 
   public void disconnect() {
+    mixClientSoroban.exit();
     if (mixSession != null) {
       mixSession.disconnect();
       mixSession = null;
@@ -113,6 +152,8 @@ public class MixClient {
         config.getNetworkParameters(),
         mixParams.getPoolId(),
         mixParams.getDenomination(),
+        mixParams.getMustMixBalanceMin(),
+        mixParams.getMustMixBalanceMax(),
         mixParams.getPremixHandler(),
         mixParams.getPostmixHandler(),
         clientCryptoService,
@@ -130,11 +171,6 @@ public class MixClient {
 
       @Override
       public void onConnectionFailWillRetry(int retryDelay) {
-        listenerProgress(MixStep.CONNECTING);
-      }
-
-      @Override
-      public void onConnectionLostWillRetry() {
         listenerProgress(MixStep.CONNECTING);
       }
 
@@ -175,18 +211,17 @@ public class MixClient {
       }
 
       @Override
-      public RegisterInputRequest registerInput(SubscribePoolResponse subscribePoolResponse)
-          throws Exception {
-        RegisterInputRequest registerInputRequest = mixProcess.registerInput(subscribePoolResponse);
+      public RegisterInputRequest registerInput() throws Exception {
+        RegisterInputRequest registerInputRequest = mixProcess.registerInput();
         listenerProgress(MixStep.REGISTERED_INPUT);
         return registerInputRequest;
       }
 
       @Override
-      public ConfirmInputRequest confirmInput(
-          ConfirmInputMixStatusNotification confirmInputMixStatusNotification) throws Exception {
+      public ConfirmInputRequest confirmInput(InviteMixSorobanMessage inviteMixSorobanMessage)
+          throws Exception {
         listenerProgress(MixStep.CONFIRMING_INPUT);
-        return mixProcess.confirmInput(confirmInputMixStatusNotification);
+        return mixProcess.confirmInput(inviteMixSorobanMessage);
       }
 
       @Override
@@ -248,14 +283,6 @@ public class MixClient {
         SigningRequest signingRequest = mixProcess.signing(signingMixStatusNotification);
         listenerProgress(MixStep.SIGNED);
         return signingRequest;
-      }
-
-      @Override
-      public void onResetMix() {
-        if (log.isDebugEnabled()) {
-          log.debug("reset mixProcess");
-        }
-        mixProcess = computeMixProcess();
       }
     };
   }

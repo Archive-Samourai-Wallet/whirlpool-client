@@ -1,5 +1,6 @@
 import com.google.common.eventbus.Subscribe;
 import com.samourai.http.client.IWhirlpoolHttpClientService;
+import com.samourai.soroban.client.rpc.RpcClientService;
 import com.samourai.soroban.client.wallet.SorobanWalletService;
 import com.samourai.stomp.client.IStompClientService;
 import com.samourai.tor.client.TorClientService;
@@ -18,6 +19,7 @@ import com.samourai.wallet.bipWallet.WalletSupplierImpl;
 import com.samourai.wallet.hd.HD_Wallet;
 import com.samourai.websocket.client.IWebsocketClient;
 import com.samourai.whirlpool.client.event.*;
+import com.samourai.whirlpool.client.soroban.SorobanClientApi;
 import com.samourai.whirlpool.client.tx0.Tx0;
 import com.samourai.whirlpool.client.tx0.Tx0Config;
 import com.samourai.whirlpool.client.tx0.Tx0Preview;
@@ -74,10 +76,12 @@ public class JavaExample {
     IWhirlpoolHttpClientService httpClientService =
         null; // provide impl here, ie: new AndroidHttpClient();
     ServerApi serverApi = new ServerApi(serverUrl, httpClientService);
+    SorobanClientApi sorobanClientApi = new SorobanClientApi();
 
     // for Android, use AndroidSecretPointFactory from 'samourai-wallet-android'
     ISecretPointFactory secretPointFactory = SecretPointFactoryJava.getInstance();
     TorClientService torClientService = null; // provide impl here
+    RpcClientService rpcClientService = null; // provide impl here
     SorobanWalletService sorobanWalletService = null; // provide impl or null if not using Soroban
     NetworkParameters params = whirlpoolServer.getParams();
     boolean mobile = false; // true for mobile configuration, false for desktop/CLI
@@ -87,11 +91,14 @@ public class JavaExample {
             secretPointFactory,
             sorobanWalletService,
             httpClientService,
+            rpcClientService,
             stompClientService,
             torClientService,
             serverApi,
+            sorobanClientApi,
             params,
-            mobile);
+            mobile,
+            whirlpoolServer.getSigningPaymentCode());
 
     // optional - SCODE
     // whirlpoolWalletConfig.setScode("foo");

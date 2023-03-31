@@ -62,8 +62,8 @@ public class WhirlpoolClientImpl implements WhirlpoolClient {
   private void runClient(MixParams mixParams) {
     WhirlpoolClientListener mixListener = computeMixListener();
 
-    mixClient = new MixClient(config, logPrefix);
-    mixClient.whirlpool(mixParams, mixListener);
+    mixClient = new MixClient(config, logPrefix, mixParams, mixListener);
+    mixClient.whirlpool();
   }
 
   private WhirlpoolClientListener computeMixListener() {

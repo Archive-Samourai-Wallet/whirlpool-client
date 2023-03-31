@@ -2,14 +2,17 @@ package com.samourai.whirlpool.client.wallet;
 
 import com.samourai.http.client.HttpUsage;
 import com.samourai.http.client.IWhirlpoolHttpClientService;
+import com.samourai.soroban.client.rpc.RpcClientService;
 import com.samourai.soroban.client.wallet.SorobanWalletService;
 import com.samourai.stomp.client.IStompClientService;
 import com.samourai.tor.client.TorClientService;
 import com.samourai.wallet.bip47.BIP47UtilGeneric;
+import com.samourai.wallet.bip47.rpc.PaymentCode;
 import com.samourai.wallet.bip47.rpc.java.Bip47UtilJava;
 import com.samourai.wallet.bip47.rpc.secretPoint.ISecretPointFactory;
 import com.samourai.wallet.util.FormatsUtilGeneric;
 import com.samourai.whirlpool.client.exception.NotifiableException;
+import com.samourai.whirlpool.client.soroban.SorobanClientApi;
 import com.samourai.whirlpool.client.tx0.ITx0PreviewServiceConfig;
 import com.samourai.whirlpool.client.utils.ClientUtils;
 import com.samourai.whirlpool.client.wallet.beans.IndexRange;
@@ -81,20 +84,26 @@ public class WhirlpoolWalletConfig extends WhirlpoolClientConfig
       ISecretPointFactory secretPointFactory,
       SorobanWalletService sorobanWalletService,
       IWhirlpoolHttpClientService httpClientService,
+      RpcClientService rpcClientService,
       IStompClientService stompClientService,
       TorClientService torClientService,
       ServerApi serverApi,
+      SorobanClientApi sorobanClientApi,
       NetworkParameters params,
-      boolean mobile) {
+      boolean mobile,
+      PaymentCode signingPaymentCodeCoordinator) {
     // Android => odd indexs, CLI => even indexs
     super(
         httpClientService,
         stompClientService,
         torClientService,
+        rpcClientService,
         serverApi,
+        sorobanClientApi,
         null,
         params,
-        mobile ? IndexRange.ODD : IndexRange.EVEN);
+        mobile ? IndexRange.ODD : IndexRange.EVEN,
+        signingPaymentCodeCoordinator);
 
     this.dataSourceFactory = dataSourceFactory;
     this.secretPointFactory = secretPointFactory;

@@ -1,14 +1,16 @@
 package com.samourai.whirlpool.client.wallet.data.pool;
 
+import com.samourai.soroban.client.rpc.RpcClient;
 import com.samourai.wallet.api.backend.beans.HttpException;
+import com.samourai.wallet.util.AsyncUtil;
 import com.samourai.whirlpool.client.event.PoolsChangeEvent;
+import com.samourai.whirlpool.client.soroban.SorobanClientApi;
 import com.samourai.whirlpool.client.tx0.Tx0PreviewService;
 import com.samourai.whirlpool.client.utils.ClientUtils;
 import com.samourai.whirlpool.client.wallet.WhirlpoolEventService;
 import com.samourai.whirlpool.client.wallet.data.supplier.ExpirableSupplier;
-import com.samourai.whirlpool.client.whirlpool.ServerApi;
 import com.samourai.whirlpool.client.whirlpool.beans.Pool;
-import com.samourai.whirlpool.protocol.rest.PoolsResponse;
+import com.samourai.whirlpool.protocol.soroban.PoolInfoSorobanMessage;
 import java.util.Collection;
 import java.util.stream.Collectors;
 import org.slf4j.Logger;
@@ -18,13 +20,18 @@ public class ExpirablePoolSupplier extends ExpirableSupplier<PoolData> implement
   private static final Logger log = LoggerFactory.getLogger(ExpirablePoolSupplier.class);
 
   private final WhirlpoolEventService eventService = WhirlpoolEventService.getInstance();
-  private final ServerApi serverApi;
+  private final SorobanClientApi sorobanClientApi;
+  private RpcClient rpcClient;
   protected final Tx0PreviewService tx0PreviewService;
 
   public ExpirablePoolSupplier(
-      int refreshPoolsDelay, ServerApi serverApi, Tx0PreviewService tx0PreviewService) {
+      int refreshPoolsDelay,
+      SorobanClientApi sorobanClientApi,
+      RpcClient rpcClient,
+      Tx0PreviewService tx0PreviewService) {
     super(refreshPoolsDelay, log);
-    this.serverApi = serverApi;
+    this.sorobanClientApi = sorobanClientApi;
+    this.rpcClient = rpcClient;
     this.tx0PreviewService = tx0PreviewService;
   }
 
@@ -34,8 +41,9 @@ public class ExpirablePoolSupplier extends ExpirableSupplier<PoolData> implement
       log.debug("fetching...");
     }
     try {
-      PoolsResponse poolsResponse = serverApi.fetchPools();
-      return new PoolData(poolsResponse, tx0PreviewService);
+      Collection<PoolInfoSorobanMessage> poolInfoSorobanMessages =
+          AsyncUtil.getInstance().blockingGet(sorobanClientApi.fetchPools(rpcClient));
+      return new PoolData(poolInfoSorobanMessages, tx0PreviewService);
     } catch (HttpException e) {
       throw ClientUtils.wrapRestError(e);
     }
