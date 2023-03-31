@@ -14,6 +14,8 @@ public class Tx0x2Context extends CahootsContext {
 
   private Tx0Service tx0Service;
   private Tx0 tx0Initiator; // only set for initiator
+  private boolean lowerPool; // used in steps 3 & 4 for computMaxSpendAmount()
+  private boolean bottomPool; // used in steps 3 & 4 for computMaxSpendAmount()
 
   protected Tx0x2Context(
       CahootsWallet cahootsWallet,
@@ -32,6 +34,8 @@ public class Tx0x2Context extends CahootsContext {
         null);
     this.tx0Service = tx0Service;
     this.tx0Initiator = tx0Initiator;
+    this.lowerPool = false;
+    this.bottomPool = false;
   }
 
   public static Tx0x2Context newInitiator(
@@ -56,5 +60,21 @@ public class Tx0x2Context extends CahootsContext {
 
   public Tx0 getTx0Initiator() {
     return tx0Initiator;
+  }
+
+  public boolean isLowerPool() {
+    return lowerPool;
+  }
+
+  public void setLowerPool(boolean lowerPool) {
+    this.lowerPool = lowerPool;
+  }
+
+  public boolean isBottomPool() {
+    return bottomPool;
+  }
+
+  public void setBottomPool(boolean bottomPool) {
+    this.bottomPool = bottomPool;
   }
 }

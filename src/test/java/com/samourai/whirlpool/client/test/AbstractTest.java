@@ -400,17 +400,5 @@ public class AbstractTest {
             null,
             feePayload,
             MOCK_SAMOURAI_FEE_ADDRESS));
-
-//    mockTx0Datas =
-//        Arrays.asList(
-//            new Tx0Data(
-//                "0.01btc",
-//                "PM8TJbEnXU7JpR8yMdQee9H5C4RNWTpWAgmb2TVyQ4zfnaQBDMTJ4yYVP9Re8NVsZDSwXvogYbssrqkfVwac9U1QnxdCU2G1zH7Gq6L3JJjzcuWGjB9N",
-//                42500,
-//                0,
-//                0,
-//                null,
-//                feePayload,
-//                MOCK_SAMOURAI_FEE_ADDRESS));
   }
 }

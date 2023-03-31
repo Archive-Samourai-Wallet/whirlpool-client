@@ -286,7 +286,7 @@ public class WhirlpoolWalletTx0Test extends Tx0ServiceV1Test {
             + tx0_pool05.getNbPremix()
             + tx0_pool01.getNbPremix()
             + tx0_pool001.getNbPremix();
-    Assertions.assertTrue(totalNbPremix ==13 || totalNbPremix == 14);
+    Assertions.assertTrue(totalNbPremix == 13 || totalNbPremix == 14);
     log.info("Total nbPremix: " + totalNbPremix);
 
     // tx0_pool5 spends from spendFroms
@@ -481,7 +481,8 @@ public class WhirlpoolWalletTx0Test extends Tx0ServiceV1Test {
     log.info("Tx0: " + tx0.getSpendFroms() + " " + tx0.getTx());
   }
 
-  protected boolean utxosContains(Collection<UnspentOutput> unspentOutputs, String hash, int index) {
+  protected boolean utxosContains(
+      Collection<UnspentOutput> unspentOutputs, String hash, int index) {
     return unspentOutputs.stream()
             .filter(
                 unspentOutput ->

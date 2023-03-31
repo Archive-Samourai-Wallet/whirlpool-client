@@ -6,9 +6,9 @@ import com.samourai.wallet.cahoots.AbstractCahootsService;
 import com.samourai.wallet.cahoots.CahootsType;
 import com.samourai.wallet.cahoots.multi.MultiCahootsService;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import org.bitcoinj.core.NetworkParameters;
+import org.bitcoinj.core.TransactionOutput;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -16,7 +16,8 @@ public class MultiTx0x2Service extends AbstractCahootsService<MultiTx0x2, MultiT
   private static final Logger log = LoggerFactory.getLogger(MultiCahootsService.class);
   private Tx0x2Service tx0x2Service;
 
-  public MultiTx0x2Service(BipFormatSupplier bipFormatSupplier, NetworkParameters params, Tx0x2Service tx0x2Service) {
+  public MultiTx0x2Service(
+      BipFormatSupplier bipFormatSupplier, NetworkParameters params, Tx0x2Service tx0x2Service) {
     super(CahootsType.TX0X2_MULTI, bipFormatSupplier, params, TypeInteraction.TX_BROADCAST_MULTI);
     this.tx0x2Service = tx0x2Service;
   }
@@ -27,13 +28,12 @@ public class MultiTx0x2Service extends AbstractCahootsService<MultiTx0x2, MultiT
   @Override
   public MultiTx0x2 startInitiator(MultiTx0x2Context multiTx0x2Context) throws Exception {
     List<Tx0x2Context> tx0x2ContextList = multiTx0x2Context.getTx0x2ContextList();
+    Tx0x2 payload0;
     List<Tx0x2> tx0x2List = new ArrayList<>();
-
     for (Tx0x2Context tx0x2Context : tx0x2ContextList) {
-      Tx0x2 tx0x2Payload = tx0x2Service.startInitiator(tx0x2Context);
-      tx0x2List.add(tx0x2Payload);
+      payload0 = tx0x2Service.startInitiator(tx0x2Context);
+      tx0x2List.add(payload0);
     }
-
     MultiTx0x2 multiPayload0 = new MultiTx0x2(params, tx0x2List);
 
     if (log.isDebugEnabled()) {
@@ -48,7 +48,7 @@ public class MultiTx0x2Service extends AbstractCahootsService<MultiTx0x2, MultiT
   @Override
   public MultiTx0x2 startCollaborator(MultiTx0x2Context multiTx0x2Context, MultiTx0x2 multiTx0x2)
       throws Exception {
-    MultiTx0x2 multiPayload1 = doStep1(multiTx0x2Context, multiTx0x2); // TODO
+    MultiTx0x2 multiPayload1 = doStep1(multiTx0x2Context, multiTx0x2);
     if (log.isDebugEnabled()) {
       log.debug("# MULTI Tx0x2 COUNTERPARTY => step=" + multiPayload1.getStep());
     }
@@ -83,7 +83,8 @@ public class MultiTx0x2Service extends AbstractCahootsService<MultiTx0x2, MultiT
       throw new Exception("Cannot compose #Cahoots");
     }
     if (log.isDebugEnabled()) {
-      log.debug("# MultiTx0x2 "+multiTx0x2Context.getTypeUser()+" => step="+payload.getStep());
+      log.debug(
+          "# MultiTx0x2 " + multiTx0x2Context.getTypeUser() + " => step=" + payload.getStep());
     }
     return payload;
   }
@@ -91,163 +92,138 @@ public class MultiTx0x2Service extends AbstractCahootsService<MultiTx0x2, MultiT
   //
   // counterparty
   //
-  private MultiTx0x2 doStep1(MultiTx0x2Context multiTx0x2Context, MultiTx0x2 multiTx0x2) throws Exception {
+  private MultiTx0x2 doStep1(MultiTx0x2Context multiTx0x2Context, MultiTx0x2 multiTx0x2)
+      throws Exception {
     debug("BEGINING MULTI TX0X2 STEP 1", multiTx0x2Context);
 
-    // TODO - Work in Progress. Starting with 0.01 => 0.001 test.
-
+    Tx0x2 payload1;
     List<Tx0x2> tx0x2List = new ArrayList<>();
+    TransactionOutput higherPoolChange = null;
+    for (int i = 0; i < multiTx0x2.getTx0x2List().size(); i++) {
+      payload1 = tx0x2Service.doMultiStep1(
+          multiTx0x2.getTx0x2List().get(i),
+          multiTx0x2Context.getTx0x2ContextList().get(i),
+          higherPoolChange);
+      tx0x2List.add(payload1);
 
-    // initial pool
-    Tx0x2Context initialTx0x2Context = multiTx0x2Context.getTx0x2ContextList().get(0);
-    Tx0x2 tx0x2 = multiTx0x2.getTx0x2List().get(0);
-    Tx0x2 payloadInitialPool = tx0x2Service.doStep1(tx0x2, initialTx0x2Context);
-    tx0x2List.add(payloadInitialPool);
+      higherPoolChange = payload1.getTransaction().getOutput(
+          payload1.getTransaction().getOutputs().size() - 1);
+    }
 
-    // lower pool
-    Tx0x2Context tx0x2Context = multiTx0x2Context.getTx0x2ContextList().get(1);
-    tx0x2 = multiTx0x2.getTx0x2List().get(1);
-    Tx0x2 payloadLower = tx0x2Service.doMultiStep1(payloadInitialPool, initialTx0x2Context, tx0x2, tx0x2Context); // Should fail currently
-    tx0x2List.add(payloadLower);
-
-//    for (int i = 0; i < multiTx0x2.getTx0x2List().size(); i++) {
-//      Tx0x2 tx0x2 = multiTx0x2.getTx0x2List().get(i);
-//      Tx0x2 payload = tx0x2Service.doStep1(
-//          multiTx0x2.getTx0x2List().get(i),
-//          multiTx0x2Context.getTx0x2ContextList().get(i));
-//      tx0x2List.add(payload);
-//    }
-
-    MultiTx0x2 multiCahoots = new MultiTx0x2(multiTx0x2);
-    multiCahoots.setTx0x2List(tx0x2List);
-    multiCahoots.setStep(1);
+    MultiTx0x2 multiPayload1 = new MultiTx0x2(multiTx0x2);
+    multiPayload1.setTx0x2List(tx0x2List);
+    multiPayload1.setStep(1);
 
     debug("END MULTI TX0X2 STEP 1", multiTx0x2Context);
-    return multiCahoots;
+    return multiPayload1;
   }
 
   //
   // sender
   //
-  private MultiTx0x2 doStep2(MultiTx0x2Context multiTx0x2Context, MultiTx0x2 multiTx0x2) throws Exception {
+  private MultiTx0x2 doStep2(MultiTx0x2Context multiTx0x2Context, MultiTx0x2 multiTx0x2)
+      throws Exception {
     debug("BEGING MULTI TX0X2 STEP 2", multiTx0x2Context);
 
-    // TODO - Work in Progress
-
+    Tx0x2 payload2;
     List<Tx0x2> tx0x2List = new ArrayList<>();
-//    int size = multiTx0x2Context.getTx0x2ContextList().size();
-    int size = multiTx0x2.getTx0x2List().size();
+    TransactionOutput higherPoolChange = null;
+    for (int i = 0; i < multiTx0x2.getTx0x2List().size(); i++) {
+      payload2 = tx0x2Service.doMultiStep2(
+              multiTx0x2.getTx0x2List().get(i),
+              multiTx0x2Context.getTx0x2ContextList().get(i),
+              higherPoolChange);
+      tx0x2List.add(payload2);
 
-    // Initial
-    Tx0x2Context tx0x2Context = multiTx0x2Context.getTx0x2ContextList().get(0);
-    Tx0x2 tx0x2 = multiTx0x2.getTx0x2List().get(0);
-    Tx0x2 payloadInitialPool = tx0x2Service.doStep2(tx0x2, tx0x2Context);
-    tx0x2List.add(payloadInitialPool);
+      higherPoolChange = payload2.getTransaction().getOutput(
+              payload2.getTransaction().getOutputs().size() - 1);
+    }
 
-    // lower pool
-//    tx0x2 = multiTx0x2.getTx0x2List().get(1);
-//    Tx0x2 payloadLower = tx0x2Service.doMultiStep2(tx0x2, tx0x2Context); // Should fail currently
-//    tx0x2List.add(payloadLower);
-
-
-//    Tx0x2Context tx0x2Context = multiTx0x2Context.getTx0x2ContextList().get(0);
-//    for (int i = 0; i < size; i++) {
-//      Tx0x2Context tx0x2Context = multiTx0x2Context.getTx0x2ContextList().get(i);
-//      Tx0x2 tx0x2 = multiTx0x2.getTx0x2List().get(i);
-//      Tx0x2 payload = tx0x2Service.doStep2(tx0x2, tx0x2Context);
-//      tx0x2List.add(payload);
-//    }
-
-    MultiTx0x2 multiCahoots = new MultiTx0x2(multiTx0x2);
-    multiCahoots.setTx0x2List(tx0x2List);
-    multiCahoots.setStep(2);
+    MultiTx0x2 multiPayload2 = new MultiTx0x2(multiTx0x2);
+    multiPayload2.setTx0x2List(tx0x2List);
+    multiPayload2.setStep(2);
 
     debug("END MULTI TX0X2 STEP 2", multiTx0x2Context);
-    return multiCahoots;
+    return multiPayload2;
   }
 
   //
   // counterparty
   //
-  private MultiTx0x2 doStep3(MultiTx0x2Context multiTx0x2Context, MultiTx0x2 multiTx0x2) throws Exception {
+  private MultiTx0x2 doStep3(MultiTx0x2Context multiTx0x2Context, MultiTx0x2 multiTx0x2)
+      throws Exception {
     debug("BEGING MULTI TX0X2 STEP 3", multiTx0x2Context);
 
-    // TODO - Work in Progress
-
+    Tx0x2 payload3;
     List<Tx0x2> tx0x2List = new ArrayList<>();
-//    int size = multiTx0x2Context.getTx0x2ContextList().size();
-    int size = multiTx0x2.getTx0x2List().size();
+    int nbTx0x2s = multiTx0x2.getTx0x2List().size();
+    for (int i = 0; i < nbTx0x2s; i++) {
+      if (i != 0) {
+        // lower pools; used for computeMaxSpendAmount()
+        multiTx0x2Context.getTx0x2ContextList().get(i).setLowerPool(true);
+      }
+      if (i == nbTx0x2s - 1) {
+        // 0.001btc pool; used for computeMaxSpendAmount()
+        multiTx0x2Context.getTx0x2ContextList().get(i).setBottomPool(true);
+      }
 
-    Tx0x2Context tx0x2Context = multiTx0x2Context.getTx0x2ContextList().get(0);
-    Tx0x2 tx0x2 = multiTx0x2.getTx0x2List().get(0);
-    Tx0x2 payload = tx0x2Service.doStep3(tx0x2, tx0x2Context);
-    tx0x2List.add(payload);
+      payload3 = tx0x2Service.doStep3(
+              multiTx0x2.getTx0x2List().get(i),
+              multiTx0x2Context.getTx0x2ContextList().get(i));
+      tx0x2List.add(payload3);
+    }
 
-//    Tx0x2Context tx0x2Context = multiTx0x2Context.getTx0x2ContextList().get(0);
-//    for (int i = 0; i < size; i++) {
-//      Tx0x2Context tx0x2Context = multiTx0x2Context.getTx0x2ContextList().get(i);
-//      Tx0x2 tx0x2 = multiTx0x2.getTx0x2List().get(i);
-//      Tx0x2 payload = tx0x2Service.doStep3(tx0x2, tx0x2Context);
-//      tx0x2List.add(payload);
-//    }
-
-    MultiTx0x2 multiCahoots = new MultiTx0x2(multiTx0x2);
-    multiCahoots.setTx0x2List(tx0x2List);
-    multiCahoots.setStep(3);
+    MultiTx0x2 multiPayload3 = new MultiTx0x2(multiTx0x2);
+    multiPayload3.setTx0x2List(tx0x2List);
+    multiPayload3.setStep(3);
 
     debug("END MULTI TX0X2 STEP 3", multiTx0x2Context);
-    return multiCahoots;
+    return multiPayload3;
   }
 
   //
   // sender
   //
-  private MultiTx0x2 doStep4(MultiTx0x2Context multiTx0x2Context, MultiTx0x2 multiTx0x2) throws Exception {
+  private MultiTx0x2 doStep4(MultiTx0x2Context multiTx0x2Context, MultiTx0x2 multiTx0x2)
+      throws Exception {
     debug("BEGING MULTI TX0X2 STEP 4", multiTx0x2Context);
 
-    // TODO - Work in Progress
-
+    Tx0x2 payload4;
     List<Tx0x2> tx0x2List = new ArrayList<>();
-//    int size = multiTx0x2Context.getTx0x2ContextList().size();
-    int size = multiTx0x2.getTx0x2List().size();
+    int nbTx0x2s = multiTx0x2.getTx0x2List().size();
+    for (int i = 0; i < nbTx0x2s; i++) {
+      if (i != 0) {
+        // lower pools; used for computeMaxSpendAmount()
+        multiTx0x2Context.getTx0x2ContextList().get(i).setLowerPool(true);
+      }
+      if (i == nbTx0x2s - 1) {
+        // 0.001btc pool; used for computeMaxSpendAmount()
+        multiTx0x2Context.getTx0x2ContextList().get(i).setBottomPool(true);
+      }
 
-    Tx0x2Context tx0x2Context = multiTx0x2Context.getTx0x2ContextList().get(0);
-    Tx0x2 tx0x2 = multiTx0x2.getTx0x2List().get(0);
-    Tx0x2 payload = tx0x2Service.doStep4(tx0x2, tx0x2Context);
-    tx0x2List.add(payload);
+      payload4 = tx0x2Service.doStep4(
+              multiTx0x2.getTx0x2List().get(i),
+              multiTx0x2Context.getTx0x2ContextList().get(i));
+      tx0x2List.add(payload4);
+    }
 
-
-//    Tx0x2Context tx0x2Context = multiTx0x2Context.getTx0x2ContextList().get(0);
-//    for (int i = 0; i < size; i++) {
-//      Tx0x2Context tx0x2Context = multiTx0x2Context.getTx0x2ContextList().get(i);
-//      Tx0x2 tx0x2 = multiTx0x2.getTx0x2List().get(i);
-//      Tx0x2 payload = tx0x2Service.doStep4(tx0x2, tx0x2Context);
-//      tx0x2List.add(payload);
-//    }
-
-    MultiTx0x2 multiCahoots = new MultiTx0x2(multiTx0x2);
-    multiCahoots.setTx0x2List(tx0x2List);
-    multiCahoots.setStep(4);
+    MultiTx0x2 multiPayload4 = new MultiTx0x2(multiTx0x2);
+    multiPayload4.setTx0x2List(tx0x2List);
+    multiPayload4.setStep(4);
 
     debug("END MULTI TX0X2 STEP 4", multiTx0x2Context);
-    return multiCahoots;
-  }
-
-  @Override
-  public void verifyResponse(MultiTx0x2Context multiTx0x2Context, MultiTx0x2 multiTx0x2, MultiTx0x2 request) throws Exception {
-    super.verifyResponse(multiTx0x2Context, multiTx0x2, request);
-    // TODO maybe?
+    return multiPayload4;
   }
 
   protected void debug(String info, MultiTx0x2Context multiTx0x2Context) {
     if (log.isDebugEnabled()) {
       log.debug(
-        "###### "
-        + info
-        + " "
-        + multiTx0x2Context.getCahootsType()
-        + "/"
-        + multiTx0x2Context.getTypeUser());
+          "###### "
+              + info
+              + " "
+              + multiTx0x2Context.getCahootsType()
+              + "/"
+              + multiTx0x2Context.getTypeUser());
     }
   }
 }
