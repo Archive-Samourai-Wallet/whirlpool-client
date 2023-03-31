@@ -130,13 +130,13 @@ public class MultiTx0x2Service extends AbstractCahootsService<MultiTx0x2, MultiT
     TransactionOutput higherPoolChange = null;
     for (int i = 0; i < multiTx0x2.getTx0x2List().size(); i++) {
       payload2 = tx0x2Service.doMultiStep2(
-              multiTx0x2.getTx0x2List().get(i),
-              multiTx0x2Context.getTx0x2ContextList().get(i),
-              higherPoolChange);
+          multiTx0x2.getTx0x2List().get(i),
+          multiTx0x2Context.getTx0x2ContextList().get(i),
+          higherPoolChange);
       tx0x2List.add(payload2);
 
       higherPoolChange = payload2.getTransaction().getOutput(
-              payload2.getTransaction().getOutputs().size() - 1);
+          payload2.getTransaction().getOutputs().size() - 1);
     }
 
     MultiTx0x2 multiPayload2 = new MultiTx0x2(multiTx0x2);
@@ -168,8 +168,8 @@ public class MultiTx0x2Service extends AbstractCahootsService<MultiTx0x2, MultiT
       }
 
       payload3 = tx0x2Service.doStep3(
-              multiTx0x2.getTx0x2List().get(i),
-              multiTx0x2Context.getTx0x2ContextList().get(i));
+          multiTx0x2.getTx0x2List().get(i),
+          multiTx0x2Context.getTx0x2ContextList().get(i));
       tx0x2List.add(payload3);
     }
 
@@ -202,8 +202,8 @@ public class MultiTx0x2Service extends AbstractCahootsService<MultiTx0x2, MultiT
       }
 
       payload4 = tx0x2Service.doStep4(
-              multiTx0x2.getTx0x2List().get(i),
-              multiTx0x2Context.getTx0x2ContextList().get(i));
+          multiTx0x2.getTx0x2List().get(i),
+          multiTx0x2Context.getTx0x2ContextList().get(i));
       tx0x2List.add(payload4);
     }
 

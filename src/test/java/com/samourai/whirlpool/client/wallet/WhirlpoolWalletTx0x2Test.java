@@ -8,7 +8,6 @@ import com.samourai.wallet.cahoots.tx0x2.MultiTx0x2Context;
 import com.samourai.wallet.cahoots.tx0x2.Tx0x2Context;
 import com.samourai.wallet.hd.BIP_WALLET;
 import com.samourai.wallet.send.UTXO;
-import com.samourai.wallet.util.TxUtil;
 import com.samourai.whirlpool.client.test.AbstractCahootsTest;
 import com.samourai.whirlpool.client.tx0.Tx0;
 import com.samourai.whirlpool.client.tx0.Tx0Config;
@@ -249,9 +248,6 @@ public class WhirlpoolWalletTx0x2Test extends AbstractCahootsTest {
       outputs.put(COUNTERPARTY_PREMIX_84[i], 100262L);
     }
     outputs.put(MOCK_SAMOURAI_FEE_ADDRESS, 5000L);
-
-    String txstring = tx001.getHashAsString();
-    String hash = TxUtil.getInstance().getTxHex(tx001);
 
     String txid = "5c5b9b3ee3be6566fc63fd1ef9a26c987467de75ba90c3651e184fcd7fd63e70";
     String raw =

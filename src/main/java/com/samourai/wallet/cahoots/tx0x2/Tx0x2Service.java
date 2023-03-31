@@ -79,13 +79,16 @@ public class Tx0x2Service extends AbstractCahoots2xService<Tx0x2, Tx0x2Context> 
     Tx0x2 payload;
     switch (step) {
       case 1:
-        payload = doStep2(cahoots, cahootsContext); // sender
+        // sender
+        payload = doStep2(cahoots, cahootsContext);
         break;
       case 2:
-        payload = doStep3(cahoots, cahootsContext); // counterparty
+        // counterparty
+        payload = doStep3(cahoots, cahootsContext);
         break;
       case 3:
-        payload = doStep4(cahoots, cahootsContext); // sender
+        // sender
+        payload = doStep4(cahoots, cahootsContext);
         break;
       default:
         throw new Exception("Unrecognized #Cahoots step");
@@ -428,8 +431,8 @@ public class Tx0x2Service extends AbstractCahoots2xService<Tx0x2, Tx0x2Context> 
             - samouraiFeeOutput.getValue().getValue()
             - minerFeePaid;
 
+    // if sender change large enough, add another premix output
     if (senderChangeValue > payload2.getPremixValue() && nbPremixSender <= maxOutputsEach) {
-      // if sender change large engough, add another premix output
       BipAddress changeAddress =
           cahootsContext.getCahootsWallet().fetchAddressReceive(
               SamouraiAccountIndex.PREMIX, true, BIP_FORMAT.SEGWIT_NATIVE);
@@ -442,7 +445,6 @@ public class Tx0x2Service extends AbstractCahoots2xService<Tx0x2, Tx0x2Context> 
 
       senderChangeValue -= payload2.getPremixValue();
     }
-
 
     // use changeAddress from tx0Initiator to avoid index gap
     String senderChangeAddress =
@@ -524,7 +526,6 @@ public class Tx0x2Service extends AbstractCahoots2xService<Tx0x2, Tx0x2Context> 
   }
 
   private long computeMinerFee(Tx0x2 payload, Tx0 tx0Initiator) {
-    // compute minerFee
     int nbPremixCounterparty = payload.getTransaction().getOutputs().size() - 1;
     int nbPremixSender = Math.min(tx0Initiator.getNbPremix(), payload.getMaxOutputsEach());
     int nbPremix = nbPremixCounterparty + nbPremixSender;
@@ -607,11 +608,11 @@ public class Tx0x2Service extends AbstractCahoots2xService<Tx0x2, Tx0x2Context> 
     return cahootsUtxos;
   }
 
+  // used to create lower pool input from higher pool change output
   private CahootsUtxo toCahootsUtxo(
       Tx0x2Context cahootsContext,
       TransactionOutput higherPoolChange)
       throws Exception {
-    // used to create input from higher pool change output
     HD_Address address =
         cahootsContext
             .getCahootsWallet()
@@ -652,7 +653,6 @@ public class Tx0x2Service extends AbstractCahoots2xService<Tx0x2, Tx0x2Context> 
     cahootsContext.setSamouraiFee(samouraiFeeValueEach * 2);
 
     Tx0x2 payload4 = super.doStep4(payload3, cahootsContext);
-
     return payload4;
   }
 
@@ -665,7 +665,7 @@ public class Tx0x2Service extends AbstractCahoots2xService<Tx0x2, Tx0x2Context> 
       long sharedMinerFee = minerFee / 2; // splits miner fee
       long samouraiFeeValue = cahootsContext.getSamouraiFee();
       long samouraiFeeValueEach = samouraiFeeValue / 2L; // splits samourai fee
-      long maxBottomPoolSplit = 50085L;
+      long maxBottomPoolSplit = 50085L; // Max split to change ouput in 0.001btc
       long maxSpendAmount;
 
       String prefix =
