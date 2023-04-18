@@ -78,12 +78,6 @@ public class Tx0Service {
       Tx0Config tx0Config,
       UtxoKeyProvider utxoKeyProvider)
       throws Exception {
-
-    // if decoy Tx0x2 flag set, verify wallet can construct
-    if (tx0Config.isDecoyTx0x2() && tx0Config.getCascadingParent() == null) {
-      checkDecoyTx0x2Eligible(spendFroms, pool);
-    }
-
     // compute & preview
     Tx0Previews tx0Previews = tx0PreviewService.tx0Previews(tx0Config, spendFroms);
     Tx0Preview tx0Preview = tx0Previews.getTx0Preview(pool.getPoolId());
@@ -287,24 +281,36 @@ public class Tx0Service {
     List<BipAddress> changeOutputsAddresses = new LinkedList<>();
 
     List<Long> changeAmounts = computeChangeAmounts(tx0Config, tx0Preview, sortedSpendFroms);
+
     if (!changeAmounts.isEmpty()) {
+      //  if decoy tx0x2 change outputs total > premix output value, remove last premix output
+      if (tx0Config.isDecoyTx0x2() && changeAmounts.size() == 2) {
+        if (changeAmounts.get(0) + changeAmounts.get(1) > tx0Preview.getPremixValue()) {
+          // should remove at most 1 premix output
+          nbPremix--;
+          premixOutputs.remove(nbPremix);
+          outputs.remove(nbPremix);
+        }
+      }
+
+      // change outputs
       for (long changeAmount : changeAmounts) {
         BipAddress changeAddress = changeWallet.getNextChangeAddress();
         String changeAddressBech32 = changeAddress.getAddressString();
         TransactionOutput changeOutput =
-                bech32Util.getTransactionOutput(changeAddressBech32, changeAmount, params);
+          bech32Util.getTransactionOutput(changeAddressBech32, changeAmount, params);
         outputs.add(changeOutput);
         changeOutputs.add(changeOutput);
         changeOutputsAddresses.add(changeAddress);
         if (log.isDebugEnabled()) {
           log.debug(
-                  "Tx0 out (change): address="
-                          + changeAddressBech32
-                          + ", path="
-                          + changeAddress.getPathAddress()
-                          + " ("
-                          + changeAmount
-                          + " sats)");
+            "Tx0 out (change): address="
+                + changeAddressBech32
+                + ", path="
+                + changeAddress.getPathAddress()
+                + " ("
+                + changeAmount
+                + " sats)");
         }
       }
     }
@@ -371,12 +377,16 @@ public class Tx0Service {
     return tx0;
   }
 
-  private List<Long> computeChangeAmounts(Tx0Config tx0Config, Tx0Preview tx0Preview, Collection<UnspentOutput> sortedSpendFroms) throws Exception {
+  private List<Long> computeChangeAmounts(
+      Tx0Config tx0Config,
+      Tx0Preview tx0Preview,
+      Collection<UnspentOutput> sortedSpendFroms)
+      throws Exception {
     long changeValueTotal = tx0Preview.getChangeValue();
 
     if (changeValueTotal < 0) {
       throw new Exception(
-              "Negative change detected, please report this bug. tx0Preview=" + tx0Preview);
+        "Negative change detected, please report this bug. tx0Preview=" + tx0Preview);
     }
     if (changeValueTotal == 0) {
       if (log.isDebugEnabled()) {
@@ -387,7 +397,7 @@ public class Tx0Service {
 
     if (tx0Config.isDecoyTx0x2()) {
       // attempt to decoy Tx0x2: split change between 2 change addresses with STONEWALL
-      List<Long> changeAmountsStonewall = computeChangeAmountsStonewall(tx0Preview, sortedSpendFroms);
+      List<Long> changeAmountsStonewall = computeChangeAmountsStonewall(tx0Config, tx0Preview, sortedSpendFroms);
       if (changeAmountsStonewall != null) {
         if (log.isDebugEnabled()) {
           log.debug("Tx0: decoy Tx0, 2 changes");
@@ -403,66 +413,170 @@ public class Tx0Service {
     return Arrays.asList(changeValueTotal);
   }
 
-  List<Long> computeChangeAmountsStonewall(Tx0Preview tx0Preview, Collection<UnspentOutput> sortedSpendFroms) throws Exception {
-    Pair<Long,Long> spendFromAmountsStonewall = computeSpendFromAmountsStonewall(sortedSpendFroms, tx0Preview);
+  List<Long> computeChangeAmountsStonewall(
+      Tx0Config tx0Config,
+      Tx0Preview tx0Preview,
+      Collection<UnspentOutput> sortedSpendFroms)
+      throws Exception {
+    Pair<Long,Long> spendFromAmountsStonewall =
+      computeSpendFromAmountsStonewall(tx0Config, tx0Preview, sortedSpendFroms);
     if (spendFromAmountsStonewall == null) {
       // stonewall is not possible
       return null;
     }
 
-    // TODO use spendFromAmountsStonewall to compute changes rather than split change / random factor
+    // calculate changes
+    long changeValueTotalA = spendFromAmountsStonewall.getLeft(); // spend value A
+    long changeValueTotalB = spendFromAmountsStonewall.getRight(); // spend value B
 
-    long changeValueTotal = tx0Preview.getChangeValue();
-
-    long changeValueTotalA = 0L;
-    long changeValueTotalB = 0L;
-    long changeValueDifference = 0L;
-
-    String pool = tx0Preview.getPool().getPoolId();
-    if (pool.equals("0.001btc")) {
-      // lowest pool - split change evenly
-      changeValueTotalA = changeValueTotal / 2L;
-      changeValueTotalB = changeValueTotalA;
-      changeValueDifference = changeValueTotal - changeValueTotalA - changeValueTotalB;
-      if (changeValueDifference == 1) {
-        // add 1 sat to miner fee
-        tx0Preview.incrementTx0MinerFee();
-      } else if (changeValueDifference != 0) {
-        throw new Exception(
-                "Issue generating change for Decoy Tx0x2, please report this bug. changeValueDifference="
-                        + changeValueDifference
-                        + pool);
-      }
+    if (tx0Config.getCascadingParent() == null) {
+      // initial pool, split fee
+      changeValueTotalA -= tx0Preview.getFeeValue() / 2L;
+      changeValueTotalB -= tx0Preview.getFeeValue() / 2L;
     } else {
-      // higher pools - splits change randomly (10-90% range)
-      Random rand = new Random();
-      double r = (rand.nextDouble() * 0.8) + 0.1;
-      changeValueTotalA = (long) (changeValueTotal * r);
-      changeValueTotalB = (long) (changeValueTotal * (1 - r));
-      changeValueDifference = changeValueTotal - changeValueTotalA - changeValueTotalB;
-      if (changeValueDifference == 1) {
-        changeValueTotalA += 1;
-      } else if (changeValueDifference != 0) {
-        throw new Exception(
-                "Issue generating change for Decoy Tx0x2, please report this bug. changeValueDifference="
-                        + changeValueDifference
-                        + pool);
+      // lower pools
+      changeValueTotalA -= tx0Preview.getFeeChange();
+    }
+
+    // split miner fees
+    changeValueTotalA -= tx0Preview.getTx0MinerFee() / 2L;
+    changeValueTotalB -= tx0Preview.getTx0MinerFee() / 2L;
+
+    int nbPremixA = 0;
+    while (changeValueTotalA > tx0Preview.getPremixValue()) {
+      changeValueTotalA -= tx0Preview.getPremixValue();
+      nbPremixA++;
+    }
+    int nbPremixB = 0;
+    while (changeValueTotalB > tx0Preview.getPremixValue()) {
+      changeValueTotalB -= tx0Preview.getPremixValue();
+      nbPremixB++;
+    }
+
+    long changeValueTotal = changeValueTotalA + changeValueTotalB;
+
+    // if nbPremix < tx0Preview.nbPremix => remove 1 premixOutput. should be at most 1 less.
+    int nbPremix = nbPremixA + nbPremixB;
+    if (nbPremix < tx0Preview.getNbPremix()) {
+      // TODO - Not 100% sure if should recalculate tx0MinerFee.
+      //  Recalculating makes it exact as Tx0x2, but usually a small sat difference.
+
+      // recalculate tx0MinerFee
+      long tx0MinerFee = ClientUtils.computeTx0MinerFee(
+        nbPremix, tx0Preview.getTx0MinerFeePrice(), sortedSpendFroms, params);
+      if (tx0MinerFee % 2L != 0) {
+        tx0MinerFee++;
+      }
+
+      // add tx0MinerFee difference back to change
+      long diffTx0MinerFee = tx0Preview.getTx0MinerFee() - tx0MinerFee;
+      changeValueTotalA += diffTx0MinerFee/2L;
+      changeValueTotalB += diffTx0MinerFee/2L;
+      tx0Preview.setTx0MinerFee(tx0MinerFee);
+
+      // recalculate & confirm spendValue. difference should be premixValue + diffTx0MinerFee
+      long feeValueOrFeeChange =
+        tx0Preview.getFeeValue() != 0 ? tx0Preview.getFeeValue() : tx0Preview.getFeeChange();
+      long spendValue = ClientUtils.computeTx0SpendValue(
+        tx0Preview.getPremixValue(), nbPremix, feeValueOrFeeChange, tx0MinerFee);
+      long diffSpendValue = tx0Preview.getSpendValue() - spendValue;
+      if (diffSpendValue == tx0Preview.getPremixValue() + diffTx0MinerFee) {
+        // update spend value
+        tx0Preview.setSpendValue(spendValue);
+      } else {
+        String message =
+          "Miscalculated Spend Value. diffSpendValue="
+          + diffSpendValue
+          + "; premixValue="
+          + tx0Preview.getPremixValue()
+          + "; diffTx0MinerFee="
+          + diffTx0MinerFee;
+        if(log.isDebugEnabled()){
+          log.debug(message);
+        }
+        throw new Exception(message);
+      }
+
+      // confirm recalculated total value
+      changeValueTotal = changeValueTotalA + changeValueTotalB;
+      if (tx0Preview.getTotalValue() != spendValue + changeValueTotal) {
+        String message =
+          "Error calculating change. totalValue="
+            + tx0Preview.getTotalValue()
+            + "; spendValue="
+            + spendValue
+            + "; changeValue="
+            + changeValueTotal
+            + "; feeChange="
+            + tx0Preview.getFeeChange();
+        if(log.isDebugEnabled()) {
+          log.debug(message);
+        }
+        throw new Exception(message);
+      }
+
+      // recalculate tx0 size
+      int tx0Size = ClientUtils.computeTx0Size(nbPremix, sortedSpendFroms.size(), params);
+      tx0Preview.setTx0Size(tx0Size);
+
+      // reduce 1 premix
+      tx0Preview.decrementNbPremix();
+
+      // reduce 1 premix miner fee
+      tx0Preview.decrementMixMinerFee();
+    }
+
+    if (tx0Preview.getPool().getPoolId().equals("0.001btc")) {
+      changeValueTotalA = changeValueTotal / 2L;
+      changeValueTotalB = changeValueTotal / 2L;
+      if (changeValueTotal % 2L == 1) {
+        tx0Preview.incrementTx0MinerFee();
       }
     }
+    tx0Preview.setChangeValue(changeValueTotalA + changeValueTotalB);
+
     return Arrays.asList(changeValueTotalA, changeValueTotalB);
   }
 
-  private Pair<Long,Long> computeSpendFromAmountsStonewall(Collection<UnspentOutput> spendFroms, Tx0Preview tx0Preview) {
-    long spendFromA = 0;
-    long spendFromB = 0;
+  private Pair<Long,Long> computeSpendFromAmountsStonewall(
+      Tx0Config tx0Config,
+      Tx0Preview tx0Preview,
+      Collection<UnspentOutput> spendFroms) {
+    long feeParticipation;
+    long minSpendFromA;
+    long minSpendFromB;
+    if (tx0Config.getCascadingParent() == null) {
+      // initial pool
+      feeParticipation = (tx0Preview.getTx0MinerFee() + tx0Preview.getFeeValue()) / 2L; // split fees
+      long minSpendFrom = feeParticipation + tx0Preview.getPremixValue(); // at least 1 must mix each
+      // same minSpendFrom for A & B
+      minSpendFromA = minSpendFrom;
+      minSpendFromB = minSpendFrom;
+    } else {
+      // lower pools
+      feeParticipation = tx0Preview.getTx0MinerFee() / 2L; // split miner fee
+      // fee change applied to A
+      minSpendFromA = feeParticipation + tx0Preview.getFeeChange() + tx0Preview.getPremixValue();
+      minSpendFromB = feeParticipation + tx0Preview.getPremixValue();
+    }
 
-    long feeParticipation = 0; // TODO include real fees participation
-    long minSpendFrom = feeParticipation + tx0Preview.getPool().getDenomination(); // at least 1 mustmix each
+    // TODO - see WhirlpoolWalletDeocyTx0x2.tx0x2_decoy_3utxos() for sort descending amounts
+    //  Comment out this section and will see that test fail
+    // sort utxos descending to help avoid misses
+    if (tx0Config.getCascadingParent() == null) {
+      List<UnspentOutput> sortedSpendFroms = new LinkedList<>();
+      sortedSpendFroms.addAll(spendFroms);
+      Collections.sort(sortedSpendFroms, new SpendFromsComparator());
+      spendFroms = sortedSpendFroms;
+    }
+
+    long spendFromA = 0L;
+    long spendFromB = 0L;
     for (UnspentOutput spendFrom : spendFroms) {
-      if (spendFromA < minSpendFrom) {
+      if (spendFromA < minSpendFromA) {
         // must reach minSpendFrom for A
         spendFromA += spendFrom.value;
-      } else if (spendFromB < minSpendFrom) {
+      } else if (spendFromB < minSpendFromB) {
         // must reach minSpendFrom for B
         spendFromB += spendFrom.value;
       } else {
@@ -475,9 +589,17 @@ public class Tx0Service {
       }
     }
 
-    if (spendFromA < minSpendFrom || spendFromB < minSpendFrom) {
+    if (spendFromA < minSpendFromA || spendFromB < minSpendFromB) {
       if (log.isDebugEnabled()) {
-        log.debug("Stonewall is not possible for TX0 decoy change: spendFromA="+spendFromA+", spendFromB="+spendFromB+", minSpendFrom="+minSpendFrom);
+        log.debug(
+          "Stonewall is not possible for TX0 decoy change: spendFromA="
+          + spendFromA
+          + ", spendFromB="
+          + spendFromB
+          + ", minSpendFromA="
+          + minSpendFromA
+          + ", minSpendFromB="
+          + minSpendFromB);
       }
       return null;
     }
@@ -615,48 +737,6 @@ public class Tx0Service {
 
     return tx0.getChangeUtxos().get(index);
   }
-
-  protected void checkDecoyTx0x2Eligible(
-      Collection<UnspentOutput> spendFroms, Pool pool) throws Exception {
-    // TODO: Currently only checks needed amount to mock Tx0x2.
-    //       Should we check parent tx ids similar to stonewall algo?
-    if (spendFroms.size() == 1) {
-      String message = "Can't build Decoy Tx0x2 with 1 utxo";
-      log.error(message);
-      throw new NotifiableException(message);
-    }
-
-    // sort descending order to use largest utxos first (minimizes # of utxos)
-    List<UnspentOutput> sortedSpendFroms = new LinkedList<UnspentOutput>();
-    sortedSpendFroms.addAll(spendFroms);
-    Collections.sort(sortedSpendFroms, new SpendFromsComparator());
-
-    long requiredMixAmount = pool.getMustMixBalanceMin() + pool.getFeeValue() / 2;
-    long mockSenderSum = 0;
-    long mockCounterpartySum = 0;
-    boolean alternate = true;
-    for (UnspentOutput sortedSpendFrom : sortedSpendFroms) {
-      if (mockSenderSum < requiredMixAmount && alternate) {
-        mockSenderSum += sortedSpendFrom.value;
-        alternate = false;
-      } else if (mockCounterpartySum < requiredMixAmount) {
-        mockCounterpartySum += sortedSpendFrom.value;
-        alternate = true;
-      }
-
-      if (mockSenderSum > requiredMixAmount && mockCounterpartySum > requiredMixAmount) {
-        // required amount met, exit
-        return;
-      }
-    }
-
-    if (mockSenderSum < requiredMixAmount || mockCounterpartySum < requiredMixAmount) {
-      String message = "Can't build Decoy Tx0x2. Required amount not met.";
-      log.error(message);
-      throw new NotifiableException(message);
-    }
-  }
-
 
   protected void signTx0(Transaction tx, KeyBag keyBag, BipFormatSupplier bipFormatSupplier)
       throws Exception {
