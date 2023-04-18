@@ -33,7 +33,7 @@ public class AbstractTx0ServiceTest extends AbstractWhirlpoolWalletTest {
   @Override
   protected WhirlpoolWalletConfig computeWhirlpoolWalletConfig(ServerApi serverApi) {
     WhirlpoolWalletConfig config = super.computeWhirlpoolWalletConfig(serverApi);
-    config.setTx0MaxOutputs(10);
+    config.setTx0MaxOutputs(70);
     config.getFeeOpReturnImpl().setTestMode(true);
     return config;
   }
