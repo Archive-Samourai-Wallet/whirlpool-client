@@ -7,6 +7,8 @@ import com.samourai.wallet.cahoots.CahootsType;
 import com.samourai.wallet.cahoots.multi.MultiCahootsService;
 import java.util.ArrayList;
 import java.util.List;
+
+import com.samourai.wallet.util.TxUtil;
 import org.bitcoinj.core.NetworkParameters;
 import org.bitcoinj.core.TransactionOutput;
 import org.slf4j.Logger;
@@ -110,8 +112,7 @@ public class MultiTx0x2Service extends AbstractCahootsService<MultiTx0x2, MultiT
           payload1.getTransaction().getOutputs().size() - 1);
     }
 
-    MultiTx0x2 multiPayload1 = new MultiTx0x2(multiTx0x2);
-    multiPayload1.setTx0x2List(tx0x2List);
+    MultiTx0x2 multiPayload1 = new MultiTx0x2(params, tx0x2List);
     multiPayload1.setStep(1);
 
     debug("END MULTI TX0X2 STEP 1", multiTx0x2Context);
@@ -127,20 +128,28 @@ public class MultiTx0x2Service extends AbstractCahootsService<MultiTx0x2, MultiT
 
     Tx0x2 payload2;
     List<Tx0x2> tx0x2List = new ArrayList<>();
-    TransactionOutput higherPoolChange = null;
+    TransactionOutput higherPoolSenderChange = null;
+    TransactionOutput higherPoolCounterpartyChange = null;
     for (int i = 0; i < multiTx0x2.getTx0x2List().size(); i++) {
       payload2 = tx0x2Service.doMultiStep2(
           multiTx0x2.getTx0x2List().get(i),
           multiTx0x2Context.getTx0x2ContextList().get(i),
-          higherPoolChange);
+          higherPoolSenderChange,
+          higherPoolCounterpartyChange);
       tx0x2List.add(payload2);
 
-      higherPoolChange = payload2.getTransaction().getOutput(
+      // higher pool changes used for lower pools
+      higherPoolSenderChange = payload2.getTransaction().getOutput(
           payload2.getTransaction().getOutputs().size() - 1);
+
+      higherPoolCounterpartyChange =
+          TxUtil.getInstance().findOutputByAddress(
+              multiTx0x2.getTx0x2List().get(i).getTransaction(),
+              multiTx0x2.getTx0x2List().get(i).getCollabChange(),
+              getBipFormatSupplier());
     }
 
-    MultiTx0x2 multiPayload2 = new MultiTx0x2(multiTx0x2);
-    multiPayload2.setTx0x2List(tx0x2List);
+    MultiTx0x2 multiPayload2 = new MultiTx0x2(params, tx0x2List);
     multiPayload2.setStep(2);
 
     debug("END MULTI TX0X2 STEP 2", multiTx0x2Context);
@@ -173,8 +182,7 @@ public class MultiTx0x2Service extends AbstractCahootsService<MultiTx0x2, MultiT
       tx0x2List.add(payload3);
     }
 
-    MultiTx0x2 multiPayload3 = new MultiTx0x2(multiTx0x2);
-    multiPayload3.setTx0x2List(tx0x2List);
+    MultiTx0x2 multiPayload3 = new MultiTx0x2(params, tx0x2List);
     multiPayload3.setStep(3);
 
     debug("END MULTI TX0X2 STEP 3", multiTx0x2Context);
@@ -207,8 +215,7 @@ public class MultiTx0x2Service extends AbstractCahootsService<MultiTx0x2, MultiT
       tx0x2List.add(payload4);
     }
 
-    MultiTx0x2 multiPayload4 = new MultiTx0x2(multiTx0x2);
-    multiPayload4.setTx0x2List(tx0x2List);
+    MultiTx0x2 multiPayload4 = new MultiTx0x2(params, tx0x2List);
     multiPayload4.setStep(4);
 
     debug("END MULTI TX0X2 STEP 4", multiTx0x2Context);

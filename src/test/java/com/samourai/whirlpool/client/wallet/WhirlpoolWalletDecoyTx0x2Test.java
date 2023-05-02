@@ -409,7 +409,7 @@ public class WhirlpoolWalletDecoyTx0x2Test extends WhirlpoolWalletTx0Test {
     }
 
     /**
-     * Compare with tx0x2 test {@link WhirlpoolWalletTx0x2Test#tx0x2_cascading_pool01()}
+     * Compare with tx0x2 test {@link WhirlpoolWalletTx0x2Test#tx0x2_cascade_pool01()}
      * Change values might differ slightly for lower pools due fake samourai "fee" back to self
      */
     @Test
@@ -514,7 +514,7 @@ public class WhirlpoolWalletDecoyTx0x2Test extends WhirlpoolWalletTx0Test {
     }
 
     /**
-     * Compare with tx0x2 test {@link WhirlpoolWalletTx0x2Test#tx0x2_cascading_pool05() Tx0x2Pool05}
+     * Compare with tx0x2 test {@link WhirlpoolWalletTx0x2Test#tx0x2_cascade_pool05()}
      * Change values might differ slightly for lower pools due fake samourai "fee" back to self
      */
     @Test

@@ -102,8 +102,11 @@ public class Tx0x2Service extends AbstractCahoots2xService<Tx0x2, Tx0x2Context> 
     return payload;
   }
 
+
+  // TODO: Condense doStep1() & doMultiStep2() (inputs only difference)
+
   //
-  // counterparty
+  // counterparty: handles initial pool
   //
   protected Tx0x2 doStep1(Tx0x2 payload0, Tx0x2Context cahootsContext) throws Exception {
     Tx0x2 payload1 = payload0.copy();
@@ -154,7 +157,7 @@ public class Tx0x2Service extends AbstractCahoots2xService<Tx0x2, Tx0x2Context> 
   }
 
   //
-  // counterparty
+  // counterparty: handles lower pools
   //
   protected Tx0x2 doMultiStep1(
       Tx0x2 payload0,
@@ -254,8 +257,11 @@ public class Tx0x2Service extends AbstractCahoots2xService<Tx0x2, Tx0x2Context> 
     return outputs;
   }
 
+
+  // TODO: Refactor & condense doStep2() & doMultiStep2() (inputs & counterparty change are only differences)
+
   //
-  // sender
+  // sender: handles initial pool
   //
   protected Tx0x2 doStep2(Tx0x2 payload1, Tx0x2Context cahootsContext) throws Exception {
     Tx0x2 payload2 = payload1.copy();
@@ -303,22 +309,21 @@ public class Tx0x2Service extends AbstractCahoots2xService<Tx0x2, Tx0x2Context> 
     String senderChangeAddress =
         getBipFormatSupplier().getToAddress(tx0Initiator.getChangeOutputs().iterator().next());
 
+    // update counterparty change output to deduce minerFeePaid
+    Transaction tx = payload1.getTransaction();
+    String collabChangeAddress = payload1.getCollabChange();
+    TransactionOutput counterpartyChangeOutput =
+            TxUtil.getInstance().findOutputByAddress(tx, collabChangeAddress, getBipFormatSupplier());
+    if (counterpartyChangeOutput == null) {
+      throw new Exception("Cannot compose #Cahoots: counterpartyChangeOutput not found");
+    }
+
+    // counterparty pays half of fees
+    Coin counterpartyChangeValue =
+            Coin.valueOf(counterpartyChangeOutput.getValue().longValue() - minerFeePaid);
+
     // split change evenly for 0.001btc pool
     if (tx0Initiator.getPool().getPoolId().equals("0.001btc")) {
-      // update counterparty change output to deduce minerFeePaid
-      Transaction tx = payload1.getTransaction();
-      String collabChangeAddress = payload1.getCollabChange();
-      TransactionOutput counterpartyChangeOutput =
-          TxUtil.getInstance().findOutputByAddress(tx, collabChangeAddress, getBipFormatSupplier());
-      if (counterpartyChangeOutput == null) {
-        throw new Exception("Cannot compose #Cahoots: counterpartyChangeOutput not found");
-      }
-
-      // counterparty pays half of fees
-      Coin counterpartyChangeValue =
-          Coin.valueOf(counterpartyChangeOutput.getValue().longValue() - minerFeePaid);
-
-      // split change evenly
       long combinedChangeValue = senderChangeValue + counterpartyChangeValue.getValue();
       long splitChangeValue = combinedChangeValue / 2L;
       if (combinedChangeValue % 2L != 0) {
@@ -331,62 +336,33 @@ public class Tx0x2Service extends AbstractCahoots2xService<Tx0x2, Tx0x2Context> 
         log.debug("+output (Counterparty change) = " + collabChangeAddress + ", value=" + splitChangeValue);
       }
 
-      // set sender change output
-      TransactionOutput senderChangeOutput =
-              computeTxOutput(senderChangeAddress, splitChangeValue, cahootsContext);
-      payload2.setCollabChange(senderChangeAddress);
-      outputs.add(senderChangeOutput);
-
-      // set counterparty change output
-      counterpartyChangeOutput.setValue(Coin.valueOf(splitChangeValue));
-      payload2.getPSBT().setTransaction(tx);
-    } else {
-      // change output for pools 0.5btc, 0.05btc, & 0.01btc
-      if (log.isDebugEnabled()) {
-        log.debug("+output (Sender change) = " + senderChangeAddress + ", value=" + senderChangeValue);
-      }
-
-      // set counterparty change output
-      TransactionOutput senderChangeOutput =
-          computeTxOutput(senderChangeAddress, senderChangeValue, cahootsContext);
-      payload2.setCollabChange(senderChangeAddress);
-      outputs.add(senderChangeOutput);
-
-      // update counterparty change output to deduce minerFeePaid
-      Transaction tx = payload1.getTransaction();
-      String collabChangeAddress = payload1.getCollabChange();
-      TransactionOutput counterpartyChangeOutput =
-              TxUtil.getInstance().findOutputByAddress(tx, collabChangeAddress, getBipFormatSupplier());
-      if (counterpartyChangeOutput == null) {
-        throw new Exception("Cannot compose #Cahoots: counterpartyChangeOutput not found");
-      }
-
-      // counterparty pays half of fees
-      Coin counterpartyChangeValue =
-              Coin.valueOf(counterpartyChangeOutput.getValue().longValue() - minerFeePaid);
-
-      if (log.isDebugEnabled()) {
-        log.debug("counterparty change output value post fee:" + counterpartyChangeValue);
-      }
-
-      // set counterparty change output
-      counterpartyChangeOutput.setValue(counterpartyChangeValue);
-      payload2.getPSBT().setTransaction(tx);
+      senderChangeValue = splitChangeValue;
+      counterpartyChangeValue = Coin.valueOf(splitChangeValue);
     }
 
+    // set sender change output
+    TransactionOutput senderChangeOutput =
+            computeTxOutput(senderChangeAddress, senderChangeValue, cahootsContext);
+    payload2.setCollabChange(senderChangeAddress);
+    outputs.add(senderChangeOutput);
+
+    // set counterparty change output
+    counterpartyChangeOutput.setValue(counterpartyChangeValue);
+
+    payload2.getPSBT().setTransaction(tx);
     payload2.doStep2(inputs, outputs);
     return payload2;
   }
 
   //
-  // sender
+  // sender: handles lower pools
   //
   protected Tx0x2 doMultiStep2(
       Tx0x2 payload1,
       Tx0x2Context cahootsContext,
-      TransactionOutput higherPoolChange)
-      throws Exception {
-    if (higherPoolChange == null) {
+      TransactionOutput higherPoolSenderChange,
+      TransactionOutput higherPoolCounterpartyChange) throws Exception {
+    if (higherPoolSenderChange == null) {
       return doStep2(payload1, cahootsContext);
     }
 
@@ -403,8 +379,10 @@ public class Tx0x2Service extends AbstractCahoots2xService<Tx0x2, Tx0x2Context> 
     cahootsContext.setMinerFeePaid(minerFeePaid); // sender & counterparty pay half minerFee
 
     // add sender input (higher pool change output)
-    CahootsUtxo cahootsUtxo = toCahootsUtxo(cahootsContext, higherPoolChange);
+    CahootsUtxo cahootsUtxo = toCahootsUtxo(cahootsContext, higherPoolSenderChange);
     List<TransactionInput> input = cahootsContext.addInputs(Arrays.asList(cahootsUtxo));
+
+    // TODO need to update counterparty input with value from higher pool (counterparty change recalculated in step 2: minus miner fee)
 
     // add sender outputs
     List<TransactionOutput> outputs = new ArrayList<>();
@@ -450,22 +428,31 @@ public class Tx0x2Service extends AbstractCahoots2xService<Tx0x2, Tx0x2Context> 
     String senderChangeAddress =
         getBipFormatSupplier().getToAddress(tx0Initiator.getChangeOutputs().iterator().next());
 
+    // update counterparty change output to deduce minerFeePaid
+    Transaction tx = payload1.getTransaction();
+    String collabChangeAddress = payload1.getCollabChange();
+    TransactionOutput counterpartyChangeOutput =
+        TxUtil.getInstance().findOutputByAddress(tx, collabChangeAddress, getBipFormatSupplier());
+    if (counterpartyChangeOutput == null) {
+      throw new Exception("Cannot compose #Cahoots: counterpartyChangeOutput not found");
+    }
+
+    // counterparty pays half of fees
+    long counterpartyChange = higherPoolCounterpartyChange.getValue().longValue();
+    Coin counterpartyChangeValue = Coin.valueOf(counterpartyChange - minerFeePaid);
+
+    if (log.isDebugEnabled()) {
+      log.debug(
+        "counterparty change output value:"
+        + counterpartyChange
+        + "; minerFeePaid: "
+        + minerFeePaid
+        + "; change value post fee:"
+        + counterpartyChangeValue);
+    }
+
     // split change evenly for 0.001btc pool
     if (tx0Initiator.getPool().getPoolId().equals("0.001btc")) {
-        // update counterparty change output to deduce minerFeePaid
-        Transaction tx = payload1.getTransaction();
-        String collabChangeAddress = payload1.getCollabChange();
-        TransactionOutput counterpartyChangeOutput =
-            TxUtil.getInstance().findOutputByAddress(tx, collabChangeAddress, getBipFormatSupplier());
-        if (counterpartyChangeOutput == null) {
-          throw new Exception("Cannot compose #Cahoots: counterpartyChangeOutput not found");
-        }
-
-        // counterparty pays half of fees
-        Coin counterpartyChangeValue =
-            Coin.valueOf(counterpartyChangeOutput.getValue().longValue() - minerFeePaid);
-
-        // split change evenly
         long combinedChangeValue = senderChangeValue + counterpartyChangeValue.getValue();
         long splitChangeValue = combinedChangeValue / 2L;
         if (combinedChangeValue % 2L != 0) {
@@ -477,50 +464,20 @@ public class Tx0x2Service extends AbstractCahoots2xService<Tx0x2, Tx0x2Context> 
           log.debug("+output (Sender change) = " + senderChangeAddress + ", value=" + splitChangeValue);
           log.debug("+output (Counterparty change) = " + collabChangeAddress + ", value=" + splitChangeValue);
         }
-
-        // set sender change output
-        TransactionOutput senderChangeOutput =
-            computeTxOutput(senderChangeAddress, splitChangeValue, cahootsContext);
-        payload2.setCollabChange(senderChangeAddress);
-        outputs.add(senderChangeOutput);
-
-        // set counterparty change output
-        counterpartyChangeOutput.setValue(Coin.valueOf(splitChangeValue));
-        payload2.getPSBT().setTransaction(tx);
-    } else {
-        // change output for pools 0.05btc & 0.01btc
-        if (log.isDebugEnabled()) {
-          log.debug("+output (Sender change) = " + senderChangeAddress + ", value=" + senderChangeValue);
-        }
-
-        // set counterparty change output
-        TransactionOutput senderChangeOutput =
-            computeTxOutput(senderChangeAddress, senderChangeValue, cahootsContext);
-        payload2.setCollabChange(senderChangeAddress);
-        outputs.add(senderChangeOutput);
-
-        // update counterparty change output to deduce minerFeePaid
-        Transaction tx = payload1.getTransaction();
-        String collabChangeAddress = payload1.getCollabChange();
-        TransactionOutput counterpartyChangeOutput =
-            TxUtil.getInstance().findOutputByAddress(tx, collabChangeAddress, getBipFormatSupplier());
-        if (counterpartyChangeOutput == null) {
-          throw new Exception("Cannot compose #Cahoots: counterpartyChangeOutput not found");
-        }
-
-        // counterparty pays half of fees
-        Coin counterpartyChangeValue =
-            Coin.valueOf(counterpartyChangeOutput.getValue().longValue() - minerFeePaid);
-
-        if (log.isDebugEnabled()) {
-          log.debug("counterparty change output value post fee:" + counterpartyChangeValue);
-        }
-
-        // set counterparty change output
-        counterpartyChangeOutput.setValue(counterpartyChangeValue);
-        payload2.getPSBT().setTransaction(tx);
     }
 
+    // set sender change output
+    TransactionOutput senderChangeOutput =
+        computeTxOutput(senderChangeAddress, senderChangeValue, cahootsContext);
+    payload2.setCollabChange(senderChangeAddress);
+    outputs.add(senderChangeOutput);
+
+    // set counterparty change output
+    counterpartyChangeOutput.setValue(counterpartyChangeValue);
+
+    // TODO lower pool counterparty input will need to be updated with this value (counterparty change recalculated in step 2: minus miner fee)
+
+    payload2.getPSBT().setTransaction(tx);
     payload2.doStep2(input, outputs);
     return payload2;
   }
@@ -665,7 +622,7 @@ public class Tx0x2Service extends AbstractCahoots2xService<Tx0x2, Tx0x2Context> 
       long sharedMinerFee = minerFee / 2; // splits miner fee
       long samouraiFeeValue = cahootsContext.getSamouraiFee();
       long samouraiFeeValueEach = samouraiFeeValue / 2L; // splits samourai fee
-      long maxBottomPoolSplit = 50085L; // Max split to change ouput in 0.001btc
+      long maxBottomPoolSplit = cahootsContext.getInputs().get(0).getValue(); // max split output
       long maxSpendAmount;
 
       String prefix =
