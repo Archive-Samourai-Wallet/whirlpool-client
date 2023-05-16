@@ -6,6 +6,7 @@ import com.samourai.wallet.bipFormat.BIP_FORMAT;
 import com.samourai.wallet.bipWallet.WalletSupplier;
 import com.samourai.wallet.bipWallet.WalletSupplierImpl;
 import com.samourai.wallet.cahoots.*;
+import com.samourai.wallet.cahoots.tx0x2.Tx0x2Service;
 import com.samourai.wallet.client.indexHandler.MemoryIndexHandlerSupplier;
 import com.samourai.wallet.hd.BIP_WALLET;
 import com.samourai.wallet.hd.Chain;
@@ -52,6 +53,10 @@ public abstract class AbstractCahootsTest extends AbstractWhirlpoolWalletTest {
   protected static String[] COUNTERPARTY_CHANGE_84;
   protected static String[] COUNTERPARTY_CHANGE_POSTMIX_44;
   protected static String[] COUNTERPARTY_CHANGE_POSTMIX_84;
+  protected static String[] SENDER_PREMIX_84;
+  protected static String[] COUNTERPARTY_PREMIX_84;
+
+  protected Tx0x2Service tx0x2Service = new Tx0x2Service(bipFormatSupplier, params);
 
   public AbstractCahootsTest() throws Exception {
     super();
@@ -195,6 +200,26 @@ public abstract class AbstractCahootsTest extends AbstractWhirlpoolWalletTest {
                   .getAddressAt(Chain.CHANGE.getIndex(), i)
                   .getHdAddress());
     }
+
+    SENDER_PREMIX_84 = new String[40];
+    for (int i = 0; i < 40; i++) {
+      SENDER_PREMIX_84[i] =
+          BIP_FORMAT.SEGWIT_NATIVE.getAddressString(
+              walletSupplierSender
+                  .getWallet(BIP_WALLET.PREMIX_BIP84)
+                  .getAddressAt(Chain.RECEIVE.getIndex(), i)
+                  .getHdAddress());
+    }
+
+    COUNTERPARTY_PREMIX_84 = new String[40];
+    for (int i = 0; i < 40; i++) {
+      COUNTERPARTY_PREMIX_84[i] =
+          BIP_FORMAT.SEGWIT_NATIVE.getAddressString(
+              walletSupplierCounterparty
+                  .getWallet(BIP_WALLET.PREMIX_BIP84)
+                  .getAddressAt(Chain.RECEIVE.getIndex(), i)
+                  .getHdAddress());
+    }
   }
 
   protected Cahoots cleanPayload(String payloadStr) throws Exception {
@@ -286,8 +311,10 @@ public abstract class AbstractCahootsTest extends AbstractWhirlpoolWalletTest {
 
     Map<String, Long> outputsActuals = new LinkedHashMap<>();
     for (TransactionOutput txOutput : tx.getOutputs()) {
-      String address = bipFormatSupplier.getToAddress(txOutput);
-      outputsActuals.put(address, txOutput.getValue().getValue());
+      if (!txOutput.getScriptPubKey().isOpReturn()) {
+        String address = bipFormatSupplier.getToAddress(txOutput);
+        outputsActuals.put(address, txOutput.getValue().getValue());
+      }
     }
     // sort by value ASC to comply with UTXOComparator
     outputsActuals = sortMapOutputs(outputsActuals);
@@ -297,8 +324,12 @@ public abstract class AbstractCahootsTest extends AbstractWhirlpoolWalletTest {
     }
     Assertions.assertEquals(outputsExpected, outputsActuals);
 
-    Assertions.assertEquals(txid, tx.getHashAsString());
-    Assertions.assertEquals(raw, TxUtil.getInstance().getTxHex(tx));
+    if (txid != null) {
+      Assertions.assertEquals(txid, tx.getHashAsString());
+    }
+    if (raw != null) {
+      Assertions.assertEquals(raw, TxUtil.getInstance().getTxHex(tx));
+    }
   }
 
   protected Map<String, Long> sortMapOutputs(Map<String, Long> map) {
