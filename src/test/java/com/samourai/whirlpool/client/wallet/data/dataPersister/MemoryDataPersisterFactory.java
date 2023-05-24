@@ -14,7 +14,7 @@ public class MemoryDataPersisterFactory extends FileDataPersisterFactory {
   @Override
   public DataPersister createDataPersister(WhirlpoolWallet whirlpoolWallet, HD_Wallet bip44w)
       throws Exception {
-    WalletStateSupplier walletStateSupplier = computeWalletStateSupplier(whirlpoolWallet);
+    WalletStateSupplier walletStateSupplier = new MemoryWalletStateSupplier();
     UtxoConfigSupplier utxoConfigSupplier = computeUtxoConfigSupplier(whirlpoolWallet);
     return new MemoryDataPersister(whirlpoolWallet, walletStateSupplier, utxoConfigSupplier);
   }

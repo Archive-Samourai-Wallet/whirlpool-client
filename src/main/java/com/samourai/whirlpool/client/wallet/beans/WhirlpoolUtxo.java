@@ -7,6 +7,7 @@ import com.samourai.whirlpool.client.wallet.data.utxoConfig.UtxoConfig;
 import com.samourai.whirlpool.client.wallet.data.utxoConfig.UtxoConfigPersisted;
 import com.samourai.whirlpool.client.wallet.data.utxoConfig.UtxoConfigSupplier;
 import java.util.Collection;
+import java.util.stream.Collectors;
 import org.bitcoinj.core.NetworkParameters;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -187,5 +188,12 @@ public class WhirlpoolUtxo {
     sb.append(", mixsDone=").append(getMixsDone());
     sb.append(", state={").append(getUtxoState().toString()).append("}");
     return sb.toString();
+  }
+
+  public static Collection<UnspentOutput> toUnspentOutputs(
+      Collection<WhirlpoolUtxo> whirlpoolUtxos) {
+    return whirlpoolUtxos.stream()
+        .map(whirlpoolUtxo -> whirlpoolUtxo.getUtxo())
+        .collect(Collectors.toList());
   }
 }

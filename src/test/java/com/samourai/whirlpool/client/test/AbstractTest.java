@@ -35,6 +35,7 @@ import com.samourai.whirlpool.client.wallet.data.walletState.WalletStatePersiste
 import com.samourai.whirlpool.client.wallet.data.walletState.WalletStateSupplier;
 import com.samourai.whirlpool.client.whirlpool.ServerApi;
 import com.samourai.whirlpool.client.whirlpool.beans.Pool;
+import com.samourai.whirlpool.client.whirlpool.beans.Tx0Data;
 import com.samourai.whirlpool.protocol.WhirlpoolProtocol;
 import com.samourai.whirlpool.protocol.rest.PushTxSuccessResponse;
 import com.samourai.whirlpool.protocol.rest.Tx0PushRequest;
@@ -86,6 +87,9 @@ public class AbstractTest {
       "{\"wallet\": {\"final_balance\": 116640227},\"info\": {\"fees\": {\"2\": 1,\"4\": 1,\"6\": 1,\"12\": 1,\"24\": 1},\"latest_block\": {\"height\": 2064015,\"hash\": \"00000000000000409297f8e0c0e73475cdd215ef675ad82802a08507b1c1d0e1\",\"time\": 1628498860}},\"addresses\": [{\"address\": \"vpub5YEhBtZy85KxLBxQB4MiHZvjjhz5DcYT9DV2gLshFykuWXjqSzLxpLd4TwS8nFxJmXAX8RrxRxpanndBh5a9AJPbrJEtqCcTKAnRYcP4Aed\",\"final_balance\": 116640227,\"account_index\": 511,\"change_index\": 183,\"n_tx\": 137}],\"txs\": [],\"unspent_outputs\": []}";
 
   protected MockPushTx pushTx = new MockPushTx(params);
+  protected Collection<Tx0Data> mockTx0Datas = null;
+  protected static final String MOCK_SAMOURAI_FEE_ADDRESS =
+      "tb1qfd0ukes4xw3xvxwhj9m53nt2huh75khrrdm5dv";
 
   public AbstractTest() throws Exception {
     ClientUtils.setLogLevel(Level.DEBUG, Level.DEBUG);
@@ -178,7 +182,16 @@ public class AbstractTest {
           public boolean isOpReturnV0() {
             return isOpReturnV0;
           }
-        });
+        }) {
+      @Override
+      protected Collection<Tx0Data> fetchTx0Data(String partnerId, boolean cascading)
+          throws Exception {
+        if (mockTx0Datas != null) {
+          return mockTx0Datas;
+        }
+        return super.fetchTx0Data(partnerId, cascading);
+      }
+    };
   }
 
   protected ExpirablePoolSupplier mockPoolSupplier() {
@@ -330,5 +343,23 @@ public class AbstractTest {
 
   protected String computeUtxoId(UnspentOutput utxo) {
     return utxo.tx_hash + ':' + utxo.tx_output_n;
+  }
+
+  protected void mockTx0Datas() throws Exception {
+    byte[] feePayload =
+        computeWhirlpoolWalletConfig()
+            .getFeeOpReturnImpl()
+            .computeFeePayload(0, (short) 0, (short) 0);
+    mockTx0Datas =
+        Arrays.asList(
+            new Tx0Data(
+                "0.01btc",
+                "PM8TJbEnXU7JpR8yMdQee9H5C4RNWTpWAgmb2TVyQ4zfnaQBDMTJ4yYVP9Re8NVsZDSwXvogYbssrqkfVwac9U1QnxdCU2G1zH7Gq6L3JJjzcuWGjB9N",
+                42500,
+                0,
+                0,
+                null,
+                feePayload,
+                MOCK_SAMOURAI_FEE_ADDRESS));
   }
 }

@@ -46,7 +46,7 @@ public class WhirlpoolWalletConfig extends WhirlpoolClientConfig
 
   private int maxClients;
   private int maxClientsPerPool;
-  private boolean liquidityClient;
+  private int extraLiquidityClientsPerPool;
   private int clientDelay;
   private int autoTx0Delay;
   private String autoTx0PoolId;
@@ -58,7 +58,6 @@ public class WhirlpoolWalletConfig extends WhirlpoolClientConfig
   private int tx0MaxRetry;
   private Map<String, Long> overspend;
 
-  private int tx0MinConfirmations;
   private int refreshUtxoDelay;
   private int refreshPoolsDelay;
   private int refreshPaynymDelay;
@@ -114,7 +113,7 @@ public class WhirlpoolWalletConfig extends WhirlpoolClientConfig
     // default settings
     this.maxClients = mobile ? 1 : 5;
     this.maxClientsPerPool = 1;
-    this.liquidityClient = mobile ? false : true;
+    this.extraLiquidityClientsPerPool = mobile ? 0 : 1;
     this.clientDelay = 30;
     this.autoTx0Delay = 60;
     this.autoTx0PoolId = null;
@@ -127,7 +126,6 @@ public class WhirlpoolWalletConfig extends WhirlpoolClientConfig
     this.overspend = new LinkedHashMap<String, Long>();
 
     // technical settings
-    this.tx0MinConfirmations = 0;
     this.refreshUtxoDelay = 60; // 1min
     this.refreshPoolsDelay = 600; // 10min
     this.refreshPaynymDelay = 3600; // 1h
@@ -221,12 +219,12 @@ public class WhirlpoolWalletConfig extends WhirlpoolClientConfig
     this.maxClientsPerPool = maxClientsPerPool;
   }
 
-  public boolean isLiquidityClient() {
-    return liquidityClient;
+  public int getExtraLiquidityClientsPerPool() {
+    return extraLiquidityClientsPerPool;
   }
 
-  public void setLiquidityClient(boolean liquidityClient) {
-    this.liquidityClient = liquidityClient;
+  public void setExtraLiquidityClientsPerPool(int extraLiquidityClientsPerPool) {
+    this.extraLiquidityClientsPerPool = extraLiquidityClientsPerPool;
   }
 
   public int getClientDelay() {
@@ -311,14 +309,6 @@ public class WhirlpoolWalletConfig extends WhirlpoolClientConfig
 
   public void setOverspend(Map<String, Long> overspend) {
     this.overspend = overspend;
-  }
-
-  public int getTx0MinConfirmations() {
-    return tx0MinConfirmations;
-  }
-
-  public void setTx0MinConfirmations(int tx0MinConfirmations) {
-    this.tx0MinConfirmations = tx0MinConfirmations;
   }
 
   public int getRefreshUtxoDelay() {
@@ -470,8 +460,8 @@ public class WhirlpoolWalletConfig extends WhirlpoolClientConfig
             + getMaxClients()
             + ", maxClientsPerPool="
             + getMaxClientsPerPool()
-            + ", liquidityClient="
-            + isLiquidityClient()
+            + ", extraLiquidityClientsPerPool="
+            + getExtraLiquidityClientsPerPool()
             + ", clientDelay="
             + getClientDelay()
             + ", autoTx0Delay="
