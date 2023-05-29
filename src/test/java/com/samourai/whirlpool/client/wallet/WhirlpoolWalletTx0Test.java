@@ -17,7 +17,6 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.stream.Collectors;
 import org.bitcoinj.core.Transaction;
 import org.bitcoinj.core.TransactionOutput;
 import org.junit.jupiter.api.Assertions;
@@ -97,7 +96,7 @@ public class WhirlpoolWalletTx0Test extends Tx0ServiceV1Test {
         whirlpoolWallet.getTx0Config(Tx0FeeTarget.BLOCKS_12, Tx0FeeTarget.BLOCKS_12);
 
     // run
-    Collection<Pool> pools = findPoolsLowerOrEqual("0.05btc", poolSupplier);
+    Collection<Pool> pools = poolSupplier.findPoolsByMaxId("0.05btc", poolSupplier);
     Tx0 tx0_pool05 =
         whirlpoolWallet
             .tx0Cascade(Arrays.asList(spendFromUtxo), tx0Config, pools)
@@ -113,13 +112,6 @@ public class WhirlpoolWalletTx0Test extends Tx0ServiceV1Test {
     Assertions.assertTrue(
         utxosContains(
             tx0_pool05.getSpendFroms(), spendFromUtxo.tx_hash, spendFromUtxo.tx_output_n));
-  }
-
-  private Collection<Pool> findPoolsLowerOrEqual(String maxPoolId, PoolSupplier poolSupplier) {
-    Pool highestPool = poolSupplier.findPoolById(maxPoolId);
-    return poolSupplier.getPools().stream()
-        .filter(pool -> pool.getDenomination() <= highestPool.getDenomination())
-        .collect(Collectors.toList());
   }
 
   @Test
@@ -139,7 +131,7 @@ public class WhirlpoolWalletTx0Test extends Tx0ServiceV1Test {
     mockUtxos(spendFromUtxo);
 
     // configure TX0
-    Collection<Pool> pools = findPoolsLowerOrEqual("0.05btc", poolSupplier);
+    Collection<Pool> pools = poolSupplier.findPoolsByMaxId("0.05btc", poolSupplier);
     Tx0Config tx0Config =
         whirlpoolWallet.getTx0Config(Tx0FeeTarget.BLOCKS_12, Tx0FeeTarget.BLOCKS_12);
 
@@ -192,7 +184,7 @@ public class WhirlpoolWalletTx0Test extends Tx0ServiceV1Test {
     mockUtxos(spendFromUtxo);
 
     // configure TX0
-    Collection<Pool> pools = findPoolsLowerOrEqual("0.05btc", poolSupplier);
+    Collection<Pool> pools = poolSupplier.findPoolsByMaxId("0.05btc", poolSupplier);
     Tx0Config tx0Config =
         whirlpoolWallet.getTx0Config(Tx0FeeTarget.BLOCKS_12, Tx0FeeTarget.BLOCKS_12);
 
@@ -257,7 +249,7 @@ public class WhirlpoolWalletTx0Test extends Tx0ServiceV1Test {
     mockUtxos(spendFromUtxo);
 
     // configure TX0
-    Collection<Pool> pools = findPoolsLowerOrEqual("0.5btc", poolSupplier);
+    Collection<Pool> pools = poolSupplier.findPoolsByMaxId("0.5btc", poolSupplier);
     Tx0Config tx0Config =
         whirlpoolWallet.getTx0Config(Tx0FeeTarget.BLOCKS_12, Tx0FeeTarget.BLOCKS_12);
 
@@ -334,7 +326,7 @@ public class WhirlpoolWalletTx0Test extends Tx0ServiceV1Test {
     mockUtxos(spendFromUtxo);
 
     // configure TX0
-    Collection<Pool> pools = findPoolsLowerOrEqual("0.5btc", poolSupplier);
+    Collection<Pool> pools = poolSupplier.findPoolsByMaxId("0.5btc", poolSupplier);
     Tx0Config tx0Config =
         whirlpoolWallet.getTx0Config(Tx0FeeTarget.BLOCKS_12, Tx0FeeTarget.BLOCKS_12);
 
@@ -386,7 +378,7 @@ public class WhirlpoolWalletTx0Test extends Tx0ServiceV1Test {
     mockUtxos(spendFromUtxo);
 
     // configure TX0
-    Collection<Pool> pools = findPoolsLowerOrEqual("0.01btc", poolSupplier);
+    Collection<Pool> pools = poolSupplier.findPoolsByMaxId("0.01btc", poolSupplier);
     Tx0Config tx0Config =
         whirlpoolWallet.getTx0Config(Tx0FeeTarget.BLOCKS_12, Tx0FeeTarget.BLOCKS_12);
 
@@ -440,7 +432,7 @@ public class WhirlpoolWalletTx0Test extends Tx0ServiceV1Test {
 
     // configure TX0
     PoolSupplier poolSupplier = whirlpoolWallet.getPoolSupplier();
-    Collection<Pool> pools = findPoolsLowerOrEqual("0.01btc", poolSupplier);
+    Collection<Pool> pools = poolSupplier.findPoolsByMaxId("0.01btc", poolSupplier);
     Tx0Config tx0Config =
         whirlpoolWallet.getTx0Config(Tx0FeeTarget.BLOCKS_12, Tx0FeeTarget.BLOCKS_12);
 
@@ -470,7 +462,7 @@ public class WhirlpoolWalletTx0Test extends Tx0ServiceV1Test {
 
     // configure TX0
     PoolSupplier poolSupplier = whirlpoolWallet.getPoolSupplier();
-    Collection<Pool> pools = findPoolsLowerOrEqual("0.001btc", poolSupplier);
+    Collection<Pool> pools = poolSupplier.findPoolsByMaxId("0.001btc", poolSupplier);
     Tx0Config tx0Config =
         whirlpoolWallet.getTx0Config(Tx0FeeTarget.BLOCKS_12, Tx0FeeTarget.BLOCKS_12);
 

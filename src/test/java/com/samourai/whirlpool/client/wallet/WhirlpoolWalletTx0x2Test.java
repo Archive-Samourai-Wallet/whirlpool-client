@@ -58,8 +58,7 @@ public class WhirlpoolWalletTx0x2Test extends AbstractCahootsTest {
     Tx0Service tx0Service = new Tx0Service(params, tx0PreviewService, feeOpReturnImpl);
 
     // initiator: build initial TX0
-    String xpub = walletSupplierSender.getWallet(BIP_WALLET.DEPOSIT_BIP84).getPub();
-    Collection<UnspentOutput> spendFroms = utxoSender1.toUnspentOutputs(xpub);
+    Collection<UnspentOutput> spendFroms = utxoSender1.toUnspentOutputs();
     Tx0Config tx0Config =
         new Tx0Config(
             tx0PreviewService,
@@ -126,8 +125,7 @@ public class WhirlpoolWalletTx0x2Test extends AbstractCahootsTest {
     Tx0Service tx0Service = new Tx0Service(params, tx0PreviewService, feeOpReturnImpl);
 
     // initiator: build initial TX0
-    String xpub = walletSupplierSender.getWallet(BIP_WALLET.DEPOSIT_BIP84).getPub();
-    Collection<UnspentOutput> spendFroms = utxoSender1.toUnspentOutputs(xpub);
+    Collection<UnspentOutput> spendFroms = utxoSender1.toUnspentOutputs();
     Tx0Config tx0Config =
         new Tx0Config(
             tx0PreviewService,

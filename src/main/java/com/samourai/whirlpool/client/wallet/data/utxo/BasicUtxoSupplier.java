@@ -217,6 +217,7 @@ public abstract class BasicUtxoSupplier extends BasicSupplier<UtxoData>
       if (utxo == null) {
         utxo = new UTXO();
         utxo.setPath(whirlpoolUtxo.getUtxo().getPath());
+        utxo.setXpub(whirlpoolUtxo.getUtxo().xpub.m);
         utxoByScript.put(script, utxo);
       }
       utxo.getOutpoints().add(outPoint);
