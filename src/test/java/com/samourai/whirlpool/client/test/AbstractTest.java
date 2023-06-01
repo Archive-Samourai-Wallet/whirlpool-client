@@ -61,6 +61,13 @@ public class AbstractTest {
   protected static final String SEED_PASSPHRASE = "whirlpool";
   private static final String STATE_FILENAME = "/tmp/tmp-state";
 
+  protected static final String XPUB_DEPOSIT_BIP84 =
+      "tpubDCGZwoNuBCYuS9LbHLzdbfzjYe2fn7dKAHVSUPTkb1vuSfi7hUuiG3eT7tE1DzdcjhBF5SZk3vuu8EkcFUnbsaBpCyB2uDP7v3n774RGre9";
+  protected static final String XPUB_PREMIX =
+      "tpubDCGZwoP3Ws5sUQb1uwYxqQfmEjiPfSGrBcomWLyYgYw7YP5LenJexEzxwHvJoYUQSCWZupgzcx91fr4wVdJCb21LTr6fcv4GvBio4bzAhvr";
+  protected static final String XPUB_POSTMIX =
+      "tpubDCGZwoP3Ws5sZLQpXGpDhtbErQPyFdf59k8JmUpnL5fM6qAj8bbPXNwLLtfiS5s8ivZ1W1PQnaET7obFeiDSooTFBKcTweS29BkgHwhhsQD";
+
   protected IHttpClient httpClient;
 
   protected ChainSupplier mockChainSupplier =
@@ -250,8 +257,7 @@ public class AbstractTest {
     spendFrom.confirmations = 1234;
     spendFrom.xpub = new UnspentOutput.Xpub();
     spendFrom.xpub.path = "m/0/" + hdAddress.getAddressIndex();
-    spendFrom.xpub.m =
-        "vpub5YEQpEDPAZWVTkmWASSHyaUMsae7uV9FnRrhZ3cqV6RFbBQx7wjVsUfLqSE3hgNY8WQixurkbWNkfV2sRE7LPfNKQh2t3s5une4QZthwdCu";
+    spendFrom.xpub.m = XPUB_DEPOSIT_BIP84;
     return spendFrom;
   }
 

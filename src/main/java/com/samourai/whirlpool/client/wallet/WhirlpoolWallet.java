@@ -374,8 +374,8 @@ public class WhirlpoolWallet {
 
     // log wallets
     for (BipWallet bipWallet : getWalletSupplier().getWallets()) {
-      String nextReceivePath = bipWallet.getNextAddress(false).getPathAddress();
-      String nextChangePath = bipWallet.getNextChangeAddress(false).getPathAddress();
+      String nextReceivePath = bipWallet.getNextAddressReceive(false).getPathAddress();
+      String nextChangePath = bipWallet.getNextAddressChange(false).getPathAddress();
       String pub =
           log.isDebugEnabled() ? bipWallet.getPub() : ClientUtils.maskString(bipWallet.getPub());
       log.info(
@@ -384,7 +384,7 @@ public class WhirlpoolWallet {
               + ": account="
               + bipWallet.getAccount()
               + ", bipFormat="
-              + bipWallet.getBipFormat().getId()
+              + bipWallet.getBipFormatDefault().getId()
               + ", receive="
               + nextReceivePath
               + ", change="
@@ -784,7 +784,7 @@ public class WhirlpoolWallet {
   }
 
   public String getDepositAddress(boolean increment) {
-    return getWalletDeposit().getNextAddress(increment).getAddressString();
+    return getWalletDeposit().getNextAddressReceive(increment).getAddressString();
   }
 
   public void notifyError(String message) {

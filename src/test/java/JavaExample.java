@@ -12,6 +12,7 @@ import com.samourai.wallet.bip47.rpc.java.SecretPointFactoryJava;
 import com.samourai.wallet.bip47.rpc.secretPoint.ISecretPointFactory;
 import com.samourai.wallet.bipFormat.BIP_FORMAT;
 import com.samourai.wallet.bipFormat.BipFormat;
+import com.samourai.wallet.bipFormat.BipFormatSupplier;
 import com.samourai.wallet.bipWallet.BipDerivation;
 import com.samourai.wallet.bipWallet.BipWallet;
 import com.samourai.wallet.bipWallet.WalletSupplierImpl;
@@ -150,13 +151,16 @@ public class JavaExample {
             int acountIndex = 4;
             BipDerivation derivation = new BipDerivation(purpose, acountIndex);
             BipFormat bipFormat = BIP_FORMAT.SEGWIT_NATIVE; // or define your own BipFormat
+            BipFormatSupplier bipFormatSupplier = computeBipFormatSupplier();
             walletSupplier.register(
                 new BipWallet(
+                    bipFormatSupplier,
                     "DEPOSIT_ACCOUNT_4_SEGWIT_NATIVE",
                     bip44w,
                     walletStateSupplier,
                     WhirlpoolAccount.DEPOSIT,
                     derivation,
+                    Arrays.asList(bipFormat),
                     bipFormat));
             return walletSupplier;
           }

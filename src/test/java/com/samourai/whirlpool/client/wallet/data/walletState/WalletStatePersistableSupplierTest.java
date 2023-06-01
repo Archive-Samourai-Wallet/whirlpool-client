@@ -30,7 +30,8 @@ public class WalletStatePersistableSupplierTest extends AbstractTest {
     byte[] seed = hdWalletFactory.computeSeedFromWords(SEED_WORDS);
     HD_Wallet bip44w =
         HD_WalletFactoryGeneric.getInstance().getBIP44(seed, SEED_PASSPHRASE, params);
-    walletPostmix = new BipWallet(bip44w, walletStateSupplier, BIP_WALLET.POSTMIX_BIP84);
+    walletPostmix =
+        new BipWallet(bipFormatSupplier, bip44w, walletStateSupplier, BIP_WALLET.POSTMIX_BIP84);
   }
 
   @Test

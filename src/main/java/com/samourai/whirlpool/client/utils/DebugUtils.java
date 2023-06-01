@@ -45,7 +45,7 @@ public class DebugUtils {
     StringBuilder sb = new StringBuilder().append("\n");
 
     // receive address
-    BipAddress depositAddress = whirlpoolWallet.getWalletDeposit().getNextAddress(false);
+    BipAddress depositAddress = whirlpoolWallet.getWalletDeposit().getNextAddressReceive(false);
 
     sb.append("⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿" + "\n");
     sb.append("⣿ RECEIVE ADDRESS" + "\n");
@@ -68,19 +68,17 @@ public class DebugUtils {
 
       for (BipWallet wallet : whirlpoolWallet.getWalletSupplier().getWallets(account)) {
         NetworkParameters params = wallet.getParams();
-        utxos = whirlpoolWallet.getUtxoSupplier().findUtxos(wallet.getBipFormat(), account);
-        String nextAddressReceive = wallet.getNextAddress(false).getAddressString();
-        String nextAddressChange = wallet.getNextChangeAddress(false).getAddressString();
+        String nextAddressReceive = wallet.getNextAddressReceive(false).getAddressString();
+        String nextAddressChange = wallet.getNextAddressChange(false).getAddressString();
         sb.append(
             "     + "
                 + wallet.getId()
                 + ": path="
                 + wallet.getDerivation().getPathAccount(params)
-                + ", bipFormat="
-                + wallet.getBipFormat().getId()
-                + ", "
-                + utxos.size()
-                + " utxos"
+                + ", bipFormats="
+                + wallet.getBipFormats()
+                + ", bipFormatDefault="
+                + wallet.getBipFormatDefault().getId()
                 + ", pub="
                 + ClientUtils.maskString(wallet.getPub())
                 + ", nextAddressReceive="
@@ -202,7 +200,7 @@ public class DebugUtils {
               whirlpoolUtxo.computeConfirmations(latestBlockHeight),
               utxo,
               o.addr,
-              whirlpoolUtxo.getBipWallet().getBipFormat().getId(),
+              whirlpoolUtxo.getBipFormat().getId(),
               whirlpoolUtxo.getPathAddress(),
               utxoState.getStatus().name(),
               mixableStatusName,

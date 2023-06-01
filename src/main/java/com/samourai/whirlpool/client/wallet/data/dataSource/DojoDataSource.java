@@ -56,9 +56,9 @@ public class DojoDataSource extends WalletResponseDataSource
     // initialize wallet BEFORE loading
     if (initial && !isInitialized) {
       // initialize bip84 wallets on backend
-      String[] activePubs = getWalletSupplier().getPubs(true, BIP_FORMAT.SEGWIT_NATIVE);
-      for (String pub : activePubs) {
-        initWallet(pub);
+      String[] activeXPubs = getWalletSupplier().getXPubs(true, BIP_FORMAT.SEGWIT_NATIVE);
+      for (String xpub : activeXPubs) {
+        initWallet(xpub);
       }
       getWalletStateSupplier().setInitialized(true);
     }
@@ -128,11 +128,11 @@ public class DojoDataSource extends WalletResponseDataSource
         .collect(Collectors.<WhirlpoolUtxo>toList());
   }
 
-  private void initWallet(String pub) throws Exception {
+  private void initWallet(String xpub) throws Exception {
     for (int i = 0; i < INITWALLET_RETRY; i++) {
       log.info(" • Initializing wallet");
       try {
-        backendApi.initBip84(pub);
+        backendApi.initBip84(xpub);
         return; // success
       } catch (Exception e) {
         if (log.isDebugEnabled()) {
@@ -179,7 +179,7 @@ public class DojoDataSource extends WalletResponseDataSource
                         });
 
                 // watch addresses
-                String[] pubs = getWalletSupplier().getPubs(true);
+                String[] pubs = getWalletSupplier().getXPubs(true);
                 backendWsApi.subscribeAddress(
                     pubs,
                     (MessageListener)
@@ -212,7 +212,7 @@ public class DojoDataSource extends WalletResponseDataSource
 
   @Override
   protected WalletResponse fetchWalletResponse() throws Exception {
-    String[] pubs = getWalletSupplier().getPubs(true);
+    String[] pubs = getWalletSupplier().getXPubs(true);
     return backendApi.fetchWallet(pubs);
   }
 

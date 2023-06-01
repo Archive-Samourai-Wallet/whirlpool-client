@@ -11,6 +11,7 @@ import com.samourai.wallet.chain.ChainSupplier;
 import com.samourai.wallet.hd.HD_Wallet;
 import com.samourai.wallet.util.AbstractOrchestrator;
 import com.samourai.whirlpool.client.tx0.Tx0PreviewService;
+import com.samourai.whirlpool.client.utils.ClientUtils;
 import com.samourai.whirlpool.client.wallet.WhirlpoolWallet;
 import com.samourai.whirlpool.client.wallet.WhirlpoolWalletConfig;
 import com.samourai.whirlpool.client.wallet.data.chain.BasicChainSupplier;
@@ -58,6 +59,7 @@ public abstract class WalletResponseDataSource implements DataSource {
       throws Exception {
     this.whirlpoolWallet = whirlpoolWallet;
     this.walletStateSupplier = walletStateSupplier;
+    this.bipFormatSupplier = computeBipFormatSupplier();
     this.walletResponseSupplier = new WalletResponseSupplier(whirlpoolWallet, this);
 
     this.walletSupplier = computeWalletSupplier(whirlpoolWallet, bip44w, walletStateSupplier);
@@ -65,7 +67,6 @@ public abstract class WalletResponseDataSource implements DataSource {
     this.tx0PreviewService = new Tx0PreviewService(minerFeeSupplier, whirlpoolWallet.getConfig());
     this.poolSupplier = computePoolSupplier(whirlpoolWallet, tx0PreviewService);
     this.chainSupplier = computeChainSupplier();
-    this.bipFormatSupplier = computeBipFormatSupplier();
     this.utxoSupplier =
         computeUtxoSupplier(
             whirlpoolWallet,
@@ -80,7 +81,7 @@ public abstract class WalletResponseDataSource implements DataSource {
   protected WalletSupplierImpl computeWalletSupplier(
       WhirlpoolWallet whirlpoolWallet, HD_Wallet bip44w, WalletStateSupplier walletStateSupplier)
       throws Exception {
-    return new WalletSupplierImpl(walletStateSupplier, bip44w);
+    return new WalletSupplierImpl(bipFormatSupplier, walletStateSupplier, bip44w);
   }
 
   protected BasicMinerFeeSupplier computeMinerFeeSupplier(WhirlpoolWallet whirlpoolWallet)
@@ -181,12 +182,12 @@ public abstract class WalletResponseDataSource implements DataSource {
     // update indexs from wallet backend
     for (String pub : addressesMap.keySet()) {
       WalletResponse.Address address = addressesMap.get(pub);
-      BipWallet bipWallet = walletSupplier.getWalletByPub(pub);
+      BipWallet bipWallet = walletSupplier.getWalletByXPub(pub);
       if (bipWallet != null) {
         bipWallet.getIndexHandlerReceive().set(address.account_index, false);
         bipWallet.getIndexHandlerChange().set(address.change_index, false);
       } else {
-        log.error("No wallet found for: " + pub);
+        log.error("No BipWallet found for: " + ClientUtils.maskString(pub));
       }
     }
   }

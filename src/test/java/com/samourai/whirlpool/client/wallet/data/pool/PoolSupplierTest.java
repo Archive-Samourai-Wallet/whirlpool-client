@@ -56,19 +56,19 @@ public class PoolSupplierTest extends AbstractTest {
 
     // verify getTx0PreviewMin
     Tx0Preview tx0Preview = pool01.getTx0PreviewMin();
-    Assertions.assertEquals(1050523, tx0Preview.getTotalValue());
-    Assertions.assertEquals(1050523, tx0Preview.getSpendValue());
+    Assertions.assertEquals(1050526, tx0Preview.getTotalValue());
+    Assertions.assertEquals(1050526, tx0Preview.getSpendValue());
     Assertions.assertEquals(1000262, tx0Preview.getPremixValue());
     Assertions.assertEquals(50000, tx0Preview.getFeeValue());
     Assertions.assertEquals(0, tx0Preview.getFeeChange());
-    Assertions.assertEquals(261, tx0Preview.getTx0Size());
+    Assertions.assertEquals(264, tx0Preview.getTx0Size());
     Assertions.assertEquals(1, tx0Preview.getNbPremix());
     Assertions.assertEquals(262, tx0Preview.getMixMinerFee());
     Assertions.assertEquals(1, tx0Preview.getMixMinerFeePrice());
-    Assertions.assertEquals(261, tx0Preview.getTx0MinerFee());
+    Assertions.assertEquals(264, tx0Preview.getTx0MinerFee());
     Assertions.assertEquals(1, tx0Preview.getTx0MinerFeePrice());
     Assertions.assertEquals(0, tx0Preview.getChangeValue());
     Assertions.assertEquals("0.01btc", tx0Preview.getPool().getPoolId());
-    Assertions.assertEquals(1050523, pool01.getTx0PreviewMinSpendValue());
+    Assertions.assertEquals(1050526, pool01.getTx0PreviewMinSpendValue());
   }
 }
