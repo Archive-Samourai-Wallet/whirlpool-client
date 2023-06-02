@@ -130,12 +130,14 @@ public class MultiTx0x2Service extends AbstractCahootsService<MultiTx0x2, MultiT
     List<Tx0x2> tx0x2List = new ArrayList<>();
     TransactionOutput higherPoolSenderChange = null;
     TransactionOutput higherPoolCounterpartyChange = null;
+    long higherPoolMinerFee = 0L;
     for (int i = 0; i < multiTx0x2.getTx0x2List().size(); i++) {
       payload2 = tx0x2Service.doMultiStep2(
           multiTx0x2.getTx0x2List().get(i),
           multiTx0x2Context.getTx0x2ContextList().get(i),
           higherPoolSenderChange,
-          higherPoolCounterpartyChange);
+          higherPoolCounterpartyChange,
+          higherPoolMinerFee);
       tx0x2List.add(payload2);
 
       // higher pool changes used for lower pools
@@ -147,6 +149,8 @@ public class MultiTx0x2Service extends AbstractCahootsService<MultiTx0x2, MultiT
               multiTx0x2.getTx0x2List().get(i).getTransaction(),
               multiTx0x2.getTx0x2List().get(i).getCollabChange(),
               getBipFormatSupplier());
+
+      higherPoolMinerFee += payload2.getFeeAmount() / 2L;
     }
 
     MultiTx0x2 multiPayload2 = new MultiTx0x2(params, tx0x2List);

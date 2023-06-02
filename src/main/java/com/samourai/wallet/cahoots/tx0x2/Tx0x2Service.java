@@ -220,7 +220,7 @@ public class Tx0x2Service extends AbstractCahoots2xService<Tx0x2, Tx0x2Context> 
     List<CahootsUtxo> selectedUTXOs = new ArrayList<CahootsUtxo>();
     long sumSelectedUTXOs = 0;
 
-    shuffleUtxos(utxos);
+//    shuffleUtxos(utxos); // removed in later version of ExtLibJ ?
 
     for (CahootsUtxo utxo : utxos) {
       long utxoValue = utxo.getOutpoint().getValue().longValue();
@@ -361,7 +361,8 @@ public class Tx0x2Service extends AbstractCahoots2xService<Tx0x2, Tx0x2Context> 
       Tx0x2 payload1,
       Tx0x2Context cahootsContext,
       TransactionOutput higherPoolSenderChange,
-      TransactionOutput higherPoolCounterpartyChange) throws Exception {
+      TransactionOutput higherPoolCounterpartyChange,
+      long higherPoolMinerFee) throws Exception {
     if (higherPoolSenderChange == null) {
       return doStep2(payload1, cahootsContext);
     }
@@ -438,8 +439,10 @@ public class Tx0x2Service extends AbstractCahoots2xService<Tx0x2, Tx0x2Context> 
     }
 
     // counterparty pays half of fees
-    long counterpartyChange = higherPoolCounterpartyChange.getValue().longValue();
-    Coin counterpartyChangeValue = Coin.valueOf(counterpartyChange - minerFeePaid);
+    long counterpartyChange = counterpartyChangeOutput.getValue().longValue();
+    Coin counterpartyChangeValue = Coin.valueOf(counterpartyChange
+            - higherPoolMinerFee
+            - minerFeePaid);
 
     if (log.isDebugEnabled()) {
       log.debug(
@@ -464,6 +467,9 @@ public class Tx0x2Service extends AbstractCahoots2xService<Tx0x2, Tx0x2Context> 
           log.debug("+output (Sender change) = " + senderChangeAddress + ", value=" + splitChangeValue);
           log.debug("+output (Counterparty change) = " + collabChangeAddress + ", value=" + splitChangeValue);
         }
+
+        senderChangeValue = splitChangeValue;
+        counterpartyChangeValue = Coin.valueOf(splitChangeValue);
     }
 
     // set sender change output
@@ -476,6 +482,10 @@ public class Tx0x2Service extends AbstractCahoots2xService<Tx0x2, Tx0x2Context> 
     counterpartyChangeOutput.setValue(counterpartyChangeValue);
 
     // TODO lower pool counterparty input will need to be updated with this value (counterparty change recalculated in step 2: minus miner fee)
+    // TODO this isn't working. The Outpoints aren't saving the updated value when checked in doStep3()::computeSpendAmount()
+    TransactionInput counterpartyChangeInput = tx.getInput(0);
+    counterpartyChangeInput.setValue(higherPoolCounterpartyChange.getValue());
+    counterpartyChangeInput.getOutpoint().setValue(higherPoolCounterpartyChange.getValue());
 
     payload2.getPSBT().setTransaction(tx);
     payload2.doStep2(input, outputs);
@@ -584,6 +594,8 @@ public class Tx0x2Service extends AbstractCahoots2xService<Tx0x2, Tx0x2Context> 
     return new CahootsUtxo(
         new MyTransactionOutPoint(higherPoolChange, address.getAddressString(), 0),
         UnspentOutput.computePath(address),
+        cahootsContext.getCahootsWallet().getReceiveWallet(
+            cahootsContext.getAccount(), BIP_FORMAT.SEGWIT_NATIVE).getPub(),
         key);
   }
 
@@ -623,13 +635,13 @@ public class Tx0x2Service extends AbstractCahoots2xService<Tx0x2, Tx0x2Context> 
       long samouraiFeeValue = cahootsContext.getSamouraiFee();
       long samouraiFeeValueEach = samouraiFeeValue / 2L; // splits samourai fee
       long maxBottomPoolSplit = cahootsContext.getInputs().get(0).getValue(); // max split output
-      long maxSpendAmount;
+      long maxSpendAmount = 0L;
 
       String prefix =
           "[" + cahootsContext.getCahootsType() + "/" + cahootsContext.getTypeUser() + "] ";
       switch (cahootsContext.getTypeUser()) {
           case SENDER:
-              if (cahootsContext.isLowerPool() && cahootsContext.isBottomPool()) {
+              if (!cahootsContext.isLowerPool() && !cahootsContext.isBottomPool()) {
                   // bottom pool (0.001btc)
                   maxSpendAmount = samouraiFeeValue + sharedMinerFee + maxBottomPoolSplit;
                   if (log.isDebugEnabled()) {
@@ -644,7 +656,7 @@ public class Tx0x2Service extends AbstractCahoots2xService<Tx0x2, Tx0x2Context> 
                           + " + maxBootomBoolSplit="
                           + maxBottomPoolSplit);
                   }
-              } else if (!cahootsContext.isLowerPool() && cahootsContext.isBottomPool()){
+              } else if (!cahootsContext.isLowerPool() && cahootsContext.isBottomPool()) {
                   // 0.001btc pool only
                   maxSpendAmount = samouraiFeeValueEach + sharedMinerFee + maxBottomPoolSplit;
                   if (log.isDebugEnabled()) {
@@ -672,23 +684,7 @@ public class Tx0x2Service extends AbstractCahoots2xService<Tx0x2, Tx0x2Context> 
                           + " + sharedMinerFee="
                           + sharedMinerFee);
                   }
-              } else {
-                  // initial pool
-                  maxSpendAmount = samouraiFeeValueEach + sharedMinerFee;
-                  if (log.isDebugEnabled()) {
-                      log.debug(
-                          prefix
-                          + "maxSpendAmount = "
-                          + maxSpendAmount
-                          + ": samouraiFeeEach="
-                          + samouraiFeeValueEach
-                          + " + sharedMinerFee="
-                          + sharedMinerFee);
-                  }
-              }
-              break;
-          case COUNTERPARTY:
-              if (cahootsContext.isLowerPool() && cahootsContext.isBottomPool()) {
+              } else if (cahootsContext.isLowerPool() && cahootsContext.isBottomPool()) {
                   // bottom pool (0.001btc)
                   maxSpendAmount = sharedMinerFee + maxBottomPoolSplit;
                   if (log.isDebugEnabled()) {
@@ -701,7 +697,23 @@ public class Tx0x2Service extends AbstractCahoots2xService<Tx0x2, Tx0x2Context> 
                           + " + maxBootomBoolSplit="
                           + maxBottomPoolSplit);
                   }
-              } else if (!cahootsContext.isLowerPool() && cahootsContext.isBottomPool()){
+              }
+              break;
+          case COUNTERPARTY:
+              if (!cahootsContext.isLowerPool() && !cahootsContext.isBottomPool()) {
+                  // initial pool
+                  maxSpendAmount = samouraiFeeValueEach + sharedMinerFee;
+                  if (log.isDebugEnabled()) {
+                      log.debug(
+                          prefix
+                          + "maxSpendAmount = "
+                          + maxSpendAmount
+                          + ": samouraiFeeEach="
+                          + samouraiFeeValueEach
+                          + " + sharedMinerFee="
+                          + sharedMinerFee);
+                  }
+              } else if (!cahootsContext.isLowerPool() && cahootsContext.isBottomPool()) {
                   // 0.001btc pool only
                   maxSpendAmount = samouraiFeeValueEach + sharedMinerFee + maxBottomPoolSplit;
                   if (log.isDebugEnabled()) {
@@ -727,18 +739,18 @@ public class Tx0x2Service extends AbstractCahoots2xService<Tx0x2, Tx0x2Context> 
                           + " + sharedMinerFee="
                           + sharedMinerFee);
                   }
-              } else {
-                  // initial pool
-                  maxSpendAmount = samouraiFeeValueEach + sharedMinerFee;
+            } else if (cahootsContext.isLowerPool() && cahootsContext.isBottomPool()) {
+                  // bottom pool (0.001btc)
+                  maxSpendAmount = sharedMinerFee + maxBottomPoolSplit;
                   if (log.isDebugEnabled()) {
                       log.debug(
                           prefix
                           + "maxSpendAmount = "
                           + maxSpendAmount
-                          + ": samouraiFeeEach="
-                          + samouraiFeeValueEach
                           + " + sharedMinerFee="
-                          + sharedMinerFee);
+                          + sharedMinerFee
+                          + " + maxBootomBoolSplit="
+                          + maxBottomPoolSplit);
                   }
               }
               break;
