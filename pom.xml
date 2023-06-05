@@ -25,7 +25,7 @@
         <dependency>
             <groupId>io.samourai.code.wallet</groupId>
             <artifactId>extlibj</artifactId>
-            <version>0.0.43-bipWalletRefactoring-SNAPSHOT</version><!-- branch feature/bipWalletRefactoring -->
+            <version>30c0e270</version><!-- branch feature/bipWalletRefactoring -->
         </dependency>
         <dependency>
             <groupId>io.samourai.code.wallet</groupId>
