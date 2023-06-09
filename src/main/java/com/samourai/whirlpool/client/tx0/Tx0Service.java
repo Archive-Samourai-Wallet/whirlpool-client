@@ -378,9 +378,8 @@ public class Tx0Service {
       UnspentOutput changeUtxo =
           new UnspentOutput(
               new MyTransactionOutPoint(changeOutput, changeAddressBech32, 0),
-              null,
               path,
-              changeWallet.getPub());
+              changeWallet.getXPub());
       changeUtxos.add(changeUtxo);
     }
     return changeUtxos;

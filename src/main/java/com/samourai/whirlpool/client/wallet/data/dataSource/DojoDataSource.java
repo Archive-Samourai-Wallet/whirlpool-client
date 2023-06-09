@@ -95,8 +95,8 @@ public class DojoDataSource extends WalletResponseDataSource
   private Map<String, TxsResponse.Tx> fetchTxsPostmix() throws Exception {
     String[] zpubs =
         new String[] {
-          getWhirlpoolWallet().getWalletPremix().getPub(),
-          getWhirlpoolWallet().getWalletPostmix().getPub()
+          getWhirlpoolWallet().getWalletPremix().getXPub(),
+          getWhirlpoolWallet().getWalletPostmix().getXPub()
         };
 
     Map<String, TxsResponse.Tx> txs = new LinkedHashMap<String, TxsResponse.Tx>();

@@ -79,8 +79,10 @@ public class DebugUtils {
                 + wallet.getBipFormats()
                 + ", bipFormatDefault="
                 + wallet.getBipFormatDefault().getId()
-                + ", pub="
-                + ClientUtils.maskString(wallet.getPub())
+                + ", xpub="
+                + ClientUtils.maskString(wallet.getXPub())
+                + ", bipPub="
+                + ClientUtils.maskString(wallet.getBipPub())
                 + ", nextAddressReceive="
                 + nextAddressReceive
                 + ", nextAddressChange="
