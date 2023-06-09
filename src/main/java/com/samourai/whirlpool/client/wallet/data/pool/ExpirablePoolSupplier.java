@@ -62,10 +62,10 @@ public class ExpirablePoolSupplier extends ExpirableSupplier<PoolData> implement
   }
 
   @Override
-  public Collection<Pool> findPoolsByMaxId(String maxPoolId, PoolSupplier poolSupplier) {
-    Pool highestPool = poolSupplier.findPoolById(maxPoolId);
-    return poolSupplier.getPools().stream()
-        .filter(pool -> pool.getDenomination() <= highestPool.getDenomination())
+  public Collection<Pool> findPoolsByMaxId(String maxPoolId) {
+    long highestPoolDenomination = findPoolById(maxPoolId).getDenomination();
+    return getPools().stream()
+        .filter(pool -> pool.getDenomination() <= highestPoolDenomination)
         .collect(Collectors.toList());
   }
 

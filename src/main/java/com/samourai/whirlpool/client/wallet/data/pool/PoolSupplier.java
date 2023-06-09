@@ -8,7 +8,7 @@ public interface PoolSupplier {
 
   Pool findPoolById(String poolId);
 
-  Collection<Pool> findPoolsByMaxId(String maxPoolId, PoolSupplier poolSupplier);
+  Collection<Pool> findPoolsByMaxId(String maxPoolId);
 
   Collection<Pool> findPoolsForPremix(long utxoValue, boolean liquidity);
 
