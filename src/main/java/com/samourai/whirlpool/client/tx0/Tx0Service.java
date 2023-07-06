@@ -538,10 +538,11 @@ public class Tx0Service {
     return Arrays.asList(changeValueTotalA, changeValueTotalB);
   }
 
+  // TODO: Continue to optimize...
   private Pair<Long,Long> computeSpendFromAmountsStonewall(
       Tx0Config tx0Config,
       Tx0Preview tx0Preview,
-      Collection<UnspentOutput> spendFroms) {
+      Collection<UnspentOutput> spendFroms) throws NotifiableException {
     long feeParticipation;
     long minSpendFromA;
     long minSpendFromB;
@@ -560,9 +561,7 @@ public class Tx0Service {
       minSpendFromB = feeParticipation + tx0Preview.getPremixValue();
     }
 
-    // TODO - see WhirlpoolWalletDeocyTx0x2.tx0x2_decoy_3utxos() for sort descending amounts
-    //  Comment out this section and will see that test fail
-    // sort utxos descending to help avoid misses
+    // sort utxos descending to help avoid misses [see WhirlpoolWalletDeocyTx0x2.tx0x2_decoy_3utxos()]
     if (tx0Config.getCascadingParent() == null) {
       List<UnspentOutput> sortedSpendFroms = new LinkedList<>();
       sortedSpendFroms.addAll(spendFroms);
@@ -570,21 +569,60 @@ public class Tx0Service {
       spendFroms = sortedSpendFroms;
     }
 
+    // check for min spend amount
     long spendFromA = 0L;
     long spendFromB = 0L;
-    for (UnspentOutput spendFrom : spendFroms) {
-      if (spendFromA < minSpendFromA) {
-        // must reach minSpendFrom for A
-        spendFromA += spendFrom.value;
-      } else if (spendFromB < minSpendFromB) {
-        // must reach minSpendFrom for B
-        spendFromB += spendFrom.value;
-      } else {
-        // random factor when minSpendFrom is reached
-        if (RandomUtil.getInstance().random(0, 1) == 1) {
-          spendFromA += spendFrom.value;
+    if (tx0Config.getCascadingParent() == null) {
+      // initial pool: check outpoints
+      HashMap<String, MyTransactionOutPoint> outPointsSetA = new HashMap<>();
+      HashMap<String, MyTransactionOutPoint> outPointsSetB = new HashMap<>();
+      for (UnspentOutput spendFrom : spendFroms) {
+        MyTransactionOutPoint outPoint = spendFrom.computeOutpoint(params);
+        String hash = outPoint.getHash().toString();
+
+        if (spendFromA < minSpendFromA) {
+          outPointsSetA.put(hash, outPoint);
+          spendFromA += spendFrom.value; // must reach minSpendFrom for A
+        } else if (spendFromB < minSpendFromB && !outPointsSetA.containsKey(hash)) {
+          outPointsSetB.put(hash, outPoint);
+          spendFromB += spendFrom.value; // must reach minSpendFrom for B
         } else {
+          // random factor when minSpendFrom is reached
+          if (RandomUtil.getInstance().random(0, 1) == 1) {
+            if (!outPointsSetB.containsKey(hash)) {
+              outPointsSetA.put(hash, outPoint);
+              spendFromA += spendFrom.value;
+            } else {
+              outPointsSetB.put(hash, outPoint);
+              spendFromB += spendFrom.value;
+            }
+          } else {
+            if (!outPointsSetA.containsKey(hash)) {
+              outPointsSetB.put(hash, outPoint);
+              spendFromB += spendFrom.value;
+            } else {
+              outPointsSetA.put(hash, outPoint);
+              spendFromA += spendFrom.value;
+            }
+          }
+        }
+      }
+    } else {
+      // lower pools: does not check outpoints
+      for (UnspentOutput spendFrom : spendFroms) {
+        if (spendFromA < minSpendFromA) {
+          // must reach minSpendFrom for A
+          spendFromA += spendFrom.value;
+        } else if (spendFromB < minSpendFromB) {
+          // must reach minSpendFrom for B
           spendFromB += spendFrom.value;
+        } else {
+          // random factor when minSpendFrom is reached
+          if (RandomUtil.getInstance().random(0, 1) == 1) {
+            spendFromA += spendFrom.value;
+          } else {
+            spendFromB += spendFrom.value;
+          }
         }
       }
     }
@@ -601,6 +639,12 @@ public class Tx0Service {
           + ", minSpendFromB="
           + minSpendFromB);
       }
+
+      // if both inputs (higher pool change outputs) are not large enough for decoy tx02, skip to next lower pool
+      if (tx0Config.getCascadingParent() != null) {
+        throw new NotifiableException("Decoy Tx0x2 not possible for lower pool: " + tx0Preview.getPool().getPoolId());
+      }
+
       return null;
     }
 

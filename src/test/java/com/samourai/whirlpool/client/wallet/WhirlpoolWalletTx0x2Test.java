@@ -512,7 +512,7 @@ public class WhirlpoolWalletTx0x2Test extends AbstractCahootsTest {
 
 
   // TODO: These 2 tests below need to be reevaluated.
-  //  - Currently only mixes in lower pool if Sender's / Iniatior's change is large enough to mix
+  //       Currently only mixes in lower pool if Sender/Iniatior's change is large enough to mix
 
   /**
    * Sender's change is not large enough to mix in 0.01btc pool.
