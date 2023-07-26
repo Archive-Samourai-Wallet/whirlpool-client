@@ -515,11 +515,13 @@ public class WhirlpoolWalletTx0x2Test extends AbstractCahootsTest {
   //       Currently only mixes in lower pool if Sender/Iniatior's change is large enough to mix
 
   /**
-   * Sender's change is not large enough to mix in 0.01btc pool.
-   * Counterparty's change is large enough to mix in 0.01btc pool.
-   * 0.01btc pool skipped and continues to 0.001btc pool.
+   * Sender's change is not large enough to mix in 0.01btc pool. Counterparty's change is large
+   * enough to mix in 0.01btc pool. 0.01btc pool skipped and continues to 0.001btc pool.
    *
    * When change split in bottom pool 0.001btc, Counterparty loses ~0.02 btc. TODO
+   *
+   * Compare with deocy tx0x2 test: {@link WhirlpoolWalletDecoyTx0x2Test#tx0x2_decoy_cascade_pool05_skip01()}
+   * Change values might differ slightly for lower pools due fake samourai "fee" back to self
    */
   @Test
   public void tx0x2_cascade_pool05_senderSkip01() throws Exception {
@@ -630,9 +632,12 @@ public class WhirlpoolWalletTx0x2Test extends AbstractCahootsTest {
 
   // TODO
   /**
-   * Sender's change is large enough to mix in 0.01btc pool.
-   * Counterparty's change is not large enough to mix in 0.01btc pool.
-   * 0.01btc pool is done for sender; miner fees subtracted for counterparty.
+   * Sender's change is large enough to mix in 0.01btc pool. Counterparty's change is not large
+   * enough to mix in 0.01btc pool. 0.01btc pool is done for sender; miner fees subtracted for
+   * counterparty.
+   *
+   * Compare with decoy tx0x2 test: {@link WhirlpoolWalletDecoyTx0x2Test#tx0x2_decoy_cascade_pool05_skip01()}
+   * Change values might differ slightly for lower pools due fake samourai "fee" back to self
    */
   @Test
   public void tx0x2_cascade_pool05_counterpartyNo01() throws Exception {
@@ -766,6 +771,125 @@ public class WhirlpoolWalletTx0x2Test extends AbstractCahootsTest {
     raw =
         "02000000000102f6abf85d48a56a852b517b0419f8a39f39aa9d218ff3387a3a05fe477d3c716c0700000000fdfffffff025a2663283be2cd7d69e38ad4616c4182ca9c64b313cf1c07b6203625475e60000000000fdffffff150000000000000000536a4c50b384495c0eef2f4229038565c29cf5dffa004890dcdda3f453beb2d025ebec96ffd9018d888e6920c894f728fa1e036e350b47817fe80c931d2e7317d46b6017af2427f201bec425e41ae8d89a029d0188130000000000001600144b5fcb661533a26619d7917748cd6abf2fea5ae37eba0000000000001600145fadc28295301797ec5e7c1af71b4cee28dfac327eba000000000000160014acd8d1c4b03edcd73fa34d9a3431cec69bce8412a687010000000000160014017424f9c82844a174199281729d5901fdd4d4bca6870100000000001600140343e55f94af500cc2c47118385045ec3d00c55aa687010000000000160014074d0a20ecbb784cae6e9e78d2bece7e0fed267fa687010000000000160014247a4ca99bf1bcb1571de1a3011931d8aa0e2997a6870100000000001600143db0ef375a1dccbb1a86034653d09d1de2d89029a687010000000000160014477f15a93764f8bd3edbcf5651dd4b2039383baba6870100000000001600144a4c5d096379eec5fcf245c35d54ae09f355107fa687010000000000160014524a759e76003300ccb475eb812e65817c6653c5a6870100000000001600145343a394e8ff7f4f52c978ec697cdd70062c4d56a6870100000000001600149c991b06c08b1a44b69fe2dca56b900fd91fd0bfa6870100000000001600149f657d702027d98db03966e8948cd474098031efa687010000000000160014a12ebded759cb6ac94b6b138a9393e1dab3fd311a687010000000000160014b819e4adf525db52ff333a90e8d2db6f5d49276fa687010000000000160014c88fb64ea3063496876c224711e8b93c18d4bb53a687010000000000160014d43293f095321ffd512b9705cc22fbb292b1c867a687010000000000160014e9339ff8d935d4b9205706c9db58c03b03acc356a687010000000000160014ef4263a4e81eff6c8e53bd7f3bb1324982b3583002473044022055a989d264c3d3ced4bd357ea7fcbe59c8ba480270e144bc3196174cf48ac37402203a927810d10e99878761811901583802d2256e0a4a01408e472352f1d4951e7f012102cf5095b76bf3715a729c7bad8cb5b38cf26245b4863ea14137ec86992aa466d502483045022100b3c8ea9cbc6039b4fb99e82305d6b9afaffafca86cbad82ac33a470328ea5546022000d055913917274faf787cf30de4ecc5d54a66779e040e00aa77b3e50b1ccd400121035eb1bcb96f29bdb55b0ca6d1ec5136fe5afc893a03ab4a29efd4263214c7f49ed2040000";
     verifyTx(tx001, txid, raw, outputs);
+  }
+
+
+  // TODO: This test also needs to be reevaluated.
+  //       Doesn't reach 0.001 pool so doesn't split change outputs.
+  //       Currently only splits change outputs after 0.001 pool.
+
+  /**
+   * Doesn't reach 0.001 pool so doesn't split change outputs.
+   * Currently only splits change outputs after 0.001 pool.
+   *
+   * Compare with decoy tx0x2 test {@link WhirlpoolWalletDecoyTx0x2Test#tx0x2_decoy_cascade_pool05_no001()}
+   * Change values might differ slightly
+   */
+  @Test
+  public void tx0x2_cascade_pool05_no001() throws Exception {
+    log.info("Testing Tx0x2s for pools 0.05 & 0.01. Doesn't reach pool 0.001.");
+
+    int account = 0;
+    Pool pool = pool05btc;
+
+    // setup wallets
+    BipWallet bipWalletSender = walletSupplierSender.getWallet(BIP_WALLET.DEPOSIT_BIP84);
+    BipWallet bipWalletCounterparty =
+        walletSupplierCounterparty.getWallet(BIP_WALLET.DEPOSIT_BIP84);
+    UTXO utxoSender1 = utxoProviderSender.addUtxo(bipWalletSender, 9200000);
+    UTXO utxoCounterparty1 = utxoProviderCounterparty.addUtxo(bipWalletCounterparty, 19130000);
+
+    // mock Tx0Data for reproductible test
+    mockTx0Datas();
+    Tx0PreviewService tx0PreviewService = mockTx0PreviewService(false);
+    FeeOpReturnImpl feeOpReturnImpl = computeWhirlpoolWalletConfig().getFeeOpReturnImpl();
+    feeOpReturnImpl.setTestMode(true);
+    Tx0Service tx0Service = new Tx0Service(params, tx0PreviewService, feeOpReturnImpl);
+
+    // initiator: build initial TX0
+    String xpub = walletSupplierSender.getWallet(BIP_WALLET.DEPOSIT_BIP84).getPub();
+    Collection<UnspentOutput> spendFroms = utxoSender1.toUnspentOutputs();
+    Tx0Config tx0Config =
+        new Tx0Config(
+            tx0PreviewService,
+            mockPoolSupplier().getPools(),
+            Tx0FeeTarget.BLOCKS_24,
+            Tx0FeeTarget.BLOCKS_24,
+            WhirlpoolAccount.DEPOSIT);
+
+    Collection<Pool> pools = findPoolsLowerOrEqual("0.05btc", whirlpoolWallet.getPoolSupplier());
+    List<Tx0> tx0Initiators =
+        tx0Service.tx0Cascade(
+            spendFroms, walletSupplierSender, pools, tx0Config, utxoProviderSender);
+
+    // run Cahoots
+    MultiTx0x2Context cahootsContextSender =
+        MultiTx0x2Context.newInitiator(
+            cahootsWalletSender, account, FEE_PER_B, tx0Service, tx0Initiators);
+    MultiTx0x2Context cahootsContextCp =
+        MultiTx0x2Context.newCounterparty(cahootsWalletCounterparty, account, tx0Service);
+
+    Cahoots cahoots = doCahoots(multiTx0x2Service, cahootsContextSender, cahootsContextCp, null);
+
+    // verify TXs
+    List<Transaction> txs = ((MultiTx0x2) cahoots).getTransactions();
+    Assertions.assertEquals(2, txs.size());
+
+    // 0.05btc pool
+    Transaction tx05 = ((MultiTx0x2) cahoots).getTransaction("0.05btc");
+    Assertions.assertEquals(2, tx05.getInputs().size());
+    int nbPremixSender = 1;
+    int nbPremixCounterparty = 3;
+    int senderIndex005 = nbPremixSender;
+    int counterpartyIndex005 = nbPremixCounterparty;
+    int expectedOutputs =
+        nbPremixSender + nbPremixCounterparty + 2 + 1 + 1; // 2 changes + samouraiFee + opReturn
+    Assertions.assertEquals(expectedOutputs, tx05.getOutputs().size());
+
+    Map<String, Long> outputs = new LinkedHashMap<>();
+    outputs.put(COUNTERPARTY_CHANGE_84[0], 4054621L);
+    outputs.put(SENDER_CHANGE_84[0], 4125145L);
+    for (int i = 0; i < nbPremixSender; i++) {
+      outputs.put(SENDER_PREMIX_84[i], 5000262L);
+    }
+    for (int i = 0; i < nbPremixCounterparty; i++) {
+      outputs.put(COUNTERPARTY_PREMIX_84[i], 5000262L);
+    }
+    outputs.put(MOCK_SAMOURAI_FEE_ADDRESS, 148750L);
+
+    String txid = "32c24c460643d1056e11ce0d025917f25f3825a2ad0bfc3bcb0dc3eb0fa6a2af";
+    String raw =
+      "02000000000102d1428941eb7e336ce4975d2be2eb25e52124a01b8da49899072826e62c97fea30100000000fdffffff145dd6494b7f99ef1bc18598bd3cd4b33189f0bc0b025e6c60c6c420a89f73c30100000000fdffffff080000000000000000536a4c50994ee75d59ff12a76f5efce443806dfdbab4acf1d9a13aeed77cc9e46af3018a8d53fae635619c5275fa93577aad036e350b47817fe80c931d2e7317d46b6017af2427f201bec425e41ae8d89a029d010e450200000000001600144b5fcb661533a26619d7917748cd6abf2fea5ae35dde3d0000000000160014657b6afdeef6809fdabce7face295632fbd94febd9f13e00000000001600144e4fed51986dbaf322d2b36e690b8638fa0f0204464c4c00000000001600140343e55f94af500cc2c47118385045ec3d00c55a464c4c0000000000160014615fa4b02e45660153710f4a47ed1a68ea26dd3d464c4c00000000001600149f657d702027d98db03966e8948cd474098031ef464c4c0000000000160014d9daf2c942d964019eb5e1fd364768797a56ebbc024730440220280baf4fa0af2e3f805d3cd84b13746206b6ce0e0e9a7d3e0da2983b74e811210220767a0a05f26c0f5b5471491e8675043ba3ebe7c066206062ee93ee913ca6f324012102cf5095b76bf3715a729c7bad8cb5b38cf26245b4863ea14137ec86992aa466d502483045022100da1880b0447fcaf3cd9914ccc026df088b3e095a69a3d53c6f84c1b9059523000220360b3316a1f23b2f508e4c8d7be5c158053aaa64e557e6b96619ed274f9bbc910121035eb1bcb96f29bdb55b0ca6d1ec5136fe5afc893a03ab4a29efd4263214c7f49ed2040000";
+    verifyTx(tx05, txid, raw, outputs);
+
+    // 0.01btc pool
+    Transaction tx01 = ((MultiTx0x2) cahoots).getTransaction("0.01btc");
+    Assertions.assertEquals(2, tx01.getInputs().size());
+    nbPremixSender = 4;
+    nbPremixCounterparty = 4;
+    int senderIndex001 = nbPremixSender;
+    int counterpartyIndex001 = nbPremixCounterparty;
+    expectedOutputs =
+        nbPremixSender + nbPremixCounterparty + 2 + 1 + 1; // 2 changes + samouraiFee + opReturn
+    Assertions.assertEquals(expectedOutputs, tx01.getOutputs().size());
+
+    outputs.clear();
+    outputs.put(COUNTERPARTY_CHANGE_84[1], 53287L);
+    outputs.put(SENDER_CHANGE_84[1], 81311L);
+    for (int i = 0; i < nbPremixSender; i++) {
+      outputs.put(SENDER_PREMIX_84[senderIndex005 + i], 1000262L);
+    }
+    for (int i = 0; i < nbPremixCounterparty; i++) {
+      outputs.put(COUNTERPARTY_PREMIX_84[counterpartyIndex005 + i], 1000262L);
+    }
+    outputs.put(MOCK_SAMOURAI_FEE_ADDRESS, 42500L);
+
+    txid = "de74ad08a240403b935ce241dadcadda44c9c62fcd2c8418ef6b395850e80041";
+    raw =
+      "02000000000102a85330ddbedec980faf804c64de3106badb137eea9ee10413e60970176498a5a0700000000fdffffffd0e33ba9444f0de6cc03c1457534c44ef73402972c365232e93700a6021720c60300000000fdffffff0c0000000000000000536a4c50911792e459962603579cb33c11b8d30a22c09e64274dc84161fc5ecd8154de72a96aa52ff8a236c55aafedb4d725036e350b47817fe80c931d2e7317d46b6017af2427f201bec425e41ae8d89a029d0104a60000000000001600144b5fcb661533a26619d7917748cd6abf2fea5ae327d000000000000016001440852bf6ea044204b826a182d1b75528364fd0bd9f3d01000000000016001485963b79fea38b84ce818e5f29a5a115bd4c822946430f000000000016001418e3117fd88cad9df567d6bcd3a3fa0dabda573946430f0000000000160014247a4ca99bf1bcb1571de1a3011931d8aa0e299746430f00000000001600144a4c5d096379eec5fcf245c35d54ae09f355107f46430f000000000016001461e4399378a590936cd7ab7d403e1dcf108d99ea46430f000000000016001468bd973bee395cffa7c545642b1a4ae1f60f662b46430f00000000001600146be0c5c092328f099f9c44488807fa589413139646430f0000000000160014a12ebded759cb6ac94b6b138a9393e1dab3fd31146430f0000000000160014ef4263a4e81eff6c8e53bd7f3bb1324982b3583002483045022100a022c7f4f89d0b21e77cde5d5e30d95a6cb09a0c520e523872133fb7763a3bf9022059f9929d1f480beb0aaf05b5a683998c541d5ca6d243741c2b0053a4a7bd96ee012102cf5095b76bf3715a729c7bad8cb5b38cf26245b4863ea14137ec86992aa466d502483045022100c5faf1d0fea7e0517f7ff75037dea7578759817667c16b7032c8725ca85ef6f30220484ecd0d7b876834b902807030eabc32606a867d18f99e751bcbde18e30ca3240121035eb1bcb96f29bdb55b0ca6d1ec5136fe5afc893a03ab4a29efd4263214c7f49ed2040000";
+    verifyTx(tx01, txid, raw, outputs);
+
+    // 0.001btc pool not reached
   }
 
   protected Collection<Pool> findPoolsLowerOrEqual(String maxPoolId, PoolSupplier poolSupplier) {
