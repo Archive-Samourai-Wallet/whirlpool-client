@@ -138,6 +138,11 @@ public class MultiTx0x2Service extends AbstractCahootsService<MultiTx0x2, MultiT
           higherPoolSenderChange,
           higherPoolCounterpartyChange,
           higherPoolMinerFee);
+
+      if (payload2 == null) { // negative change value
+        multiTx0x2.getTx0x2List().remove(i);
+        continue;
+      }
       tx0x2List.add(payload2);
 
       // higher pool changes used for lower pools

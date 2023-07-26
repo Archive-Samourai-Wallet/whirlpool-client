@@ -783,7 +783,7 @@ public class WhirlpoolWalletTx0x2Test extends AbstractCahootsTest {
    * Currently only splits change outputs after 0.001 pool.
    *
    * Compare with decoy tx0x2 test {@link WhirlpoolWalletDecoyTx0x2Test#tx0x2_decoy_cascade_pool05_no001()}
-   * Change values might differ slightly
+   * Change values differ slightly
    */
   @Test
   public void tx0x2_cascade_pool05_no001() throws Exception {

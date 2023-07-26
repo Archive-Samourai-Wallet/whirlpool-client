@@ -896,7 +896,7 @@ public class WhirlpoolWalletDecoyTx0x2Test extends WhirlpoolWalletTx0Test {
    * Currently only splits change outputs after 0.001 pool.
    *
    * Compare with tx0x2 test {@link WhirlpoolWalletTx0x2Test#tx0x2_cascade_pool05_no001()}
-   * Change values might differ slightly
+   * Change values differ slightly
    */
   @Test
   public void tx0x2_decoy_cascade_pool05_no001() throws Exception {
@@ -909,7 +909,7 @@ public class WhirlpoolWalletDecoyTx0x2Test extends WhirlpoolWalletTx0Test {
         newUnspentOutput(
             "cc588cdcb368f894a41c372d1f905770b61ecb3fb8e5e01a97e7cedbf5e324ae",
             1,
-            9160000,
+            9170000,
             address0);
     HD_Address address1 = whirlpoolWallet.getWalletDeposit().getAddressAt(0, 62).getHdAddress();
     UnspentOutput spendFromUtxo1 =

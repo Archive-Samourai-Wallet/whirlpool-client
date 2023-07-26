@@ -417,6 +417,10 @@ public class Tx0x2Service extends AbstractCahoots2xService<Tx0x2, Tx0x2Context> 
             - samouraiFeeOutput.getValue().getValue()
             - minerFeePaid;
 
+    if (senderChangeValue < 0) {
+      return null;
+    }
+
     // if sender change large enough, add another premix output
     if (senderChangeValue > payload2.getPremixValue() && nbPremixSender <= maxOutputsEach) {
       BipAddress changeAddress =
@@ -430,6 +434,7 @@ public class Tx0x2Service extends AbstractCahoots2xService<Tx0x2, Tx0x2Context> 
       outputs.add(changeOutput);
 
       senderChangeValue -= payload2.getPremixValue();
+      nbPremixSender++;
     }
 
     // use changeAddress from tx0Initiator to avoid index gap
