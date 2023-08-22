@@ -9,12 +9,11 @@ public class Tx0Config extends Tx0PreviewConfig {
   private WhirlpoolAccount changeWallet;
 
   public Tx0Config(
-      Tx0PreviewService tx0PreviewService,
       Collection<Pool> pools,
       Tx0FeeTarget tx0FeeTarget,
       Tx0FeeTarget mixFeeTarget,
       WhirlpoolAccount changeWallet) {
-    super(tx0PreviewService, pools, tx0FeeTarget, mixFeeTarget);
+    super(pools, tx0FeeTarget, mixFeeTarget);
     this.changeWallet = changeWallet;
   }
 

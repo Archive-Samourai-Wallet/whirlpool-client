@@ -258,7 +258,6 @@ public class Tx0ServiceV1Test extends AbstractTx0ServiceTest {
 
     Tx0Config tx0Config =
         new Tx0Config(
-            tx0PreviewService,
             mockPoolSupplier().getPools(),
             Tx0FeeTarget.BLOCKS_24,
             Tx0FeeTarget.BLOCKS_24,
@@ -493,7 +492,6 @@ public class Tx0ServiceV1Test extends AbstractTx0ServiceTest {
 
     Tx0Config tx0Config =
         new Tx0Config(
-            tx0PreviewService,
             mockPoolSupplier().getPools(),
             Tx0FeeTarget.BLOCKS_24,
             Tx0FeeTarget.BLOCKS_24,
@@ -577,7 +575,6 @@ public class Tx0ServiceV1Test extends AbstractTx0ServiceTest {
 
     Tx0Config tx0Config =
         new Tx0Config(
-            tx0PreviewService,
             mockPoolSupplier().getPools(),
             Tx0FeeTarget.BLOCKS_24,
             Tx0FeeTarget.BLOCKS_24,
@@ -661,7 +658,6 @@ public class Tx0ServiceV1Test extends AbstractTx0ServiceTest {
 
     Tx0Config tx0Config =
         new Tx0Config(
-            tx0PreviewService,
             mockPoolSupplier().getPools(),
             Tx0FeeTarget.BLOCKS_24,
             Tx0FeeTarget.BLOCKS_24,
@@ -744,7 +740,6 @@ public class Tx0ServiceV1Test extends AbstractTx0ServiceTest {
 
     Tx0Config tx0Config =
         new Tx0Config(
-            tx0PreviewService,
             mockPoolSupplier().getPools(),
             Tx0FeeTarget.BLOCKS_24,
             Tx0FeeTarget.BLOCKS_24,

@@ -1,9 +1,14 @@
 package com.samourai.whirlpool.client.tx0;
 
+import com.google.common.collect.Lists;
 import com.samourai.wallet.api.backend.beans.HttpException;
 import com.samourai.wallet.api.backend.beans.UnspentOutput;
+import com.samourai.wallet.api.backend.beans.UnspentOutputComparator;
+import com.samourai.wallet.send.MyTransactionOutPoint;
 import com.samourai.wallet.util.AsyncUtil;
 import com.samourai.wallet.util.FeeUtil;
+import com.samourai.wallet.util.Pair;
+import com.samourai.wallet.util.RandomUtil;
 import com.samourai.whirlpool.client.exception.NotifiableException;
 import com.samourai.whirlpool.client.utils.ClientUtils;
 import com.samourai.whirlpool.client.wallet.beans.Tx0FeeTarget;
@@ -12,10 +17,9 @@ import com.samourai.whirlpool.client.whirlpool.beans.Pool;
 import com.samourai.whirlpool.client.whirlpool.beans.Tx0Data;
 import com.samourai.whirlpool.protocol.rest.Tx0DataRequestV2;
 import com.samourai.whirlpool.protocol.rest.Tx0DataResponseV2;
-import java.util.Collection;
-import java.util.LinkedHashMap;
-import java.util.LinkedList;
-import java.util.Map;
+
+import java.util.*;
+
 import org.bitcoinj.core.NetworkParameters;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -29,6 +33,12 @@ public class Tx0PreviewService {
   public Tx0PreviewService(MinerFeeSupplier minerFeeSupplier, ITx0PreviewServiceConfig config) {
     this.minerFeeSupplier = minerFeeSupplier;
     this.config = config;
+  }
+
+  private Tx0Param getTx0Param(Tx0PreviewConfig tx0Config, final String poolId) {
+    // find pool
+    Pool pool = tx0Config.getPools().stream().filter(pool1 -> pool1.getPoolId().equals(poolId)).findFirst().get();
+    return getTx0Param(pool, tx0Config.getTx0FeeTarget(), tx0Config.getMixFeeTarget());
   }
 
   public Tx0Param getTx0Param(Pool pool, Tx0FeeTarget tx0FeeTarget, Tx0FeeTarget mixFeeTarget) {
@@ -105,7 +115,7 @@ public class Tx0PreviewService {
     Map<String, Tx0Preview> tx0PreviewsByPoolId = new LinkedHashMap<String, Tx0Preview>();
     for (Pool pool : tx0PreviewConfig.getPools()) {
       final String poolId = pool.getPoolId();
-      Tx0Param tx0Param = tx0PreviewConfig.getTx0Param(poolId);
+      Tx0Param tx0Param = getTx0Param(tx0PreviewConfig, poolId);
       try {
         // minimal preview estimation (without SCODE calculation)
         Tx0Preview tx0Preview = tx0PreviewMinimal(tx0Param);
@@ -128,7 +138,7 @@ public class Tx0PreviewService {
     Map<String, Tx0Preview> tx0PreviewsByPoolId = new LinkedHashMap<String, Tx0Preview>();
     for (Tx0Data tx0Data : tx0Datas) {
       final String poolId = tx0Data.getPoolId();
-      Tx0Param tx0Param = tx0PreviewConfig.getTx0Param(poolId);
+      Tx0Param tx0Param = getTx0Param(tx0PreviewConfig, poolId);
       try {
         // real preview for outputs (with SCODE and outputs calculation)
         Tx0Preview tx0Preview = tx0Preview(tx0Param, tx0Data, spendFroms);

@@ -5,12 +5,8 @@ import java.util.Collection;
 import java.util.List;
 import org.bitcoinj.core.Transaction;
 import org.bitcoinj.core.TransactionOutput;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public class Tx0 extends Tx0Preview {
-  private Logger log = LoggerFactory.getLogger(Tx0Service.class);
-
   private Collection<UnspentOutput> spendFroms;
   private Tx0Config tx0Config;
   private Tx0Context tx0Context;
@@ -31,7 +27,8 @@ public class Tx0 extends Tx0Preview {
       List<TransactionOutput> changeOutputs,
       List<UnspentOutput> changeUtxos,
       TransactionOutput opReturnOutput,
-      TransactionOutput samouraiFeeOutput) {
+      TransactionOutput samouraiFeeOutput)
+      throws Exception {
     super(tx0Preview);
     this.spendFroms = spendFroms;
     this.tx0Config = tx0Config;

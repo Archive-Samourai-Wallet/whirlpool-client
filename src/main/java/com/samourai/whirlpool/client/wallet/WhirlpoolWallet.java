@@ -307,11 +307,7 @@ public class WhirlpoolWallet {
   public Tx0Config getTx0Config(Tx0FeeTarget tx0FeeTarget, Tx0FeeTarget mixFeeTarget) {
     Tx0Config tx0Config =
         new Tx0Config(
-            getTx0PreviewService(),
-            getPoolSupplier().getPools(),
-            tx0FeeTarget,
-            mixFeeTarget,
-            WhirlpoolAccount.DEPOSIT);
+            getPoolSupplier().getPools(), tx0FeeTarget, mixFeeTarget, WhirlpoolAccount.DEPOSIT);
     return tx0Config;
   }
 

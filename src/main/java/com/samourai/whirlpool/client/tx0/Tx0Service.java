@@ -2,6 +2,7 @@ package com.samourai.whirlpool.client.tx0;
 
 import com.google.common.collect.Lists;
 import com.samourai.wallet.api.backend.beans.UnspentOutput;
+import com.samourai.wallet.api.backend.beans.UnspentOutputComparator;
 import com.samourai.wallet.bip69.BIP69OutputComparator;
 import com.samourai.wallet.bipFormat.BIP_FORMAT;
 import com.samourai.wallet.bipFormat.BipFormatSupplier;
@@ -24,7 +25,6 @@ import com.samourai.whirlpool.client.exception.NotifiableException;
 import com.samourai.whirlpool.client.exception.PushTxErrorResponseException;
 import com.samourai.whirlpool.client.utils.BIP69InputComparatorUnspentOutput;
 import com.samourai.whirlpool.client.utils.ClientUtils;
-import com.samourai.whirlpool.client.utils.SpendFromsComparator;
 import com.samourai.whirlpool.client.wallet.WhirlpoolEventService;
 import com.samourai.whirlpool.client.wallet.WhirlpoolWallet;
 import com.samourai.whirlpool.client.whirlpool.ServerApi;
@@ -565,7 +565,7 @@ public class Tx0Service {
     if (tx0Config.getCascadingParent() == null) {
       List<UnspentOutput> sortedSpendFroms = new LinkedList<>();
       sortedSpendFroms.addAll(spendFroms);
-      Collections.sort(sortedSpendFroms, new SpendFromsComparator());
+      Collections.sort(sortedSpendFroms, new UnspentOutputComparator().reversed());
       spendFroms = sortedSpendFroms;
     }
 

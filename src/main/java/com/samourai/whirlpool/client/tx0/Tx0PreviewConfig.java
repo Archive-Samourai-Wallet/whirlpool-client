@@ -2,10 +2,10 @@ package com.samourai.whirlpool.client.tx0;
 
 import com.samourai.whirlpool.client.wallet.beans.Tx0FeeTarget;
 import com.samourai.whirlpool.client.whirlpool.beans.Pool;
+
 import java.util.Collection;
 
 public class Tx0PreviewConfig {
-  private Tx0PreviewService tx0PreviewService;
   private Collection<Pool>
       pools; // list of pools being loaded by poolSupplier.computePools() (pool.tx0PreviewMinimal
   // not yet set)
@@ -15,21 +15,13 @@ public class Tx0PreviewConfig {
   private boolean decoyTx0x2;
 
   public Tx0PreviewConfig(
-      Tx0PreviewService tx0PreviewService,
       Collection<Pool> pools,
       Tx0FeeTarget tx0FeeTarget,
       Tx0FeeTarget mixFeeTarget) {
-    this.tx0PreviewService = tx0PreviewService;
     this.pools = pools;
     this.tx0FeeTarget = tx0FeeTarget;
     this.mixFeeTarget = mixFeeTarget;
     this.decoyTx0x2 = false;
-  }
-
-  public Tx0Param getTx0Param(final String poolId) {
-    // find pool
-    Pool pool = pools.stream().filter(pool1 -> pool1.getPoolId().equals(poolId)).findFirst().get();
-    return tx0PreviewService.getTx0Param(pool, tx0FeeTarget, mixFeeTarget);
   }
 
   public Collection<Pool> getPools() {

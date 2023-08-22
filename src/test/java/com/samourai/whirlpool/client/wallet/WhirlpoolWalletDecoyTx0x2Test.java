@@ -88,6 +88,21 @@ public class WhirlpoolWalletDecoyTx0x2Test extends WhirlpoolWalletTx0Test {
         long changeOutputsSum = changeValueA + changeValueB;
         Assertions.assertEquals(changeValue, changeOutputsSum);
 
+        Assertions.assertEquals(30000000, decoyTx0x2.getTotalValue());
+        Assertions.assertEquals(1000262, decoyTx0x2.getPremixValue());
+        Assertions.assertEquals(1252, decoyTx0x2.getTx0MinerFee());
+        Assertions.assertEquals(7336, decoyTx0x2.getMixMinerFee());
+        Assertions.assertEquals(1, decoyTx0x2.getMixMinerFeePrice());
+        Assertions.assertEquals(42500, decoyTx0x2.getFeeValue());
+        Assertions.assertEquals(0, decoyTx0x2.getFeeChange());
+        Assertions.assertEquals(0, decoyTx0x2.getFeeDiscountPercent());
+        Assertions.assertEquals(0, decoyTx0x2.getFeeDiscountPercent());
+        Assertions.assertEquals(1948912, decoyTx0x2.getChangeValue());
+        Assertions.assertEquals(1251, decoyTx0x2.getTx0Size());
+        Assertions.assertEquals(28051088, decoyTx0x2.getSpendValue());
+        Assertions.assertEquals(973146, decoyTx0x2.getChangeOutputs().get(0).getValue().getValue());
+        Assertions.assertEquals(975766, decoyTx0x2.getChangeOutputs().get(1).getValue().getValue());
+
         // current wallet utxos should be mocked from tx0 outputs
         whirlpoolWallet.refreshUtxosAsync().blockingAwait();
         for (TransactionOutput txOut : decoyTx0x2.getChangeOutputs()) {

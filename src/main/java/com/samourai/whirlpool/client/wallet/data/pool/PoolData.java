@@ -51,7 +51,7 @@ public class PoolData {
 
     // compute & set tx0PreviewMin
     Tx0PreviewConfig tx0PreviewConfig =
-        new Tx0PreviewConfig(tx0PreviewService, poolsOrdered, Tx0FeeTarget.MIN, Tx0FeeTarget.MIN);
+        new Tx0PreviewConfig(poolsOrdered, Tx0FeeTarget.MIN, Tx0FeeTarget.MIN);
     final Tx0Previews tx0PreviewsMin = tx0PreviewService.tx0PreviewsMinimal(tx0PreviewConfig);
     for (Pool pool : poolsOrdered) {
       Tx0Preview tx0PreviewMin = tx0PreviewsMin.getTx0Preview(pool.getPoolId());

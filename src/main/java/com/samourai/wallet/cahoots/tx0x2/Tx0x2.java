@@ -1,8 +1,11 @@
 package com.samourai.wallet.cahoots.tx0x2;
 
+import com.samourai.wallet.bipFormat.BIP_FORMAT;
 import com.samourai.wallet.cahoots.Cahoots2x;
 import com.samourai.wallet.cahoots.CahootsType;
+import com.samourai.wallet.util.TxUtil;
 import org.bitcoinj.core.NetworkParameters;
+import org.bitcoinj.core.TransactionOutput;
 import org.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -16,7 +19,9 @@ public class Tx0x2 extends Cahoots2x {
   private long samouraiFeeValueEach;
   protected String strCollabChange = null;
 
-  private Tx0x2() { ; }
+  private Tx0x2() {
+    ;
+  }
 
   private Tx0x2(Tx0x2 c) {
     super(c);
@@ -72,6 +77,15 @@ public class Tx0x2 extends Cahoots2x {
     } else {
       this.strCollabChange = "";
     }
+  }
+
+  public TransactionOutput findChange() {
+    return getTransaction().getOutput(getTransaction().getOutputs().size() - 1);
+  }
+
+  public TransactionOutput findCollabChange() throws Exception {
+    return TxUtil.getInstance()
+        .findOutputByAddress(getTransaction(), getCollabChange(), BIP_FORMAT.PROVIDER);
   }
 
   public String getPoolId() {

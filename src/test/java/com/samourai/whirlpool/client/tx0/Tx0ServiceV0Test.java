@@ -46,7 +46,7 @@ public class Tx0ServiceV0Test extends AbstractTx0ServiceTest {
             address);
     mockUtxos(spendFromUtxo);
 
-    int nbOutputsExpected = 10;
+    int nbOutputsExpected = 70;
 
     long premixValue = 1000175;
     String feePaymentCode =
@@ -56,7 +56,7 @@ public class Tx0ServiceV0Test extends AbstractTx0ServiceTest {
     long feeValue = 0;
     long feeChange = FEE_VALUE;
     int feeDiscountPercent = 100;
-    long changeValue = 489987683;
+    long changeValue = 429975140;
 
     Tx0Data tx0Data =
         new Tx0Data(
@@ -73,7 +73,7 @@ public class Tx0ServiceV0Test extends AbstractTx0ServiceTest {
     Tx0Preview tx0Preview =
         tx0PreviewService.tx0Preview(tx0Param, tx0Data, Arrays.asList(spendFromUtxo));
     check(tx0Preview);
-    Assertions.assertEquals(567, tx0Preview.getTx0MinerFee());
+    Assertions.assertEquals(2610, tx0Preview.getTx0MinerFee());
     Assertions.assertEquals(feeValue, tx0Preview.getFeeValue());
     Assertions.assertEquals(feeChange, tx0Preview.getFeeChange());
     Assertions.assertEquals(feeDiscountPercent, tx0Preview.getFeeDiscountPercent());
@@ -167,7 +167,7 @@ public class Tx0ServiceV0Test extends AbstractTx0ServiceTest {
     Tx0Param tx0Param = new Tx0Param(feeSatPerByte, feeSatPerByte, pool01btc, null);
     Assertions.assertEquals(1000175, tx0Param.getPremixValue());
 
-    int TX0_SIZE = 567;
+    int TX0_SIZE = 2610;
 
     // feeTx0
     int feeTx0 = 1;
@@ -175,6 +175,7 @@ public class Tx0ServiceV0Test extends AbstractTx0ServiceTest {
     Tx0Preview tx0Preview =
         tx0PreviewService.tx0Preview(tx0Param, tx0Data, Arrays.asList(spendFromUtxo));
     check(tx0Preview);
+    Assertions.assertEquals(TX0_SIZE, tx0Preview.getTx0Size());
     Assertions.assertEquals(TX0_SIZE * feeTx0, tx0Preview.getTx0MinerFee());
 
     // feeTx0
@@ -182,6 +183,7 @@ public class Tx0ServiceV0Test extends AbstractTx0ServiceTest {
     tx0Param = new Tx0Param(feeTx0, feeSatPerByte, pool01btc, null);
     tx0Preview = tx0PreviewService.tx0Preview(tx0Param, tx0Data, Arrays.asList(spendFromUtxo));
     check(tx0Preview);
+    Assertions.assertEquals(TX0_SIZE, tx0Preview.getTx0Size());
     Assertions.assertEquals(TX0_SIZE * feeTx0, tx0Preview.getTx0MinerFee());
 
     // feeTx0
@@ -189,6 +191,7 @@ public class Tx0ServiceV0Test extends AbstractTx0ServiceTest {
     tx0Param = new Tx0Param(feeTx0, feeSatPerByte, pool01btc, null);
     tx0Preview = tx0PreviewService.tx0Preview(tx0Param, tx0Data, Arrays.asList(spendFromUtxo));
     check(tx0Preview);
+    Assertions.assertEquals(TX0_SIZE, tx0Preview.getTx0Size());
     Assertions.assertEquals(TX0_SIZE * feeTx0, tx0Preview.getTx0MinerFee());
   }
 
@@ -224,7 +227,7 @@ public class Tx0ServiceV0Test extends AbstractTx0ServiceTest {
     Tx0Param tx0Param = new Tx0Param(feeSatPerByte, feeSatPerByte, pool01btc, null);
     Assertions.assertEquals(1000175, tx0Param.getPremixValue());
 
-    int TX0_SIZE = 572;
+    int TX0_SIZE = 2610;
 
     // feePremix
     int feePremix = 1;
@@ -232,6 +235,7 @@ public class Tx0ServiceV0Test extends AbstractTx0ServiceTest {
     Tx0Preview tx0Preview =
         tx0PreviewService.tx0Preview(tx0Param, tx0Data, Arrays.asList(spendFromUtxo));
     check(tx0Preview);
+    Assertions.assertEquals(TX0_SIZE, tx0Preview.getTx0Size());
     Assertions.assertEquals(1000175, tx0Preview.getPremixValue());
 
     // feePremix
@@ -239,6 +243,7 @@ public class Tx0ServiceV0Test extends AbstractTx0ServiceTest {
     tx0Param = new Tx0Param(feeSatPerByte, feePremix, pool01btc, null);
     tx0Preview = tx0PreviewService.tx0Preview(tx0Param, tx0Data, Arrays.asList(spendFromUtxo));
     check(tx0Preview);
+    Assertions.assertEquals(TX0_SIZE, tx0Preview.getTx0Size());
     Assertions.assertEquals(1000875, tx0Preview.getPremixValue());
 
     // feePremix
@@ -246,6 +251,7 @@ public class Tx0ServiceV0Test extends AbstractTx0ServiceTest {
     tx0Param = new Tx0Param(feeSatPerByte, feePremix, pool01btc, null);
     tx0Preview = tx0PreviewService.tx0Preview(tx0Param, tx0Data, Arrays.asList(spendFromUtxo));
     check(tx0Preview);
+    Assertions.assertEquals(TX0_SIZE, tx0Preview.getTx0Size());
     Assertions.assertEquals(1003500, tx0Preview.getPremixValue());
 
     // feePremix max
@@ -253,6 +259,7 @@ public class Tx0ServiceV0Test extends AbstractTx0ServiceTest {
     tx0Param = new Tx0Param(feeSatPerByte, feePremix, pool01btc, null);
     tx0Preview = tx0PreviewService.tx0Preview(tx0Param, tx0Data, Arrays.asList(spendFromUtxo));
     check(tx0Preview);
+    Assertions.assertEquals(TX0_SIZE, tx0Preview.getTx0Size());
     Assertions.assertEquals(1009500, tx0Preview.getPremixValue());
   }
 
@@ -269,7 +276,6 @@ public class Tx0ServiceV0Test extends AbstractTx0ServiceTest {
 
     Tx0Config tx0Config =
         new Tx0Config(
-            tx0PreviewService,
             mockPoolSupplier().getPools(),
             Tx0FeeTarget.BLOCKS_24,
             Tx0FeeTarget.BLOCKS_24,
@@ -351,7 +357,6 @@ public class Tx0ServiceV0Test extends AbstractTx0ServiceTest {
 
     Tx0Config tx0Config =
         new Tx0Config(
-            tx0PreviewService,
             mockPoolSupplier().getPools(),
             Tx0FeeTarget.BLOCKS_24,
             Tx0FeeTarget.BLOCKS_24,
@@ -434,7 +439,6 @@ public class Tx0ServiceV0Test extends AbstractTx0ServiceTest {
 
     Tx0Config tx0Config =
         new Tx0Config(
-            tx0PreviewService,
             mockPoolSupplier().getPools(),
             Tx0FeeTarget.BLOCKS_24,
             Tx0FeeTarget.BLOCKS_24,
@@ -517,7 +521,6 @@ public class Tx0ServiceV0Test extends AbstractTx0ServiceTest {
 
     Tx0Config tx0Config =
         new Tx0Config(
-            tx0PreviewService,
             mockPoolSupplier().getPools(),
             Tx0FeeTarget.BLOCKS_24,
             Tx0FeeTarget.BLOCKS_24,
@@ -599,7 +602,6 @@ public class Tx0ServiceV0Test extends AbstractTx0ServiceTest {
 
     Tx0Config tx0Config =
         new Tx0Config(
-            tx0PreviewService,
             mockPoolSupplier().getPools(),
             Tx0FeeTarget.BLOCKS_24,
             Tx0FeeTarget.BLOCKS_24,
