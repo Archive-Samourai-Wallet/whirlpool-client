@@ -230,7 +230,11 @@ public class Tx0Service {
     long totalValue = tx0Preview.getTotalValue();
     long spendFromBalance = UnspentOutput.sumValue(sortedSpendFroms);
     if (totalValue != spendFromBalance) {
-      throw new Exception("Invalid outputsSum for tx0: " + totalValue + " vs " + spendFromBalance);
+      throw new Exception(
+          "Invalid totalValue for tx0: totalValue="
+              + totalValue
+              + " vs spendFromBalance="
+              + spendFromBalance);
     }
 
     //
@@ -279,7 +283,6 @@ public class Tx0Service {
     List<BipAddress> changeOutputsAddresses = new LinkedList<>();
 
     List<Long> changeAmounts = computeChangeAmounts(tx0Config, tx0Preview, sortedSpendFroms);
-
     if (!changeAmounts.isEmpty()) {
       //  if decoy tx0x2 change outputs total > premix output value, remove last premix output
       if (tx0Config.isDecoyTx0x2() && changeAmounts.size() == 2) {
@@ -695,21 +698,12 @@ public class Tx0Service {
     Tx0 tx0 = tx0(spendFroms, walletSupplier, poolInitial, tx0Config, utxoKeyProvider);
     tx0List.add(tx0);
     tx0Config.setCascadingParent(tx0);
-    UnspentOutput unspentOutputChange = findTx0Change(tx0);
-
-    // decoy Tx0x2
-    UnspentOutput unspentDecoyChange = null;
-    Collection<UnspentOutput> decoyTx0x2Changes = new ArrayList<>();
-    if (tx0Config.isDecoyTx0x2()) {
-      unspentDecoyChange = findTx0Change(tx0, 1);
-      decoyTx0x2Changes.add(unspentOutputChange);
-      decoyTx0x2Changes.add(unspentDecoyChange);
-    }
+    Collection<UnspentOutput> changeUtxos = tx0.getChangeUtxos();
 
     // Tx0 cascading for remaining pools
     while (poolsIter.hasNext()) {
       Pool pool = poolsIter.next();
-      if (unspentOutputChange == null) {
+      if (changeUtxos.isEmpty()) {
         break; // stop when no tx0 change
       }
 
@@ -723,30 +717,10 @@ public class Tx0Service {
                   + "/x)");
         }
 
-        if (!tx0Config.isDecoyTx0x2()) {
-          // normal Tx0
-          tx0 =
-              tx0(
-                  Collections.singletonList(unspentOutputChange),
-                  walletSupplier,
-                  pool,
-                  tx0Config,
-                  utxoKeyProvider);
-        } else {
-          // decoy Tx0x2
-          tx0 = tx0(decoyTx0x2Changes, walletSupplier, pool, tx0Config, utxoKeyProvider);
-        }
+        tx0 = tx0(changeUtxos, walletSupplier, pool, tx0Config, utxoKeyProvider);
         tx0List.add(tx0);
         tx0Config.setCascadingParent(tx0);
-        unspentOutputChange = findTx0Change(tx0);
-
-        if (tx0Config.isDecoyTx0x2()) {
-          decoyTx0x2Changes.clear();
-          unspentDecoyChange = findTx0Change(tx0, 1);
-          decoyTx0x2Changes.add(unspentOutputChange);
-          decoyTx0x2Changes.add(unspentDecoyChange);
-        }
-
+        changeUtxos = tx0.getChangeUtxos();
       } catch (Exception e) {
         // Tx0 is not possible for this pool, ignore it
         if (log.isDebugEnabled()) {
@@ -756,24 +730,6 @@ public class Tx0Service {
       }
     }
     return tx0List;
-  }
-
-  private UnspentOutput findTx0Change(Tx0 tx0) {
-    return findTx0Change(tx0, 0);
-  }
-
-  private UnspentOutput findTx0Change(Tx0 tx0, int index) {
-    if (tx0.getChangeUtxos().isEmpty()) {
-      // no tx0 change
-      return null;
-    }
-
-    if (index >= tx0.getChangeUtxos().size() || index < 0) {
-      // index does not exists
-      return null;
-    }
-
-    return tx0.getChangeUtxos().get(index);
   }
 
   protected void signTx0(Transaction tx, KeyBag keyBag, BipFormatSupplier bipFormatSupplier)
