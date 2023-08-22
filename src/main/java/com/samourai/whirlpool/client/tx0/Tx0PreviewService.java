@@ -1,9 +1,13 @@
 package com.samourai.whirlpool.client.tx0;
 
+import com.google.common.collect.Lists;
 import com.samourai.wallet.api.backend.beans.HttpException;
 import com.samourai.wallet.api.backend.beans.UnspentOutput;
+import com.samourai.wallet.api.backend.beans.UnspentOutputComparator;
 import com.samourai.wallet.util.AsyncUtil;
 import com.samourai.wallet.util.FeeUtil;
+import com.samourai.wallet.util.Pair;
+import com.samourai.wallet.util.RandomUtil;
 import com.samourai.whirlpool.client.exception.NotifiableException;
 import com.samourai.whirlpool.client.utils.ClientUtils;
 import com.samourai.whirlpool.client.wallet.beans.Tx0FeeTarget;
@@ -115,7 +119,7 @@ public class Tx0PreviewService {
       Tx0Param tx0Param = getTx0Param(tx0PreviewConfig, poolId);
       try {
         // minimal preview estimation (without SCODE calculation)
-        Tx0Preview tx0Preview = tx0PreviewMinimal(tx0Param);
+        Tx0Preview tx0Preview = tx0PreviewMinimal(tx0PreviewConfig, tx0Param);
         tx0PreviewsByPoolId.put(poolId, tx0Preview);
       } catch (Exception e) {
         if (log.isDebugEnabled()) {
@@ -138,7 +142,7 @@ public class Tx0PreviewService {
       Tx0Param tx0Param = getTx0Param(tx0PreviewConfig, poolId);
       try {
         // real preview for outputs (with SCODE and outputs calculation)
-        Tx0Preview tx0Preview = tx0Preview(tx0Param, tx0Data, spendFroms);
+        Tx0Preview tx0Preview = tx0Preview(tx0PreviewConfig, tx0Param, tx0Data, spendFroms);
         tx0PreviewsByPoolId.put(poolId, tx0Preview);
       } catch (Exception e) {
         if (log.isDebugEnabled()) {
@@ -150,30 +154,36 @@ public class Tx0PreviewService {
   }
 
   public Tx0Preview tx0Preview(
-          Tx0PreviewConfig tx0PreviewConfig, Collection<UnspentOutput> spendFroms, String poolId)
-          throws Exception {
+      Tx0PreviewConfig tx0PreviewConfig, Collection<UnspentOutput> spendFroms, String poolId)
+      throws Exception {
     // fetch fresh Tx0Data
     boolean useCascading = tx0PreviewConfig.getCascadingParent() != null;
     Collection<Tx0Data> tx0Datas = fetchTx0Data(config.getPartner(), useCascading);
     Tx0Data tx0Data =
-            tx0Datas.stream().filter(td -> td.getPoolId().equals(poolId)).findFirst().get();
+        tx0Datas.stream().filter(td -> td.getPoolId().equals(poolId)).findFirst().get();
 
     // real preview for outputs (with SCODE and outputs calculation)
     Tx0Param tx0Param = getTx0Param(tx0PreviewConfig, poolId);
-    return tx0Preview(tx0Param, tx0Data, spendFroms);
+    return tx0Preview(tx0PreviewConfig, tx0Param, tx0Data, spendFroms);
   }
 
-  protected Tx0Preview tx0PreviewMinimal(Tx0Param tx0Param) throws Exception {
-    return doTx0Preview(tx0Param, 1, null, null);
+  protected Tx0Preview tx0PreviewMinimal(Tx0PreviewConfig tx0PreviewConfig, Tx0Param tx0Param)
+      throws Exception {
+    return doTx0Preview(tx0PreviewConfig, tx0Param, 1, null, null);
   }
 
   protected Tx0Preview tx0Preview(
-      Tx0Param tx0Param, Tx0Data tx0Data, Collection<UnspentOutput> spendFroms) throws Exception {
+      Tx0PreviewConfig tx0PreviewConfig,
+      Tx0Param tx0Param,
+      Tx0Data tx0Data,
+      Collection<UnspentOutput> spendFroms)
+      throws Exception {
     int nbPremix = computeNbPremixMax(tx0Param, tx0Data, spendFroms);
-    return doTx0Preview(tx0Param, nbPremix, spendFroms, tx0Data);
+    return doTx0Preview(tx0PreviewConfig, tx0Param, nbPremix, spendFroms, tx0Data);
   }
 
   protected Tx0Preview doTx0Preview(
+      Tx0PreviewConfig tx0PreviewConfig,
       Tx0Param tx0Param,
       int nbPremix,
       Collection<UnspentOutput> spendFromsOrNull,
@@ -223,7 +233,21 @@ public class Tx0PreviewService {
             tx0Param.getFeePremix(),
             premixValue,
             changeValue,
-            nbPremix);
+            nbPremix,
+            Arrays.asList(changeValue));
+
+    List<Long> changeAmounts =
+        computeChangeAmounts(
+            tx0PreviewConfig, tx0Preview, tx0Param, spendFromsOrNull, tx0DataOrNull);
+    if (!changeAmounts.isEmpty()) {
+      //  if decoy tx0x2 change outputs total > premix output value, remove last premix output
+      if (tx0PreviewConfig.isDecoyTx0x2() && changeAmounts.size() == 2) {
+        if (changeAmounts.get(0) + changeAmounts.get(1) > tx0Preview.getPremixValue()) {
+          // should remove at most 1 premix output
+          nbPremix--;
+        }
+      }
+    }
 
     // verify outputsSum
     long totalValue = tx0Preview.getTotalValue();
@@ -258,5 +282,301 @@ public class Tx0PreviewService {
     } catch (HttpException e) {
       throw ClientUtils.wrapRestError(e);
     }
+  }
+
+  private List<Long> computeChangeAmounts(
+      Tx0PreviewConfig tx0PreviewConfig,
+      Tx0Preview tx0Preview,
+      Tx0Param tx0Param,
+      Collection<UnspentOutput> sortedSpendFroms,
+      Tx0Data tx0Data)
+      throws Exception {
+    long changeValueTotal = tx0Preview.getChangeValue();
+
+    if (changeValueTotal < 0) {
+      throw new Exception(
+          "Negative change detected, please report this bug. tx0Preview=" + tx0Preview);
+    }
+    if (changeValueTotal == 0) {
+      if (log.isDebugEnabled()) {
+        log.debug("Tx0: spending whole utx0, no change");
+      }
+      return Lists.newLinkedList();
+    }
+
+    if (tx0PreviewConfig.isDecoyTx0x2()) {
+      // attempt to decoy Tx0x2: split change between 2 change addresses with STONEWALL
+      List<Long> changeAmountsStonewall =
+          computeChangeAmountsStonewall(
+              tx0PreviewConfig, tx0Preview, tx0Param, sortedSpendFroms, tx0Data);
+      if (changeAmountsStonewall != null) {
+        if (log.isDebugEnabled()) {
+          log.debug("Tx0: decoy Tx0, 2 changes");
+        }
+        return changeAmountsStonewall;
+      }
+    }
+
+    // normal Tx0
+    if (log.isDebugEnabled()) {
+      log.debug("Tx0: normal Tx0, 1 change");
+    }
+    return Arrays.asList(changeValueTotal);
+  }
+
+  List<Long> computeChangeAmountsStonewall(
+      Tx0PreviewConfig tx0PreviewConfig,
+      Tx0Preview tx0Preview,
+      Tx0Param tx0Param,
+      Collection<UnspentOutput> sortedSpendFroms,
+      Tx0Data tx0Data)
+      throws Exception {
+    Pair<Long, Long> spendFromAmountsStonewall =
+        computeSpendFromAmountsStonewall(
+            tx0PreviewConfig, sortedSpendFroms, tx0Param, tx0Data, tx0Preview.getTx0MinerFee());
+    if (spendFromAmountsStonewall == null) {
+      // stonewall is not possible
+      return null;
+    }
+
+    // calculate changes
+    long changeValueTotalA = spendFromAmountsStonewall.getLeft(); // spend value A
+    long changeValueTotalB = spendFromAmountsStonewall.getRight(); // spend value B
+
+    if (tx0PreviewConfig.getCascadingParent() == null) {
+      // initial pool, split fee
+      changeValueTotalA -= tx0Preview.getFeeValue() / 2L;
+      changeValueTotalB -= tx0Preview.getFeeValue() / 2L;
+    } else {
+      // lower pools
+      changeValueTotalA -= tx0Preview.getFeeChange();
+    }
+
+    // split miner fees
+    changeValueTotalA -= tx0Preview.getTx0MinerFee() / 2L;
+    changeValueTotalB -= tx0Preview.getTx0MinerFee() / 2L;
+
+    int nbPremixA = 0;
+    while (changeValueTotalA > tx0Preview.getPremixValue()) {
+      changeValueTotalA -= tx0Preview.getPremixValue();
+      nbPremixA++;
+    }
+    int nbPremixB = 0;
+    while (changeValueTotalB > tx0Preview.getPremixValue()) {
+      changeValueTotalB -= tx0Preview.getPremixValue();
+      nbPremixB++;
+    }
+
+    long changeValueTotal = changeValueTotalA + changeValueTotalB;
+
+    // if nbPremix < tx0Preview.nbPremix => remove 1 premixOutput. should be at most 1 less.
+    int nbPremix = nbPremixA + nbPremixB;
+    if (nbPremix < tx0Preview.getNbPremix()) {
+      // TODO - Not 100% sure if should recalculate tx0MinerFee.
+      //  Recalculating makes it exact as Tx0x2, but usually a small sat difference.
+      NetworkParameters params = config.getNetworkParameters();
+
+      // recalculate tx0MinerFee
+      long tx0MinerFee =
+          ClientUtils.computeTx0MinerFee(
+              nbPremix, tx0Preview.getTx0MinerFeePrice(), sortedSpendFroms, params);
+      if (tx0MinerFee % 2L != 0) {
+        tx0MinerFee++;
+      }
+
+      // add tx0MinerFee difference back to change
+      long diffTx0MinerFee = tx0Preview.getTx0MinerFee() - tx0MinerFee;
+      changeValueTotalA += diffTx0MinerFee / 2L;
+      changeValueTotalB += diffTx0MinerFee / 2L;
+      tx0Preview.setTx0MinerFee(tx0MinerFee);
+
+      // recalculate & confirm spendValue. difference should be premixValue + diffTx0MinerFee
+      long feeValueOrFeeChange =
+          tx0Preview.getFeeValue() != 0 ? tx0Preview.getFeeValue() : tx0Preview.getFeeChange();
+      long spendValue =
+          ClientUtils.computeTx0SpendValue(
+              tx0Preview.getPremixValue(), nbPremix, feeValueOrFeeChange, tx0MinerFee);
+      long diffSpendValue = tx0Preview.getSpendValue() - spendValue;
+      if (diffSpendValue == tx0Preview.getPremixValue() + diffTx0MinerFee) {
+        // update spend value
+        tx0Preview.setSpendValue(spendValue);
+      } else {
+        String message =
+            "Miscalculated Spend Value. diffSpendValue="
+                + diffSpendValue
+                + "; premixValue="
+                + tx0Preview.getPremixValue()
+                + "; diffTx0MinerFee="
+                + diffTx0MinerFee;
+        if (log.isDebugEnabled()) {
+          log.debug(message);
+        }
+        throw new Exception(message);
+      }
+
+      // confirm recalculated total value
+      changeValueTotal = changeValueTotalA + changeValueTotalB;
+      if (tx0Preview.getTotalValue() != spendValue + changeValueTotal) {
+        String message =
+            "Error calculating change. totalValue="
+                + tx0Preview.getTotalValue()
+                + "; spendValue="
+                + spendValue
+                + "; changeValue="
+                + changeValueTotal
+                + "; feeChange="
+                + tx0Preview.getFeeChange();
+        if (log.isDebugEnabled()) {
+          log.debug(message);
+        }
+        throw new Exception(message);
+      }
+
+      // recalculate tx0 size
+      int tx0Size = ClientUtils.computeTx0Size(nbPremix, sortedSpendFroms.size(), params);
+      tx0Preview.setTx0Size(tx0Size);
+
+      // reduce 1 premix
+      tx0Preview.decrementNbPremix();
+
+      // reduce 1 premix miner fee
+      tx0Preview.decrementMixMinerFee();
+    }
+
+    if (tx0Preview.getPool().getPoolId().equals("0.001btc")) {
+      changeValueTotalA = changeValueTotal / 2L;
+      changeValueTotalB = changeValueTotal / 2L;
+      if (changeValueTotal % 2L == 1) {
+        tx0Preview.incrementTx0MinerFee();
+      }
+    }
+    tx0Preview.setChangeValue(changeValueTotalA + changeValueTotalB);
+    tx0Preview.setChangeAmounts(Arrays.asList(changeValueTotalA, changeValueTotalB));
+
+    return Arrays.asList(changeValueTotalA, changeValueTotalB);
+  }
+
+  // TODO: Continue to optimize...
+  private Pair<Long, Long> computeSpendFromAmountsStonewall(
+      Tx0PreviewConfig tx0PreviewConfig,
+      Collection<UnspentOutput> spendFroms,
+      Tx0Param tx0Param,
+      Tx0Data tx0Data,
+      long tx0MinerFeeMax)
+      throws NotifiableException {
+
+    long feeParticipation;
+    long minSpendFromA;
+    long minSpendFromB;
+    if (tx0PreviewConfig.getCascadingParent() == null) {
+      // initial pool
+      feeParticipation = (tx0MinerFeeMax + tx0Data.getFeeValue()) / 2L; // split fees
+      long minSpendFrom = feeParticipation + tx0Param.getPremixValue(); // at least 1 must mix each
+      // same minSpendFrom for A & B
+      minSpendFromA = minSpendFrom;
+      minSpendFromB = minSpendFrom;
+    } else {
+      // lower pools
+      feeParticipation = tx0MinerFeeMax / 2L; // split miner fee
+      // fee change applied to A
+      minSpendFromA = feeParticipation + tx0Data.getFeeChange() + tx0Param.getPremixValue();
+      minSpendFromB = feeParticipation + tx0Param.getPremixValue();
+    }
+
+    // sort utxos descending to help avoid misses [see
+    // WhirlpoolWalletDeocyTx0x2.tx0x2_decoy_3utxos()]
+    if (tx0PreviewConfig.getCascadingParent() == null) {
+      List<UnspentOutput> sortedSpendFroms = new LinkedList<>();
+      sortedSpendFroms.addAll(spendFroms);
+      Collections.sort(sortedSpendFroms, new UnspentOutputComparator().reversed());
+      spendFroms = sortedSpendFroms;
+    }
+
+    // check for min spend amount
+    long spendFromA = 0L;
+    long spendFromB = 0L;
+    Map<String, UnspentOutput> spendFromsA = new HashMap<>();
+    Map<String, UnspentOutput> spendFromsB = new HashMap<>();
+    if (tx0PreviewConfig.getCascadingParent() == null) {
+      // initial pool: check outpoints
+      for (UnspentOutput spendFrom : spendFroms) {
+        String hash = spendFrom.tx_hash;
+
+        if (spendFromA < minSpendFromA) {
+          spendFromsA.put(hash, spendFrom);
+          spendFromA += spendFrom.value; // must reach minSpendFrom for A
+        } else if (spendFromB < minSpendFromB && !spendFromsA.containsKey(hash)) {
+          spendFromsB.put(hash, spendFrom);
+          spendFromB += spendFrom.value; // must reach minSpendFrom for B
+        } else {
+          // random factor when minSpendFrom is reached
+          if (RandomUtil.getInstance().random(0, 1) == 1) {
+            if (!spendFromsB.containsKey(hash)) {
+              spendFromsA.put(hash, spendFrom);
+              spendFromA += spendFrom.value;
+            } else {
+              spendFromsB.put(hash, spendFrom);
+              spendFromB += spendFrom.value;
+            }
+          } else {
+            if (!spendFromsA.containsKey(hash)) {
+              spendFromsB.put(hash, spendFrom);
+              spendFromB += spendFrom.value;
+            } else {
+              spendFromsA.put(hash, spendFrom);
+              spendFromA += spendFrom.value;
+            }
+          }
+        }
+      }
+    } else {
+      // lower pools: does not check outpoints
+      for (UnspentOutput spendFrom : spendFroms) {
+        String hash = spendFrom.tx_hash;
+        if (spendFromA < minSpendFromA) {
+          // must reach minSpendFrom for A
+          spendFromA += spendFrom.value;
+          spendFromsA.put(hash, spendFrom);
+        } else if (spendFromB < minSpendFromB) {
+          // must reach minSpendFrom for B
+          spendFromB += spendFrom.value;
+          spendFromsB.put(hash, spendFrom);
+        } else {
+          // random factor when minSpendFrom is reached
+          if (RandomUtil.getInstance().random(0, 1) == 1) {
+            spendFromA += spendFrom.value;
+            spendFromsA.put(hash, spendFrom);
+          } else {
+            spendFromB += spendFrom.value;
+            spendFromsB.put(hash, spendFrom);
+          }
+        }
+      }
+    }
+
+    if (spendFromA < minSpendFromA || spendFromB < minSpendFromB) {
+      if (log.isDebugEnabled()) {
+        log.debug(
+            "Stonewall is not possible for TX0 decoy change: spendFromA="
+                + spendFromA
+                + ", spendFromB="
+                + spendFromB
+                + ", minSpendFromA="
+                + minSpendFromA
+                + ", minSpendFromB="
+                + minSpendFromB);
+      }
+
+      // if both inputs (higher pool change outputs) are not large enough for decoy tx02, skip to
+      // next lower pool
+      if (tx0PreviewConfig.getCascadingParent() != null) {
+        throw new NotifiableException(
+            "Decoy Tx0x2 not possible for lower pool: " + tx0Data.getPoolId());
+      }
+
+      return null;
+    }
+
+    return Pair.of(spendFromA, spendFromB);
   }
 }

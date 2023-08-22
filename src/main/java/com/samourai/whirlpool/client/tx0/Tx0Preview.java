@@ -3,6 +3,7 @@ package com.samourai.whirlpool.client.tx0;
 import com.samourai.whirlpool.client.utils.ClientUtils;
 import com.samourai.whirlpool.client.whirlpool.beans.Pool;
 import com.samourai.whirlpool.client.whirlpool.beans.Tx0Data;
+import java.util.Collection;
 
 public class Tx0Preview {
   private Pool pool;
@@ -21,8 +22,9 @@ public class Tx0Preview {
   private int nbPremix;
   private long spendValue; // all except change
   private long totalValue; // with change
+  private Collection<Long> changeAmounts;
 
-  public Tx0Preview(Tx0Preview tx0Preview) {
+  public Tx0Preview(Tx0Preview tx0Preview) throws Exception {
     this(
         tx0Preview.pool,
         tx0Preview.tx0Data,
@@ -34,7 +36,8 @@ public class Tx0Preview {
         tx0Preview.mixMinerFeePrice,
         tx0Preview.premixValue,
         tx0Preview.changeValue,
-        tx0Preview.nbPremix);
+        tx0Preview.nbPremix,
+        tx0Preview.changeAmounts);
   }
 
   public Tx0Preview(
@@ -48,7 +51,9 @@ public class Tx0Preview {
       int mixMinerFeePrice,
       long premixValue,
       long changeValue,
-      int nbPremix) {
+      int nbPremix,
+      Collection<Long> changeAmounts)
+      throws Exception {
     this.pool = pool;
     this.tx0Data = tx0Data;
     this.tx0Size = tx0Size;
@@ -68,6 +73,20 @@ public class Tx0Preview {
     this.spendValue =
         ClientUtils.computeTx0SpendValue(premixValue, nbPremix, feeValueOrFeeChange, tx0MinerFee);
     this.totalValue = spendValue + changeValue;
+    this.changeAmounts = changeAmounts;
+    this.consistencyCheck();
+  }
+
+  private void consistencyCheck() throws Exception {
+    if (changeValue < 0) {
+      throw new Exception(
+          "Negative change detected, please report this bug. tx0Preview=" + totalValue);
+    }
+
+    if (changeAmounts.stream().mapToLong(v -> v).sum() != changeValue) {
+      throw new Exception(
+          "Invalid changeAmounts=" + changeAmounts + " vs changeValue=" + changeValue);
+    }
   }
 
   public Pool getPool() {
@@ -167,6 +186,14 @@ public class Tx0Preview {
     this.mixMinerFee = this.mixMinerFee - this.premixMinerFee;
   }
 
+  public Collection<Long> getChangeAmounts() {
+    return changeAmounts;
+  }
+
+  public void setChangeAmounts(Collection<Long> changeAmounts) {
+    this.changeAmounts = changeAmounts;
+  }
+
   @Override
   public String toString() {
     return "poolId="
@@ -192,6 +219,8 @@ public class Tx0Preview {
         + ", spendValue="
         + spendValue
         + ", totalValue="
-        + totalValue;
+        + totalValue
+        + ", changeAmounts="
+        + changeAmounts;
   }
 }
