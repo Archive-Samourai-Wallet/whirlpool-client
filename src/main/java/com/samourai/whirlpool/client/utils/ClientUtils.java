@@ -240,13 +240,11 @@ public class ClientUtils {
     LogbackUtils.setLogLevel("org.eclipse.jetty", org.slf4j.event.Level.INFO.toString());
   }
 
-  public static long computeTx0MinerFee(
-      int nbPremix,
-      long tx0FeePerB,
-      Collection<? extends UnspentOutput> spendFroms,
-      NetworkParameters params) {
-    int tx0Size = computeTx0Size(nbPremix, spendFroms, params);
+  public static long computeTx0MinerFee(int tx0Size, long tx0FeePerB, boolean adjustForTx0x2) {
     long tx0MinerFee = FeeUtil.getInstance().calculateFee(tx0Size, tx0FeePerB);
+    if (adjustForTx0x2 && tx0MinerFee % 2L != 0) {
+      tx0MinerFee++; // use even minerFee to easily split it
+    }
     return tx0MinerFee;
   }
 

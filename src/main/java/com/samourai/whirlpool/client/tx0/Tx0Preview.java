@@ -106,16 +106,8 @@ public class Tx0Preview {
     return tx0Size;
   }
 
-  public void setTx0Size(int tx0Size) {
-    this.tx0Size = tx0Size;
-  }
-
   public long getTx0MinerFee() {
     return tx0MinerFee;
-  }
-
-  public void setTx0MinerFee(long tx0MinerFee) {
-    this.tx0MinerFee = tx0MinerFee;
   }
 
   public long getMixMinerFee() {
@@ -154,10 +146,6 @@ public class Tx0Preview {
     return changeValue;
   }
 
-  public void setChangeValue(long value) {
-    this.changeValue = value;
-  }
-
   public int getNbPremix() {
     return nbPremix;
   }
@@ -166,32 +154,12 @@ public class Tx0Preview {
     return spendValue;
   }
 
-  public void setSpendValue(long spendValue) {
-    this.spendValue = spendValue;
-  }
-
   public long getTotalValue() {
     return totalValue;
   }
 
-  public void incrementTx0MinerFee() {
-    this.tx0MinerFee += 1;
-  }
-
-  public void decrementNbPremix() {
-    this.nbPremix -= 1;
-  }
-
-  public void decrementMixMinerFee() {
-    this.mixMinerFee = this.mixMinerFee - this.premixMinerFee;
-  }
-
   public Collection<Long> getChangeAmounts() {
     return changeAmounts;
-  }
-
-  public void setChangeAmounts(Collection<Long> changeAmounts) {
-    this.changeAmounts = changeAmounts;
   }
 
   @Override

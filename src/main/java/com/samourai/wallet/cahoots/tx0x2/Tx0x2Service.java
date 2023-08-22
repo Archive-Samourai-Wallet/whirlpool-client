@@ -12,7 +12,6 @@ import com.samourai.wallet.hd.BipAddress;
 import com.samourai.wallet.hd.Chain;
 import com.samourai.wallet.hd.HD_Address;
 import com.samourai.wallet.send.MyTransactionOutPoint;
-import com.samourai.wallet.util.FeeUtil;
 import com.samourai.wallet.util.TxUtil;
 import com.samourai.whirlpool.client.tx0.Tx0;
 import com.samourai.whirlpool.client.utils.ClientUtils;
@@ -520,10 +519,7 @@ public class Tx0x2Service extends AbstractCahoots2xService<Tx0x2, Tx0x2Context> 
     int nbInputsSender = tx0Initiator.getSpendFroms().size();
     int nbInputs = nbInputsCounterparty + nbInputsSender;
     int tx0Size = ClientUtils.computeTx0Size(nbPremix, nbInputs, params);
-    long fee = FeeUtil.getInstance().calculateFee(tx0Size, tx0Initiator.getTx0MinerFeePrice());
-    if (fee % 2L != 0) {
-      fee++;
-    }
+    long fee = ClientUtils.computeTx0MinerFee(tx0Size, tx0Initiator.getTx0MinerFeePrice(), true);
     if (log.isDebugEnabled()) {
       log.debug(
           "nbPremixCounterparty="

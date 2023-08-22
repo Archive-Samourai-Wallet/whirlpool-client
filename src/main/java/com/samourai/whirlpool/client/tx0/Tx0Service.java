@@ -205,7 +205,8 @@ public class Tx0Service {
 
     long premixValue = tx0Preview.getPremixValue();
     long feeValueOrFeeChange = tx0Preview.getTx0Data().computeFeeValueOrFeeChange();
-    int nbPremix = tx0PreviewService.capNbPremix(tx0Preview.getNbPremix(), tx0Preview.getPool());
+    int nbPremix =
+        tx0PreviewService.capNbPremix(tx0Preview.getNbPremix(), tx0Preview.getPool(), false);
 
     // verify
 
