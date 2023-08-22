@@ -149,6 +149,20 @@ public class Tx0PreviewService {
     return new Tx0Previews(tx0PreviewsByPoolId);
   }
 
+  public Tx0Preview tx0Preview(
+          Tx0PreviewConfig tx0PreviewConfig, Collection<UnspentOutput> spendFroms, String poolId)
+          throws Exception {
+    // fetch fresh Tx0Data
+    boolean useCascading = tx0PreviewConfig.getCascadingParent() != null;
+    Collection<Tx0Data> tx0Datas = fetchTx0Data(config.getPartner(), useCascading);
+    Tx0Data tx0Data =
+            tx0Datas.stream().filter(td -> td.getPoolId().equals(poolId)).findFirst().get();
+
+    // real preview for outputs (with SCODE and outputs calculation)
+    Tx0Param tx0Param = getTx0Param(tx0PreviewConfig, poolId);
+    return tx0Preview(tx0Param, tx0Data, spendFroms);
+  }
+
   protected Tx0Preview tx0PreviewMinimal(Tx0Param tx0Param) throws Exception {
     return doTx0Preview(tx0Param, 1, null, null);
   }

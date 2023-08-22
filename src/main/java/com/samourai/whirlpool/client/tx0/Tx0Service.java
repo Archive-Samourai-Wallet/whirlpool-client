@@ -78,8 +78,7 @@ public class Tx0Service {
       UtxoKeyProvider utxoKeyProvider)
       throws Exception {
     // compute & preview
-    Tx0Previews tx0Previews = tx0PreviewService.tx0Previews(tx0Config, spendFroms);
-    Tx0Preview tx0Preview = tx0Previews.getTx0Preview(pool.getPoolId());
+    Tx0Preview tx0Preview = tx0PreviewService.tx0Preview(tx0Config, spendFroms, pool.getPoolId());
     if (tx0Preview == null) {
       throw new NotifiableException("Tx0 not possible for pool: " + pool.getPoolId());
     }
