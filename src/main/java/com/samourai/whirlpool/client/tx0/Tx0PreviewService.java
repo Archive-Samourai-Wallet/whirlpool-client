@@ -1,14 +1,9 @@
 package com.samourai.whirlpool.client.tx0;
 
-import com.google.common.collect.Lists;
 import com.samourai.wallet.api.backend.beans.HttpException;
 import com.samourai.wallet.api.backend.beans.UnspentOutput;
-import com.samourai.wallet.api.backend.beans.UnspentOutputComparator;
-import com.samourai.wallet.send.MyTransactionOutPoint;
 import com.samourai.wallet.util.AsyncUtil;
 import com.samourai.wallet.util.FeeUtil;
-import com.samourai.wallet.util.Pair;
-import com.samourai.wallet.util.RandomUtil;
 import com.samourai.whirlpool.client.exception.NotifiableException;
 import com.samourai.whirlpool.client.utils.ClientUtils;
 import com.samourai.whirlpool.client.wallet.beans.Tx0FeeTarget;
@@ -17,9 +12,7 @@ import com.samourai.whirlpool.client.whirlpool.beans.Pool;
 import com.samourai.whirlpool.client.whirlpool.beans.Tx0Data;
 import com.samourai.whirlpool.protocol.rest.Tx0DataRequestV2;
 import com.samourai.whirlpool.protocol.rest.Tx0DataResponseV2;
-
 import java.util.*;
-
 import org.bitcoinj.core.NetworkParameters;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -37,7 +30,11 @@ public class Tx0PreviewService {
 
   private Tx0Param getTx0Param(Tx0PreviewConfig tx0Config, final String poolId) {
     // find pool
-    Pool pool = tx0Config.getPools().stream().filter(pool1 -> pool1.getPoolId().equals(poolId)).findFirst().get();
+    Pool pool =
+        tx0Config.getPools().stream()
+            .filter(pool1 -> pool1.getPoolId().equals(poolId))
+            .findFirst()
+            .get();
     return getTx0Param(pool, tx0Config.getTx0FeeTarget(), tx0Config.getMixFeeTarget());
   }
 

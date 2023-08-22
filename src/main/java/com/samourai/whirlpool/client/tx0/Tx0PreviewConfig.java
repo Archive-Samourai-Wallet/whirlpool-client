@@ -2,7 +2,6 @@ package com.samourai.whirlpool.client.tx0;
 
 import com.samourai.whirlpool.client.wallet.beans.Tx0FeeTarget;
 import com.samourai.whirlpool.client.whirlpool.beans.Pool;
-
 import java.util.Collection;
 
 public class Tx0PreviewConfig {
@@ -15,9 +14,7 @@ public class Tx0PreviewConfig {
   private boolean decoyTx0x2;
 
   public Tx0PreviewConfig(
-      Collection<Pool> pools,
-      Tx0FeeTarget tx0FeeTarget,
-      Tx0FeeTarget mixFeeTarget) {
+      Collection<Pool> pools, Tx0FeeTarget tx0FeeTarget, Tx0FeeTarget mixFeeTarget) {
     this.pools = pools;
     this.tx0FeeTarget = tx0FeeTarget;
     this.mixFeeTarget = mixFeeTarget;
@@ -58,5 +55,19 @@ public class Tx0PreviewConfig {
 
   public void setDecoyTx0x2(boolean decoyTx0x2) {
     this.decoyTx0x2 = decoyTx0x2;
+  }
+
+  @Override
+  public String toString() {
+    return "pools="
+        + pools.stream().map(p -> p.getPoolId()).toArray()
+        + ", tx0FeeTarget="
+        + tx0FeeTarget
+        + ", mixFeeTarget="
+        + mixFeeTarget
+        + ", cascadingParent="
+        + (cascadingParent != null ? "yes" : "null")
+        + ", decoyTx0x2="
+        + decoyTx0x2;
   }
 }

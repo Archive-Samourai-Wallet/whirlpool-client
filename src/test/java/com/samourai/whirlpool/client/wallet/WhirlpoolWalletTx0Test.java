@@ -2,9 +2,9 @@ package com.samourai.whirlpool.client.wallet;
 
 import com.samourai.wallet.api.backend.beans.UnspentOutput;
 import com.samourai.wallet.hd.HD_Address;
+import com.samourai.whirlpool.client.tx0.AbstractTx0ServiceV1Test;
 import com.samourai.whirlpool.client.tx0.Tx0;
 import com.samourai.whirlpool.client.tx0.Tx0Config;
-import com.samourai.whirlpool.client.tx0.Tx0ServiceV1Test;
 import com.samourai.whirlpool.client.wallet.beans.Tx0FeeTarget;
 import com.samourai.whirlpool.client.wallet.beans.WhirlpoolAccount;
 import com.samourai.whirlpool.client.wallet.beans.WhirlpoolServer;
@@ -12,13 +12,9 @@ import com.samourai.whirlpool.client.wallet.beans.WhirlpoolUtxo;
 import com.samourai.whirlpool.client.wallet.data.pool.PoolSupplier;
 import com.samourai.whirlpool.client.whirlpool.ServerApi;
 import com.samourai.whirlpool.client.whirlpool.beans.Pool;
-import com.samourai.whirlpool.protocol.rest.Tx0PushRequest;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.LinkedList;
 import java.util.List;
-import java.util.stream.Collectors;
-import org.bitcoinj.core.Transaction;
 import org.bitcoinj.core.TransactionOutput;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
@@ -27,7 +23,7 @@ import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class WhirlpoolWalletTx0Test extends Tx0ServiceV1Test {
+public class WhirlpoolWalletTx0Test extends AbstractTx0ServiceV1Test {
   private Logger log = LoggerFactory.getLogger(WhirlpoolWalletTx0Test.class);
 
   public WhirlpoolWalletTx0Test() throws Exception {
@@ -113,13 +109,6 @@ public class WhirlpoolWalletTx0Test extends Tx0ServiceV1Test {
     Assertions.assertTrue(
         utxosContains(
             tx0_pool05.getSpendFroms(), spendFromUtxo.tx_hash, spendFromUtxo.tx_output_n));
-  }
-
-  protected Collection<Pool> findPoolsLowerOrEqual(String maxPoolId, PoolSupplier poolSupplier) {
-    Pool highestPool = poolSupplier.findPoolById(maxPoolId);
-    return poolSupplier.getPools().stream()
-        .filter(pool -> pool.getDenomination() <= highestPool.getDenomination())
-        .collect(Collectors.toList());
   }
 
   @Test
@@ -479,31 +468,5 @@ public class WhirlpoolWalletTx0Test extends Tx0ServiceV1Test {
         whirlpoolWallet.getUtxoSupplier().findUtxos(WhirlpoolAccount.DEPOSIT);
     Tx0 tx0 = whirlpoolWallet.tx0Cascade(spendFroms, pools, tx0Config).iterator().next();
     log.info("Tx0: " + tx0.getSpendFroms() + " " + tx0.getTx());
-  }
-
-  protected boolean utxosContains(
-      Collection<UnspentOutput> unspentOutputs, String hash, int index) {
-    return unspentOutputs.stream()
-            .filter(
-                unspentOutput ->
-                    unspentOutput.tx_hash.equals(hash) && index == unspentOutput.tx_output_n)
-            .count()
-        > 0;
-  }
-
-  @Override
-  protected void onPushTx0(Tx0PushRequest request, Transaction tx) throws Exception {
-    super.onPushTx0(request, tx);
-
-    // mock utxos from tx0 outputs
-    List<UnspentOutput> unspentOutputs = new LinkedList<>();
-    for (TransactionOutput txOut : tx.getOutputs()) {
-      HD_Address address = whirlpoolWallet.getWalletDeposit().getAddressAt(0, 61).getHdAddress();
-      UnspentOutput unspentOutput =
-          newUnspentOutput(
-              tx.getHashAsString(), txOut.getIndex(), txOut.getValue().getValue(), address);
-      unspentOutputs.add(unspentOutput);
-    }
-    mockUtxos(unspentOutputs.toArray(new UnspentOutput[] {}));
   }
 }

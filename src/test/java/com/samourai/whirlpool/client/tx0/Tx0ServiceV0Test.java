@@ -3,10 +3,8 @@ package com.samourai.whirlpool.client.tx0;
 import com.samourai.wallet.api.backend.beans.UnspentOutput;
 import com.samourai.wallet.hd.HD_Address;
 import com.samourai.wallet.util.TxUtil;
-import com.samourai.whirlpool.client.wallet.WhirlpoolWalletConfig;
 import com.samourai.whirlpool.client.wallet.beans.Tx0FeeTarget;
 import com.samourai.whirlpool.client.wallet.beans.WhirlpoolAccount;
-import com.samourai.whirlpool.client.whirlpool.ServerApi;
 import com.samourai.whirlpool.client.whirlpool.beans.Tx0Data;
 import java.util.Arrays;
 import org.bitcoinj.core.Transaction;
@@ -16,23 +14,16 @@ import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class Tx0ServiceV0Test extends AbstractTx0ServiceTest {
+public class Tx0ServiceV0Test extends AbstractTx0ServiceV0Test {
   private Logger log = LoggerFactory.getLogger(Tx0ServiceV0Test.class);
 
   public Tx0ServiceV0Test() throws Exception {
-    super(64);
+    super();
   }
 
   @BeforeEach
   public void setup() throws Exception {
     super.setup();
-  }
-
-  @Override
-  protected WhirlpoolWalletConfig computeWhirlpoolWalletConfig(ServerApi serverApi) {
-    WhirlpoolWalletConfig config = super.computeWhirlpoolWalletConfig(serverApi);
-    config.setFeeOpReturnImplV0();
-    return config;
   }
 
   @Test

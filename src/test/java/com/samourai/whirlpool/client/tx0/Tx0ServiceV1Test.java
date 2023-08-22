@@ -14,11 +14,11 @@ import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class Tx0ServiceV1Test extends AbstractTx0ServiceTest {
+public class Tx0ServiceV1Test extends AbstractTx0ServiceV1Test {
   private Logger log = LoggerFactory.getLogger(Tx0ServiceV1Test.class);
 
   public Tx0ServiceV1Test() throws Exception {
-    super(46);
+    super();
   }
 
   @BeforeEach

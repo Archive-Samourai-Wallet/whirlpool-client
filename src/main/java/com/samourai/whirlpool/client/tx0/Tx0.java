@@ -76,4 +76,9 @@ public class Tx0 extends Tx0Preview {
   public TransactionOutput getSamouraiFeeOutput() {
     return samouraiFeeOutput;
   }
+
+  @Override
+  public String toString() {
+    return super.toString() + ", spendFroms=" + spendFroms + ", tx0Config=" + tx0Config;
+  }
 }
