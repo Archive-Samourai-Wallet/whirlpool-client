@@ -14,6 +14,7 @@ import com.samourai.wallet.hd.HD_Address;
 import com.samourai.wallet.hd.HD_WalletFactoryGeneric;
 import com.samourai.wallet.segwit.bech32.Bech32UtilGeneric;
 import com.samourai.wallet.util.AsyncUtil;
+import com.samourai.wallet.util.RandomUtil;
 import com.samourai.whirlpool.client.tx0.ITx0PreviewServiceConfig;
 import com.samourai.whirlpool.client.tx0.Tx0PreviewService;
 import com.samourai.whirlpool.client.utils.ClientUtils;
@@ -91,6 +92,8 @@ public class AbstractTest {
 
   public AbstractTest() throws Exception {
     ClientUtils.setLogLevel(Level.DEBUG, Level.DEBUG);
+
+    RandomUtil._setTestMode();
 
     httpClient = new JettyHttpClient(5000, Optional.<HttpProxy>empty(), "test");
 

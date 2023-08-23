@@ -330,9 +330,9 @@ public class Tx0PreviewService {
       Tx0Param tx0Param,
       Collection<UnspentOutput> spendFroms,
       Tx0Data tx0Data)
-      throws Exception {
+      throws NotifiableException {
     Pair<Collection<UnspentOutput>, Collection<UnspentOutput>> spendFromsStonewall =
-        computeSpendFromAmountsStonewall(tx0PreviewConfig, spendFroms, tx0Param, tx0Data);
+        computeSpendFromsStonewall(tx0PreviewConfig, spendFroms, tx0Param, tx0Data);
     if (spendFromsStonewall == null) {
       // stonewall is not possible
       return null;
@@ -447,14 +447,12 @@ public class Tx0PreviewService {
     return Pair.of(nbPremixTotal, changeValues);
   }
 
-  // TODO: Continue to optimize...
-  private Pair<Collection<UnspentOutput>, Collection<UnspentOutput>>
-      computeSpendFromAmountsStonewall(
-          Tx0PreviewConfig tx0PreviewConfig,
-          Collection<UnspentOutput> spendFroms,
-          Tx0Param tx0Param,
-          Tx0Data tx0Data)
-          throws NotifiableException {
+  private Pair<Collection<UnspentOutput>, Collection<UnspentOutput>> computeSpendFromsStonewall(
+      Tx0PreviewConfig tx0PreviewConfig,
+      Collection<UnspentOutput> spendFroms,
+      Tx0Param tx0Param,
+      Tx0Data tx0Data)
+      throws NotifiableException {
 
     // estimate max tx0MinerFee as it would be for regular tx0
     // it will be recalculated later more precisely with real nbPremix (wich maybe lower)
@@ -463,27 +461,23 @@ public class Tx0PreviewService {
     int tx0SizeMax = ClientUtils.computeTx0Size(nbPremixMax, spendFroms, params);
     long tx0MinerFeeMax = ClientUtils.computeTx0MinerFee(tx0SizeMax, tx0Param.getFeeTx0(), true);
 
-    long feeParticipation;
-    long minSpendFromA;
-    long minSpendFromB;
-    if (tx0PreviewConfig.getCascadingParent() == null) {
-      // initial pool
-      feeParticipation = (tx0MinerFeeMax + tx0Data.getFeeValue()) / 2L; // split fees
-      long minSpendFrom = feeParticipation + tx0Param.getPremixValue(); // at least 1 must mix each
-      // same minSpendFrom for A & B
-      minSpendFromA = minSpendFrom;
-      minSpendFromB = minSpendFrom;
-    } else {
-      // lower pools
-      feeParticipation = tx0MinerFeeMax / 2L; // split miner fee
-      // fee change applied to A
-      minSpendFromA = feeParticipation + tx0Data.getFeeChange() + tx0Param.getPremixValue();
-      minSpendFromB = feeParticipation + tx0Param.getPremixValue();
-    }
+    // split minerFee + feeValue (feeValue will be zero for lower cascading pools)
+    long feeParticipation = (tx0MinerFeeMax + tx0Data.computeFeeValueOrFeeChange()) / 2L;
+    long minSpendFrom = feeParticipation + tx0Param.getPremixValue(); // at least 1 must mix each
+    boolean initialPool = (tx0PreviewConfig.getCascadingParent() == null);
+
+    // compute pairs
+    return computeSpendFromsStonewallPairs(initialPool, spendFroms, minSpendFrom);
+  }
+
+  private Pair<Collection<UnspentOutput>, Collection<UnspentOutput>>
+      computeSpendFromsStonewallPairs(
+          boolean initialPool, Collection<UnspentOutput> spendFroms, long minSpendFrom)
+          throws NotifiableException {
 
     // sort utxos descending to help avoid misses [see
     // WhirlpoolWalletDeocyTx0x2.tx0x2_decoy_3utxos()]
-    if (tx0PreviewConfig.getCascadingParent() == null) {
+    if (initialPool) {
       List<UnspentOutput> sortedSpendFroms = new LinkedList<>();
       sortedSpendFroms.addAll(spendFroms);
       Collections.sort(sortedSpendFroms, new UnspentOutputComparator().reversed());
@@ -495,86 +489,57 @@ public class Tx0PreviewService {
     long spendFromB = 0L;
     Map<String, UnspentOutput> spendFromsA = new HashMap<>();
     Map<String, UnspentOutput> spendFromsB = new HashMap<>();
-    if (tx0PreviewConfig.getCascadingParent() == null) {
-      // initial pool: check outpoints
-      for (UnspentOutput spendFrom : spendFroms) {
-        String hash = spendFrom.tx_hash;
 
-        if (spendFromA < minSpendFromA) {
-          spendFromsA.put(hash, spendFrom);
-          spendFromA += spendFrom.value; // must reach minSpendFrom for A
-        } else if (spendFromB < minSpendFromB && !spendFromsA.containsKey(hash)) {
-          spendFromsB.put(hash, spendFrom);
-          spendFromB += spendFrom.value; // must reach minSpendFrom for B
-        } else {
-          // random factor when minSpendFrom is reached
-          if (RandomUtil.getInstance().random(0, 1) == 1) {
-            if (!spendFromsB.containsKey(hash)) {
-              spendFromsA.put(hash, spendFrom);
-              spendFromA += spendFrom.value;
-            } else {
-              spendFromsB.put(hash, spendFrom);
-              spendFromB += spendFrom.value;
-            }
-          } else {
-            if (!spendFromsA.containsKey(hash)) {
-              spendFromsB.put(hash, spendFrom);
-              spendFromB += spendFrom.value;
-            } else {
-              spendFromsA.put(hash, spendFrom);
-              spendFromA += spendFrom.value;
-            }
-          }
-        }
+    for (UnspentOutput spendFrom : spendFroms) {
+      String hash = spendFrom.tx_hash;
+
+      // initial pool: check outpoints to avoid spending same prev-tx from both A & B
+      // lower pools: does not check outpoints as we are cascading from same prev-tx0
+      boolean allowA = !initialPool || !spendFromsB.containsKey(hash);
+      boolean allowB = !initialPool || !spendFromsA.containsKey(hash);
+
+      boolean choice; // true=A, false=B
+      if (allowA && spendFromA < minSpendFrom) {
+        // must reach minSpendFrom for A
+        choice = true; // choose A
+      } else if (allowB && spendFromB < minSpendFrom) {
+        // must reach minSpendFrom for B
+        choice = false;
+      } else {
+        // random factor when minSpendFrom is reached
+        choice = (RandomUtil.getInstance().random(0, 1) == 0);
       }
-    } else {
-      // lower pools: does not check outpoints
-      for (UnspentOutput spendFrom : spendFroms) {
-        String hash = spendFrom.tx_hash;
-        if (spendFromA < minSpendFromA) {
-          // must reach minSpendFrom for A
-          spendFromA += spendFrom.value;
-          spendFromsA.put(hash, spendFrom);
-        } else if (spendFromB < minSpendFromB) {
-          // must reach minSpendFrom for B
-          spendFromB += spendFrom.value;
-          spendFromsB.put(hash, spendFrom);
-        } else {
-          // random factor when minSpendFrom is reached
-          if (RandomUtil.getInstance().random(0, 1) == 1) {
-            spendFromA += spendFrom.value;
-            spendFromsA.put(hash, spendFrom);
-          } else {
-            spendFromB += spendFrom.value;
-            spendFromsB.put(hash, spendFrom);
-          }
-        }
+
+      if (choice) {
+        // choose A
+        spendFromsA.put(hash, spendFrom);
+        spendFromA += spendFrom.value;
+      } else {
+        // choose B
+        spendFromsB.put(hash, spendFrom);
+        spendFromB += spendFrom.value;
       }
     }
 
-    if (spendFromA < minSpendFromA || spendFromB < minSpendFromB) {
+    if (spendFromA < minSpendFrom || spendFromB < minSpendFrom) {
       if (log.isDebugEnabled()) {
         log.debug(
             "Stonewall is not possible for TX0 decoy change: spendFromA="
                 + spendFromA
                 + ", spendFromB="
                 + spendFromB
-                + ", minSpendFromA="
-                + minSpendFromA
-                + ", minSpendFromB="
-                + minSpendFromB);
+                + ", minSpendFrom="
+                + minSpendFrom);
       }
 
       // if both inputs (higher pool change outputs) are not large enough for decoy tx02, skip to
       // next lower pool
-      if (tx0PreviewConfig.getCascadingParent() != null) {
-        throw new NotifiableException(
-            "Decoy Tx0x2 not possible for lower pool: " + tx0Data.getPoolId());
+      if (!initialPool) {
+        throw new NotifiableException("Decoy Tx0x2 not possible for lower pool");
       }
 
       return null;
     }
-
     return Pair.of(spendFromsA.values(), spendFromsB.values());
   }
 }

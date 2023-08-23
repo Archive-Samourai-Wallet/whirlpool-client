@@ -377,7 +377,8 @@ public class WhirlpoolWalletDecoyTx0x2Test extends AbstractTx0ServiceV1Test {
     changeValueA = tx0x2_pool001.getChangeOutputs().get(0).getValue().value;
     changeValueB = tx0x2_pool001.getChangeOutputs().get(1).getValue().value;
     changeOutputsSum = changeValueA + changeValueB;
-    Assertions.assertTrue(Math.abs(changeValueA-changeValueB)<=1); // split evenly (allow 1sat diff)
+    Assertions.assertTrue(
+        Math.abs(changeValueA - changeValueB) <= 1); // split evenly (allow 1sat diff)
     Assertions.assertEquals(changeValue, changeOutputsSum);
 
     // tx0x2_pool01 spends from spendFroms
@@ -672,7 +673,8 @@ public class WhirlpoolWalletDecoyTx0x2Test extends AbstractTx0ServiceV1Test {
     changeValueA = tx0x2_pool001.getChangeOutputs().get(0).getValue().value;
     changeValueB = tx0x2_pool001.getChangeOutputs().get(1).getValue().value;
     changeOutputsSum = changeValueA + changeValueB;
-    Assertions.assertEquals(changeValueA, changeValueB); // split evenly
+    Assertions.assertTrue(
+            Math.abs(changeValueA - changeValueB) <= 1); // split evenly (allow 1sat diff)
     Assertions.assertEquals(changeValue, changeOutputsSum);
 
     // tx0x2_pool05 spends from spendFroms
