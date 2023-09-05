@@ -25,7 +25,7 @@
         <dependency>
             <groupId>io.samourai.code.wallet</groupId>
             <artifactId>extlibj</artifactId>
-            <version>26badb04</version><!-- branch tx0x2-bitcoinj -->
+            <version>0.0.47-featureTx0-SNAPSHOT</version><!-- branch feature/tx0x2 -->
         </dependency>
         <dependency>
             <groupId>io.samourai.code.wallet</groupId>

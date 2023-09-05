@@ -612,7 +612,7 @@ public class Tx0x2Service extends AbstractCahoots2xService<Tx0x2, Tx0x2Context> 
         cahootsContext
             .getCahootsWallet()
             .getReceiveWallet(cahootsContext.getAccount(), BIP_FORMAT.SEGWIT_NATIVE)
-            .getPub(),
+            .getXPub(),
         key);
   }
 

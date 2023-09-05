@@ -56,9 +56,9 @@ public class DojoDataSource extends WalletResponseDataSource
     // initialize wallet BEFORE loading
     if (initial && !isInitialized) {
       // initialize bip84 wallets on backend
-      String[] activePubs = getWalletSupplier().getPubs(true, BIP_FORMAT.SEGWIT_NATIVE);
-      for (String pub : activePubs) {
-        initWallet(pub);
+      String[] activeXPubs = getWalletSupplier().getXPubs(true, BIP_FORMAT.SEGWIT_NATIVE);
+      for (String xpub : activeXPubs) {
+        initWallet(xpub);
       }
       getWalletStateSupplier().setInitialized(true);
     }
@@ -93,10 +93,10 @@ public class DojoDataSource extends WalletResponseDataSource
   }
 
   private Map<String, TxsResponse.Tx> fetchTxsPostmix() throws Exception {
-    String[] zpubs =
+    String[] xpubs =
         new String[] {
-          getWhirlpoolWallet().getWalletPremix().getPub(),
-          getWhirlpoolWallet().getWalletPostmix().getPub()
+          getWhirlpoolWallet().getWalletPremix().getXPub(),
+          getWhirlpoolWallet().getWalletPostmix().getXPub()
         };
 
     Map<String, TxsResponse.Tx> txs = new LinkedHashMap<String, TxsResponse.Tx>();
@@ -104,7 +104,7 @@ public class DojoDataSource extends WalletResponseDataSource
     TxsResponse txsResponse;
     do {
       page++;
-      txsResponse = backendApi.fetchTxs(zpubs, page, FETCH_TXS_PER_PAGE);
+      txsResponse = backendApi.fetchTxs(xpubs, page, FETCH_TXS_PER_PAGE);
       if (txsResponse == null) {
         log.warn("Resync aborted: fetchTxs() is not available");
         break;
@@ -179,9 +179,9 @@ public class DojoDataSource extends WalletResponseDataSource
                         });
 
                 // watch addresses
-                String[] pubs = getWalletSupplier().getPubs(true);
+                String[] xpubs = getWalletSupplier().getXPubs(true);
                 backendWsApi.subscribeAddress(
-                    pubs,
+                    xpubs,
                     (MessageListener)
                         message -> {
                           if (log.isDebugEnabled()) {
@@ -212,7 +212,7 @@ public class DojoDataSource extends WalletResponseDataSource
 
   @Override
   protected WalletResponse fetchWalletResponse() throws Exception {
-    String[] pubs = getWalletSupplier().getPubs(true);
+    String[] pubs = getWalletSupplier().getXPubs(true);
     return backendApi.fetchWallet(pubs);
   }
 

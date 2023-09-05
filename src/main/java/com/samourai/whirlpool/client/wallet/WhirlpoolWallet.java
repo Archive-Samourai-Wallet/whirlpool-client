@@ -368,17 +368,17 @@ public class WhirlpoolWallet {
 
     // log wallets
     for (BipWallet bipWallet : getWalletSupplier().getWallets()) {
-      String nextReceivePath = bipWallet.getNextAddress(false).getPathAddress();
-      String nextChangePath = bipWallet.getNextChangeAddress(false).getPathAddress();
+      String nextReceivePath = bipWallet.getNextAddressReceive(false).getPathAddress();
+      String nextChangePath = bipWallet.getNextAddressChange(false).getPathAddress();
       String pub =
-          log.isDebugEnabled() ? bipWallet.getPub() : ClientUtils.maskString(bipWallet.getPub());
+          log.isDebugEnabled() ? bipWallet.getXPub() : ClientUtils.maskString(bipWallet.getXPub());
       log.info(
           " +WALLET "
               + bipWallet.getId()
               + ": account="
               + bipWallet.getAccount()
               + ", bipFormat="
-              + bipWallet.getBipFormat().getId()
+              + bipWallet.getBipFormatDefault().getId()
               + ", receive="
               + nextReceivePath
               + ", change="
@@ -778,7 +778,7 @@ public class WhirlpoolWallet {
   }
 
   public String getDepositAddress(boolean increment) {
-    return getWalletDeposit().getNextAddress(increment).getAddressString();
+    return getWalletDeposit().getNextAddressReceive(increment).getAddressString();
   }
 
   public void notifyError(String message) {
@@ -790,19 +790,19 @@ public class WhirlpoolWallet {
   }
 
   public String getZpubDeposit() {
-    return getWalletDeposit().getPub();
+    return getWalletDeposit().getBipPub();
   }
 
   public String getZpubPremix() {
-    return getWalletPremix().getPub();
+    return getWalletPremix().getBipPub();
   }
 
   public String getZpubPostmix() {
-    return getWalletPostmix().getPub();
+    return getWalletPostmix().getBipPub();
   }
 
   public String getZpubBadBank() {
-    return getWalletBadbank().getPub();
+    return getWalletBadbank().getBipPub();
   }
 
   public String getWalletIdentifier() {

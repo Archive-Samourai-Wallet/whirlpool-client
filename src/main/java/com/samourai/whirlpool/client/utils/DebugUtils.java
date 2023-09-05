@@ -45,7 +45,7 @@ public class DebugUtils {
     StringBuilder sb = new StringBuilder().append("\n");
 
     // receive address
-    BipAddress depositAddress = whirlpoolWallet.getWalletDeposit().getNextAddress(false);
+    BipAddress depositAddress = whirlpoolWallet.getWalletDeposit().getNextAddressReceive(false);
 
     sb.append("⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿" + "\n");
     sb.append("⣿ RECEIVE ADDRESS" + "\n");
@@ -68,21 +68,21 @@ public class DebugUtils {
 
       for (BipWallet wallet : whirlpoolWallet.getWalletSupplier().getWallets(account)) {
         NetworkParameters params = wallet.getParams();
-        utxos = whirlpoolWallet.getUtxoSupplier().findUtxos(wallet.getBipFormat(), account);
-        String nextAddressReceive = wallet.getNextAddress(false).getAddressString();
-        String nextAddressChange = wallet.getNextChangeAddress(false).getAddressString();
+        utxos = whirlpoolWallet.getUtxoSupplier().findUtxos(wallet.getBipFormatDefault(), account);
+        String nextAddressReceive = wallet.getNextAddressReceive(false).getAddressString();
+        String nextAddressChange = wallet.getNextAddressChange(false).getAddressString();
         sb.append(
             "     + "
                 + wallet.getId()
                 + ": path="
                 + wallet.getDerivation().getPathAccount(params)
                 + ", bipFormat="
-                + wallet.getBipFormat().getId()
+                + wallet.getBipFormatDefault().getId()
                 + ", "
                 + utxos.size()
                 + " utxos"
-                + ", pub="
-                + ClientUtils.maskString(wallet.getPub())
+                + ", xpub="
+                + ClientUtils.maskString(wallet.getXPub())
                 + ", nextAddressReceive="
                 + nextAddressReceive
                 + ", nextAddressChange="
@@ -202,7 +202,7 @@ public class DebugUtils {
               whirlpoolUtxo.computeConfirmations(latestBlockHeight),
               utxo,
               o.addr,
-              whirlpoolUtxo.getBipWallet().getBipFormat().getId(),
+              whirlpoolUtxo.getBipWallet().getBipFormatDefault().getId(),
               whirlpoolUtxo.getPathAddress(),
               utxoState.getStatus().name(),
               mixableStatusName,

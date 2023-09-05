@@ -103,10 +103,10 @@ public class UtxoData {
         UnspentOutput utxo = e.getValue();
         try {
           // find account
-          String pub = utxo.xpub.m;
-          BipWallet bipWallet = walletSupplier.getWalletByPub(pub);
+          String xpub = utxo.xpub.m;
+          BipWallet bipWallet = walletSupplier.getWalletByXPub(xpub);
           if (bipWallet == null) {
-            throw new Exception("Unknown wallet for: " + pub);
+            throw new Exception("Unknown wallet for: " + xpub);
           }
           WhirlpoolAccount whirlpoolAccount = bipWallet.getAccount();
 
@@ -200,7 +200,7 @@ public class UtxoData {
     // verify inputs
     for (WalletResponse.TxInput input : tx.inputs) {
       if (input.prev_out != null) {
-        BipWallet bipWallet = walletSupplier.getWalletByPub(input.prev_out.xpub.m);
+        BipWallet bipWallet = walletSupplier.getWalletByXPub(input.prev_out.xpub.m);
         if (bipWallet != null) {
           accounts.add(bipWallet.getAccount());
         }
@@ -208,7 +208,7 @@ public class UtxoData {
     }
     // verify outputs
     for (WalletResponse.TxOutput output : tx.out) {
-      BipWallet bipWallet = walletSupplier.getWalletByPub(output.xpub.m);
+      BipWallet bipWallet = walletSupplier.getWalletByXPub(output.xpub.m);
       if (bipWallet != null) {
         accounts.add(bipWallet.getAccount());
       }

@@ -12,6 +12,7 @@ import com.samourai.wallet.bip47.rpc.java.SecretPointFactoryJava;
 import com.samourai.wallet.bip47.rpc.secretPoint.ISecretPointFactory;
 import com.samourai.wallet.bipFormat.BIP_FORMAT;
 import com.samourai.wallet.bipFormat.BipFormat;
+import com.samourai.wallet.bipFormat.BipFormatSupplier;
 import com.samourai.wallet.bipWallet.BipDerivation;
 import com.samourai.wallet.bipWallet.BipWallet;
 import com.samourai.wallet.bipWallet.WalletSupplierImpl;
@@ -140,24 +141,28 @@ public class JavaExample {
           protected WalletSupplierImpl computeWalletSupplier(
               WhirlpoolWallet whirlpoolWallet,
               HD_Wallet bip44w,
-              WalletStateSupplier walletStateSupplier)
+              WalletStateSupplier walletStateSupplier,
+              BipFormatSupplier bipFormatSupplier)
               throws Exception {
             WalletSupplierImpl walletSupplier =
-                super.computeWalletSupplier(whirlpoolWallet, bip44w, walletStateSupplier);
+                super.computeWalletSupplier(
+                    whirlpoolWallet, bip44w, walletStateSupplier, bipFormatSupplier);
 
             // register additional custom wallet for DEPOSIT
             int purpose = 84;
             int acountIndex = 4;
             BipDerivation derivation = new BipDerivation(purpose, acountIndex);
-            BipFormat bipFormat = BIP_FORMAT.SEGWIT_NATIVE; // or define your own BipFormat
+            Collection<BipFormat> bipFormats = Arrays.asList(BIP_FORMAT.SEGWIT_NATIVE);
             walletSupplier.register(
                 new BipWallet(
+                    bipFormatSupplier,
                     "DEPOSIT_ACCOUNT_4_SEGWIT_NATIVE",
                     bip44w,
                     walletStateSupplier,
                     WhirlpoolAccount.DEPOSIT,
                     derivation,
-                    bipFormat));
+                    bipFormats,
+                    BIP_FORMAT.SEGWIT_NATIVE));
             return walletSupplier;
           }
 

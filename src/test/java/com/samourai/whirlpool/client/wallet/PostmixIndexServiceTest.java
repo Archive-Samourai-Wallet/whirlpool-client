@@ -36,7 +36,8 @@ public class PostmixIndexServiceTest extends AbstractTest {
     HD_Wallet bip44w =
         HD_WalletFactoryGeneric.getInstance().getBIP44(seed, SEED_PASSPHRASE, params);
     walletPostmix =
-        new BipWallet(bip44w, new MemoryIndexHandlerSupplier(), BIP_WALLET.POSTMIX_BIP84);
+        new BipWallet(
+            bipFormatSupplier, bip44w, new MemoryIndexHandlerSupplier(), BIP_WALLET.POSTMIX_BIP84);
   }
 
   @Test

@@ -127,7 +127,7 @@ public class Tx0Service {
     } else {
       // pay to deposit
       BipWallet depositWallet = walletSupplier.getWallet(BIP_WALLET.DEPOSIT_BIP84);
-      feeOrBackAddressBech32 = depositWallet.getNextChangeAddress().getAddressString();
+      feeOrBackAddressBech32 = depositWallet.getNextAddressChange().getAddressString();
       if (log.isDebugEnabled()) {
         log.debug("feeAddressDestination: back to deposit => " + feeOrBackAddressBech32);
       }
@@ -253,7 +253,7 @@ public class Tx0Service {
     List<TransactionOutput> premixOutputs = new ArrayList<>();
     for (int j = 0; j < nbPremix; j++) {
       // send to PREMIX
-      BipAddress toAddress = premixWallet.getNextAddress();
+      BipAddress toAddress = premixWallet.getNextAddressReceive();
       String toAddressBech32 = toAddress.getAddressString();
       if (log.isDebugEnabled()) {
         log.debug(
@@ -283,7 +283,7 @@ public class Tx0Service {
     if (!changeAmounts.isEmpty()) {
       // change outputs
       for (long changeAmount : changeAmounts) {
-        BipAddress changeAddress = changeWallet.getNextChangeAddress();
+        BipAddress changeAddress = changeWallet.getNextAddressChange();
         String changeAddressBech32 = changeAddress.getAddressString();
         TransactionOutput changeOutput =
             bech32Util.getTransactionOutput(changeAddressBech32, changeAmount, params);
@@ -378,9 +378,8 @@ public class Tx0Service {
       UnspentOutput changeUtxo =
           new UnspentOutput(
               new MyTransactionOutPoint(changeOutput, changeAddressBech32, 0),
-              null,
               path,
-              changeWallet.getPub());
+              changeWallet.getXPub());
       changeUtxos.add(changeUtxo);
     }
     return changeUtxos;

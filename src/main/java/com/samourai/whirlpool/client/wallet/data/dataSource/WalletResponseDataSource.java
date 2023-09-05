@@ -60,12 +60,13 @@ public abstract class WalletResponseDataSource implements DataSource {
     this.walletStateSupplier = walletStateSupplier;
     this.walletResponseSupplier = new WalletResponseSupplier(whirlpoolWallet, this);
 
-    this.walletSupplier = computeWalletSupplier(whirlpoolWallet, bip44w, walletStateSupplier);
+    this.bipFormatSupplier = computeBipFormatSupplier();
+    this.walletSupplier =
+        computeWalletSupplier(whirlpoolWallet, bip44w, walletStateSupplier, bipFormatSupplier);
     this.minerFeeSupplier = computeMinerFeeSupplier(whirlpoolWallet);
     this.tx0PreviewService = new Tx0PreviewService(minerFeeSupplier, whirlpoolWallet.getConfig());
     this.poolSupplier = computePoolSupplier(whirlpoolWallet, tx0PreviewService);
     this.chainSupplier = computeChainSupplier();
-    this.bipFormatSupplier = computeBipFormatSupplier();
     this.utxoSupplier =
         computeUtxoSupplier(
             whirlpoolWallet,
@@ -78,9 +79,12 @@ public abstract class WalletResponseDataSource implements DataSource {
   }
 
   protected WalletSupplierImpl computeWalletSupplier(
-      WhirlpoolWallet whirlpoolWallet, HD_Wallet bip44w, WalletStateSupplier walletStateSupplier)
+      WhirlpoolWallet whirlpoolWallet,
+      HD_Wallet bip44w,
+      WalletStateSupplier walletStateSupplier,
+      BipFormatSupplier bipFormatSupplier)
       throws Exception {
-    return new WalletSupplierImpl(walletStateSupplier, bip44w);
+    return new WalletSupplierImpl(bipFormatSupplier, walletStateSupplier, bip44w);
   }
 
   protected BasicMinerFeeSupplier computeMinerFeeSupplier(WhirlpoolWallet whirlpoolWallet)
@@ -179,14 +183,14 @@ public abstract class WalletResponseDataSource implements DataSource {
 
   private void setWalletStateValue(Map<String, WalletResponse.Address> addressesMap) {
     // update indexs from wallet backend
-    for (String pub : addressesMap.keySet()) {
-      WalletResponse.Address address = addressesMap.get(pub);
-      BipWallet bipWallet = walletSupplier.getWalletByPub(pub);
+    for (String xpub : addressesMap.keySet()) {
+      WalletResponse.Address address = addressesMap.get(xpub);
+      BipWallet bipWallet = walletSupplier.getWalletByXPub(xpub);
       if (bipWallet != null) {
         bipWallet.getIndexHandlerReceive().set(address.account_index, false);
         bipWallet.getIndexHandlerChange().set(address.change_index, false);
       } else {
-        log.error("No wallet found for: " + pub);
+        log.error("No wallet found for: " + xpub);
       }
     }
   }
