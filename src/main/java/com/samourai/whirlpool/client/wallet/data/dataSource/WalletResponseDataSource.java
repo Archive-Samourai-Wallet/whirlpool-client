@@ -11,6 +11,7 @@ import com.samourai.wallet.chain.ChainSupplier;
 import com.samourai.wallet.hd.HD_Wallet;
 import com.samourai.wallet.util.AbstractOrchestrator;
 import com.samourai.whirlpool.client.tx0.Tx0PreviewService;
+import com.samourai.whirlpool.client.utils.ClientUtils;
 import com.samourai.whirlpool.client.wallet.WhirlpoolWallet;
 import com.samourai.whirlpool.client.wallet.WhirlpoolWalletConfig;
 import com.samourai.whirlpool.client.wallet.data.chain.BasicChainSupplier;
@@ -58,9 +59,9 @@ public abstract class WalletResponseDataSource implements DataSource {
       throws Exception {
     this.whirlpoolWallet = whirlpoolWallet;
     this.walletStateSupplier = walletStateSupplier;
+    this.bipFormatSupplier = computeBipFormatSupplier();
     this.walletResponseSupplier = new WalletResponseSupplier(whirlpoolWallet, this);
 
-    this.bipFormatSupplier = computeBipFormatSupplier();
     this.walletSupplier =
         computeWalletSupplier(whirlpoolWallet, bip44w, walletStateSupplier, bipFormatSupplier);
     this.minerFeeSupplier = computeMinerFeeSupplier(whirlpoolWallet);
@@ -190,7 +191,7 @@ public abstract class WalletResponseDataSource implements DataSource {
         bipWallet.getIndexHandlerReceive().set(address.account_index, false);
         bipWallet.getIndexHandlerChange().set(address.change_index, false);
       } else {
-        log.error("No wallet found for: " + xpub);
+        log.error("No BipWallet found for: " + ClientUtils.maskString(xpub));
       }
     }
   }

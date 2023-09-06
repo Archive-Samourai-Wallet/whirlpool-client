@@ -1,6 +1,7 @@
 package com.samourai.whirlpool.client.wallet.beans;
 
 import com.samourai.wallet.api.backend.beans.UnspentOutput;
+import com.samourai.wallet.bipFormat.BipFormat;
 import com.samourai.wallet.bipWallet.BipWallet;
 import com.samourai.wallet.hd.BipAddress;
 import com.samourai.whirlpool.client.wallet.data.utxoConfig.UtxoConfig;
@@ -19,12 +20,14 @@ public class WhirlpoolUtxo {
   private UnspentOutput utxo;
   private Integer blockHeight; // null when unconfirmed
   private BipWallet bipWallet;
+  private BipFormat bipFormat;
   private WhirlpoolUtxoState utxoState;
   private UtxoConfigSupplier utxoConfigSupplier;
 
   public WhirlpoolUtxo(
       UnspentOutput utxo,
       BipWallet bipWallet,
+      BipFormat bipFormat,
       String poolId,
       UtxoConfigSupplier utxoConfigSupplier,
       int latestBlockHeight) {
@@ -32,6 +35,7 @@ public class WhirlpoolUtxo {
     this.utxo = utxo;
     this.blockHeight = computeBlockHeight(utxo.confirmations, latestBlockHeight);
     this.bipWallet = bipWallet;
+    this.bipFormat = bipFormat;
     this.utxoState = new WhirlpoolUtxoState(poolId);
     this.utxoConfigSupplier = utxoConfigSupplier;
 
@@ -134,6 +138,10 @@ public class WhirlpoolUtxo {
 
   public BipWallet getBipWallet() {
     return bipWallet;
+  }
+
+  public BipFormat getBipFormat() {
+    return bipFormat;
   }
 
   public WhirlpoolAccount getAccount() {

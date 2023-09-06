@@ -152,7 +152,7 @@ public class JavaExample {
             int purpose = 84;
             int acountIndex = 4;
             BipDerivation derivation = new BipDerivation(purpose, acountIndex);
-            Collection<BipFormat> bipFormats = Arrays.asList(BIP_FORMAT.SEGWIT_NATIVE);
+            BipFormat bipFormat = BIP_FORMAT.SEGWIT_NATIVE; // or define your own BipFormat
             walletSupplier.register(
                 new BipWallet(
                     bipFormatSupplier,
@@ -161,8 +161,8 @@ public class JavaExample {
                     walletStateSupplier,
                     WhirlpoolAccount.DEPOSIT,
                     derivation,
-                    bipFormats,
-                    BIP_FORMAT.SEGWIT_NATIVE));
+                    Arrays.asList(bipFormat),
+                    bipFormat));
             return walletSupplier;
           }
 

@@ -128,11 +128,11 @@ public class DojoDataSource extends WalletResponseDataSource
         .collect(Collectors.<WhirlpoolUtxo>toList());
   }
 
-  private void initWallet(String pub) throws Exception {
+  private void initWallet(String xpub) throws Exception {
     for (int i = 0; i < INITWALLET_RETRY; i++) {
       log.info(" • Initializing wallet");
       try {
-        backendApi.initBip84(pub);
+        backendApi.initBip84(xpub);
         return; // success
       } catch (Exception e) {
         if (log.isDebugEnabled()) {

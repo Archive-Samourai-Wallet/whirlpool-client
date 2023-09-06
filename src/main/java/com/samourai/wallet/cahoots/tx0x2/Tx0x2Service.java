@@ -12,22 +12,14 @@ import com.samourai.wallet.hd.BipAddress;
 import com.samourai.wallet.hd.Chain;
 import com.samourai.wallet.hd.HD_Address;
 import com.samourai.wallet.send.MyTransactionOutPoint;
+import com.samourai.wallet.util.RandomUtil;
 import com.samourai.wallet.util.TxUtil;
 import com.samourai.whirlpool.client.tx0.Tx0;
 import com.samourai.whirlpool.client.utils.ClientUtils;
 import com.samourai.whirlpool.client.wallet.beans.SamouraiAccountIndex;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
-import org.bitcoinj.core.Coin;
-import org.bitcoinj.core.NetworkParameters;
-import org.bitcoinj.core.Transaction;
-import org.bitcoinj.core.TransactionInput;
-import org.bitcoinj.core.TransactionOutPoint;
-import org.bitcoinj.core.TransactionOutput;
+import org.bitcoinj.core.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -216,7 +208,7 @@ public class Tx0x2Service extends AbstractCahoots2xService<Tx0x2, Tx0x2Context> 
     List<CahootsUtxo> selectedUTXOs = new ArrayList<CahootsUtxo>();
     long sumSelectedUTXOs = 0;
 
-    //    shuffleUtxos(utxos); // removed in later version of ExtLibJ ?
+    RandomUtil.getInstance().shuffle(utxos);
 
     for (CahootsUtxo utxo : utxos) {
       long utxoValue = utxo.getOutpoint().getValue().longValue();

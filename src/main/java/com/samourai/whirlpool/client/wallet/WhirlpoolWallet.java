@@ -262,12 +262,14 @@ public class WhirlpoolWallet {
         tx0Service.tx0Cascade(spendFroms, getWalletSupplier(), pools, tx0Config, getUtxoSupplier());
 
     // broadcast each TX0
+    int num = 1;
     for (Tx0 tx0 : tx0List) {
       if (log.isDebugEnabled()) {
-        log.debug("Pushing Tx0: " + tx0);
+        log.debug("Pushing Tx0 " + (num) + "/" + tx0List.size() + ": " + tx0);
       }
       // broadcast
       tx0Service.pushTx0WithRetryOnAddressReuse(tx0, this);
+      num++;
     }
     // refresh new utxos in background
     refreshUtxosDelayAsync().subscribe();
@@ -370,8 +372,6 @@ public class WhirlpoolWallet {
     for (BipWallet bipWallet : getWalletSupplier().getWallets()) {
       String nextReceivePath = bipWallet.getNextAddressReceive(false).getPathAddress();
       String nextChangePath = bipWallet.getNextAddressChange(false).getPathAddress();
-      String pub =
-          log.isDebugEnabled() ? bipWallet.getXPub() : ClientUtils.maskString(bipWallet.getXPub());
       log.info(
           " +WALLET "
               + bipWallet.getId()
@@ -383,8 +383,10 @@ public class WhirlpoolWallet {
               + nextReceivePath
               + ", change="
               + nextChangePath
-              + ", "
-              + pub);
+              + ", xpub="
+              + ClientUtils.maskString(bipWallet.getXPub())
+              + ", bipPub="
+              + ClientUtils.maskString(bipWallet.getBipPub()));
     }
   }
 

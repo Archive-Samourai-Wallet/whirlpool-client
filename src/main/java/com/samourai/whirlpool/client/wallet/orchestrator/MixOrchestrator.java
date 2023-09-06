@@ -29,7 +29,7 @@ public abstract class MixOrchestrator extends AbstractOrchestrator {
 
   private int maxClients;
   private int maxClientsPerPool;
-  private boolean liquidityClient;
+  private int extraLiquidityClientsPerPool;
   private boolean autoMix;
 
   public MixOrchestrator(
@@ -38,14 +38,14 @@ public abstract class MixOrchestrator extends AbstractOrchestrator {
       MixOrchestratorData data,
       int maxClients,
       int maxClientsPerPool,
-      boolean liquidityClient,
+      int extraLiquidityClientsPerPool,
       boolean autoMix) {
     super(loopDelay, START_DELAY, clientDelay);
     this.data = data;
 
     this.maxClients = maxClients;
     this.maxClientsPerPool = Math.min(maxClientsPerPool, maxClients); // prevent wrong configuration
-    this.liquidityClient = liquidityClient;
+    this.extraLiquidityClientsPerPool = extraLiquidityClientsPerPool;
     this.autoMix = autoMix;
   }
 
@@ -143,7 +143,8 @@ public abstract class MixOrchestrator extends AbstractOrchestrator {
       final WhirlpoolUtxo toMix,
       final String mixingHashCriteria,
       final boolean bestPriorityCriteria,
-      final String poolIdCriteria) {
+      final String poolIdCriteria,
+      final boolean noLiquiditySwapCriteria) {
     final WhirlpoolUtxoPriorityComparator comparator =
         WhirlpoolUtxoPriorityComparator.getInstance();
 
@@ -167,25 +168,13 @@ public abstract class MixOrchestrator extends AbstractOrchestrator {
               }
 
               // pool criteria
-              if (poolIdCriteria != null) {
-                if (!poolIdCriteria.equals(poolId)) {
-                  return false;
-                }
+              if (poolIdCriteria != null && !poolIdCriteria.equals(poolId)) {
+                return false;
               }
 
-              // don't swap liquidity-dedicated thread for a mustMix
-              if (liquidityClient
-                  && toMix.isAccountPremix()
-                  && mixing.getUtxo().isAccountPostmix()) {
-                boolean isLiquidityThread =
-                    data.getNbMixing(poolId) > maxClientsPerPool
-                        && data.getNbMixing(poolId, true) == 1;
-                if (isLiquidityThread) {
-                  if (log.isTraceEnabled()) {
-                    log.trace("not swapping liquidity thread: " + mixing);
-                  }
-                  return false;
-                }
+              // noLiquiditySwap criteria
+              if (noLiquiditySwapCriteria && mixing.getUtxo().isAccountPostmix()) {
+                return false;
               }
 
               // should be lower priority
@@ -197,23 +186,27 @@ public abstract class MixOrchestrator extends AbstractOrchestrator {
         .findFirst();
   }
 
-  public boolean hasMoreMixingThreadAvailable(String poolId, boolean liquidity) {
+  private boolean hasMoreMixingThreadAvailable(String poolId, boolean liquidity) {
     // check maxClients vs all mixings
     if (data.getMixing().size() >= maxClients) {
       return false;
     }
 
-    // check maxClientsPerPool
-    return !isMaxClientsPerPoolReached(poolId, liquidity);
-  }
-
-  private boolean isMaxClientsPerPoolReached(String poolId, boolean liquidity) {
-    // allow addition
-    // al thread for concurrent liquidity remixing
-    if (liquidity && liquidityClient && data.getNbMixing(poolId, true) == 0) {
-      return false;
+    // allow additional liquidity threads?
+    if (liquidity && hasExtraLiquidityClientAvailable(poolId)) {
+      return true;
     }
 
+    // check maxClientsPerPool
+    return !isMaxClientsPerPoolReached(poolId);
+  }
+
+  private boolean hasExtraLiquidityClientAvailable(String poolId) {
+    return extraLiquidityClientsPerPool > 0
+        && data.getNbMixing(poolId, true) < extraLiquidityClientsPerPool;
+  }
+
+  private boolean isMaxClientsPerPoolReached(String poolId) {
     // check maxClientsPerPool vs pool's mixings
     int nbMixingInPool = data.getNbMixing(poolId);
     return (nbMixingInPool >= maxClientsPerPool);
@@ -273,13 +266,26 @@ public abstract class MixOrchestrator extends AbstractOrchestrator {
     boolean bestPriorityCriteria = !mixNow;
     // swap with mixing from same pool when maxClientsPerPool is reached
     String poolIdCriteria =
-        isMaxClientsPerPoolReached(poolId, liquidity) ? toMix.getUtxoState().getPoolId() : null;
+        isMaxClientsPerPoolReached(poolId) ? toMix.getUtxoState().getPoolId() : null;
+    // don't swap liquidity=>mustMix when nbMustMix reached maxClientsPerPool
+    boolean noLiquiditySwapCriteria =
+        toMix.isAccountPremix() && data.getNbMixing(poolId, false) >= maxClientsPerPool;
     Optional<Mixing> mixingToSwapOpt =
-        findMixingToSwap(toMix, mixingHashCriteria, bestPriorityCriteria, poolIdCriteria);
+        findMixingToSwap(
+            toMix,
+            mixingHashCriteria,
+            bestPriorityCriteria,
+            poolIdCriteria,
+            noLiquiditySwapCriteria);
     if (mixingToSwapOpt.isPresent()) {
       // found mixing to swap
       if (log.isTraceEnabled()) {
-        log.trace("findSwap(" + toMix + ") => swap found");
+        log.trace(
+            "findSwap("
+                + toMix
+                + ", noLiquiditySwapCriteria="
+                + noLiquiditySwapCriteria
+                + ") => swap found");
       }
       return new WhirlpoolUtxo[] {toMix, mixingToSwapOpt.get().getUtxo()};
     }

@@ -68,7 +68,6 @@ public class DebugUtils {
 
       for (BipWallet wallet : whirlpoolWallet.getWalletSupplier().getWallets(account)) {
         NetworkParameters params = wallet.getParams();
-        utxos = whirlpoolWallet.getUtxoSupplier().findUtxos(wallet.getBipFormatDefault(), account);
         String nextAddressReceive = wallet.getNextAddressReceive(false).getAddressString();
         String nextAddressChange = wallet.getNextAddressChange(false).getAddressString();
         sb.append(
@@ -76,13 +75,14 @@ public class DebugUtils {
                 + wallet.getId()
                 + ": path="
                 + wallet.getDerivation().getPathAccount(params)
-                + ", bipFormat="
+                + ", bipFormats="
+                + wallet.getBipFormats()
+                + ", bipFormatDefault="
                 + wallet.getBipFormatDefault().getId()
-                + ", "
-                + utxos.size()
-                + " utxos"
                 + ", xpub="
                 + ClientUtils.maskString(wallet.getXPub())
+                + ", bipPub="
+                + ClientUtils.maskString(wallet.getBipPub())
                 + ", nextAddressReceive="
                 + nextAddressReceive
                 + ", nextAddressChange="
@@ -202,7 +202,7 @@ public class DebugUtils {
               whirlpoolUtxo.computeConfirmations(latestBlockHeight),
               utxo,
               o.addr,
-              whirlpoolUtxo.getBipWallet().getBipFormatDefault().getId(),
+              whirlpoolUtxo.getBipFormat().getId(),
               whirlpoolUtxo.getPathAddress(),
               utxoState.getStatus().name(),
               mixableStatusName,
