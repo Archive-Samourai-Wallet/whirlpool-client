@@ -25,6 +25,7 @@ public class Tx0PreviewService {
 
   private MinerFeeSupplier minerFeeSupplier;
   private ITx0PreviewServiceConfig config;
+  private final static long DECOY_CHANGE_SPLIT_THRESHOLD = 100000L; // 0.001btc pool denomination
 
   public Tx0PreviewService(MinerFeeSupplier minerFeeSupplier, ITx0PreviewServiceConfig config) {
     this.minerFeeSupplier = minerFeeSupplier;
@@ -433,8 +434,8 @@ public class Tx0PreviewService {
               + changeValueTotal);
     }
 
-    if (tx0Param.getPool().getPoolId().equals("0.001btc")) {
-      // split changes for last pool
+    if (changeValueA < DECOY_CHANGE_SPLIT_THRESHOLD && changeValueB< DECOY_CHANGE_SPLIT_THRESHOLD) {
+      // split changes evenly
       changeValueA = changeValueTotal / 2L;
       changeValueB = changeValueTotal - changeValueA;
       if (log.isDebugEnabled()) {

@@ -406,8 +406,8 @@ public class WhirlpoolWalletDecoyTx0x2Test extends AbstractTx0ServiceV1Test {
 
   /** Compare with tx0x2 test {@link WhirlpoolWalletTx0x2Test#tx0x2_pool001()} */
   @Test
-  public void tx0x2_decoy_pool001() throws Exception {
-    log.info("Testing Decoy Tx0x2 for pool 0.001");
+  public void tx0x2_decoy_pool001_split() throws Exception {
+    log.info("Testing Decoy Tx0x2 for pool 0.001; Change outputs split evenly.");
     PoolSupplier poolSupplier = whirlpoolWallet.getPoolSupplier();
 
     // mock initial data
@@ -458,6 +458,75 @@ public class WhirlpoolWalletDecoyTx0x2Test extends AbstractTx0ServiceV1Test {
     long changeValueA = decoyTx0x2.getChangeOutputs().get(0).getValue().value;
     long changeValueB = decoyTx0x2.getChangeOutputs().get(1).getValue().value;
     long changeOutputsSum = changeValueA + changeValueB;
+    Assertions.assertTrue(
+            Math.abs(changeValueA - changeValueB) <= 1); // split evenly (allow 1sat diff)
+    Assertions.assertEquals(changeValue, changeOutputsSum);
+
+    // current wallet utxos should be mocked from tx0 outputs
+    whirlpoolWallet.refreshUtxosAsync().blockingAwait();
+    for (TransactionOutput txOut : decoyTx0x2.getChangeOutputs()) {
+      String hash = decoyTx0x2.getTx().getHashAsString();
+      int index = txOut.getIndex();
+      Assertions.assertNotNull(whirlpoolWallet.getUtxoSupplier().findUtxo(hash, index));
+      Assertions.assertNotNull(whirlpoolWallet.getUtxoSupplier()._getPrivKey(hash, index));
+    }
+  }
+
+  @Test
+  public void tx0x2_decoy_pool001_no_split() throws Exception {
+    log.info("Testing Decoy Tx0x2 for pool 0.001; Change outputs not split evenly due to max outputs reached for an 'entity'.");
+    PoolSupplier poolSupplier = whirlpoolWallet.getPoolSupplier();
+
+    // mock initial data
+    HD_Address address0 = whirlpoolWallet.getWalletDeposit().getAddressAt(0, 61).getHdAddress();
+    UnspentOutput spendFromUtxo0 =
+        newUnspentOutput(
+            "cc588cdcb368f894a41c372d1f905770b61ecb3fb8e5e01a97e7cedbf5e324ae",
+            1,
+            500000,
+            address0);
+    HD_Address address1 = whirlpoolWallet.getWalletDeposit().getAddressAt(0, 62).getHdAddress();
+    UnspentOutput spendFromUtxo1 =
+        newUnspentOutput(
+            "7408819d56ec916ea3754abe927ef99590cfb0c5a675366a7bcd7ce6ac9ed69a",
+            2,
+            1500000,
+            address1);
+    mockUtxos(spendFromUtxo0, spendFromUtxo1);
+
+    Collection<UnspentOutput> spendFroms = new ArrayList<>();
+    spendFroms.add(spendFromUtxo0);
+    spendFroms.add(spendFromUtxo1);
+
+    // configure TX0
+    Pool pool = poolSupplier.findPoolById("0.001btc");
+    Tx0Config tx0Config =
+        whirlpoolWallet.getTx0Config(Tx0FeeTarget.BLOCKS_12, Tx0FeeTarget.BLOCKS_12);
+    tx0Config.setDecoyTx0x2(true); // set decoy Tx0x2 flag
+
+    // run
+    Tx0 decoyTx0x2 = whirlpoolWallet.tx0(spendFroms, tx0Config, pool);
+
+    // verify
+    log.info("decoyTx0x2 = " + decoyTx0x2);
+    int nbPremix = 16;
+    int expectedOutputs = nbPremix + 2 + 1 + 1; // 2 changes + samouraiFee + opReturn
+    Assertions.assertEquals(nbPremix, decoyTx0x2.getNbPremix());
+    Assertions.assertEquals(expectedOutputs, decoyTx0x2.getTx().getOutputs().size());
+    Assertions.assertTrue(
+        utxosContains(
+            decoyTx0x2.getSpendFroms(), spendFromUtxo0.tx_hash, spendFromUtxo0.tx_output_n));
+    Assertions.assertTrue(
+        utxosContains(
+            decoyTx0x2.getSpendFroms(), spendFromUtxo1.tx_hash, spendFromUtxo1.tx_output_n));
+
+    Assertions.assertEquals(2, decoyTx0x2.getChangeOutputs().size());
+    long changeValue = decoyTx0x2.getChangeValue();
+    long changeValueA = decoyTx0x2.getChangeOutputs().get(0).getValue().value;
+    long changeValueB = decoyTx0x2.getChangeOutputs().get(1).getValue().value;
+    long changeOutputsSum = changeValueA + changeValueB;
+    Assertions.assertFalse(
+            Math.abs(changeValueA - changeValueB) <= 1); // not split evenly (allow 1sat diff)
     Assertions.assertEquals(changeValue, changeOutputsSum);
 
     // current wallet utxos should be mocked from tx0 outputs
@@ -472,7 +541,7 @@ public class WhirlpoolWalletDecoyTx0x2Test extends AbstractTx0ServiceV1Test {
 
   /**
    * Compare with tx0x2 test {@link WhirlpoolWalletTx0x2Test#tx0x2_cascade_pool01()} Change values
-   * might differ slightly for lower pools due fake samourai "fee" back to self
+   * might differ slightly for lower pools due fake samourai fake "fee" back to self
    */
   @Test
   public void tx0x2_decoy_cascade_pool01() throws Exception {
@@ -577,7 +646,7 @@ public class WhirlpoolWalletDecoyTx0x2Test extends AbstractTx0ServiceV1Test {
 
   /**
    * Compare with tx0x2 test {@link WhirlpoolWalletTx0x2Test#tx0x2_cascade_pool05()} Change values
-   * might differ slightly for lower pools due fake samourai "fee" back to self
+   * might differ slightly for lower pools due fake samourai fake "fee" back to self
    */
   @Test
   public void tx0x2_decoy_cascade_pool05() throws Exception {
@@ -877,7 +946,6 @@ public class WhirlpoolWalletDecoyTx0x2Test extends AbstractTx0ServiceV1Test {
     changeValueA = tx0x2_pool001.getChangeOutputs().get(0).getValue().value;
     changeValueB = tx0x2_pool001.getChangeOutputs().get(1).getValue().value;
     changeOutputsSum = changeValueA + changeValueB;
-    Assertions.assertEquals(changeValueA, changeValueB); // split evenly
     Assertions.assertEquals(changeValue, changeOutputsSum);
 
     // tx0x2_pool05 spends from spendFroms
