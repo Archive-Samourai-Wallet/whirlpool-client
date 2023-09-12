@@ -459,7 +459,7 @@ public class WhirlpoolWalletDecoyTx0x2Test extends AbstractTx0ServiceV1Test {
     long changeValueB = decoyTx0x2.getChangeOutputs().get(1).getValue().value;
     long changeOutputsSum = changeValueA + changeValueB;
     Assertions.assertTrue(
-            Math.abs(changeValueA - changeValueB) <= 1); // split evenly (allow 1sat diff)
+        Math.abs(changeValueA - changeValueB) <= 1); // split evenly (allow 1sat diff)
     Assertions.assertEquals(changeValue, changeOutputsSum);
 
     // current wallet utxos should be mocked from tx0 outputs
@@ -474,7 +474,8 @@ public class WhirlpoolWalletDecoyTx0x2Test extends AbstractTx0ServiceV1Test {
 
   @Test
   public void tx0x2_decoy_pool001_no_split() throws Exception {
-    log.info("Testing Decoy Tx0x2 for pool 0.001; Change outputs not split evenly due to max outputs reached for an 'entity'.");
+    log.info(
+        "Testing Decoy Tx0x2 for pool 0.001; Change outputs not split evenly due to max outputs reached for an 'entity'.");
     PoolSupplier poolSupplier = whirlpoolWallet.getPoolSupplier();
 
     // mock initial data
@@ -526,7 +527,7 @@ public class WhirlpoolWalletDecoyTx0x2Test extends AbstractTx0ServiceV1Test {
     long changeValueB = decoyTx0x2.getChangeOutputs().get(1).getValue().value;
     long changeOutputsSum = changeValueA + changeValueB;
     Assertions.assertFalse(
-            Math.abs(changeValueA - changeValueB) <= 1); // not split evenly (allow 1sat diff)
+        Math.abs(changeValueA - changeValueB) <= 1); // not split evenly (allow 1sat diff)
     Assertions.assertEquals(changeValue, changeOutputsSum);
 
     // current wallet utxos should be mocked from tx0 outputs

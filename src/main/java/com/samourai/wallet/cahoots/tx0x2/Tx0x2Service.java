@@ -25,6 +25,7 @@ import org.slf4j.LoggerFactory;
 
 public class Tx0x2Service extends AbstractCahoots2xService<Tx0x2, Tx0x2Context> {
   private static final Logger log = LoggerFactory.getLogger(Tx0x2Service.class);
+  public static final long CHANGE_SPLIT_THRESHOLD = 100000; // lowest pool denomination (0.001btc)
 
   public Tx0x2Service(BipFormatSupplier bipFormatSupplier, NetworkParameters params) {
     super(CahootsType.TX0X2, bipFormatSupplier, params);
@@ -310,8 +311,9 @@ public class Tx0x2Service extends AbstractCahoots2xService<Tx0x2, Tx0x2Context> 
     Coin counterpartyChangeValue =
         Coin.valueOf(counterpartyChangeOutput.getValue().longValue() - minerFeePaid);
 
-    // split change evenly for 0.001btc pool
-    if (tx0Initiator.getPool().getPoolId().equals("0.001btc")) {
+    // split change evenly when both changes < threshold
+    if (senderChangeValue < CHANGE_SPLIT_THRESHOLD
+        && counterpartyChangeValue.getValue() < CHANGE_SPLIT_THRESHOLD) {
       long combinedChangeValue = senderChangeValue + counterpartyChangeValue.getValue();
       long splitChangeValue = combinedChangeValue / 2L;
       if (combinedChangeValue % 2L != 0) {
@@ -467,7 +469,8 @@ public class Tx0x2Service extends AbstractCahoots2xService<Tx0x2, Tx0x2Context> 
     }
 
     // split change evenly for 0.001btc pool
-    if (tx0Initiator.getPool().getPoolId().equals("0.001btc")) {
+    if (senderChangeValue < CHANGE_SPLIT_THRESHOLD
+        && counterpartyChangeValue.getValue() < CHANGE_SPLIT_THRESHOLD) {
       long combinedChangeValue = senderChangeValue + counterpartyChangeValue.getValue();
       long splitChangeValue = combinedChangeValue / 2L;
       if (combinedChangeValue % 2L != 0) {

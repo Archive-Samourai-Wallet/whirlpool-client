@@ -4,6 +4,7 @@ import com.google.common.collect.Lists;
 import com.samourai.wallet.api.backend.beans.HttpException;
 import com.samourai.wallet.api.backend.beans.UnspentOutput;
 import com.samourai.wallet.api.backend.beans.UnspentOutputComparator;
+import com.samourai.wallet.cahoots.tx0x2.Tx0x2Service;
 import com.samourai.wallet.util.AsyncUtil;
 import com.samourai.wallet.util.Pair;
 import com.samourai.wallet.util.RandomUtil;
@@ -433,10 +434,9 @@ public class Tx0PreviewService {
               + changeValueTotal);
     }
 
-    final long DECOY_CHANGE_SPLIT_THRESHOLD = tx0PreviewConfig.getPools().stream()
-            .filter(p -> p.getPoolId().equals("0.001btc")).findFirst().get().getDenomination();
-    if (changeValueA < DECOY_CHANGE_SPLIT_THRESHOLD && changeValueB < DECOY_CHANGE_SPLIT_THRESHOLD) {
-      // split changes evenly
+    if (changeValueA < Tx0x2Service.CHANGE_SPLIT_THRESHOLD
+        && changeValueB < Tx0x2Service.CHANGE_SPLIT_THRESHOLD) {
+      // split changes evenly when both changes < treshold
       changeValueA = changeValueTotal / 2L;
       changeValueB = changeValueTotal - changeValueA;
       if (log.isDebugEnabled()) {
