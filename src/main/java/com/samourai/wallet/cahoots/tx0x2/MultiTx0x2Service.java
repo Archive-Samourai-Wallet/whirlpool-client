@@ -100,11 +100,20 @@ public class MultiTx0x2Service extends AbstractCahootsService<MultiTx0x2, MultiT
     List<Tx0x2> tx0x2List = new ArrayList<>();
     TransactionOutput higherPoolChange = null;
     for (int i = 0; i < multiTx0x2.getTx0x2List().size(); i++) {
-      payload1 =
-          tx0x2Service.doMultiStep1(
-              multiTx0x2.getTx0x2List().get(i),
-              multiTx0x2Context.getTx0x2ContextList().get(i),
-              higherPoolChange);
+
+      if (higherPoolChange == null) {
+        // initial pool
+        payload1 =
+            tx0x2Service.doStep1Initial(
+                multiTx0x2.getTx0x2List().get(i), multiTx0x2Context.getTx0x2ContextList().get(i));
+      } else {
+        // lower pools
+        payload1 =
+            tx0x2Service.doStep1Cascading(
+                multiTx0x2.getTx0x2List().get(i),
+                multiTx0x2Context.getTx0x2ContextList().get(i),
+                higherPoolChange);
+      }
       tx0x2List.add(payload1);
 
       higherPoolChange = payload1.findChange();
@@ -130,13 +139,19 @@ public class MultiTx0x2Service extends AbstractCahootsService<MultiTx0x2, MultiT
     TransactionOutput higherPoolCounterpartyChange = null;
     long higherPoolMinerFee = 0L;
     for (int i = 0; i < multiTx0x2.getTx0x2List().size(); i++) {
-      payload2 =
-          tx0x2Service.doMultiStep2(
-              multiTx0x2.getTx0x2List().get(i),
-              multiTx0x2Context.getTx0x2ContextList().get(i),
-              higherPoolSenderChange,
-              higherPoolCounterpartyChange,
-              higherPoolMinerFee);
+      if (higherPoolSenderChange == null) {
+        payload2 =
+            tx0x2Service.doStep2Initial(
+                multiTx0x2.getTx0x2List().get(i), multiTx0x2Context.getTx0x2ContextList().get(i));
+      } else {
+        payload2 =
+            tx0x2Service.doStep2Cascading(
+                multiTx0x2.getTx0x2List().get(i),
+                multiTx0x2Context.getTx0x2ContextList().get(i),
+                higherPoolSenderChange,
+                higherPoolCounterpartyChange,
+                higherPoolMinerFee);
+      }
 
       if (payload2 == null) { // negative change value
         multiTx0x2.getTx0x2List().remove(i);
