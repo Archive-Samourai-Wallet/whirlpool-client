@@ -65,7 +65,9 @@ public abstract class AbstractCahootsTest extends AbstractWhirlpoolWalletTest {
     super();
   }
 
-  public void setUp() throws Exception {
+  public void setup() throws Exception {
+    super.setup();
+
     final HD_Wallet bip84WalletSender =
         TestUtil.computeBip84wallet(SEED_WORDS, SEED_PASSPHRASE_INITIATOR);
     walletSupplierSender =

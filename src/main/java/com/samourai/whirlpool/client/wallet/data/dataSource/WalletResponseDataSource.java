@@ -65,7 +65,7 @@ public abstract class WalletResponseDataSource implements DataSource {
     this.walletSupplier =
         computeWalletSupplier(whirlpoolWallet, bip44w, walletStateSupplier, bipFormatSupplier);
     this.minerFeeSupplier = computeMinerFeeSupplier(whirlpoolWallet);
-    this.tx0PreviewService = new Tx0PreviewService(minerFeeSupplier, whirlpoolWallet.getConfig());
+    this.tx0PreviewService = computeTx0PreviewService(whirlpoolWallet, minerFeeSupplier);
     this.poolSupplier = computePoolSupplier(whirlpoolWallet, tx0PreviewService);
     this.chainSupplier = computeChainSupplier();
     this.utxoSupplier =
@@ -77,6 +77,11 @@ public abstract class WalletResponseDataSource implements DataSource {
             poolSupplier,
             bipFormatSupplier);
     this.paynymSupplier = computePaynymSupplier(whirlpoolWallet, walletStateSupplier);
+  }
+
+  protected Tx0PreviewService computeTx0PreviewService(
+      WhirlpoolWallet whirlpoolWallet, MinerFeeSupplier minerFeeSupplier) {
+    return new Tx0PreviewService(minerFeeSupplier, whirlpoolWallet.getConfig());
   }
 
   protected WalletSupplierImpl computeWalletSupplier(

@@ -2,6 +2,7 @@ package com.samourai.whirlpool.client.test;
 
 import ch.qos.logback.classic.Level;
 import com.samourai.http.client.*;
+import com.samourai.wallet.api.backend.BackendApi;
 import com.samourai.wallet.api.backend.BackendServer;
 import com.samourai.wallet.api.backend.beans.UnspentOutput;
 import com.samourai.wallet.api.backend.beans.WalletResponse;
@@ -11,23 +12,29 @@ import com.samourai.wallet.bipFormat.BIP_FORMAT;
 import com.samourai.wallet.bipFormat.BipFormatSupplier;
 import com.samourai.wallet.chain.ChainSupplier;
 import com.samourai.wallet.hd.HD_Address;
+import com.samourai.wallet.hd.HD_Wallet;
 import com.samourai.wallet.hd.HD_WalletFactoryGeneric;
 import com.samourai.wallet.segwit.bech32.Bech32UtilGeneric;
 import com.samourai.wallet.util.AsyncUtil;
 import com.samourai.wallet.util.RandomUtil;
 import com.samourai.whirlpool.client.tx0.ITx0PreviewServiceConfig;
 import com.samourai.whirlpool.client.tx0.Tx0PreviewService;
+import com.samourai.whirlpool.client.tx0.Tx0Service;
 import com.samourai.whirlpool.client.utils.ClientUtils;
+import com.samourai.whirlpool.client.wallet.WhirlpoolWallet;
 import com.samourai.whirlpool.client.wallet.WhirlpoolWalletConfig;
 import com.samourai.whirlpool.client.wallet.beans.WhirlpoolServer;
 import com.samourai.whirlpool.client.wallet.beans.WhirlpoolUtxo;
 import com.samourai.whirlpool.client.wallet.data.dataPersister.MemoryDataPersisterFactory;
+import com.samourai.whirlpool.client.wallet.data.dataSource.DataSource;
 import com.samourai.whirlpool.client.wallet.data.dataSource.DataSourceFactory;
+import com.samourai.whirlpool.client.wallet.data.dataSource.DojoDataSource;
 import com.samourai.whirlpool.client.wallet.data.dataSource.DojoDataSourceFactory;
 import com.samourai.whirlpool.client.wallet.data.minerFee.BasicMinerFeeSupplier;
 import com.samourai.whirlpool.client.wallet.data.minerFee.MinerFeeSupplier;
 import com.samourai.whirlpool.client.wallet.data.pool.ExpirablePoolSupplier;
 import com.samourai.whirlpool.client.wallet.data.pool.MockPoolSupplier;
+import com.samourai.whirlpool.client.wallet.data.utxoConfig.UtxoConfigSupplier;
 import com.samourai.whirlpool.client.wallet.data.walletState.WalletStatePersistableSupplier;
 import com.samourai.whirlpool.client.wallet.data.walletState.WalletStatePersisterFile;
 import com.samourai.whirlpool.client.wallet.data.walletState.WalletStateSupplier;
@@ -94,6 +101,11 @@ public class AbstractTest {
   protected static final String MOCK_SAMOURAI_FEE_ADDRESS =
       "tb1qfd0ukes4xw3xvxwhj9m53nt2huh75khrrdm5dv";
 
+  protected WhirlpoolWalletConfig whirlpoolWalletConfig;
+  protected ExpirablePoolSupplier poolSupplier;
+  protected Tx0PreviewService tx0PreviewService;
+  protected Tx0Service tx0Service;
+
   public AbstractTest() throws Exception {
     ClientUtils.setLogLevel(Level.DEBUG, Level.DEBUG);
 
@@ -152,11 +164,27 @@ public class AbstractTest {
     resetWalletStateFile();
   }
 
+  protected void setup() throws Exception {
+    AbstractTest.this.setup(false);
+  }
+
+  protected void setup(boolean isOpReturnV0) throws Exception {
+    // mock Tx0Data for reproductible test
+    poolSupplier = mockPoolSupplier();
+    tx0PreviewService = mockTx0PreviewService(isOpReturnV0);
+    whirlpoolWalletConfig = computeWhirlpoolWalletConfig(isOpReturnV0);
+
+    tx0Service =
+        new Tx0Service(params, tx0PreviewService, whirlpoolWalletConfig.getFeeOpReturnImpl());
+
+    mockTx0Datas();
+  }
+
   protected WalletResponse mockWalletResponse() throws Exception {
     return ClientUtils.fromJson(WALLET_RESPONSE, WalletResponse.class);
   }
 
-  protected Tx0PreviewService mockTx0PreviewService(boolean isOpReturnV0) throws Exception {
+  private Tx0PreviewService mockTx0PreviewService(boolean isOpReturnV0) throws Exception {
     MinerFeeSupplier minerFeeSupplier = mockMinerFeeSupplier();
     return new Tx0PreviewService(
         minerFeeSupplier,
@@ -217,7 +245,7 @@ public class AbstractTest {
     };
   }
 
-  protected ExpirablePoolSupplier mockPoolSupplier() {
+  private ExpirablePoolSupplier mockPoolSupplier() {
     try {
       PoolsResponse poolsResponse = ClientUtils.fromJson(POOLS_RESPONSE, PoolsResponse.class);
       return new MockPoolSupplier(mockTx0PreviewService(false), poolsResponse.pools);
@@ -278,24 +306,64 @@ public class AbstractTest {
     // overridable
   }
 
-  protected WhirlpoolWalletConfig computeWhirlpoolWalletConfig() {
-    ServerApi serverApi =
-        new ServerApi(WhirlpoolServer.TESTNET.getServerUrlClear(), computeHttpClientService()) {
-          @Override
-          public Single<PushTxSuccessResponse> pushTx0(Tx0PushRequest request) throws Exception {
-            // mock pushtx0
-            byte[] txBytes = WhirlpoolProtocol.decodeBytes(request.tx64);
-            Transaction tx = new Transaction(params, txBytes);
-            onPushTx0(request, tx);
-            return Single.just(new PushTxSuccessResponse(tx.getHashAsString()));
-          }
-        };
-    return computeWhirlpoolWalletConfig(serverApi);
+  protected ServerApi computeServerApi() {
+    return new ServerApi(WhirlpoolServer.TESTNET.getServerUrlClear(), computeHttpClientService()) {
+      @Override
+      public Single<PushTxSuccessResponse> pushTx0(Tx0PushRequest request) throws Exception {
+        // mock pushtx0
+        byte[] txBytes = WhirlpoolProtocol.decodeBytes(request.tx64);
+        Transaction tx = new Transaction(params, txBytes);
+        onPushTx0(request, tx);
+        return Single.just(new PushTxSuccessResponse(tx.getHashAsString()));
+      }
+    };
   }
 
-  protected WhirlpoolWalletConfig computeWhirlpoolWalletConfig(ServerApi serverApi) {
+  private WhirlpoolWalletConfig computeWhirlpoolWalletConfig(boolean isOpReturnV0) {
+    ServerApi serverApi = computeServerApi();
+    return computeWhirlpoolWalletConfig(isOpReturnV0, serverApi);
+  }
+
+  protected WhirlpoolWalletConfig computeWhirlpoolWalletConfig(
+      boolean isOpReturnV0, ServerApi serverApi) {
+    BackendServer backendServer = BackendServer.TESTNET;
+    boolean onion = false;
     DataSourceFactory dataSourceFactory =
-        new DojoDataSourceFactory(BackendServer.TESTNET, false, null);
+        new DojoDataSourceFactory(backendServer, onion, null) {
+          @Override
+          public DataSource createDataSource(
+              WhirlpoolWallet whirlpoolWallet,
+              HD_Wallet bip44w,
+              String passphrase,
+              WalletStateSupplier walletStateSupplier,
+              UtxoConfigSupplier utxoConfigSupplier)
+              throws Exception {
+            // DataSource with mocked PoolSupplier & Tx0PreviewService
+            String dojoUrl = backendServer.getBackendUrl(onion);
+            WhirlpoolWalletConfig config = whirlpoolWallet.getConfig();
+            IHttpClient httpClientBackend = config.getHttpClient(HttpUsage.BACKEND);
+            BackendApi backendApi = BackendApi.newBackendApiSamourai(httpClientBackend, dojoUrl);
+            return new DojoDataSource(
+                whirlpoolWallet,
+                bip44w,
+                walletStateSupplier,
+                utxoConfigSupplier,
+                backendApi,
+                null) {
+              @Override
+              protected ExpirablePoolSupplier computePoolSupplier(
+                  WhirlpoolWallet whirlpoolWallet, Tx0PreviewService tx0PreviewService)
+                  throws Exception {
+                return AbstractTest.this.poolSupplier;
+              }
+
+              @Override
+              public Tx0PreviewService getTx0PreviewService() {
+                return tx0PreviewService;
+              }
+            };
+          }
+        };
     ISecretPointFactory secretPointFactory = SecretPointFactoryJava.getInstance();
     IWhirlpoolHttpClientService httpClientService = computeHttpClientService();
     WhirlpoolWalletConfig config =
@@ -310,6 +378,11 @@ public class AbstractTest {
             TestNet3Params.get(),
             false);
     config.setDataPersisterFactory(new MemoryDataPersisterFactory());
+    if (isOpReturnV0) {
+      config.setFeeOpReturnImplV0();
+    }
+    config.setTx0MaxOutputs(70);
+    config.getFeeOpReturnImpl().setTestMode(true);
     return config;
   }
 
@@ -361,11 +434,9 @@ public class AbstractTest {
     return utxo.tx_hash + ':' + utxo.tx_output_n;
   }
 
-  protected void mockTx0Datas() throws Exception {
+  private void mockTx0Datas() throws Exception {
     byte[] feePayload =
-        computeWhirlpoolWalletConfig()
-            .getFeeOpReturnImpl()
-            .computeFeePayload(0, (short) 0, (short) 0);
+        whirlpoolWalletConfig.getFeeOpReturnImpl().computeFeePayload(0, (short) 0, (short) 0);
     mockTx0Datas.add(
         new Tx0Data(
             "0.5btc",

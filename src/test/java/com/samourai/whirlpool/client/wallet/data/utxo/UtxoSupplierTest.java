@@ -12,7 +12,6 @@ import com.samourai.whirlpool.client.test.AbstractTest;
 import com.samourai.whirlpool.client.tx0.Tx0PreviewService;
 import com.samourai.whirlpool.client.wallet.WhirlpoolEventService;
 import com.samourai.whirlpool.client.wallet.WhirlpoolWallet;
-import com.samourai.whirlpool.client.wallet.WhirlpoolWalletConfig;
 import com.samourai.whirlpool.client.wallet.beans.WhirlpoolAccount;
 import com.samourai.whirlpool.client.wallet.beans.WhirlpoolUtxoChanges;
 import com.samourai.whirlpool.client.wallet.data.dataPersister.DataPersister;
@@ -50,6 +49,7 @@ public class UtxoSupplierTest extends AbstractTest {
 
   @BeforeEach
   public void setup() throws Exception {
+    super.setup();
     WhirlpoolEventService.getInstance()
         .register(
             new MessageListener<UtxoChangesEvent>() {
@@ -63,8 +63,7 @@ public class UtxoSupplierTest extends AbstractTest {
     byte[] seed = hdWalletFactory.computeSeedFromWords(SEED_WORDS);
     HD_Wallet bip44w = hdWalletFactory.getBIP44(seed, SEED_PASSPHRASE, params);
 
-    WhirlpoolWalletConfig config = computeWhirlpoolWalletConfig(null);
-    WhirlpoolWallet whirlpoolWallet = new WhirlpoolWallet(config, bip44w, "test");
+    WhirlpoolWallet whirlpoolWallet = new WhirlpoolWallet(whirlpoolWalletConfig, bip44w, "test");
 
     dataPersister = new FileDataPersisterFactory().createDataPersister(whirlpoolWallet, bip44w);
     dataPersister.load();
@@ -86,7 +85,7 @@ public class UtxoSupplierTest extends AbstractTest {
           @Override
           protected ExpirablePoolSupplier computePoolSupplier(
               WhirlpoolWallet whirlpoolWallet, Tx0PreviewService tx0PreviewService) {
-            return mockPoolSupplier();
+            return UtxoSupplierTest.this.poolSupplier;
           }
 
           @Override

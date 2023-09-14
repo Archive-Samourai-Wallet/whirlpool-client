@@ -22,7 +22,6 @@ import java.util.List;
 import java.util.stream.Collectors;
 import org.bitcoinj.core.Transaction;
 import org.bitcoinj.core.TransactionOutput;
-import org.junit.jupiter.api.BeforeEach;
 
 public class AbstractWhirlpoolWalletTest extends AbstractTest {
   protected UtxoSupplier utxoSupplier;
@@ -30,14 +29,13 @@ public class AbstractWhirlpoolWalletTest extends AbstractTest {
 
   protected WhirlpoolUtxoChanges lastUtxoChanges;
   protected WhirlpoolWallet whirlpoolWallet;
-  protected WhirlpoolWalletConfig config;
 
   public AbstractWhirlpoolWalletTest() throws Exception {
     super();
   }
 
-  @BeforeEach
-  public void setup() throws Exception {
+  public void setup(boolean isOpReturnV0) throws Exception {
+    super.setup(isOpReturnV0);
     WhirlpoolEventService.getInstance()
         .register(
             new MessageListener<UtxoChangesEvent>() {
@@ -51,7 +49,6 @@ public class AbstractWhirlpoolWalletTest extends AbstractTest {
     whirlpoolWallet = computeWhirlpoolWallet();
     utxoSupplier = whirlpoolWallet.getUtxoSupplier();
     utxoConfigSupplier = whirlpoolWallet.getUtxoConfigSupplier();
-    config = whirlpoolWallet.getConfig();
   }
 
   @Override
@@ -76,7 +73,6 @@ public class AbstractWhirlpoolWalletTest extends AbstractTest {
     byte[] seed = hdWalletFactory.computeSeedFromWords(seedWords);
 
     WhirlpoolWalletService whirlpoolWalletService = new WhirlpoolWalletService();
-    WhirlpoolWalletConfig whirlpoolWalletConfig = computeWhirlpoolWalletConfig();
     WhirlpoolWallet whirlpoolWallet = new WhirlpoolWallet(whirlpoolWalletConfig, seed, passphrase);
     whirlpoolWallet = whirlpoolWalletService.openWallet(whirlpoolWallet, passphrase);
 

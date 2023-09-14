@@ -10,15 +10,14 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 public class PoolSupplierTest extends AbstractTest {
-  private ExpirablePoolSupplier supplier;
 
   public PoolSupplierTest() throws Exception {
     super();
   }
 
   @BeforeEach
-  public void setUp() throws Exception {
-    this.supplier = mockPoolSupplier();
+  public void setup() throws Exception {
+    super.setup();
   }
 
   @Test
@@ -27,18 +26,18 @@ public class PoolSupplierTest extends AbstractTest {
     doTest();
 
     // non-existing pool
-    Assertions.assertNull(supplier.findPoolById("foo"));
+    Assertions.assertNull(poolSupplier.findPoolById("foo"));
   }
 
   private void doTest() throws Exception {
-    supplier.load();
+    ((ExpirablePoolSupplier) poolSupplier).load();
 
     // verify getPools
-    Collection<Pool> getPools = supplier.getPools();
+    Collection<Pool> getPools = poolSupplier.getPools();
     Assertions.assertEquals(4, getPools.size());
 
     // verify findPoolById
-    Pool pool01 = supplier.findPoolById("0.01btc");
+    Pool pool01 = poolSupplier.findPoolById("0.01btc");
     Assertions.assertEquals("0.01btc", pool01.getPoolId());
     Assertions.assertEquals(1000000, pool01.getDenomination());
     Assertions.assertEquals(50000, pool01.getFeeValue());
@@ -56,19 +55,19 @@ public class PoolSupplierTest extends AbstractTest {
 
     // verify getTx0PreviewMin
     Tx0Preview tx0Preview = pool01.getTx0PreviewMin();
-    Assertions.assertEquals(1050526, tx0Preview.getTotalValue());
-    Assertions.assertEquals(1050526, tx0Preview.getSpendValue());
-    Assertions.assertEquals(1000262, tx0Preview.getPremixValue());
+    Assertions.assertEquals(1050519, tx0Preview.getTotalValue());
+    Assertions.assertEquals(1050519, tx0Preview.getSpendValue());
+    Assertions.assertEquals(1000255, tx0Preview.getPremixValue());
     Assertions.assertEquals(50000, tx0Preview.getFeeValue());
     Assertions.assertEquals(0, tx0Preview.getFeeChange());
     Assertions.assertEquals(264, tx0Preview.getTx0Size());
     Assertions.assertEquals(1, tx0Preview.getNbPremix());
-    Assertions.assertEquals(262, tx0Preview.getMixMinerFee());
+    Assertions.assertEquals(255, tx0Preview.getMixMinerFee());
     Assertions.assertEquals(1, tx0Preview.getMixMinerFeePrice());
     Assertions.assertEquals(264, tx0Preview.getTx0MinerFee());
     Assertions.assertEquals(1, tx0Preview.getTx0MinerFeePrice());
     Assertions.assertEquals(0, tx0Preview.getChangeValue());
     Assertions.assertEquals("0.01btc", tx0Preview.getPool().getPoolId());
-    Assertions.assertEquals(1050526, pool01.getTx0PreviewMinSpendValue());
+    Assertions.assertEquals(1050519, pool01.getTx0PreviewMinSpendValue());
   }
 }

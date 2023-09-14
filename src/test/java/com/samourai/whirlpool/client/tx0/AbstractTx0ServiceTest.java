@@ -2,11 +2,8 @@ package com.samourai.whirlpool.client.tx0;
 
 import com.samourai.wallet.api.backend.beans.UnspentOutput;
 import com.samourai.whirlpool.client.wallet.AbstractWhirlpoolWalletTest;
-import com.samourai.whirlpool.client.wallet.WhirlpoolWalletConfig;
-import com.samourai.whirlpool.client.whirlpool.ServerApi;
 import java.util.Arrays;
 import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.BeforeEach;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -16,30 +13,19 @@ public class AbstractTx0ServiceTest extends AbstractWhirlpoolWalletTest {
   protected static final long FEE_VALUE = 10000;
   protected final int FEE_PAYLOAD_LENGTH;
 
-  protected Tx0PreviewService tx0PreviewService;
-
   public AbstractTx0ServiceTest(int FEE_PAYLOAD_LENGTH) throws Exception {
     super();
     this.FEE_PAYLOAD_LENGTH = FEE_PAYLOAD_LENGTH;
   }
 
-  @BeforeEach
-  public void setup() throws Exception {
-    super.setup();
-
-    tx0PreviewService = whirlpoolWallet.getTx0PreviewService();
-  }
-
-  @Override
-  protected WhirlpoolWalletConfig computeWhirlpoolWalletConfig(ServerApi serverApi) {
-    WhirlpoolWalletConfig config = super.computeWhirlpoolWalletConfig(serverApi);
-    config.setTx0MaxOutputs(70);
-    config.getFeeOpReturnImpl().setTestMode(true);
-    return config;
+  public void setup(boolean isOpReturnV0) throws Exception {
+    super.setup(isOpReturnV0);
   }
 
   protected byte[] encodeFeePayload(int feeIndice, short scodePayload, short partner) {
-    return config.getFeeOpReturnImpl().computeFeePayload(feeIndice, scodePayload, partner);
+    return whirlpoolWalletConfig
+        .getFeeOpReturnImpl()
+        .computeFeePayload(feeIndice, scodePayload, partner);
   }
 
   protected Tx0 tx0(UnspentOutput[] spendFromUtxos, Tx0Config tx0Config, Tx0Preview tx0Preview)

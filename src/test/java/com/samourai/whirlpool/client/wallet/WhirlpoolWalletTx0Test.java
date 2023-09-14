@@ -7,10 +7,8 @@ import com.samourai.whirlpool.client.tx0.Tx0;
 import com.samourai.whirlpool.client.tx0.Tx0Config;
 import com.samourai.whirlpool.client.wallet.beans.Tx0FeeTarget;
 import com.samourai.whirlpool.client.wallet.beans.WhirlpoolAccount;
-import com.samourai.whirlpool.client.wallet.beans.WhirlpoolServer;
 import com.samourai.whirlpool.client.wallet.beans.WhirlpoolUtxo;
 import com.samourai.whirlpool.client.wallet.data.pool.PoolSupplier;
-import com.samourai.whirlpool.client.whirlpool.ServerApi;
 import com.samourai.whirlpool.client.whirlpool.beans.Pool;
 import java.util.Arrays;
 import java.util.Collection;
@@ -414,17 +412,6 @@ public class WhirlpoolWalletTx0Test extends AbstractTx0ServiceV1Test {
   @Disabled // uncomment to manually broadcast a new tx0Cascade
   @Test
   public void tx0Cascade_manual() throws Exception {
-    String seedWords = "all all all all all all all all all all all all";
-    String passphrase = "whirlpool";
-
-    // init whirlpoolWallet
-    WhirlpoolWalletService whirlpoolWalletService = new WhirlpoolWalletService();
-    ServerApi serverApi =
-        new ServerApi(WhirlpoolServer.TESTNET.getServerUrlClear(), computeHttpClientService());
-    WhirlpoolWalletConfig whirlpoolWalletConfig = computeWhirlpoolWalletConfig(serverApi);
-    byte[] seed = hdWalletFactory.computeSeedFromWords(seedWords);
-    WhirlpoolWallet whirlpoolWallet = new WhirlpoolWallet(whirlpoolWalletConfig, seed, passphrase);
-    whirlpoolWallet = whirlpoolWalletService.openWallet(whirlpoolWallet, passphrase);
     log.info("Deposit address: " + whirlpoolWallet.getDepositAddress(false));
 
     // configure TX0
@@ -444,17 +431,6 @@ public class WhirlpoolWalletTx0Test extends AbstractTx0ServiceV1Test {
   @Disabled // uncomment to manually broadcast a new fake tx0Cascade
   @Test
   public void tx0Cascade_fake_manual() throws Exception {
-    String seedWords = "all all all all all all all all all all all all";
-    String passphrase = "whirlpool";
-
-    // init whirlpoolWallet
-    WhirlpoolWalletService whirlpoolWalletService = new WhirlpoolWalletService();
-    ServerApi serverApi =
-        new ServerApi(WhirlpoolServer.TESTNET.getServerUrlClear(), computeHttpClientService());
-    WhirlpoolWalletConfig whirlpoolWalletConfig = computeWhirlpoolWalletConfig(serverApi);
-    byte[] seed = hdWalletFactory.computeSeedFromWords(seedWords);
-    WhirlpoolWallet whirlpoolWallet = new WhirlpoolWallet(whirlpoolWalletConfig, seed, passphrase);
-    whirlpoolWallet = whirlpoolWalletService.openWallet(whirlpoolWallet, passphrase);
     log.info("Deposit address: " + whirlpoolWallet.getDepositAddress(false));
 
     // configure TX0
