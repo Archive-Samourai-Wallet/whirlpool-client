@@ -1,0 +1,27 @@
+# CHANGELOG
+Changelog for {{repoName}}.
+
+{{#tags}}
+## {{name}}
+ {{#issues}}
+  {{#hasIssue}}
+   {{#hasLink}}
+### {{name}} [{{issue}}]({{link}}) {{title}}
+   {{/hasLink}}
+   {{^hasLink}}
+### {{name}} {{issue}} {{title}}
+   {{/hasLink}}
+  {{/hasIssue}}
+  {{^hasIssue}}
+### {{name}}
+  {{/hasIssue}}
+
+  {{#commits}}
+- {{{messageTitle}}} *({{commitTime}})*
+{{#messageBodyItems}}
+ * {{.}}
+{{/messageBodyItems}}
+  {{/commits}}
+
+ {{/issues}}
+{{/tags}}

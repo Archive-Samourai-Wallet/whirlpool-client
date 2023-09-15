@@ -1,0 +1,6 @@
+{
+  "templateFile": "changelog.mustache",
+  "ignoreCommitsIfMessageMatches": "^\\[maven-release-plugin\\].*|^\\[Gradle Release Plugin\\].*|^Merge.*|^prepare release.*|.*cleanup.*|.*bump.*|.*unit test.*|.*tests.*|.*snapshot.*|.*SNAPSHOT.*",
+  "noIssueName": "",
+  "dateFormat": "YYYY-MM-dd"
+}
