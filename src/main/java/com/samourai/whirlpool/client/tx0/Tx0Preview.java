@@ -23,6 +23,7 @@ public class Tx0Preview {
   private long spendValue; // all except change
   private long totalValue; // with change
   private Collection<Long> changeAmounts;
+  private boolean decoyTx0x2;
 
   public Tx0Preview(Tx0Preview tx0Preview) throws Exception {
     this(
@@ -37,7 +38,8 @@ public class Tx0Preview {
         tx0Preview.premixValue,
         tx0Preview.changeValue,
         tx0Preview.nbPremix,
-        tx0Preview.changeAmounts);
+        tx0Preview.changeAmounts,
+        tx0Preview.decoyTx0x2);
   }
 
   public Tx0Preview(
@@ -52,7 +54,8 @@ public class Tx0Preview {
       long premixValue,
       long changeValue,
       int nbPremix,
-      Collection<Long> changeAmounts)
+      Collection<Long> changeAmounts,
+      boolean decoyTx0x2)
       throws Exception {
     this.pool = pool;
     this.tx0Data = tx0Data;
@@ -74,6 +77,7 @@ public class Tx0Preview {
         ClientUtils.computeTx0SpendValue(premixValue, nbPremix, feeValueOrFeeChange, tx0MinerFee);
     this.totalValue = spendValue + changeValue;
     this.changeAmounts = changeAmounts;
+    this.decoyTx0x2 = decoyTx0x2;
     this.consistencyCheck();
   }
 
@@ -162,6 +166,10 @@ public class Tx0Preview {
     return changeAmounts;
   }
 
+  public boolean isDecoyTx0x2() {
+    return decoyTx0x2;
+  }
+
   @Override
   public String toString() {
     return "poolId="
@@ -189,6 +197,8 @@ public class Tx0Preview {
         + ", totalValue="
         + totalValue
         + ", changeAmounts="
-        + changeAmounts;
+        + changeAmounts
+        + ", decoyTx0x2="
+        + decoyTx0x2;
   }
 }

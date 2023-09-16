@@ -289,7 +289,8 @@ public class Tx0PreviewService {
             premixValue,
             changeValue,
             nbPremix,
-            changeAmountsOrNull);
+            changeAmountsOrNull,
+            isDecoyTx0x2);
 
     // verify outputsSum
     long totalValue = tx0Preview.getTotalValue();

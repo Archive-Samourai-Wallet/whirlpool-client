@@ -1,7 +1,7 @@
 # CHANGELOG
 Changelog for whirlpool-client.
 
-## Unreleased
+## 0.25.0-beta2
 ### 
 
 - build: add CHANGELOG generation *(2023-09-15)*
@@ -33,16 +33,6 @@ Changelog for whirlpool-client.
 - MultiTx0x2 JSONObject handling *(2023-03-09)*
 - MultiTx0x2 foundation *(2023-03-06)*
 - decoy tx0x2 cascading *(2023-02-17)*
-
-## 0.25.0-beta1
-### 
-
-- upgrade extlibj *(2023-06-09)*
-- upgrade extlibj: BipWallet refactoring *(2023-06-05)*
-- upgrade extlibj: BipWallet refactoring *(2023-06-05)*
-- upgrade extlibj *(2023-05-23)*
-- fix nullpointer on MixFailEvent.mixProgress (CLI) *(2023-05-12)*
-- add WhirlpoolWalletConfig.extraLiquidityClientsPerPool *(2023-05-12)*
 - Allow choosing each cascading pools for TX0: *(2023-02-13)*
  * - move TX0 cascading from WhirpoolWallet.tx0() to WhirlpoolWallet.tx0Cascade()
  * - remove Tx0PreviewConfig.cascading
@@ -54,6 +44,16 @@ Changelog for whirlpool-client.
 - tx0x2 fillings *(2022-12-14)*
 - prepare for tx0x2 *(2022-12-04)*
 - add AbstractCahootsTest *(2022-12-04)*
+
+## 0.25.0-beta1
+### 
+
+- upgrade extlibj *(2023-06-09)*
+- upgrade extlibj: BipWallet refactoring *(2023-06-05)*
+- upgrade extlibj: BipWallet refactoring *(2023-06-05)*
+- upgrade extlibj *(2023-05-23)*
+- fix nullpointer on MixFailEvent.mixProgress (CLI) *(2023-05-12)*
+- add WhirlpoolWalletConfig.extraLiquidityClientsPerPool *(2023-05-12)*
 
 ## 0.24.3
 ### 

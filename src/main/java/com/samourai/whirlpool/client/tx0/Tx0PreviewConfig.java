@@ -18,7 +18,7 @@ public class Tx0PreviewConfig {
     this.pools = pools;
     this.tx0FeeTarget = tx0FeeTarget;
     this.mixFeeTarget = mixFeeTarget;
-    this.decoyTx0x2 = false;
+    this.decoyTx0x2 = true;
   }
 
   public Collection<Pool> getPools() {
