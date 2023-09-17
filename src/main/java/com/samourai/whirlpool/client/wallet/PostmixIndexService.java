@@ -4,7 +4,6 @@ import com.samourai.wallet.bipWallet.BipWallet;
 import com.samourai.wallet.client.indexHandler.IIndexHandler;
 import com.samourai.wallet.hd.BipAddress;
 import com.samourai.wallet.hd.Chain;
-import com.samourai.wallet.segwit.bech32.Bech32UtilGeneric;
 import com.samourai.wallet.util.AsyncUtil;
 import com.samourai.whirlpool.client.exception.PostmixIndexAlreadyUsedException;
 import com.samourai.whirlpool.client.utils.ClientUtils;
@@ -21,11 +20,9 @@ public class PostmixIndexService {
       "Output already registered";
 
   private WhirlpoolWalletConfig config;
-  private Bech32UtilGeneric bech32Util;
 
-  public PostmixIndexService(WhirlpoolWalletConfig config, Bech32UtilGeneric bech32Util) {
+  public PostmixIndexService(WhirlpoolWalletConfig config) {
     this.config = config;
-    this.bech32Util = bech32Util;
   }
 
   public synchronized void checkPostmixIndex(BipWallet walletPostmix)

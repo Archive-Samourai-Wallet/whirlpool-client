@@ -1,6 +1,7 @@
 package com.samourai.whirlpool.client.wallet.orchestrator;
 
 import com.samourai.wallet.util.AbstractOrchestrator;
+import com.samourai.wallet.utxo.BipUtxo;
 import com.samourai.whirlpool.client.exception.AutoTx0InsufficientBalanceException;
 import com.samourai.whirlpool.client.exception.NotifiableException;
 import com.samourai.whirlpool.client.tx0.Tx0;
@@ -11,7 +12,6 @@ import com.samourai.whirlpool.client.wallet.WhirlpoolWalletConfig;
 import com.samourai.whirlpool.client.wallet.beans.*;
 import com.samourai.whirlpool.client.whirlpool.beans.Pool;
 import java.util.Collection;
-import java.util.LinkedList;
 import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -60,8 +60,8 @@ public class AutoTx0Orchestrator extends AbstractOrchestrator {
         findAutoTx0SpendFrom(
             pool, tx0FeeTarget, mixFeeTarget); // throws AutoMixInsufficientBalanceException
 
-    Tx0Config tx0Config = whirlpoolWallet.getTx0Config(tx0FeeTarget, mixFeeTarget);
-    return whirlpoolWallet.tx0(spendFroms, pool, tx0Config);
+    Tx0Config tx0Config = whirlpoolWallet.getTx0Config(spendFroms, tx0FeeTarget, mixFeeTarget);
+    return whirlpoolWallet.tx0(tx0Config, pool);
   }
 
   private Collection<WhirlpoolUtxo> findAutoTx0SpendFrom(
@@ -78,21 +78,20 @@ public class AutoTx0Orchestrator extends AbstractOrchestrator {
     Collection<WhirlpoolUtxo> spendFroms = whirlpoolWallet.getUtxoSupplier().findUtxos(accounts);
 
     // find ready DEPOSITS
-    Collection<WhirlpoolUtxo> readyUtxos = new LinkedList<WhirlpoolUtxo>();
-    for (WhirlpoolUtxo whirlpoolUtxo : spendFroms) {
-      // check confirmation
-      WhirlpoolUtxoStatus utxoStatus = whirlpoolUtxo.getUtxoState().getStatus();
-      if (utxoStatus != WhirlpoolUtxoStatus.TX0
-          && utxoStatus != WhirlpoolUtxoStatus.TX0_SUCCESS
-          && utxoStatus != WhirlpoolUtxoStatus.MIX_STARTED
-          && utxoStatus != WhirlpoolUtxoStatus.MIX_SUCCESS) {
-        // spend from ready utxos
-        readyUtxos.add(whirlpoolUtxo);
-      }
-    }
+    Collection<WhirlpoolUtxo> readyUtxos =
+        spendFroms.stream()
+            .filter(
+                whirlpoolUtxo -> {
+                  WhirlpoolUtxoStatus utxoStatus = whirlpoolUtxo.getUtxoState().getStatus();
+                  return utxoStatus != WhirlpoolUtxoStatus.TX0
+                      && utxoStatus != WhirlpoolUtxoStatus.TX0_SUCCESS
+                      && utxoStatus != WhirlpoolUtxoStatus.MIX_STARTED
+                      && utxoStatus != WhirlpoolUtxoStatus.MIX_SUCCESS;
+                })
+            .collect(Collectors.toList());
 
     // check tx0 possible
-    if (pool.isTx0Possible(WhirlpoolUtxo.sumValue(readyUtxos))) {
+    if (pool.isTx0Possible(BipUtxo.sumValue(readyUtxos))) {
       return readyUtxos;
     } else {
       throw new AutoTx0InsufficientBalanceException();
@@ -100,15 +99,10 @@ public class AutoTx0Orchestrator extends AbstractOrchestrator {
   }
 
   private long computeTotalUnconfirmedDeposits() {
-    final int latestBlockHeight = whirlpoolWallet.getChainSupplier().getLatestBlock().height;
-    return WhirlpoolUtxo.sumValue(
+    return BipUtxo.sumValue(
         whirlpoolWallet.getUtxoSupplier().findUtxos(WhirlpoolAccount.DEPOSIT).stream()
-            .filter(
-                whirlpoolUtxo -> {
-                  // find unconfirmed utxos
-                  return (whirlpoolUtxo.computeConfirmations(latestBlockHeight) == 0);
-                })
-            .collect(Collectors.<WhirlpoolUtxo>toList()));
+            .filter(whirlpoolUtxo -> !whirlpoolUtxo.isConfirmed())
+            .collect(Collectors.toList()));
   }
 
   private void onAutoTx0InsufficientBalance(AutoTx0InsufficientBalanceException e) {

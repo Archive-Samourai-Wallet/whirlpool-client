@@ -5,7 +5,6 @@ import com.samourai.stomp.client.IStompClientService;
 import com.samourai.tor.client.TorClientService;
 import com.samourai.wallet.api.backend.BackendServer;
 import com.samourai.wallet.api.backend.IPushTx;
-import com.samourai.wallet.api.backend.beans.UnspentOutput;
 import com.samourai.wallet.api.backend.beans.WalletResponse;
 import com.samourai.wallet.api.paynym.beans.PaynymState;
 import com.samourai.wallet.bip47.rpc.java.SecretPointFactoryJava;
@@ -17,6 +16,7 @@ import com.samourai.wallet.bipWallet.BipDerivation;
 import com.samourai.wallet.bipWallet.BipWallet;
 import com.samourai.wallet.bipWallet.WalletSupplierImpl;
 import com.samourai.wallet.hd.HD_Wallet;
+import com.samourai.wallet.utxo.BipUtxo;
 import com.samourai.websocket.client.IWebsocketClient;
 import com.samourai.whirlpool.client.event.*;
 import com.samourai.whirlpool.client.tx0.Tx0;
@@ -155,7 +155,6 @@ public class JavaExample {
             BipFormat bipFormat = BIP_FORMAT.SEGWIT_NATIVE; // or define your own BipFormat
             walletSupplier.register(
                 new BipWallet(
-                    bipFormatSupplier,
                     "DEPOSIT_ACCOUNT_4_SEGWIT_NATIVE",
                     bip44w,
                     walletStateSupplier,
@@ -300,13 +299,13 @@ public class JavaExample {
       Tx0FeeTarget mixFeeTarget = Tx0FeeTarget.BLOCKS_4;
       Tx0Config tx0Config =
           whirlpoolWallet
-              .getTx0Config(tx0FeeTarget, mixFeeTarget)
+              .getTx0Config(utxos, tx0FeeTarget, mixFeeTarget)
               .setChangeWallet(WhirlpoolAccount.BADBANK);
 
       // preview tx0
       try {
         // preview all pools
-        Tx0Previews tx0Previews = whirlpoolWallet.tx0Previews(utxos, tx0Config);
+        Tx0Previews tx0Previews = whirlpoolWallet.tx0Previews(tx0Config);
 
         // pool preview
         Tx0Preview tx0Preview = tx0Previews.getTx0Preview("0.5btc");
@@ -319,7 +318,7 @@ public class JavaExample {
 
       // execute tx0
       try {
-        Tx0 tx0 = whirlpoolWallet.tx0(utxos, pool05btc, tx0Config);
+        Tx0 tx0 = whirlpoolWallet.tx0(tx0Config, pool05btc);
         String txid = tx0.getTx().getHashAsString(); // get txid
       } catch (Exception e) {
         // tx0 failed
@@ -329,21 +328,21 @@ public class JavaExample {
     // tx0 method 2: spending an external utxo
     {
       // external utxo for tx0
-      UnspentOutput spendFrom = null; // provide utxo outpoint
-      Collection<UnspentOutput> utxos = Arrays.asList(spendFrom);
+      BipUtxo spendFrom = null; // provide utxo outpoint
+      Collection<BipUtxo> utxos = Arrays.asList(spendFrom);
 
       // configure tx0
       Tx0FeeTarget tx0FeeTarget = Tx0FeeTarget.BLOCKS_4;
       Tx0FeeTarget mixFeeTarget = Tx0FeeTarget.BLOCKS_4;
       Tx0Config tx0Config =
           whirlpoolWallet
-              .getTx0Config(tx0FeeTarget, mixFeeTarget)
+              .getTx0Config(utxos, tx0FeeTarget, mixFeeTarget)
               .setChangeWallet(WhirlpoolAccount.BADBANK);
 
       // preview tx0
       try {
         // preview all pools
-        Tx0Previews tx0Previews = whirlpoolWallet.tx0Previews(tx0Config, utxos);
+        Tx0Previews tx0Previews = whirlpoolWallet.tx0Previews(tx0Config);
 
         // pool preview
         Tx0Preview tx0Preview = tx0Previews.getTx0Preview("0.5btc");
@@ -357,7 +356,7 @@ public class JavaExample {
 
       // execute tx0
       try {
-        Tx0 tx0 = whirlpoolWallet.tx0(utxos, tx0Config, pool05btc);
+        Tx0 tx0 = whirlpoolWallet.tx0(tx0Config, pool05btc);
         String txid = tx0.getTx().getHashAsString(); // get txid
         // mixing will start automatically when tx0 gets confirmed
       } catch (Exception e) {

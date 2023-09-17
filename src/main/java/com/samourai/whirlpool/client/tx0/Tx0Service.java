@@ -1,6 +1,6 @@
 package com.samourai.whirlpool.client.tx0;
 
-import com.samourai.wallet.api.backend.beans.UnspentOutput;
+import com.samourai.wallet.bip69.BIP69InputComparatorBipUtxo;
 import com.samourai.wallet.bip69.BIP69OutputComparator;
 import com.samourai.wallet.bipFormat.BIP_FORMAT;
 import com.samourai.wallet.bipFormat.BipFormatSupplier;
@@ -9,17 +9,17 @@ import com.samourai.wallet.bipWallet.KeyBag;
 import com.samourai.wallet.bipWallet.WalletSupplier;
 import com.samourai.wallet.hd.BIP_WALLET;
 import com.samourai.wallet.hd.BipAddress;
-import com.samourai.wallet.hd.HD_Address;
 import com.samourai.wallet.segwit.bech32.Bech32UtilGeneric;
-import com.samourai.wallet.send.MyTransactionOutPoint;
 import com.samourai.wallet.send.SendFactoryGeneric;
 import com.samourai.wallet.send.provider.UtxoKeyProvider;
 import com.samourai.wallet.util.AsyncUtil;
 import com.samourai.wallet.util.TxUtil;
+import com.samourai.wallet.util.UtxoUtil;
+import com.samourai.wallet.utxo.BipUtxo;
+import com.samourai.wallet.utxo.BipUtxoImpl;
 import com.samourai.whirlpool.client.event.Tx0Event;
 import com.samourai.whirlpool.client.exception.NotifiableException;
 import com.samourai.whirlpool.client.exception.PushTxErrorResponseException;
-import com.samourai.whirlpool.client.utils.BIP69InputComparatorUnspentOutput;
 import com.samourai.whirlpool.client.utils.ClientUtils;
 import com.samourai.whirlpool.client.wallet.WhirlpoolEventService;
 import com.samourai.whirlpool.client.wallet.WhirlpoolWallet;
@@ -48,6 +48,7 @@ public class Tx0Service {
   private NetworkParameters params;
   private FeeOpReturnImpl feeOpReturnImpl;
   private final Bech32UtilGeneric bech32Util = Bech32UtilGeneric.getInstance();
+  private final UtxoUtil utxoUtil = UtxoUtil.getInstance();
 
   public Tx0Service(
       NetworkParameters params,
@@ -67,28 +68,20 @@ public class Tx0Service {
 
   /** Generate maxOutputs premixes outputs max. */
   public Tx0 tx0(
-      Collection<UnspentOutput> spendFroms,
       WalletSupplier walletSupplier,
       Pool pool,
       Tx0Config tx0Config,
       UtxoKeyProvider utxoKeyProvider)
       throws Exception {
     // compute & preview
-    Tx0Preview tx0Preview = tx0PreviewService.tx0Preview(tx0Config, spendFroms, pool.getPoolId());
+    Tx0Preview tx0Preview = tx0PreviewService.tx0Preview(tx0Config, pool.getPoolId());
     if (tx0Preview == null) {
       throw new NotifiableException("Tx0 not possible for pool: " + pool.getPoolId());
     }
 
-    log.info(
-        " • Tx0: spendFrom="
-            + spendFroms
-            + ", changeWallet="
-            + tx0Config.getChangeWallet().name()
-            + ", tx0Preview={"
-            + tx0Preview
-            + "}");
+    log.info(" • Tx0: tx0Config=" + tx0Config + ", tx0Preview={" + tx0Preview + "}");
 
-    Tx0 tx0 = tx0(spendFroms, walletSupplier, tx0Config, tx0Preview, utxoKeyProvider);
+    Tx0 tx0 = tx0(walletSupplier, tx0Config, tx0Preview, utxoKeyProvider);
     log.info(
         " • Tx0 result: txid="
             + tx0.getTx().getHashAsString()
@@ -101,7 +94,6 @@ public class Tx0Service {
   }
 
   public Tx0 tx0(
-      Collection<UnspentOutput> spendFroms,
       WalletSupplier walletSupplier,
       Tx0Config tx0Config,
       Tx0Preview tx0Preview,
@@ -134,16 +126,16 @@ public class Tx0Service {
     }
 
     // sort inputs now, we need to know the first input for OP_RETURN encode
-    List<UnspentOutput> sortedSpendFroms = new LinkedList<>();
-    sortedSpendFroms.addAll(spendFroms);
-    sortedSpendFroms.sort(new BIP69InputComparatorUnspentOutput());
+    List<BipUtxo> sortedSpendFroms = new LinkedList<>();
+    sortedSpendFroms.addAll(tx0Config.getSpendFromUtxos());
+    sortedSpendFroms.sort(new BIP69InputComparatorBipUtxo());
 
     // op_return
     if (sortedSpendFroms.isEmpty()) {
       throw new IllegalArgumentException("spendFroms should be > 0");
     }
-    UnspentOutput firstInput = sortedSpendFroms.get(0);
-    BipAddress firstInputAddress = walletSupplier.getAddress(firstInput);
+    BipUtxo firstInput = sortedSpendFroms.get(0);
+    BipAddress firstInputAddress = firstInput.getBipAddress(walletSupplier);
     byte[] firstInputKey = firstInputAddress.getHdAddress().getECKey().getPrivKeyBytes();
     byte[] opReturn = computeOpReturn(firstInput, firstInputKey, tx0Data);
 
@@ -179,11 +171,11 @@ public class Tx0Service {
     return tx0;
   }
 
-  protected byte[] computeOpReturn(UnspentOutput firstInput, byte[] firstInputKey, Tx0Data tx0Data)
+  protected byte[] computeOpReturn(BipUtxo firstInput, byte[] firstInputKey, Tx0Data tx0Data)
       throws Exception {
 
     // use input0 for masking
-    TransactionOutPoint maskingOutpoint = firstInput.computeOutpoint(params);
+    TransactionOutPoint maskingOutpoint = utxoUtil.computeOutpoint(firstInput, params);
     String feePaymentCode = tx0Data.getFeePaymentCode();
     byte[] feePayload = tx0Data.getFeePayload();
     return feeOpReturnImpl.computeOpReturn(
@@ -192,7 +184,7 @@ public class Tx0Service {
 
   protected Tx0 buildTx0(
       Tx0Config tx0Config,
-      Collection<UnspentOutput> sortedSpendFroms,
+      Collection<BipUtxo> sortedSpendFroms,
       WalletSupplier walletSupplier,
       BipWallet premixWallet,
       Tx0Preview tx0Preview,
@@ -225,7 +217,7 @@ public class Tx0Service {
 
     // verify outputsSum
     long totalValue = tx0Preview.getTotalValue();
-    long spendFromBalance = UnspentOutput.sumValue(sortedSpendFroms);
+    long spendFromBalance = BipUtxo.sumValue(sortedSpendFroms);
     if (totalValue != spendFromBalance) {
       throw new Exception(
           "Invalid totalValue for tx0: totalValue="
@@ -333,8 +325,8 @@ public class Tx0Service {
     }
 
     // all inputs
-    for (UnspentOutput spendFrom : sortedSpendFroms) {
-      TransactionInput input = spendFrom.computeSpendInput(params);
+    for (BipUtxo spendFrom : sortedSpendFroms) {
+      TransactionInput input = utxoUtil.computeOutpoint(spendFrom, params).computeSpendInput();
       tx.addInput(input);
       if (log.isDebugEnabled()) {
         log.debug("Tx0 in: utxo=" + spendFrom);
@@ -347,7 +339,7 @@ public class Tx0Service {
     tx.verify();
 
     // build changeUtxos *after* tx is signed
-    List<UnspentOutput> changeUtxos =
+    List<? extends BipUtxo> changeUtxos =
         computeChangeUtxos(changeOutputs, changeOutputsAddresses, changeWallet);
 
     Tx0 tx0 =
@@ -365,28 +357,33 @@ public class Tx0Service {
     return tx0;
   }
 
-  private List<UnspentOutput> computeChangeUtxos(
+  private List<? extends BipUtxo> computeChangeUtxos(
       List<TransactionOutput> changeOutputs,
       List<BipAddress> changeOutputsAddresses,
       BipWallet changeWallet) {
-    List<UnspentOutput> changeUtxos = new LinkedList<>();
+    List<BipUtxo> changeUtxos = new LinkedList<>();
     for (int i = 0; i < changeOutputs.size(); i++) {
       TransactionOutput changeOutput = changeOutputs.get(i);
-      HD_Address changeAddress = changeOutputsAddresses.get(i).getHdAddress();
-      String changeAddressBech32 = changeAddress.getAddressString();
-      String path = UnspentOutput.computePath(changeAddress);
-      UnspentOutput changeUtxo =
-          new UnspentOutput(
-              new MyTransactionOutPoint(changeOutput, changeAddressBech32, 0),
-              path,
-              changeWallet.getXPub());
+      BipAddress bipAddress = changeOutputsAddresses.get(i);
+      String changeAddressBech32 = bipAddress.getAddressString();
+      BipUtxo changeUtxo =
+          new BipUtxoImpl(
+              changeOutput.getParentTransactionHash().toString(),
+              changeOutput.getIndex(),
+              changeOutput.getValue().getValue(),
+              changeAddressBech32,
+              null,
+              changeWallet.getXPub(),
+              false,
+              bipAddress.getHdAddress().getChainIndex(),
+              bipAddress.getHdAddress().getAddressIndex(),
+              changeOutput.getScriptBytes());
       changeUtxos.add(changeUtxo);
     }
     return changeUtxos;
   }
 
   public List<Tx0> tx0Cascade(
-      Collection<UnspentOutput> spendFroms,
       WalletSupplier walletSupplier,
       Collection<Pool> poolsChoice,
       Tx0Config tx0Config,
@@ -404,10 +401,9 @@ public class Tx0Service {
     if (log.isDebugEnabled()) {
       log.debug(" +Tx0 cascading for poolId=" + poolInitial.getPoolId() + "... (1/x)");
     }
-    Tx0 tx0 = tx0(spendFroms, walletSupplier, poolInitial, tx0Config, utxoKeyProvider);
+    Tx0 tx0 = tx0(walletSupplier, poolInitial, tx0Config, utxoKeyProvider);
     tx0List.add(tx0);
-    tx0Config.setCascadingParent(tx0);
-    Collection<UnspentOutput> changeUtxos = tx0.getChangeUtxos();
+    Collection<? extends BipUtxo> changeUtxos = tx0.getChangeUtxos();
 
     // Tx0 cascading for remaining pools
     while (poolsIter.hasNext()) {
@@ -426,9 +422,10 @@ public class Tx0Service {
                   + "/x)");
         }
 
-        tx0 = tx0(changeUtxos, walletSupplier, pool, tx0Config, utxoKeyProvider);
+        tx0Config._setCascading(true);
+        tx0Config.setSpendFromUtxos(changeUtxos);
+        tx0 = tx0(walletSupplier, pool, tx0Config, utxoKeyProvider);
         tx0List.add(tx0);
-        tx0Config.setCascadingParent(tx0);
         changeUtxos = tx0.getChangeUtxos();
       } catch (Exception e) {
         // Tx0 is not possible for this pool, ignore it
@@ -539,7 +536,7 @@ public class Tx0Service {
     }
 
     // rebuild a TX0 with new indexes
-    return tx0(tx0.getSpendFroms(), walletSupplier, tx0.getTx0Config(), tx0, utxoKeyProvider);
+    return tx0(walletSupplier, tx0.getTx0Config(), tx0, utxoKeyProvider);
   }
 
   public Tx0PreviewService getTx0PreviewService() {

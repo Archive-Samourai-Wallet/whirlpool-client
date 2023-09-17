@@ -1,7 +1,7 @@
 package com.samourai.whirlpool.client.wallet.beans;
 
-import com.samourai.wallet.api.backend.beans.UnspentOutput;
 import com.samourai.wallet.chain.ChainSupplier;
+import com.samourai.wallet.utxo.BipUtxo;
 import com.samourai.whirlpool.client.utils.ClientUtils;
 import com.samourai.whirlpool.client.wallet.data.pool.PoolSupplier;
 import com.samourai.whirlpool.client.wallet.data.utxo.UtxoSupplier;
@@ -64,18 +64,18 @@ public class MixOrchestratorData {
   }
 
   public synchronized void removeMixing(WhirlpoolUtxo whirlpoolUtxo) {
-    String key = ClientUtils.utxoToKey(whirlpoolUtxo.getUtxo());
+    String key = ClientUtils.utxoToKey(whirlpoolUtxo);
     mixing.remove(key);
-    mixingHashs.remove(whirlpoolUtxo.getUtxo().tx_hash);
+    mixingHashs.remove(whirlpoolUtxo.getTxHash());
     mixingPerPool = computeMixingPerPool();
     mixingState.setUtxosMixing(computeUtxosMixing());
   }
 
   public synchronized void addMixing(Mixing mixingToAdd) {
     WhirlpoolUtxo whirlpoolUtxo = mixingToAdd.getUtxo();
-    String key = ClientUtils.utxoToKey(whirlpoolUtxo.getUtxo());
+    String key = ClientUtils.utxoToKey(whirlpoolUtxo);
     mixing.put(key, mixingToAdd);
-    mixingHashs.add(whirlpoolUtxo.getUtxo().tx_hash);
+    mixingHashs.add(whirlpoolUtxo.getTxHash());
     mixingPerPool = computeMixingPerPool();
     mixingState.set(
         computeUtxosMixing(),
@@ -102,7 +102,7 @@ public class MixOrchestratorData {
     return mixing.values();
   }
 
-  public Mixing getMixing(UnspentOutput utxo) {
+  public Mixing getMixing(BipUtxo utxo) {
     final String key = ClientUtils.utxoToKey(utxo);
     return mixing.get(key);
   }

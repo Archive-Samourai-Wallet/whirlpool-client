@@ -1,7 +1,6 @@
 package com.samourai.whirlpool.client.wallet;
 
 import com.samourai.wallet.api.backend.MinerFeeTarget;
-import com.samourai.wallet.api.backend.beans.UnspentOutput;
 import com.samourai.wallet.bip69.BIP69InputComparator;
 import com.samourai.wallet.bipWallet.BipWallet;
 import com.samourai.wallet.segwit.bech32.Bech32UtilGeneric;
@@ -9,6 +8,8 @@ import com.samourai.wallet.send.SendFactoryGeneric;
 import com.samourai.wallet.util.FeeUtil;
 import com.samourai.wallet.util.FormatsUtilGeneric;
 import com.samourai.wallet.util.TxUtil;
+import com.samourai.wallet.util.UtxoUtil;
+import com.samourai.wallet.utxo.BipUtxo;
 import com.samourai.whirlpool.client.exception.NotifiableException;
 import com.samourai.whirlpool.client.utils.ClientUtils;
 import com.samourai.whirlpool.client.utils.DebugUtils;
@@ -29,15 +30,14 @@ public class WalletAggregateService {
   private Logger log = LoggerFactory.getLogger(WalletAggregateService.class);
   private static final int AGGREGATED_UTXOS_PER_TX = 200;
   private static final FormatsUtilGeneric formatUtils = FormatsUtilGeneric.getInstance();
+  private final UtxoUtil utxoUtil = UtxoUtil.getInstance();
+  private Bech32UtilGeneric bech32Util = Bech32UtilGeneric.getInstance();
 
   private NetworkParameters params;
-  private Bech32UtilGeneric bech32Util;
   private WhirlpoolWallet whirlpoolWallet;
 
-  public WalletAggregateService(
-      NetworkParameters params, Bech32UtilGeneric bech32Util, WhirlpoolWallet whirlpoolWallet) {
+  public WalletAggregateService(NetworkParameters params, WhirlpoolWallet whirlpoolWallet) {
     this.params = params;
-    this.bech32Util = bech32Util;
     this.whirlpoolWallet = whirlpoolWallet;
   }
 
@@ -90,10 +90,10 @@ public class WalletAggregateService {
     int offset = 0;
     WhirlpoolUtxo[] utxosArray = utxos.toArray(new WhirlpoolUtxo[] {});
     while (offset < utxos.size()) {
-      List<UnspentOutput> subsetUtxos = new ArrayList<UnspentOutput>();
+      List<BipUtxo> subsetUtxos = new ArrayList<>();
       offset = AGGREGATED_UTXOS_PER_TX * round;
       for (int i = offset; i < (offset + AGGREGATED_UTXOS_PER_TX) && i < utxos.size(); i++) {
-        subsetUtxos.add(utxosArray[i].getUtxo());
+        subsetUtxos.add(utxosArray[i]);
       }
       if (!subsetUtxos.isEmpty()) {
         String toAddress = destinationAddress;
@@ -110,7 +110,7 @@ public class WalletAggregateService {
     return success;
   }
 
-  private void txAggregate(List<UnspentOutput> postmixUtxos, String toAddress, int feeSatPerByte)
+  private void txAggregate(List<BipUtxo> postmixUtxos, String toAddress, int feeSatPerByte)
       throws Exception {
 
     // tx
@@ -126,9 +126,9 @@ public class WalletAggregateService {
   }
 
   private Transaction computeTxAggregate(
-      List<UnspentOutput> spendFroms, String toAddress, long feeSatPerByte) throws Exception {
+      List<BipUtxo> spendFroms, String toAddress, long feeSatPerByte) throws Exception {
 
-    long inputsValue = UnspentOutput.sumValue(spendFroms);
+    long inputsValue = BipUtxo.sumValue(spendFroms);
 
     Transaction tx = new Transaction(params);
     long minerFee =
@@ -146,8 +146,8 @@ public class WalletAggregateService {
     // prepare N inputs
     List<TransactionInput> inputs = new ArrayList<TransactionInput>();
     for (int i = 0; i < spendFroms.size(); i++) {
-      UnspentOutput spendFrom = spendFroms.get(i);
-      TransactionInput txInput = spendFrom.computeSpendInput(params);
+      BipUtxo spendFrom = spendFroms.get(i);
+      TransactionInput txInput = utxoUtil.computeOutpoint(spendFrom, params).computeSpendInput();
       inputs.add(txInput);
       if (log.isDebugEnabled()) {
         log.debug("Tx in: " + spendFrom);

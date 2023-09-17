@@ -4,14 +4,17 @@ import ch.qos.logback.classic.Level;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.samourai.wallet.api.backend.beans.HttpException;
-import com.samourai.wallet.api.backend.beans.UnspentOutput;
+import com.samourai.wallet.bipFormat.BIP_FORMAT;
+import com.samourai.wallet.bipFormat.BipFormat;
+import com.samourai.wallet.bipFormat.BipFormatSupplier;
 import com.samourai.wallet.client.indexHandler.IIndexHandler;
 import com.samourai.wallet.segwit.bech32.Bech32UtilGeneric;
 import com.samourai.wallet.util.*;
+import com.samourai.wallet.utxo.BipUtxo;
+import com.samourai.wallet.utxo.UtxoDetail;
 import com.samourai.whirlpool.client.exception.NotifiableException;
 import com.samourai.whirlpool.client.wallet.beans.IndexRange;
 import com.samourai.whirlpool.protocol.WhirlpoolProtocol;
-import com.samourai.whirlpool.protocol.beans.Utxo;
 import com.samourai.whirlpool.protocol.rest.RestErrorResponse;
 import io.reactivex.Completable;
 import java.io.File;
@@ -162,12 +165,8 @@ public class ClientUtils {
     return sat / 100000000.0;
   }
 
-  public static String utxoToKey(UnspentOutput unspentOutput) {
-    return unspentOutput.tx_hash + ':' + unspentOutput.tx_output_n;
-  }
-
-  public static String utxoToKey(Utxo utxo) {
-    return utxo.getHash() + ':' + utxo.getIndex();
+  public static String utxoToKey(BipUtxo unspentOutput) {
+    return unspentOutput.getTxHash() + ':' + unspentOutput.getTxOutputIndex();
   }
 
   public static String utxoToKey(String utxoHash, int utxoIndex) {
@@ -238,25 +237,25 @@ public class ClientUtils {
 
   public static int computeTx0Size(
       int nbPremix,
-      Collection<? extends UnspentOutput> spendFromsOrNull,
+      boolean decoy,
+      Collection<? extends UtxoDetail> spendFromsOrNull,
+      BipFormatSupplier bipFormatSupplier,
       NetworkParameters params) {
-    int nbOutputsNonOpReturn = nbPremix + 2; // outputs + change + fee
+    int nbOutputsNonOpReturn =
+        nbPremix + 2; // TODO zl !!! + (decoy ? 1 : 0); // premixs + change + fee + (decoyChange?)
 
     int nbP2PKH = 0;
     int nbP2SH = 0;
     int nbP2WPKH = 0;
     if (spendFromsOrNull != null) { // spendFroms can be NULL (for fee simulation)
-      for (UnspentOutput uo : spendFromsOrNull) {
-
-        if (bech32Util.isP2WPKHScript(uo.script)) {
+      for (UtxoDetail u : spendFromsOrNull) {
+        BipFormat bipFormat = bipFormatSupplier.findByAddress(u.getAddress(), params);
+        if (BIP_FORMAT.SEGWIT_NATIVE.getId().equals(bipFormat.getId())) {
           nbP2WPKH++;
+        } else if (BIP_FORMAT.SEGWIT_COMPAT.getId().equals(bipFormat.getId())) {
+          nbP2SH++;
         } else {
-          String address = uo.computeScript().getToAddress(params).toString();
-          if (Address.fromBase58(params, address).isP2SHAddress()) {
-            nbP2SH++;
-          } else {
-            nbP2PKH++;
-          }
+          nbP2PKH++;
         }
       }
     } else {
@@ -267,8 +266,9 @@ public class ClientUtils {
     return tx0Size;
   }
 
-  public static int computeTx0Size(int nbPremix, int nbSpendFrom, NetworkParameters params) {
-    int nbOutputsNonOpReturn = nbPremix + 2; // outputs + change + fee
+  public static int computeTx0Size(int nbPremix, boolean decoy, int nbSpendFrom) {
+    int nbOutputsNonOpReturn =
+        nbPremix + 2; // TODO zl !!! + (decoy ? 1 : 0); // premixs + change + fee + (decoyChange?)
 
     int nbP2PKH = 0;
     int nbP2SH = 0;

@@ -1,6 +1,5 @@
 package com.samourai.whirlpool.client.wallet.data.utxo;
 
-import com.samourai.wallet.api.backend.beans.UnspentOutput;
 import com.samourai.wallet.api.backend.beans.WalletResponse;
 import com.samourai.wallet.bipFormat.BipFormat;
 import com.samourai.wallet.bipFormat.BipFormatSupplier;
@@ -11,6 +10,8 @@ import com.samourai.wallet.hd.Chain;
 import com.samourai.wallet.send.MyTransactionOutPoint;
 import com.samourai.wallet.send.UTXO;
 import com.samourai.wallet.send.provider.UtxoProvider;
+import com.samourai.wallet.util.UtxoUtil;
+import com.samourai.wallet.utxo.BipUtxo;
 import com.samourai.whirlpool.client.exception.NotifiableException;
 import com.samourai.whirlpool.client.wallet.beans.WhirlpoolAccount;
 import com.samourai.whirlpool.client.wallet.beans.WhirlpoolUtxo;
@@ -22,12 +23,14 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.stream.Collectors;
 import org.bitcoinj.core.NetworkParameters;
+import org.bouncycastle.util.encoders.Hex;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public abstract class BasicUtxoSupplier extends BasicSupplier<UtxoData>
     implements UtxoProvider, UtxoSupplier {
   private static final Logger log = LoggerFactory.getLogger(BasicUtxoSupplier.class);
+  private UtxoUtil utxoUtil = UtxoUtil.getInstance();
 
   private final WalletSupplier walletSupplier;
   private final UtxoConfigSupplier utxoConfigSupplier;
@@ -160,11 +163,11 @@ public abstract class BasicUtxoSupplier extends BasicSupplier<UtxoData>
 
   // overidden by Sparrow
   protected byte[] _getPrivKey(WhirlpoolUtxo whirlpoolUtxo) throws Exception {
-    if (!whirlpoolUtxo.getUtxo().hasPath()) {
+    if (whirlpoolUtxo.isBip47()) {
       // bip47
       return _getPrivKeyBip47(whirlpoolUtxo);
     }
-    return whirlpoolUtxo.getBipAddress().getHdAddress().getECKey().getPrivKeyBytes();
+    return whirlpoolUtxo.getBipAddress(walletSupplier).getHdAddress().getECKey().getPrivKeyBytes();
   }
 
   @Override
@@ -177,7 +180,7 @@ public abstract class BasicUtxoSupplier extends BasicSupplier<UtxoData>
   }
 
   @Override
-  public boolean isMixableUtxo(UnspentOutput unspentOutput, BipWallet bipWallet) {
+  public boolean isMixableUtxo(BipUtxo unspentOutput, BipWallet bipWallet) {
     WhirlpoolAccount whirlpoolAccount = bipWallet.getAccount();
 
     // don't mix BADBANK utxos
@@ -192,14 +195,12 @@ public abstract class BasicUtxoSupplier extends BasicSupplier<UtxoData>
     if (WhirlpoolAccount.PREMIX.equals(whirlpoolAccount)
         || WhirlpoolAccount.POSTMIX.equals(whirlpoolAccount)) {
       // ignore change utxos
-      if (unspentOutput.xpub != null && unspentOutput.xpub.path != null) {
-        int chainIndex = unspentOutput.computePathChainIndex();
-        if (chainIndex == Chain.CHANGE.getIndex()) {
-          if (log.isDebugEnabled()) {
-            log.debug("Ignoring non-mixable utxo (PREMIX/POSTMIX change): " + unspentOutput);
-          }
-          return false;
+      Integer chainIndex = unspentOutput.getChainIndex();
+      if (chainIndex == Chain.CHANGE.getIndex()) {
+        if (log.isDebugEnabled()) {
+          log.debug("Ignoring non-mixable utxo (PREMIX/POSTMIX change): " + unspentOutput);
         }
+        return false;
       }
     }
     return true;
@@ -210,12 +211,17 @@ public abstract class BasicUtxoSupplier extends BasicSupplier<UtxoData>
     Map<String, UTXO> utxoByScript = new LinkedHashMap<String, UTXO>();
     for (WhirlpoolUtxo whirlpoolUtxo : whirlpoolUtxos) {
       NetworkParameters params = whirlpoolUtxo.getBipWallet().getParams();
-      MyTransactionOutPoint outPoint = whirlpoolUtxo.getUtxo().computeOutpoint(params);
-      String script = whirlpoolUtxo.getUtxo().script;
+      MyTransactionOutPoint outPoint = utxoUtil.computeOutpoint(whirlpoolUtxo, params);
+      String script =
+          whirlpoolUtxo.getScriptBytes() != null
+              ? Hex.toHexString(whirlpoolUtxo.getScriptBytes())
+              : null;
 
       UTXO utxo = utxoByScript.get(script);
       if (utxo == null) {
-        utxo = new UTXO(whirlpoolUtxo.getUtxo().getPath(), whirlpoolUtxo.getUtxo().xpub.m);
+        String path = utxoUtil.computePath(whirlpoolUtxo);
+        String xpub = whirlpoolUtxo.getBipWallet().getXPub();
+        utxo = new UTXO(path, xpub);
         utxoByScript.put(script, utxo);
       }
       utxo.getOutpoints().add(outPoint);

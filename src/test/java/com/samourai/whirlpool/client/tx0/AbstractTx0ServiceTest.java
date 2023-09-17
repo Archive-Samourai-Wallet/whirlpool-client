@@ -1,8 +1,6 @@
 package com.samourai.whirlpool.client.tx0;
 
-import com.samourai.wallet.api.backend.beans.UnspentOutput;
 import com.samourai.whirlpool.client.wallet.AbstractWhirlpoolWalletTest;
-import java.util.Arrays;
 import org.junit.jupiter.api.Assertions;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -28,13 +26,11 @@ public class AbstractTx0ServiceTest extends AbstractWhirlpoolWalletTest {
         .computeFeePayload(feeIndice, scodePayload, partner);
   }
 
-  protected Tx0 tx0(UnspentOutput[] spendFromUtxos, Tx0Config tx0Config, Tx0Preview tx0Preview)
-      throws Exception {
+  protected Tx0 tx0(Tx0Config tx0Config, Tx0Preview tx0Preview) throws Exception {
     Tx0 tx0 =
         whirlpoolWallet
             .getTx0Service()
             .tx0(
-                Arrays.asList(spendFromUtxos),
                 whirlpoolWallet.getWalletSupplier(),
                 tx0Config,
                 tx0Preview,

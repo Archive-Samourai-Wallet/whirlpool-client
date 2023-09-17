@@ -1,7 +1,6 @@
 package com.samourai.wallet.cahoots.tx0x2;
 
 import com.samourai.soroban.cahoots.CahootsContext;
-import com.samourai.wallet.api.backend.beans.UnspentOutput;
 import com.samourai.wallet.bipFormat.BIP_FORMAT;
 import com.samourai.wallet.bipFormat.BipFormatSupplier;
 import com.samourai.wallet.cahoots.AbstractCahoots2xService;
@@ -14,6 +13,8 @@ import com.samourai.wallet.hd.HD_Address;
 import com.samourai.wallet.send.MyTransactionOutPoint;
 import com.samourai.wallet.util.RandomUtil;
 import com.samourai.wallet.util.TxUtil;
+import com.samourai.wallet.util.UtxoUtil;
+import com.samourai.wallet.utxo.BipUtxo;
 import com.samourai.whirlpool.client.tx0.Tx0;
 import com.samourai.whirlpool.client.utils.ClientUtils;
 import com.samourai.whirlpool.client.wallet.beans.SamouraiAccountIndex;
@@ -25,6 +26,7 @@ import org.slf4j.LoggerFactory;
 
 public class Tx0x2Service extends AbstractCahoots2xService<Tx0x2, Tx0x2Context> {
   private static final Logger log = LoggerFactory.getLogger(Tx0x2Service.class);
+  private final UtxoUtil utxoUtil = UtxoUtil.getInstance();
   public static final long CHANGE_SPLIT_THRESHOLD = 100000; // lowest pool denomination (0.001btc)
 
   public Tx0x2Service(BipFormatSupplier bipFormatSupplier, NetworkParameters params) {
@@ -421,7 +423,7 @@ public class Tx0x2Service extends AbstractCahoots2xService<Tx0x2, Tx0x2Context> 
     int nbInputsCounterparty = payload.getTransaction().getInputs().size();
     int nbInputsSender = tx0Initiator.getSpendFroms().size();
     int nbInputs = nbInputsCounterparty + nbInputsSender;
-    int tx0Size = ClientUtils.computeTx0Size(nbPremix, nbInputs, params);
+    int tx0Size = ClientUtils.computeTx0Size(nbPremix, true, nbInputs);
     long fee = ClientUtils.computeTx0MinerFee(tx0Size, tx0Initiator.getTx0MinerFeePrice(), true);
     if (log.isDebugEnabled()) {
       log.debug(
@@ -468,14 +470,14 @@ public class Tx0x2Service extends AbstractCahoots2xService<Tx0x2, Tx0x2Context> 
   }
 
   private List<CahootsUtxo> toCahootsUtxos(
-      Collection<UnspentOutput> inputs, CahootsContext cahootsContext) throws Exception {
+      Collection<? extends BipUtxo> inputs, CahootsContext cahootsContext) throws Exception {
     CahootsWallet cahootsWallet = cahootsContext.getCahootsWallet();
     List<CahootsUtxo> allCahootsUtxos =
         cahootsWallet.getUtxosWpkhByAccount(cahootsContext.getAccount());
 
     Set<String> inputIds =
         inputs.stream()
-            .map(utxo -> utxo.tx_hash + ":" + utxo.tx_output_n)
+            .map(utxo -> utxo.getTxHash() + ":" + utxo.getTxOutputIndex())
             .collect(Collectors.toSet());
     List<CahootsUtxo> cahootsUtxos =
         allCahootsUtxos.stream()
@@ -511,7 +513,7 @@ public class Tx0x2Service extends AbstractCahoots2xService<Tx0x2, Tx0x2Context> 
             .getKey();
     return new CahootsUtxo(
         new MyTransactionOutPoint(higherPoolChange, address.getAddressString(), 0),
-        UnspentOutput.computePath(address),
+        utxoUtil.computePath(address),
         cahootsContext
             .getCahootsWallet()
             .getReceiveWallet(cahootsContext.getAccount(), BIP_FORMAT.SEGWIT_NATIVE)

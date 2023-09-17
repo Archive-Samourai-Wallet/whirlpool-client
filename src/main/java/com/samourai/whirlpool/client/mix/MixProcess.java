@@ -3,11 +3,12 @@ package com.samourai.whirlpool.client.mix;
 import com.samourai.wallet.chain.ChainSupplier;
 import com.samourai.wallet.segwit.bech32.Bech32UtilGeneric;
 import com.samourai.wallet.util.TxUtil;
+import com.samourai.wallet.utxo.UtxoDetail;
+import com.samourai.wallet.utxo.UtxoDetailImpl;
 import com.samourai.whirlpool.client.exception.NotifiableException;
 import com.samourai.whirlpool.client.mix.handler.IPostmixHandler;
 import com.samourai.whirlpool.client.mix.handler.IPremixHandler;
 import com.samourai.whirlpool.client.mix.handler.MixDestination;
-import com.samourai.whirlpool.client.mix.handler.UtxoWithBalance;
 import com.samourai.whirlpool.client.utils.ClientCryptoService;
 import com.samourai.whirlpool.client.utils.ClientUtils;
 import com.samourai.whirlpool.protocol.WhirlpoolProtocol;
@@ -51,7 +52,7 @@ public class MixProcess {
   private byte[] bordereau;
   private RSABlindingParameters blindingParams;
   private MixDestination receiveDestination;
-  private Utxo receiveUtxo;
+  private UtxoDetail receiveUtxo;
 
   // security checks
   private boolean registeredInput;
@@ -101,7 +102,7 @@ public class MixProcess {
     }
 
     // get mix settings
-    UtxoWithBalance utxo = premixHandler.getUtxo();
+    UtxoDetail utxo = premixHandler.getUtxo();
     String serverNetworkId = subscribePoolResponse.networkId;
     if (!params.getPaymentProtocolId().equals(serverNetworkId)) {
       throw new Exception(
@@ -110,14 +111,14 @@ public class MixProcess {
               + ", client is expecting "
               + params.getPaymentProtocolId());
     }
-    this.liquidity = utxo.getBalance() == poolDenomination;
+    this.liquidity = utxo.getValue() == poolDenomination;
 
     if (log.isDebugEnabled()) {
       log.debug("Registering input as " + (this.liquidity ? "LIQUIDITY" : "MUSTMIX"));
     }
 
     // verify fees acceptable
-    checkFees(utxo.getBalance(), poolDenomination);
+    checkFees(utxo.getValue(), poolDenomination);
 
     // verify balance
     long mustMixBalanceMin = subscribePoolResponse.mustMixBalanceMin;
@@ -128,7 +129,12 @@ public class MixProcess {
     int blockHeight = chainSupplier.getLatestBlock().height;
     RegisterInputRequest registerInputRequest =
         new RegisterInputRequest(
-            poolId, utxo.getHash(), utxo.getIndex(), signature, this.liquidity, blockHeight);
+            poolId,
+            utxo.getTxHash(),
+            utxo.getTxOutputIndex(),
+            signature,
+            this.liquidity,
+            blockHeight);
 
     registeredInput = true;
     return registerInputRequest;
@@ -284,7 +290,7 @@ public class MixProcess {
     long premixBalanceMax =
         WhirlpoolProtocol.computePremixBalanceMax(poolDenomination, mustMixBalanceMax, liquidity);
 
-    long utxoBalance = premixHandler.getUtxo().getBalance();
+    long utxoBalance = premixHandler.getUtxo().getValue();
     if (utxoBalance < premixBalanceMin) {
       throw new NotifiableException(
           "Too low utxo-balance="
@@ -316,23 +322,25 @@ public class MixProcess {
     }
 
     // verify my output
-    Integer outputIndex =
-        ClientUtils.findTxOutputIndex(this.receiveDestination.getAddress(), tx, params);
+    String outputAddress = this.receiveDestination.getAddress();
+    Integer outputIndex = ClientUtils.findTxOutputIndex(outputAddress, tx, params);
     if (outputIndex == null) {
       throw new Exception("Output not found in tx");
     }
-    receiveUtxo = new Utxo(tx.getHashAsString(), outputIndex);
+    long outputValue = tx.getOutput(outputIndex).getValue().getValue();
+    receiveUtxo =
+        new UtxoDetailImpl(tx.getHashAsString(), outputIndex, outputValue, outputAddress, null);
 
     // verify my input
-    UtxoWithBalance utxo = premixHandler.getUtxo();
-    Integer inputIndex = TxUtil.getInstance().findInputIndex(tx, utxo.getHash(), utxo.getIndex());
+    UtxoDetail utxo = premixHandler.getUtxo();
+    Integer inputIndex =
+        TxUtil.getInstance().findInputIndex(tx, utxo.getTxHash(), utxo.getTxOutputIndex());
     if (outputIndex == null) {
       throw new Exception("Input not found in tx");
     }
 
     // check fees again
-    long inputValue = utxo.getBalance(); // tx.getInput(inputIndex).getValue().getValue(); is null
-    long outputValue = tx.getOutput(outputIndex).getValue().getValue();
+    long inputValue = utxo.getValue(); // tx.getInput(inputIndex).getValue().getValue(); is null
     checkFees(inputValue, outputValue);
 
     // as many inputs as outputs
@@ -373,7 +381,7 @@ public class MixProcess {
   }
 
   private String computeInputsHash(List<TransactionInput> inputs) {
-    List<Utxo> utxos = new ArrayList<Utxo>();
+    List<Utxo> utxos = new ArrayList<>();
     for (TransactionInput input : inputs) {
       Utxo utxo =
           new Utxo(input.getOutpoint().getHash().toString(), input.getOutpoint().getIndex());
@@ -382,7 +390,7 @@ public class MixProcess {
     return WhirlpoolProtocol.computeInputsHash(utxos);
   }
 
-  public Utxo getReceiveUtxo() {
+  public UtxoDetail getReceiveUtxo() {
     return receiveUtxo;
   }
 

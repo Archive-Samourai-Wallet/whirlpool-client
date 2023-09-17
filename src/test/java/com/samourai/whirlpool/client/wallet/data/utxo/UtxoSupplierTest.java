@@ -109,11 +109,11 @@ public class UtxoSupplierTest extends AbstractTest {
 
     mockException = false;
 
-    UTXO_DEPOSIT1 = computeUtxo("deposit1", 1, XPUB_DEPOSIT, 0);
-    UTXO_DEPOSIT1_UPDATED = computeUtxo("deposit1", 1, XPUB_DEPOSIT, 2);
-    UTXO_PREMIX1 = computeUtxo("premix1", 1, XPUB_PREMIX, 0);
-    UTXO_PREMIX2 = computeUtxo("premix2", 2, XPUB_PREMIX, 100);
-    UTXO_POSTMIX1 = computeUtxo("postmix1", 1, XPUB_POSTMIX, 50);
+    UTXO_DEPOSIT1 = newUnspentOutput("deposit1", 1, XPUB_DEPOSIT, 0);
+    UTXO_DEPOSIT1_UPDATED = newUnspentOutput("deposit1", 1, XPUB_DEPOSIT, 2);
+    UTXO_PREMIX1 = newUnspentOutput("premix1", 1, XPUB_PREMIX, 0);
+    UTXO_PREMIX2 = newUnspentOutput("premix2", 2, XPUB_PREMIX, 100);
+    UTXO_POSTMIX1 = newUnspentOutput("postmix1", 1, XPUB_POSTMIX, 50);
   }
 
   @Test

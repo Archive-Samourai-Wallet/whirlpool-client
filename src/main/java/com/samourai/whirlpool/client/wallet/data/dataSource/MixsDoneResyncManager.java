@@ -19,15 +19,15 @@ public class MixsDoneResyncManager {
     int fixedUtxos = 0;
     for (WhirlpoolUtxo whirlpoolUtxo : postmixUtxos) {
       if (log.isDebugEnabled()) {
-        log.debug("resynchronizing: " + whirlpoolUtxo.getUtxo().tx_hash);
+        log.debug("resynchronizing: " + whirlpoolUtxo.getTxHash());
       }
       int mixsDone = recountMixsDone(whirlpoolUtxo, postmixTxs);
       if (mixsDone != whirlpoolUtxo.getMixsDone()) {
         log.info(
             "Fixed "
-                + whirlpoolUtxo.getUtxo().tx_hash
+                + whirlpoolUtxo.getTxHash()
                 + ":"
-                + whirlpoolUtxo.getUtxo().tx_output_n
+                + whirlpoolUtxo.getTxOutputIndex()
                 + ": "
                 + whirlpoolUtxo.getMixsDone()
                 + " => "
@@ -41,7 +41,7 @@ public class MixsDoneResyncManager {
 
   private int recountMixsDone(WhirlpoolUtxo whirlpoolUtxo, Map<String, TxsResponse.Tx> postmixTxs) {
     int mixsDone = 0;
-    TxsResponse.Tx tx = postmixTxs.get(whirlpoolUtxo.getUtxo().tx_hash);
+    TxsResponse.Tx tx = postmixTxs.get(whirlpoolUtxo.getTxHash());
     while (tx != null) {
       if (tx == null || tx.inputs == null) {
         return mixsDone;

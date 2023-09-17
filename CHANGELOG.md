@@ -1,6 +1,12 @@
 # CHANGELOG
 Changelog for whirlpool-client.
 
+## Unreleased
+### 
+
+- refactor: add utxo abstraction with UtxoRef, UtxoDetail, UtxoSpendable *(2023-09-22)*
+- add Tx0Preview.decoyTx0x2 *(2023-09-16)*
+
 ## 0.25.0-beta2
 ### 
 

@@ -1,77 +1,60 @@
 package com.samourai.whirlpool.client.wallet.beans;
 
-import com.samourai.wallet.api.backend.beans.UnspentOutput;
 import com.samourai.wallet.bipFormat.BipFormat;
+import com.samourai.wallet.bipFormat.BipFormatSupplier;
 import com.samourai.wallet.bipWallet.BipWallet;
+import com.samourai.wallet.bipWallet.WalletSupplier;
 import com.samourai.wallet.hd.BipAddress;
+import com.samourai.wallet.utxo.BipUtxo;
 import com.samourai.whirlpool.client.wallet.data.utxoConfig.UtxoConfig;
 import com.samourai.whirlpool.client.wallet.data.utxoConfig.UtxoConfigPersisted;
 import com.samourai.whirlpool.client.wallet.data.utxoConfig.UtxoConfigSupplier;
-import java.util.Collection;
-import java.util.stream.Collectors;
 import org.bitcoinj.core.NetworkParameters;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class WhirlpoolUtxo {
+public class WhirlpoolUtxo implements BipUtxo {
   private static final Logger log = LoggerFactory.getLogger(WhirlpoolUtxo.class);
-  private static final int MIX_MIN_CONFIRMATIONS = 1;
 
-  private UnspentOutput utxo;
-  private Integer blockHeight; // null when unconfirmed
+  private BipUtxo utxo;
   private BipWallet bipWallet;
   private BipFormat bipFormat;
   private WhirlpoolUtxoState utxoState;
   private UtxoConfigSupplier utxoConfigSupplier;
 
   public WhirlpoolUtxo(
-      UnspentOutput utxo,
+      BipUtxo utxo,
       BipWallet bipWallet,
       BipFormat bipFormat,
       String poolId,
-      UtxoConfigSupplier utxoConfigSupplier,
-      int latestBlockHeight) {
+      UtxoConfigSupplier utxoConfigSupplier) {
     super();
     this.utxo = utxo;
-    this.blockHeight = computeBlockHeight(utxo.confirmations, latestBlockHeight);
     this.bipWallet = bipWallet;
     this.bipFormat = bipFormat;
     this.utxoState = new WhirlpoolUtxoState(poolId);
     this.utxoConfigSupplier = utxoConfigSupplier;
 
-    this.setMixableStatus(latestBlockHeight);
+    this.setMixableStatus();
   }
 
   public BipAddress getBipAddress() {
-    return bipWallet.getAddressAt(utxo);
+    return bipWallet.getAddressAt(getChainIndex(), getAddressIndex());
   }
 
-  private Integer computeBlockHeight(int utxoConfirmations, int latestBlockHeight) {
-    if (utxoConfirmations <= 0) {
-      return null;
-    }
-    return latestBlockHeight - utxoConfirmations;
-  }
-
-  private void setMixableStatus(int latestBlockHeight) {
-    MixableStatus mixableStatus = computeMixableStatus(latestBlockHeight);
+  private void setMixableStatus() {
+    MixableStatus mixableStatus = computeMixableStatus();
     utxoState.setMixableStatus(mixableStatus);
   }
 
-  public void setUtxoConfirmed(UnspentOutput utxo, int latestBlockHeight) {
-    this.utxo = utxo;
-    this.blockHeight = computeBlockHeight(utxo.confirmations, latestBlockHeight);
-    this.setMixableStatus(latestBlockHeight);
-  }
-
-  private MixableStatus computeMixableStatus(int latestBlockHeight) {
+  private MixableStatus computeMixableStatus() {
     // check pool
     if (utxoState.getPoolId() == null) {
       return MixableStatus.NO_POOL;
     }
 
     // check confirmations
-    if (computeConfirmations(latestBlockHeight) < MIX_MIN_CONFIRMATIONS) {
+    if (!utxo.isConfirmed()) {
       return MixableStatus.UNCONFIRMED;
     }
 
@@ -79,24 +62,9 @@ public class WhirlpoolUtxo {
     return MixableStatus.MIXABLE;
   }
 
-  public static long sumValue(Collection<WhirlpoolUtxo> whirlpoolUtxos) {
-    long sumValue = 0;
-    for (WhirlpoolUtxo whirlpoolUtxo : whirlpoolUtxos) {
-      sumValue += whirlpoolUtxo.getUtxo().value;
-    }
-    return sumValue;
-  }
-
-  public int computeConfirmations(int latestBlockHeight) {
-    if (blockHeight == null) {
-      return 0;
-    }
-    return latestBlockHeight - blockHeight;
-  }
-
   // used by Sparrow
   public UtxoConfig getUtxoConfigOrDefault() {
-    UtxoConfig utxoConfig = utxoConfigSupplier.getUtxo(utxo.tx_hash, utxo.tx_output_n);
+    UtxoConfig utxoConfig = utxoConfigSupplier.getUtxo(utxo.getTxHash(), utxo.getTxOutputIndex());
     if (utxoConfig == null) {
       int mixsDone = WhirlpoolAccount.POSTMIX.equals(getAccount()) ? 1 : 0;
       utxoConfig = new UtxoConfigPersisted(mixsDone);
@@ -109,7 +77,7 @@ public class WhirlpoolUtxo {
   }
 
   public void setMixsDone(int mixsDone) {
-    utxoConfigSupplier.setMixsDone(utxo.tx_hash, utxo.tx_output_n, mixsDone);
+    utxoConfigSupplier.setMixsDone(utxo.getTxHash(), utxo.getTxOutputIndex(), mixsDone);
   }
 
   public boolean isBlocked() {
@@ -117,7 +85,7 @@ public class WhirlpoolUtxo {
   }
 
   public void setBlocked(boolean blocked) {
-    utxoConfigSupplier.setBlocked(utxo.tx_hash, utxo.tx_output_n, blocked);
+    utxoConfigSupplier.setBlocked(utxo.getTxHash(), utxo.getTxOutputIndex(), blocked);
   }
 
   public String getNote() {
@@ -125,15 +93,7 @@ public class WhirlpoolUtxo {
   }
 
   public void setNote(String note) {
-    utxoConfigSupplier.setNote(utxo.tx_hash, utxo.tx_output_n, note);
-  }
-
-  public UnspentOutput getUtxo() {
-    return utxo;
-  }
-
-  public Integer getBlockHeight() {
-    return blockHeight;
+    utxoConfigSupplier.setNote(utxo.getTxHash(), utxo.getTxOutputIndex(), note);
   }
 
   public BipWallet getBipWallet() {
@@ -177,8 +137,6 @@ public class WhirlpoolUtxo {
         + bipWallet.getId()
         + ": "
         + utxo.toString()
-        + ", blockHeight="
-        + (blockHeight != null ? blockHeight : "null")
         + ", state={"
         + utxoState
         + "}, utxoConfig={"
@@ -198,10 +156,81 @@ public class WhirlpoolUtxo {
     return sb.toString();
   }
 
-  public static Collection<UnspentOutput> toUnspentOutputs(
-      Collection<WhirlpoolUtxo> whirlpoolUtxos) {
-    return whirlpoolUtxos.stream()
-        .map(whirlpoolUtxo -> whirlpoolUtxo.getUtxo())
-        .collect(Collectors.toList());
+  // implement BipUtxo
+
+  @Override
+  public String getTxHash() {
+    return utxo.getTxHash();
+  }
+
+  @Override
+  public int getTxOutputIndex() {
+    return utxo.getTxOutputIndex();
+  }
+
+  @Override
+  public long getValue() {
+    return utxo.getValue();
+  }
+
+  @Override
+  public String getAddress() {
+    return utxo.getAddress();
+  }
+
+  @Override
+  public Integer getConfirmedBlockHeight() {
+    return utxo.getConfirmedBlockHeight();
+  }
+
+  @Override
+  public void setConfirmedBlockHeight(Integer confirmedBlockHeight) {
+    utxo.setConfirmedBlockHeight(confirmedBlockHeight);
+    this.setMixableStatus();
+  }
+
+  @Override
+  public int getConfirmations(int latestBlockHeight) {
+    return utxo.getConfirmations(latestBlockHeight);
+  }
+
+  @Override
+  public boolean isConfirmed() {
+    return utxo.isConfirmed();
+  }
+
+  @Override
+  public BipWallet getBipWallet(WalletSupplier walletSupplier) {
+    return utxo.getBipWallet(walletSupplier);
+  }
+
+  @Override
+  public BipAddress getBipAddress(WalletSupplier walletSupplier) {
+    return utxo.getBipAddress(walletSupplier);
+  }
+
+  @Override
+  public BipFormat getBipFormat(BipFormatSupplier bipFormatSupplier, NetworkParameters params) {
+    return bipFormatSupplier.findByAddress(getAddress(), params);
+  }
+
+  @Override
+  public boolean isBip47() {
+    return utxo.isBip47();
+  }
+
+  @Override
+  public Integer getChainIndex() {
+    return utxo.getChainIndex();
+  }
+
+  @Override
+  public Integer getAddressIndex() {
+    return utxo.getAddressIndex();
+  }
+
+  @Override
+  public byte[] getScriptBytes() {
+    return utxo.getScriptBytes();
   }
 }

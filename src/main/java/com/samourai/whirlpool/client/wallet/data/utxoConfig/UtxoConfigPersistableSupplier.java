@@ -1,6 +1,5 @@
 package com.samourai.whirlpool.client.wallet.data.utxoConfig;
 
-import com.samourai.wallet.api.backend.beans.UnspentOutput;
 import com.samourai.wallet.util.CallbackWithArg;
 import com.samourai.whirlpool.client.utils.ClientUtils;
 import com.samourai.whirlpool.client.wallet.beans.WhirlpoolUtxo;
@@ -74,11 +73,7 @@ public class UtxoConfigPersistableSupplier extends AbstractPersistableSupplier<U
   public synchronized void clean(Collection<WhirlpoolUtxo> existingUtxos) {
     List<String> validKeys =
         existingUtxos.stream()
-            .map(
-                whirlpoolUtxo -> {
-                  UnspentOutput utxo = whirlpoolUtxo.getUtxo();
-                  return computeUtxoConfigKey(utxo.tx_hash, utxo.tx_output_n);
-                })
+            .map(utxo -> computeUtxoConfigKey(utxo.getTxHash(), utxo.getTxOutputIndex()))
             .collect(Collectors.<String>toList());
     getValue().cleanup(validKeys);
   }

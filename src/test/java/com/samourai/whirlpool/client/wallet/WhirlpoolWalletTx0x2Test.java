@@ -1,6 +1,5 @@
 package com.samourai.whirlpool.client.wallet;
 
-import com.samourai.wallet.api.backend.beans.UnspentOutput;
 import com.samourai.wallet.bipWallet.BipWallet;
 import com.samourai.wallet.cahoots.Cahoots;
 import com.samourai.wallet.cahoots.tx0x2.MultiTx0x2;
@@ -8,11 +7,11 @@ import com.samourai.wallet.cahoots.tx0x2.MultiTx0x2Context;
 import com.samourai.wallet.cahoots.tx0x2.Tx0x2Context;
 import com.samourai.wallet.hd.BIP_WALLET;
 import com.samourai.wallet.send.UTXO;
+import com.samourai.wallet.utxo.BipUtxo;
 import com.samourai.whirlpool.client.test.AbstractCahootsTest;
 import com.samourai.whirlpool.client.tx0.Tx0;
 import com.samourai.whirlpool.client.tx0.Tx0Config;
 import com.samourai.whirlpool.client.wallet.beans.Tx0FeeTarget;
-import com.samourai.whirlpool.client.wallet.beans.WhirlpoolAccount;
 import com.samourai.whirlpool.client.wallet.data.pool.PoolSupplier;
 import com.samourai.whirlpool.client.whirlpool.beans.Pool;
 import java.util.Collection;
@@ -54,15 +53,10 @@ public class WhirlpoolWalletTx0x2Test extends AbstractCahootsTest {
     UTXO utxoCounterparty1 = utxoProviderCounterparty.addUtxo(bipWalletCounterparty, 20000000);
 
     // initiator: build initial TX0
-    Collection<UnspentOutput> spendFroms = utxoSender1.toUnspentOutputs();
+    Collection<? extends BipUtxo> spendFroms = utxoSender1.toBipUtxos();
     Tx0Config tx0Config =
-        new Tx0Config(
-            poolSupplier.getPools(),
-            Tx0FeeTarget.BLOCKS_24,
-            Tx0FeeTarget.BLOCKS_24,
-            WhirlpoolAccount.DEPOSIT);
-    Tx0 tx0Initiator =
-        tx0Service.tx0(spendFroms, walletSupplierSender, pool, tx0Config, utxoProviderSender);
+        whirlpoolWallet.getTx0Config(spendFroms, Tx0FeeTarget.BLOCKS_24, Tx0FeeTarget.BLOCKS_24);
+    Tx0 tx0Initiator = tx0Service.tx0(walletSupplierSender, pool, tx0Config, utxoProviderSender);
 
     // run Cahoots
     Tx0x2Context cahootsContextSender =
@@ -113,15 +107,10 @@ public class WhirlpoolWalletTx0x2Test extends AbstractCahootsTest {
     UTXO utxoCounterparty1 = utxoProviderCounterparty.addUtxo(bipWalletCounterparty, 50000000);
 
     // initiator: build initial TX0
-    Collection<UnspentOutput> spendFroms = utxoSender1.toUnspentOutputs();
+    Collection<? extends BipUtxo> spendFroms = utxoSender1.toBipUtxos();
     Tx0Config tx0Config =
-        new Tx0Config(
-            poolSupplier.getPools(),
-            Tx0FeeTarget.BLOCKS_24,
-            Tx0FeeTarget.BLOCKS_24,
-            WhirlpoolAccount.DEPOSIT);
-    Tx0 tx0Initiator =
-        tx0Service.tx0(spendFroms, walletSupplierSender, pool, tx0Config, utxoProviderSender);
+        whirlpoolWallet.getTx0Config(spendFroms, Tx0FeeTarget.BLOCKS_24, Tx0FeeTarget.BLOCKS_24);
+    Tx0 tx0Initiator = tx0Service.tx0(walletSupplierSender, pool, tx0Config, utxoProviderSender);
 
     // run Cahoots
     Tx0x2Context cahootsContextSender =
@@ -159,13 +148,12 @@ public class WhirlpoolWalletTx0x2Test extends AbstractCahootsTest {
     verifyTx(tx, txid, raw, outputs);
   }
 
-  /** Compare with tx0x2 test {@link WhirlpoolWalletDecoyTx0x2Test#tx0x2_decoy_pool001()} */
+  /** Compare with tx0x2 test {@link WhirlpoolWalletDecoyTx0x2Test} */
   @Test
   public void tx0x2_pool001() throws Exception {
     log.info("Testing Tx0x2 for pool 0.001");
 
     int account = 0;
-    Pool pool = pool001btc;
 
     // setup wallets
     BipWallet bipWalletSender = walletSupplierSender.getWallet(BIP_WALLET.DEPOSIT_BIP84);
@@ -175,18 +163,13 @@ public class WhirlpoolWalletTx0x2Test extends AbstractCahootsTest {
     UTXO utxoCounterparty1 = utxoProviderCounterparty.addUtxo(bipWalletCounterparty, 1000000);
 
     // initiator: build initial TX0
-    Collection<UnspentOutput> spendFroms = utxoSender1.toUnspentOutputs();
+    Collection<? extends BipUtxo> spendFroms = utxoSender1.toBipUtxos();
     Tx0Config tx0Config =
-        new Tx0Config(
-            poolSupplier.getPools(),
-            Tx0FeeTarget.BLOCKS_24,
-            Tx0FeeTarget.BLOCKS_24,
-            WhirlpoolAccount.DEPOSIT);
+        whirlpoolWallet.getTx0Config(spendFroms, Tx0FeeTarget.BLOCKS_24, Tx0FeeTarget.BLOCKS_24);
 
     Collection<Pool> pools = findPoolsLowerOrEqual("0.001btc", whirlpoolWallet.getPoolSupplier());
     List<Tx0> tx0Initiators =
-        tx0Service.tx0Cascade(
-            spendFroms, walletSupplierSender, pools, tx0Config, utxoProviderSender);
+        tx0Service.tx0Cascade(walletSupplierSender, pools, tx0Config, utxoProviderSender);
 
     // run Cahoots
     MultiTx0x2Context cahootsContextSender =
@@ -236,7 +219,6 @@ public class WhirlpoolWalletTx0x2Test extends AbstractCahootsTest {
     log.info("Testing Tx0x2s for pools 0.01 & 0.001");
 
     int account = 0;
-    Pool pool = pool01btc;
 
     // setup wallets
     BipWallet bipWalletSender = walletSupplierSender.getWallet(BIP_WALLET.DEPOSIT_BIP84);
@@ -246,18 +228,14 @@ public class WhirlpoolWalletTx0x2Test extends AbstractCahootsTest {
     UTXO utxoCounterparty1 = utxoProviderCounterparty.addUtxo(bipWalletCounterparty, 20000000);
 
     // initiator: build initial TX0
-    Collection<UnspentOutput> spendFroms = utxoSender1.toUnspentOutputs();
+    Collection<? extends BipUtxo> spendFroms = utxoSender1.toBipUtxos();
     Tx0Config tx0Config =
-        new Tx0Config(
-            poolSupplier.getPools(),
-            Tx0FeeTarget.BLOCKS_24,
-            Tx0FeeTarget.BLOCKS_24,
-            WhirlpoolAccount.DEPOSIT);
+        whirlpoolWallet.getTx0Config(spendFroms, Tx0FeeTarget.BLOCKS_24, Tx0FeeTarget.BLOCKS_24);
+    tx0Config.setDecoyTx0x2(false);
 
     Collection<Pool> pools = findPoolsLowerOrEqual("0.01btc", whirlpoolWallet.getPoolSupplier());
     List<Tx0> tx0Initiators =
-        tx0Service.tx0Cascade(
-            spendFroms, walletSupplierSender, pools, tx0Config, utxoProviderSender);
+        tx0Service.tx0Cascade(walletSupplierSender, pools, tx0Config, utxoProviderSender);
 
     // run Cahoots
     MultiTx0x2Context cahootsContextSender =
@@ -338,7 +316,6 @@ public class WhirlpoolWalletTx0x2Test extends AbstractCahootsTest {
     log.info("Testing Tx0x2s for pools 0.05, 0.01, & 0.001");
 
     int account = 0;
-    Pool pool = pool05btc;
 
     // setup wallets
     BipWallet bipWalletSender = walletSupplierSender.getWallet(BIP_WALLET.DEPOSIT_BIP84);
@@ -348,18 +325,14 @@ public class WhirlpoolWalletTx0x2Test extends AbstractCahootsTest {
     UTXO utxoCounterparty1 = utxoProviderCounterparty.addUtxo(bipWalletCounterparty, 20000000);
 
     // initiator: build initial TX0
-    Collection<UnspentOutput> spendFroms = utxoSender1.toUnspentOutputs();
+    Collection<? extends BipUtxo> spendFroms = utxoSender1.toBipUtxos();
     Tx0Config tx0Config =
-        new Tx0Config(
-            poolSupplier.getPools(),
-            Tx0FeeTarget.BLOCKS_24,
-            Tx0FeeTarget.BLOCKS_24,
-            WhirlpoolAccount.DEPOSIT);
+        whirlpoolWallet.getTx0Config(spendFroms, Tx0FeeTarget.BLOCKS_24, Tx0FeeTarget.BLOCKS_24);
+    tx0Config.setDecoyTx0x2(false);
 
     Collection<Pool> pools = findPoolsLowerOrEqual("0.05btc", whirlpoolWallet.getPoolSupplier());
     List<Tx0> tx0Initiators =
-        tx0Service.tx0Cascade(
-            spendFroms, walletSupplierSender, pools, tx0Config, utxoProviderSender);
+        tx0Service.tx0Cascade(walletSupplierSender, pools, tx0Config, utxoProviderSender);
 
     // run Cahoots
     MultiTx0x2Context cahootsContextSender =
@@ -473,7 +446,6 @@ public class WhirlpoolWalletTx0x2Test extends AbstractCahootsTest {
     log.info("Testing Tx0x2s for pools 0.05 & 0.001");
 
     int account = 0;
-    Pool pool = pool05btc;
 
     // setup wallets
     BipWallet bipWalletSender = walletSupplierSender.getWallet(BIP_WALLET.DEPOSIT_BIP84);
@@ -483,18 +455,14 @@ public class WhirlpoolWalletTx0x2Test extends AbstractCahootsTest {
     UTXO utxoCounterparty1 = utxoProviderCounterparty.addUtxo(bipWalletCounterparty, 20000000);
 
     // initiator: build initial TX0
-    Collection<UnspentOutput> spendFroms = utxoSender1.toUnspentOutputs();
+    Collection<? extends BipUtxo> spendFroms = utxoSender1.toBipUtxos();
     Tx0Config tx0Config =
-        new Tx0Config(
-            poolSupplier.getPools(),
-            Tx0FeeTarget.BLOCKS_24,
-            Tx0FeeTarget.BLOCKS_24,
-            WhirlpoolAccount.DEPOSIT);
+        whirlpoolWallet.getTx0Config(spendFroms, Tx0FeeTarget.BLOCKS_24, Tx0FeeTarget.BLOCKS_24);
+    tx0Config.setDecoyTx0x2(false);
 
     Collection<Pool> pools = findPoolsLowerOrEqual("0.05btc", whirlpoolWallet.getPoolSupplier());
     List<Tx0> tx0Initiators =
-        tx0Service.tx0Cascade(
-            spendFroms, walletSupplierSender, pools, tx0Config, utxoProviderSender);
+        tx0Service.tx0Cascade(walletSupplierSender, pools, tx0Config, utxoProviderSender);
 
     // run Cahoots
     MultiTx0x2Context cahootsContextSender =
@@ -577,7 +545,6 @@ public class WhirlpoolWalletTx0x2Test extends AbstractCahootsTest {
     log.info("Testing Tx0x2s for pools 0.05, 0.01, & 0.001");
 
     int account = 0;
-    Pool pool = pool05btc;
 
     // setup wallets
     BipWallet bipWalletSender = walletSupplierSender.getWallet(BIP_WALLET.DEPOSIT_BIP84);
@@ -587,18 +554,14 @@ public class WhirlpoolWalletTx0x2Test extends AbstractCahootsTest {
     UTXO utxoCounterparty1 = utxoProviderCounterparty.addUtxo(bipWalletCounterparty, 6000000);
 
     // initiator: build initial TX0
-    Collection<UnspentOutput> spendFroms = utxoSender1.toUnspentOutputs();
+    Collection<? extends BipUtxo> spendFroms = utxoSender1.toBipUtxos();
     Tx0Config tx0Config =
-        new Tx0Config(
-            poolSupplier.getPools(),
-            Tx0FeeTarget.BLOCKS_24,
-            Tx0FeeTarget.BLOCKS_24,
-            WhirlpoolAccount.DEPOSIT);
+        whirlpoolWallet.getTx0Config(spendFroms, Tx0FeeTarget.BLOCKS_24, Tx0FeeTarget.BLOCKS_24);
+    tx0Config.setDecoyTx0x2(false);
 
     Collection<Pool> pools = findPoolsLowerOrEqual("0.05btc", whirlpoolWallet.getPoolSupplier());
     List<Tx0> tx0Initiators =
-        tx0Service.tx0Cascade(
-            spendFroms, walletSupplierSender, pools, tx0Config, utxoProviderSender);
+        tx0Service.tx0Cascade(walletSupplierSender, pools, tx0Config, utxoProviderSender);
 
     // run Cahoots
     MultiTx0x2Context cahootsContextSender =
@@ -708,7 +671,6 @@ public class WhirlpoolWalletTx0x2Test extends AbstractCahootsTest {
     log.info("Testing Tx0x2s for pools 0.05 & 0.01. Doesn't reach pool 0.001.");
 
     int account = 0;
-    Pool pool = pool05btc;
 
     // setup wallets
     BipWallet bipWalletSender = walletSupplierSender.getWallet(BIP_WALLET.DEPOSIT_BIP84);
@@ -718,18 +680,14 @@ public class WhirlpoolWalletTx0x2Test extends AbstractCahootsTest {
     UTXO utxoCounterparty1 = utxoProviderCounterparty.addUtxo(bipWalletCounterparty, 19130000);
 
     // initiator: build initial TX0
-    Collection<UnspentOutput> spendFroms = utxoSender1.toUnspentOutputs();
+    Collection<? extends BipUtxo> spendFroms = utxoSender1.toBipUtxos();
     Tx0Config tx0Config =
-        new Tx0Config(
-            poolSupplier.getPools(),
-            Tx0FeeTarget.BLOCKS_24,
-            Tx0FeeTarget.BLOCKS_24,
-            WhirlpoolAccount.DEPOSIT);
+        whirlpoolWallet.getTx0Config(spendFroms, Tx0FeeTarget.BLOCKS_24, Tx0FeeTarget.BLOCKS_24);
+    tx0Config.setDecoyTx0x2(false);
 
     Collection<Pool> pools = findPoolsLowerOrEqual("0.05btc", whirlpoolWallet.getPoolSupplier());
     List<Tx0> tx0Initiators =
-        tx0Service.tx0Cascade(
-            spendFroms, walletSupplierSender, pools, tx0Config, utxoProviderSender);
+        tx0Service.tx0Cascade(walletSupplierSender, pools, tx0Config, utxoProviderSender);
 
     // run Cahoots
     MultiTx0x2Context cahootsContextSender =

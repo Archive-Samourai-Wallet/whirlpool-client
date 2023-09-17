@@ -1,13 +1,14 @@
 package com.samourai.whirlpool.client.utils;
 
 import com.samourai.wallet.api.backend.MinerFeeTarget;
-import com.samourai.wallet.api.backend.beans.UnspentOutput;
 import com.samourai.wallet.api.backend.beans.WalletResponse;
 import com.samourai.wallet.api.paynym.beans.PaynymContact;
 import com.samourai.wallet.api.paynym.beans.PaynymState;
 import com.samourai.wallet.bipWallet.BipWallet;
 import com.samourai.wallet.hd.BipAddress;
 import com.samourai.wallet.hd.Chain;
+import com.samourai.wallet.util.UtxoUtil;
+import com.samourai.wallet.utxo.BipUtxo;
 import com.samourai.whirlpool.client.wallet.WhirlpoolWallet;
 import com.samourai.whirlpool.client.wallet.beans.*;
 import com.samourai.whirlpool.client.wallet.data.paynym.PaynymSupplier;
@@ -24,6 +25,7 @@ import org.slf4j.LoggerFactory;
 
 public class DebugUtils {
   private static final Logger log = LoggerFactory.getLogger(DebugUtils.class);
+  private static final UtxoUtil utxoUtil = UtxoUtil.getInstance();
 
   public static String getDebug(WhirlpoolWallet whirlpoolWallet) {
     StringBuilder sb = new StringBuilder("\n");
@@ -63,7 +65,7 @@ public class DebugUtils {
               + ": "
               + utxos.size()
               + " utxos, "
-              + ClientUtils.satToBtc(WhirlpoolUtxo.sumValue(utxos))
+              + ClientUtils.satToBtc(BipUtxo.sumValue(utxos))
               + " BTC\n");
 
       for (BipWallet wallet : whirlpoolWallet.getWalletSupplier().getWallets(account)) {
@@ -71,7 +73,7 @@ public class DebugUtils {
         String nextAddressReceive = wallet.getNextAddressReceive(false).getAddressString();
         String nextAddressChange = wallet.getNextAddressChange(false).getAddressString();
         sb.append(
-            "     + "
+            "     > "
                 + wallet.getId()
                 + ": path="
                 + wallet.getDerivation().getPathAccount(params)
@@ -179,8 +181,7 @@ public class DebugUtils {
     while (var3.hasNext()) {
       WhirlpoolUtxo whirlpoolUtxo = (WhirlpoolUtxo) var3.next();
       WhirlpoolUtxoState utxoState = whirlpoolUtxo.getUtxoState();
-      UnspentOutput o = whirlpoolUtxo.getUtxo();
-      String utxo = o.tx_hash + ":" + o.tx_output_n;
+      String utxo = whirlpoolUtxo.getTxHash() + ":" + whirlpoolUtxo.getTxOutputIndex();
       String mixableStatusName =
           utxoState.getMixableStatus() != null ? utxoState.getMixableStatus().name() : "-";
       Long lastActivity = whirlpoolUtxo.getUtxoState().getLastActivity();
@@ -198,12 +199,12 @@ public class DebugUtils {
       sb.append(
           String.format(
               lineFormat,
-              ClientUtils.satToBtc(o.value),
-              whirlpoolUtxo.computeConfirmations(latestBlockHeight),
+              ClientUtils.satToBtc(whirlpoolUtxo.getValue()),
+              whirlpoolUtxo.getConfirmations(latestBlockHeight),
               utxo,
-              o.addr,
+              whirlpoolUtxo.getAddress(),
               whirlpoolUtxo.getBipFormat().getId(),
-              whirlpoolUtxo.getPathAddress(),
+              utxoUtil.computePath(whirlpoolUtxo),
               utxoState.getStatus().name(),
               mixableStatusName,
               whirlpoolUtxo.getUtxoState().getPoolId() != null
@@ -282,8 +283,7 @@ public class DebugUtils {
         MixProgress mixProgress = whirlpoolUtxo.getUtxoState().getMixProgress();
         String progress = mixProgress != null ? mixProgress.toString() : "";
         String since = mixProgress != null ? ((now - mixProgress.getSince()) / 1000) + "s" : "";
-        UnspentOutput o = whirlpoolUtxo.getUtxo();
-        String utxo = o.tx_hash + ":" + o.tx_output_n;
+        String utxo = whirlpoolUtxo.getTxHash() + ":" + whirlpoolUtxo.getTxOutputIndex();
         Long lastActivity = whirlpoolUtxo.getUtxoState().getLastActivity();
         String activity =
             (lastActivity != null ? ClientUtils.dateToString(lastActivity) + " " : "")
@@ -302,10 +302,10 @@ public class DebugUtils {
                 progress,
                 since,
                 whirlpoolUtxo.getAccount().name(),
-                ClientUtils.satToBtc(o.value),
-                whirlpoolUtxo.computeConfirmations(latestBlockHeight),
+                ClientUtils.satToBtc(whirlpoolUtxo.getValue()),
+                whirlpoolUtxo.getConfirmations(latestBlockHeight),
                 utxo,
-                o.getPath(),
+                utxoUtil.computePath(whirlpoolUtxo),
                 mixProgress.getPoolId() != null ? mixProgress.getPoolId() : "-",
                 whirlpoolUtxo.getMixsDone(),
                 activity,

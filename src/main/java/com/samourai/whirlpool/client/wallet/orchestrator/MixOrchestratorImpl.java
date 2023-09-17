@@ -1,7 +1,7 @@
 package com.samourai.whirlpool.client.wallet.orchestrator;
 
-import com.samourai.wallet.api.backend.beans.UnspentOutput;
 import com.samourai.wallet.chain.ChainSupplier;
+import com.samourai.wallet.utxo.UtxoDetail;
 import com.samourai.whirlpool.client.WhirlpoolClient;
 import com.samourai.whirlpool.client.exception.NotifiableException;
 import com.samourai.whirlpool.client.mix.MixParams;
@@ -17,7 +17,6 @@ import com.samourai.whirlpool.client.whirlpool.WhirlpoolClientConfig;
 import com.samourai.whirlpool.client.whirlpool.WhirlpoolClientImpl;
 import com.samourai.whirlpool.client.whirlpool.beans.Pool;
 import com.samourai.whirlpool.client.whirlpool.listener.WhirlpoolClientListener;
-import com.samourai.whirlpool.protocol.beans.Utxo;
 import org.bitcoinj.core.ECKey;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -59,7 +58,7 @@ public class MixOrchestratorImpl extends MixOrchestrator {
 
     return new WhirlpoolClientListener() {
       @Override
-      public void success(Utxo receiveUtxo) {
+      public void success(UtxoDetail receiveUtxo) {
         // update utxo
         WhirlpoolUtxoState utxoState = whirlpoolUtxo.getUtxoState();
         utxoState.setStatusMixing(
@@ -185,18 +184,11 @@ public class MixOrchestratorImpl extends MixOrchestrator {
   private IPremixHandler computePremixHandler(WhirlpoolUtxo whirlpoolUtxo) {
     ECKey premixKey = whirlpoolUtxo.getBipAddress().getHdAddress().getECKey();
 
-    UnspentOutput premixOrPostmixUtxo = whirlpoolUtxo.getUtxo();
-    UtxoWithBalance utxoWithBalance =
-        new UtxoWithBalance(
-            premixOrPostmixUtxo.tx_hash,
-            premixOrPostmixUtxo.tx_output_n,
-            premixOrPostmixUtxo.value);
-
     // use PREMIX(0,0) as userPreHash (not transmitted to server but rehashed with another salt)
     String premix00Bech32 = whirlpoolWallet.getWalletPremix().getAddressAt(0, 0).getAddressString();
     String userPreHash = ClientUtils.sha256Hash(premix00Bech32);
 
-    return new PremixHandler(utxoWithBalance, premixKey, userPreHash);
+    return new PremixHandler(whirlpoolUtxo, premixKey, userPreHash);
   }
 
   private IPostmixHandler computePostmixHandler(WhirlpoolUtxo whirlpoolUtxo) {

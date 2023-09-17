@@ -1,8 +1,9 @@
 package com.samourai.whirlpool.client.tx0;
 
-import com.samourai.wallet.api.backend.beans.UnspentOutput;
 import com.samourai.wallet.hd.HD_Address;
 import com.samourai.wallet.util.TxUtil;
+import com.samourai.wallet.utxo.BipUtxo;
+import com.samourai.wallet.utxo.UtxoDetailImpl;
 import com.samourai.whirlpool.client.wallet.beans.Tx0FeeTarget;
 import com.samourai.whirlpool.client.wallet.beans.WhirlpoolAccount;
 import com.samourai.whirlpool.client.whirlpool.beans.Tx0Data;
@@ -28,14 +29,13 @@ public class Tx0ServiceV0Test extends AbstractTx0ServiceV0Test {
 
   @Test
   public void tx0Preview_scode_noFee() throws Exception {
-    HD_Address address = whirlpoolWallet.getWalletDeposit().getAddressAt(0, 61).getHdAddress();
-    UnspentOutput spendFromUtxo =
-        newUnspentOutput(
+    UtxoDetailImpl spendFromUtxo =
+        new UtxoDetailImpl(
             "cc588cdcb368f894a41c372d1f905770b61ecb3fb8e5e01a97e7cedbf5e324ae",
             1,
             500000000,
-            address);
-    mockUtxos(spendFromUtxo);
+            "tb1qjara0278vrsr8gvaga7jpy2c9amtgvytr44xym",
+            null);
 
     int nbOutputsExpected = 70;
 
@@ -62,10 +62,12 @@ public class Tx0ServiceV0Test extends AbstractTx0ServiceV0Test {
     Tx0Param tx0Param = new Tx0Param(feeSatPerByte, feeSatPerByte, pool01btc, null);
     Assertions.assertEquals(1000170, tx0Param.getPremixValue());
     Tx0PreviewConfig tx0PreviewConfig =
-        new Tx0PreviewConfig(Arrays.asList(pool01btc), Tx0FeeTarget.MIN, Tx0FeeTarget.MIN);
-    Tx0Preview tx0Preview =
-        tx0PreviewService.tx0Preview(
-            tx0PreviewConfig, tx0Param, tx0Data, Arrays.asList(spendFromUtxo));
+        new Tx0PreviewConfig(
+            Arrays.asList(pool01btc),
+            Tx0FeeTarget.MIN,
+            Tx0FeeTarget.MIN,
+            Arrays.asList(new UtxoDetailImpl[] {spendFromUtxo}));
+    Tx0Preview tx0Preview = tx0PreviewService.tx0Preview(tx0PreviewConfig, tx0Param, tx0Data);
     check(tx0Preview);
     Assertions.assertEquals(2403, tx0Preview.getTx0MinerFee());
     Assertions.assertEquals(feeValue, tx0Preview.getFeeValue());
@@ -79,13 +81,13 @@ public class Tx0ServiceV0Test extends AbstractTx0ServiceV0Test {
   @Test
   public void tx0Preview_overspend() throws Exception {
     HD_Address address = whirlpoolWallet.getWalletDeposit().getAddressAt(0, 61).getHdAddress();
-    UnspentOutput spendFromUtxo =
-        newUnspentOutput(
+    UtxoDetailImpl spendFromUtxo =
+        new UtxoDetailImpl(
             "cc588cdcb368f894a41c372d1f905770b61ecb3fb8e5e01a97e7cedbf5e324ae",
             1,
             500000000,
-            address);
-    mockUtxos(spendFromUtxo);
+            "tb1qjara0278vrsr8gvaga7jpy2c9amtgvytr44xym",
+            null);
 
     String feePaymentCode =
         "PM8TJXp19gCE6hQzqRi719FGJzF6AreRwvoQKLRnQ7dpgaakakFns22jHUqhtPQWmfevPQRCyfFbdDrKvrfw9oZv5PjaCerQMa3BKkPyUf9yN1CDR3w6";
@@ -110,42 +112,39 @@ public class Tx0ServiceV0Test extends AbstractTx0ServiceV0Test {
     Tx0Param tx0Param = new Tx0Param(feeSatPerByte, feeSatPerByte, pool01btc, null);
     Assertions.assertEquals(1000170, tx0Param.getPremixValue());
     Tx0PreviewConfig tx0PreviewConfig =
-        new Tx0PreviewConfig(Arrays.asList(pool01btc), Tx0FeeTarget.MIN, Tx0FeeTarget.MIN);
-    Tx0Preview tx0Preview =
-        tx0PreviewService.tx0Preview(
-            tx0PreviewConfig, tx0Param, tx0Data, Arrays.asList(spendFromUtxo));
+        new Tx0PreviewConfig(
+            Arrays.asList(pool01btc),
+            Tx0FeeTarget.MIN,
+            Tx0FeeTarget.MIN,
+            Arrays.asList(new UtxoDetailImpl[] {spendFromUtxo}));
+    Tx0Preview tx0Preview = tx0PreviewService.tx0Preview(tx0PreviewConfig, tx0Param, tx0Data);
     check(tx0Preview);
     Assertions.assertEquals(1000170, tx0Preview.getPremixValue());
 
     // overspend too low => min
     tx0Param = new Tx0Param(feeSatPerByte, feeSatPerByte, pool01btc, 1L);
     Assertions.assertEquals(pool01btc.getMustMixBalanceMin(), tx0Param.getPremixValue());
-    tx0Preview =
-        tx0PreviewService.tx0Preview(
-            tx0PreviewConfig, tx0Param, tx0Data, Arrays.asList(spendFromUtxo));
+    tx0Preview = tx0PreviewService.tx0Preview(tx0PreviewConfig, tx0Param, tx0Data);
     check(tx0Preview);
     Assertions.assertEquals(pool01btc.getMustMixBalanceMin(), tx0Preview.getPremixValue());
 
     // overspend too high => max
     tx0Param = new Tx0Param(feeSatPerByte, feeSatPerByte, pool01btc, 999999999L);
     Assertions.assertEquals(pool01btc.getMustMixBalanceCap(), tx0Param.getPremixValue());
-    tx0Preview =
-        tx0PreviewService.tx0Preview(
-            tx0PreviewConfig, tx0Param, tx0Data, Arrays.asList(spendFromUtxo));
+    tx0Preview = tx0PreviewService.tx0Preview(tx0PreviewConfig, tx0Param, tx0Data);
     check(tx0Preview);
     Assertions.assertEquals(pool01btc.getMustMixBalanceCap(), tx0Preview.getPremixValue());
   }
 
   @Test
   public void tx0Preview_feeTx0() throws Exception {
-    HD_Address address = whirlpoolWallet.getWalletDeposit().getAddressAt(0, 61).getHdAddress();
-    UnspentOutput spendFromUtxo =
-        newUnspentOutput(
+    UtxoDetailImpl spendFromUtxo =
+        new UtxoDetailImpl(
             "cc588cdcb368f894a41c372d1f905770b61ecb3fb8e5e01a97e7cedbf5e324ae",
             1,
             500000000,
-            address);
-    mockUtxos(spendFromUtxo);
+            "tb1qjara0278vrsr8gvaga7jpy2c9amtgvytr44xym",
+            null);
 
     String feePaymentCode =
         "PM8TJXp19gCE6hQzqRi719FGJzF6AreRwvoQKLRnQ7dpgaakakFns22jHUqhtPQWmfevPQRCyfFbdDrKvrfw9oZv5PjaCerQMa3BKkPyUf9yN1CDR3w6";
@@ -173,11 +172,13 @@ public class Tx0ServiceV0Test extends AbstractTx0ServiceV0Test {
     // feeTx0
     int feeTx0 = 1;
     Tx0PreviewConfig tx0PreviewConfig =
-        new Tx0PreviewConfig(Arrays.asList(pool01btc), Tx0FeeTarget.MIN, Tx0FeeTarget.MIN);
+        new Tx0PreviewConfig(
+            Arrays.asList(pool01btc),
+            Tx0FeeTarget.MIN,
+            Tx0FeeTarget.MIN,
+            Arrays.asList(new UtxoDetailImpl[] {spendFromUtxo}));
     tx0Param = new Tx0Param(feeTx0, feeSatPerByte, pool01btc, null);
-    Tx0Preview tx0Preview =
-        tx0PreviewService.tx0Preview(
-            tx0PreviewConfig, tx0Param, tx0Data, Arrays.asList(spendFromUtxo));
+    Tx0Preview tx0Preview = tx0PreviewService.tx0Preview(tx0PreviewConfig, tx0Param, tx0Data);
     check(tx0Preview);
     Assertions.assertEquals(TX0_SIZE, tx0Preview.getTx0Size());
     Assertions.assertEquals(TX0_SIZE * feeTx0, tx0Preview.getTx0MinerFee());
@@ -185,9 +186,7 @@ public class Tx0ServiceV0Test extends AbstractTx0ServiceV0Test {
     // feeTx0
     feeTx0 = 5;
     tx0Param = new Tx0Param(feeTx0, feeSatPerByte, pool01btc, null);
-    tx0Preview =
-        tx0PreviewService.tx0Preview(
-            tx0PreviewConfig, tx0Param, tx0Data, Arrays.asList(spendFromUtxo));
+    tx0Preview = tx0PreviewService.tx0Preview(tx0PreviewConfig, tx0Param, tx0Data);
     check(tx0Preview);
     Assertions.assertEquals(TX0_SIZE, tx0Preview.getTx0Size());
     Assertions.assertEquals(TX0_SIZE * feeTx0, tx0Preview.getTx0MinerFee());
@@ -195,9 +194,7 @@ public class Tx0ServiceV0Test extends AbstractTx0ServiceV0Test {
     // feeTx0
     feeTx0 = 50;
     tx0Param = new Tx0Param(feeTx0, feeSatPerByte, pool01btc, null);
-    tx0Preview =
-        tx0PreviewService.tx0Preview(
-            tx0PreviewConfig, tx0Param, tx0Data, Arrays.asList(spendFromUtxo));
+    tx0Preview = tx0PreviewService.tx0Preview(tx0PreviewConfig, tx0Param, tx0Data);
     check(tx0Preview);
     Assertions.assertEquals(TX0_SIZE, tx0Preview.getTx0Size());
     Assertions.assertEquals(TX0_SIZE * feeTx0, tx0Preview.getTx0MinerFee());
@@ -205,14 +202,13 @@ public class Tx0ServiceV0Test extends AbstractTx0ServiceV0Test {
 
   @Test
   public void tx0Preview_feePremix() throws Exception {
-    HD_Address address = whirlpoolWallet.getWalletDeposit().getAddressAt(0, 61).getHdAddress();
-    UnspentOutput spendFromUtxo =
-        newUnspentOutput(
+    UtxoDetailImpl spendFromUtxo =
+        new UtxoDetailImpl(
             "cc588cdcb368f894a41c372d1f905770b61ecb3fb8e5e01a97e7cedbf5e324ae",
             1,
             500000000,
-            address);
-    mockUtxos(spendFromUtxo);
+            "tb1qjara0278vrsr8gvaga7jpy2c9amtgvytr44xym",
+            null);
 
     String feePaymentCode =
         "PM8TJXp19gCE6hQzqRi719FGJzF6AreRwvoQKLRnQ7dpgaakakFns22jHUqhtPQWmfevPQRCyfFbdDrKvrfw9oZv5PjaCerQMa3BKkPyUf9yN1CDR3w6";
@@ -240,11 +236,13 @@ public class Tx0ServiceV0Test extends AbstractTx0ServiceV0Test {
     // feePremix
     int feePremix = 1;
     Tx0PreviewConfig tx0PreviewConfig =
-        new Tx0PreviewConfig(Arrays.asList(pool01btc), Tx0FeeTarget.MIN, Tx0FeeTarget.MIN);
+        new Tx0PreviewConfig(
+            Arrays.asList(pool01btc),
+            Tx0FeeTarget.MIN,
+            Tx0FeeTarget.MIN,
+            Arrays.asList(new UtxoDetailImpl[] {spendFromUtxo}));
     tx0Param = new Tx0Param(feeSatPerByte, feePremix, pool01btc, null);
-    Tx0Preview tx0Preview =
-        tx0PreviewService.tx0Preview(
-            tx0PreviewConfig, tx0Param, tx0Data, Arrays.asList(spendFromUtxo));
+    Tx0Preview tx0Preview = tx0PreviewService.tx0Preview(tx0PreviewConfig, tx0Param, tx0Data);
     check(tx0Preview);
     Assertions.assertEquals(TX0_SIZE, tx0Preview.getTx0Size());
     Assertions.assertEquals(1000170, tx0Preview.getPremixValue());
@@ -252,9 +250,7 @@ public class Tx0ServiceV0Test extends AbstractTx0ServiceV0Test {
     // feePremix
     feePremix = 5;
     tx0Param = new Tx0Param(feeSatPerByte, feePremix, pool01btc, null);
-    tx0Preview =
-        tx0PreviewService.tx0Preview(
-            tx0PreviewConfig, tx0Param, tx0Data, Arrays.asList(spendFromUtxo));
+    tx0Preview = tx0PreviewService.tx0Preview(tx0PreviewConfig, tx0Param, tx0Data);
     check(tx0Preview);
     Assertions.assertEquals(TX0_SIZE, tx0Preview.getTx0Size());
     Assertions.assertEquals(1000850, tx0Preview.getPremixValue());
@@ -262,9 +258,7 @@ public class Tx0ServiceV0Test extends AbstractTx0ServiceV0Test {
     // feePremix
     feePremix = 20;
     tx0Param = new Tx0Param(feeSatPerByte, feePremix, pool01btc, null);
-    tx0Preview =
-        tx0PreviewService.tx0Preview(
-            tx0PreviewConfig, tx0Param, tx0Data, Arrays.asList(spendFromUtxo));
+    tx0Preview = tx0PreviewService.tx0Preview(tx0PreviewConfig, tx0Param, tx0Data);
     check(tx0Preview);
     Assertions.assertEquals(TX0_SIZE, tx0Preview.getTx0Size());
     Assertions.assertEquals(1003400, tx0Preview.getPremixValue());
@@ -272,9 +266,7 @@ public class Tx0ServiceV0Test extends AbstractTx0ServiceV0Test {
     // feePremix max
     feePremix = 99999;
     tx0Param = new Tx0Param(feeSatPerByte, feePremix, pool01btc, null);
-    tx0Preview =
-        tx0PreviewService.tx0Preview(
-            tx0PreviewConfig, tx0Param, tx0Data, Arrays.asList(spendFromUtxo));
+    tx0Preview = tx0PreviewService.tx0Preview(tx0PreviewConfig, tx0Param, tx0Data);
     check(tx0Preview);
     Assertions.assertEquals(TX0_SIZE, tx0Preview.getTx0Size());
     Assertions.assertEquals(1009500, tx0Preview.getPremixValue());
@@ -284,8 +276,8 @@ public class Tx0ServiceV0Test extends AbstractTx0ServiceV0Test {
   public void tx0_5premix_withChange_scode_noFee() throws Exception {
     HD_Address address = whirlpoolWallet.getWalletDeposit().getAddressAt(0, 61).getHdAddress();
     long spendBalance = 500000000;
-    UnspentOutput spendFromUtxo =
-        newUnspentOutput(
+    BipUtxo spendFromUtxo =
+        newUtxo(
             "cc588cdcb368f894a41c372d1f905770b61ecb3fb8e5e01a97e7cedbf5e324ae",
             1,
             spendBalance,
@@ -297,7 +289,8 @@ public class Tx0ServiceV0Test extends AbstractTx0ServiceV0Test {
             poolSupplier.getPools(),
             Tx0FeeTarget.BLOCKS_24,
             Tx0FeeTarget.BLOCKS_24,
-            WhirlpoolAccount.DEPOSIT);
+            WhirlpoolAccount.DEPOSIT,
+            Arrays.asList(new BipUtxo[] {spendFromUtxo}));
     int nbOutputsExpected = 10;
     long premixValue = 1000150;
     String feePaymentCode =
@@ -334,9 +327,10 @@ public class Tx0ServiceV0Test extends AbstractTx0ServiceV0Test {
             premixValue,
             changeValue,
             nbOutputsExpected,
-            Arrays.asList(changeValue));
+            Arrays.asList(changeValue),
+            false);
 
-    Tx0 tx0 = tx0(new UnspentOutput[] {spendFromUtxo}, tx0Config, tx0Preview);
+    Tx0 tx0 = tx0(tx0Config, tx0Preview);
 
     assertEquals(tx0Preview, tx0);
     Assertions.assertEquals(tx0MinerFee, tx0Preview.getTx0MinerFee());
@@ -367,8 +361,8 @@ public class Tx0ServiceV0Test extends AbstractTx0ServiceV0Test {
   public void tx0_1premix_withChange_scode_nofee() throws Exception {
     HD_Address address = whirlpoolWallet.getWalletDeposit().getAddressAt(0, 61).getHdAddress();
     long spendBalance = 1021397;
-    UnspentOutput spendFromUtxo =
-        newUnspentOutput(
+    BipUtxo spendFromUtxo =
+        newUtxo(
             "cc588cdcb368f894a41c372d1f905770b61ecb3fb8e5e01a97e7cedbf5e324ae",
             1,
             spendBalance,
@@ -380,7 +374,8 @@ public class Tx0ServiceV0Test extends AbstractTx0ServiceV0Test {
             poolSupplier.getPools(),
             Tx0FeeTarget.BLOCKS_24,
             Tx0FeeTarget.BLOCKS_24,
-            WhirlpoolAccount.DEPOSIT);
+            WhirlpoolAccount.DEPOSIT,
+            Arrays.asList(new BipUtxo[] {spendFromUtxo}));
     int nbOutputsExpected = 1;
     long premixValue = 1000150;
     String feePaymentCode =
@@ -419,8 +414,9 @@ public class Tx0ServiceV0Test extends AbstractTx0ServiceV0Test {
             premixValue,
             changeValue,
             nbOutputsExpected,
-            Arrays.asList(changeValue));
-    Tx0 tx0 = tx0(new UnspentOutput[] {spendFromUtxo}, tx0Config, tx0Preview);
+            Arrays.asList(changeValue),
+            false);
+    Tx0 tx0 = tx0(tx0Config, tx0Preview);
 
     assertEquals(tx0Preview, tx0);
     Assertions.assertEquals(tx0MinerFee, tx0Preview.getTx0MinerFee());
@@ -451,8 +447,8 @@ public class Tx0ServiceV0Test extends AbstractTx0ServiceV0Test {
   public void tx0_1premix_withChange_scode_fee() throws Exception {
     HD_Address address = whirlpoolWallet.getWalletDeposit().getAddressAt(0, 61).getHdAddress();
     long spendBalance = 1021397;
-    UnspentOutput spendFromUtxo =
-        newUnspentOutput(
+    BipUtxo spendFromUtxo =
+        newUtxo(
             "cc588cdcb368f894a41c372d1f905770b61ecb3fb8e5e01a97e7cedbf5e324ae",
             1,
             spendBalance,
@@ -464,7 +460,8 @@ public class Tx0ServiceV0Test extends AbstractTx0ServiceV0Test {
             poolSupplier.getPools(),
             Tx0FeeTarget.BLOCKS_24,
             Tx0FeeTarget.BLOCKS_24,
-            WhirlpoolAccount.DEPOSIT);
+            WhirlpoolAccount.DEPOSIT,
+            Arrays.asList(new BipUtxo[] {spendFromUtxo}));
     int nbOutputsExpected = 1;
     long premixValue = 1000150;
     String feePaymentCode =
@@ -503,8 +500,9 @@ public class Tx0ServiceV0Test extends AbstractTx0ServiceV0Test {
             premixValue,
             changeValue,
             nbOutputsExpected,
-            Arrays.asList(changeValue));
-    Tx0 tx0 = tx0(new UnspentOutput[] {spendFromUtxo}, tx0Config, tx0Preview);
+            Arrays.asList(changeValue),
+            false);
+    Tx0 tx0 = tx0(tx0Config, tx0Preview);
 
     assertEquals(tx0Preview, tx0);
     Assertions.assertEquals(tx0MinerFee, tx0Preview.getTx0MinerFee());
@@ -535,8 +533,8 @@ public class Tx0ServiceV0Test extends AbstractTx0ServiceV0Test {
   public void tx0_1premix_withChange_noScode() throws Exception {
     HD_Address address = whirlpoolWallet.getWalletDeposit().getAddressAt(0, 61).getHdAddress();
     long spendBalance = 1021397;
-    UnspentOutput spendFromUtxo =
-        newUnspentOutput(
+    BipUtxo spendFromUtxo =
+        newUtxo(
             "cc588cdcb368f894a41c372d1f905770b61ecb3fb8e5e01a97e7cedbf5e324ae",
             1,
             spendBalance,
@@ -548,7 +546,8 @@ public class Tx0ServiceV0Test extends AbstractTx0ServiceV0Test {
             poolSupplier.getPools(),
             Tx0FeeTarget.BLOCKS_24,
             Tx0FeeTarget.BLOCKS_24,
-            WhirlpoolAccount.DEPOSIT);
+            WhirlpoolAccount.DEPOSIT,
+            Arrays.asList(new BipUtxo[] {spendFromUtxo}));
     int nbOutputsExpected = 1;
     long premixValue = 1000150;
     String feePaymentCode =
@@ -586,8 +585,9 @@ public class Tx0ServiceV0Test extends AbstractTx0ServiceV0Test {
             premixValue,
             changeValue,
             nbOutputsExpected,
-            Arrays.asList(changeValue));
-    Tx0 tx0 = tx0(new UnspentOutput[] {spendFromUtxo}, tx0Config, tx0Preview);
+            Arrays.asList(changeValue),
+            false);
+    Tx0 tx0 = tx0(tx0Config, tx0Preview);
 
     assertEquals(tx0Preview, tx0);
     Assertions.assertEquals(tx0MinerFee, tx0Preview.getTx0MinerFee());
@@ -618,8 +618,8 @@ public class Tx0ServiceV0Test extends AbstractTx0ServiceV0Test {
   public void tx0_1premix_withChangePostmix_noScode() throws Exception {
     HD_Address address = whirlpoolWallet.getWalletDeposit().getAddressAt(0, 61).getHdAddress();
     long spendBalance = 1021397;
-    UnspentOutput spendFromUtxo =
-        newUnspentOutput(
+    BipUtxo spendFromUtxo =
+        newUtxo(
             "cc588cdcb368f894a41c372d1f905770b61ecb3fb8e5e01a97e7cedbf5e324ae",
             1,
             spendBalance,
@@ -631,7 +631,8 @@ public class Tx0ServiceV0Test extends AbstractTx0ServiceV0Test {
             poolSupplier.getPools(),
             Tx0FeeTarget.BLOCKS_24,
             Tx0FeeTarget.BLOCKS_24,
-            WhirlpoolAccount.POSTMIX);
+            WhirlpoolAccount.POSTMIX,
+            Arrays.asList(new BipUtxo[] {spendFromUtxo}));
     int nbOutputsExpected = 1;
     long premixValue = 1000150;
     String feePaymentCode =
@@ -669,8 +670,9 @@ public class Tx0ServiceV0Test extends AbstractTx0ServiceV0Test {
             premixValue,
             changeValue,
             nbOutputsExpected,
-            Arrays.asList(changeValue));
-    Tx0 tx0 = tx0(new UnspentOutput[] {spendFromUtxo}, tx0Config, tx0Preview);
+            Arrays.asList(changeValue),
+            false);
+    Tx0 tx0 = tx0(tx0Config, tx0Preview);
 
     assertEquals(tx0Preview, tx0);
     Assertions.assertEquals(tx0MinerFee, tx0Preview.getTx0MinerFee());

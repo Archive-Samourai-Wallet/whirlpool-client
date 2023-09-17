@@ -27,8 +27,7 @@ public class Bip84PostmixHandlerTest extends AbstractTest {
     HD_Wallet bip84w = hdWalletFactory.getBIP84(seed, SEED_PASSPHRASE, params);
 
     WalletStateSupplier walletStateSupplier = computeWalletStateSupplier();
-    bipWallet =
-        new BipWallet(bipFormatSupplier, bip84w, walletStateSupplier, BIP_WALLET.POSTMIX_BIP84);
+    bipWallet = new BipWallet(bip84w, walletStateSupplier, BIP_WALLET.POSTMIX_BIP84);
   }
 
   @Test

@@ -17,6 +17,9 @@ import com.samourai.wallet.hd.HD_WalletFactoryGeneric;
 import com.samourai.wallet.segwit.bech32.Bech32UtilGeneric;
 import com.samourai.wallet.util.AsyncUtil;
 import com.samourai.wallet.util.RandomUtil;
+import com.samourai.wallet.util.UtxoUtil;
+import com.samourai.wallet.utxo.BipUtxo;
+import com.samourai.wallet.utxo.BipUtxoImpl;
 import com.samourai.whirlpool.client.tx0.ITx0PreviewServiceConfig;
 import com.samourai.whirlpool.client.tx0.Tx0PreviewService;
 import com.samourai.whirlpool.client.tx0.Tx0Service;
@@ -48,17 +51,11 @@ import com.samourai.whirlpool.protocol.rest.Tx0PushRequest;
 import com.samourai.whirlpool.protocol.websocket.notifications.MixStatus;
 import io.reactivex.Single;
 import java.io.File;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.List;
-import java.util.Optional;
-import java.util.function.Function;
+import java.util.*;
 import java.util.stream.Collectors;
 import org.bitcoinj.core.NetworkParameters;
 import org.bitcoinj.core.Transaction;
 import org.bitcoinj.params.TestNet3Params;
-import org.bouncycastle.util.encoders.Hex;
 import org.junit.jupiter.api.Assertions;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -69,6 +66,7 @@ public class AbstractTest {
   protected static final String SEED_WORDS = "all all all all all all all all all all all all";
   protected static final String SEED_PASSPHRASE = "whirlpool";
   private static final String STATE_FILENAME = "/tmp/tmp-state";
+  private static final UtxoUtil utxoUtil = UtxoUtil.getInstance();
 
   protected IHttpClient httpClient;
 
@@ -188,6 +186,7 @@ public class AbstractTest {
     MinerFeeSupplier minerFeeSupplier = mockMinerFeeSupplier();
     return new Tx0PreviewService(
         minerFeeSupplier,
+        bipFormatSupplier,
         new ITx0PreviewServiceConfig() {
           @Override
           public NetworkParameters getNetworkParameters() {
@@ -272,22 +271,34 @@ public class AbstractTest {
     };
   }
 
-  protected UnspentOutput newUnspentOutput(String hash, int index, long value, HD_Address hdAddress)
+  protected BipUtxo newUtxo(String hash, int index, long value, HD_Address hdAddress)
       throws Exception {
     String bech32Address = bech32Util.toBech32(hdAddress, params);
-    String scriptBytes =
-        Hex.toHexString(Bech32UtilGeneric.getInstance().computeScriptPubKey(bech32Address, params));
-    UnspentOutput spendFrom = new UnspentOutput();
-    spendFrom.tx_hash = hash;
-    spendFrom.tx_output_n = index;
-    spendFrom.value = value;
-    spendFrom.script = scriptBytes;
-    spendFrom.addr = bech32Address;
-    spendFrom.confirmations = 1234;
-    spendFrom.xpub = new UnspentOutput.Xpub();
-    spendFrom.xpub.path = "m/0/" + hdAddress.getAddressIndex();
-    spendFrom.xpub.m = XPUB_DEPOSIT_BIP84;
+    byte[] scriptBytes = Bech32UtilGeneric.getInstance().computeScriptPubKey(bech32Address, params);
+    BipUtxo spendFrom =
+        new BipUtxoImpl(
+            hash,
+            index,
+            value,
+            bech32Address,
+            1234,
+            XPUB_DEPOSIT_BIP84,
+            false,
+            0,
+            hdAddress.getAddressIndex(),
+            scriptBytes);
     return spendFrom;
+  }
+
+  protected UnspentOutput newUnspentOutput(String hash, int n, String xpub, int confirms) {
+    UnspentOutput utxo = new UnspentOutput();
+    utxo.tx_hash = hash;
+    utxo.tx_output_n = n;
+    utxo.xpub = new UnspentOutput.Xpub();
+    utxo.xpub.path = utxoUtil.computePath(0, n);
+    utxo.xpub.m = xpub;
+    utxo.confirmations = confirms;
+    return utxo;
   }
 
   protected IWhirlpoolHttpClientService computeHttpClientService() {
@@ -407,31 +418,21 @@ public class AbstractTest {
     resetFile(STATE_FILENAME);
   }
 
-  protected UnspentOutput computeUtxo(String hash, int n, String xpub, int confirms) {
-    UnspentOutput utxo = new UnspentOutput();
-    utxo.tx_hash = hash;
-    utxo.tx_output_n = n;
-    utxo.xpub = new UnspentOutput.Xpub();
-    utxo.xpub.m = xpub;
-    utxo.confirmations = confirms;
-    return utxo;
-  }
-
-  protected void assertUtxoEquals(UnspentOutput[] utxos1, Collection<WhirlpoolUtxo> utxos2) {
+  protected void assertUtxoEquals(BipUtxo[] utxos1, Collection<WhirlpoolUtxo> utxos2) {
     Assertions.assertEquals(utxos1.length, utxos2.size());
 
     List<String> utxos1Ids =
         Arrays.asList(utxos1).stream()
-            .map((Function<UnspentOutput, String>) utxo -> computeUtxoId(utxo))
+            .map(utxo -> computeUtxoId(utxo))
             .collect(Collectors.<String>toList());
     for (WhirlpoolUtxo whirlpoolUtxo : utxos2) {
       // search utxo by id
-      Assertions.assertTrue(utxos1Ids.contains(computeUtxoId(whirlpoolUtxo.getUtxo())));
+      Assertions.assertTrue(utxos1Ids.contains(computeUtxoId(whirlpoolUtxo)));
     }
   }
 
-  protected String computeUtxoId(UnspentOutput utxo) {
-    return utxo.tx_hash + ':' + utxo.tx_output_n;
+  protected String computeUtxoId(BipUtxo utxo) {
+    return utxo.getTxHash() + ':' + utxo.getTxOutputIndex();
   }
 
   private void mockTx0Datas() throws Exception {

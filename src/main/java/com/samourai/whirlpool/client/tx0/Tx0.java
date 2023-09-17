@@ -1,31 +1,31 @@
 package com.samourai.whirlpool.client.tx0;
 
-import com.samourai.wallet.api.backend.beans.UnspentOutput;
+import com.samourai.wallet.utxo.BipUtxo;
 import java.util.Collection;
 import java.util.List;
 import org.bitcoinj.core.Transaction;
 import org.bitcoinj.core.TransactionOutput;
 
 public class Tx0 extends Tx0Preview {
-  private Collection<UnspentOutput> spendFroms;
+  private Collection<BipUtxo> spendFroms;
   private Tx0Config tx0Config;
   private Tx0Context tx0Context;
   private Transaction tx;
   private List<TransactionOutput> premixOutputs;
   private List<TransactionOutput> changeOutputs;
-  private List<UnspentOutput> changeUtxos;
+  private List<? extends BipUtxo> changeUtxos;
   private TransactionOutput opReturnOutput;
   private TransactionOutput samouraiFeeOutput;
 
   public Tx0(
       Tx0Preview tx0Preview,
-      Collection<UnspentOutput> spendFroms,
+      Collection<BipUtxo> spendFroms,
       Tx0Config tx0Config,
       Tx0Context tx0Context,
       Transaction tx,
       List<TransactionOutput> premixOutputs,
       List<TransactionOutput> changeOutputs,
-      List<UnspentOutput> changeUtxos,
+      List<? extends BipUtxo> changeUtxos,
       TransactionOutput opReturnOutput,
       TransactionOutput samouraiFeeOutput)
       throws Exception {
@@ -41,7 +41,7 @@ public class Tx0 extends Tx0Preview {
     this.samouraiFeeOutput = samouraiFeeOutput;
   }
 
-  public Collection<UnspentOutput> getSpendFroms() {
+  public Collection<? extends BipUtxo> getSpendFroms() {
     return spendFroms;
   }
 
@@ -65,7 +65,7 @@ public class Tx0 extends Tx0Preview {
     return changeOutputs;
   }
 
-  public List<UnspentOutput> getChangeUtxos() {
+  public List<? extends BipUtxo> getChangeUtxos() {
     return changeUtxos;
   }
 
