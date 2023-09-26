@@ -1,6 +1,5 @@
 package com.samourai.whirlpool.client.tx0;
 
-import com.samourai.wallet.hd.HD_Address;
 import com.samourai.wallet.util.TxUtil;
 import com.samourai.wallet.utxo.BipUtxo;
 import com.samourai.wallet.utxo.UtxoDetailImpl;
@@ -66,7 +65,8 @@ public class Tx0ServiceV1Test extends AbstractTx0ServiceV1Test {
             "tb1qjara0278vrsr8gvaga7jpy2c9amtgvytr44xym");
     Tx0Param tx0Param = new Tx0Param(feeSatPerByte, feeSatPerByte, pool01btc, null);
     Assertions.assertEquals(1000170, tx0Param.getPremixValue());
-    Tx0Preview tx0Preview = tx0PreviewService.tx0Preview(tx0PreviewConfig, tx0Param, tx0Data);
+    Tx0Preview tx0Preview =
+        tx0PreviewService.tx0PreviewOpt(tx0PreviewConfig, tx0Param, tx0Data).get();
     check(tx0Preview);
     Assertions.assertEquals(2403, tx0Preview.getTx0MinerFee());
     Assertions.assertEquals(feeValue, tx0Preview.getFeeValue());
@@ -115,21 +115,22 @@ public class Tx0ServiceV1Test extends AbstractTx0ServiceV1Test {
     // no overspend
     Tx0Param tx0Param = new Tx0Param(feeSatPerByte, feeSatPerByte, pool01btc, null);
     Assertions.assertEquals(1000170, tx0Param.getPremixValue());
-    Tx0Preview tx0Preview = tx0PreviewService.tx0Preview(tx0PreviewConfig, tx0Param, tx0Data);
+    Tx0Preview tx0Preview =
+        tx0PreviewService.tx0PreviewOpt(tx0PreviewConfig, tx0Param, tx0Data).get();
     check(tx0Preview);
     Assertions.assertEquals(1000170, tx0Preview.getPremixValue());
 
     // overspend too low => min
     tx0Param = new Tx0Param(feeSatPerByte, feeSatPerByte, pool01btc, 1L);
     Assertions.assertEquals(pool01btc.getMustMixBalanceMin(), tx0Param.getPremixValue());
-    tx0Preview = tx0PreviewService.tx0Preview(tx0PreviewConfig, tx0Param, tx0Data);
+    tx0Preview = tx0PreviewService.tx0PreviewOpt(tx0PreviewConfig, tx0Param, tx0Data).get();
     check(tx0Preview);
     Assertions.assertEquals(pool01btc.getMustMixBalanceMin(), tx0Preview.getPremixValue());
 
     // overspend too high => max
     tx0Param = new Tx0Param(feeSatPerByte, feeSatPerByte, pool01btc, 999999999L);
     Assertions.assertEquals(pool01btc.getMustMixBalanceCap(), tx0Param.getPremixValue());
-    tx0Preview = tx0PreviewService.tx0Preview(tx0PreviewConfig, tx0Param, tx0Data);
+    tx0Preview = tx0PreviewService.tx0PreviewOpt(tx0PreviewConfig, tx0Param, tx0Data).get();
     check(tx0Preview);
     Assertions.assertEquals(pool01btc.getMustMixBalanceCap(), tx0Preview.getPremixValue());
   }
@@ -176,21 +177,22 @@ public class Tx0ServiceV1Test extends AbstractTx0ServiceV1Test {
     // feeTx0
     int feeTx0 = 1;
     tx0Param = new Tx0Param(feeTx0, feeSatPerByte, pool01btc, null);
-    Tx0Preview tx0Preview = tx0PreviewService.tx0Preview(tx0PreviewConfig, tx0Param, tx0Data);
+    Tx0Preview tx0Preview =
+        tx0PreviewService.tx0PreviewOpt(tx0PreviewConfig, tx0Param, tx0Data).get();
     check(tx0Preview);
     Assertions.assertEquals(TX0_SIZE * feeTx0, tx0Preview.getTx0MinerFee());
 
     // feeTx0
     feeTx0 = 5;
     tx0Param = new Tx0Param(feeTx0, feeSatPerByte, pool01btc, null);
-    tx0Preview = tx0PreviewService.tx0Preview(tx0PreviewConfig, tx0Param, tx0Data);
+    tx0Preview = tx0PreviewService.tx0PreviewOpt(tx0PreviewConfig, tx0Param, tx0Data).get();
     check(tx0Preview);
     Assertions.assertEquals(TX0_SIZE * feeTx0, tx0Preview.getTx0MinerFee());
 
     // feeTx0
     feeTx0 = 50;
     tx0Param = new Tx0Param(feeTx0, feeSatPerByte, pool01btc, null);
-    tx0Preview = tx0PreviewService.tx0Preview(tx0PreviewConfig, tx0Param, tx0Data);
+    tx0Preview = tx0PreviewService.tx0PreviewOpt(tx0PreviewConfig, tx0Param, tx0Data).get();
     check(tx0Preview);
     Assertions.assertEquals(TX0_SIZE * feeTx0, tx0Preview.getTx0MinerFee());
   }
@@ -237,41 +239,38 @@ public class Tx0ServiceV1Test extends AbstractTx0ServiceV1Test {
     // feePremix
     int feePremix = 1;
     tx0Param = new Tx0Param(feeSatPerByte, feePremix, pool01btc, null);
-    Tx0Preview tx0Preview = tx0PreviewService.tx0Preview(tx0PreviewConfig, tx0Param, tx0Data);
+    Tx0Preview tx0Preview =
+        tx0PreviewService.tx0PreviewOpt(tx0PreviewConfig, tx0Param, tx0Data).get();
     check(tx0Preview);
     Assertions.assertEquals(1000170, tx0Preview.getPremixValue());
 
     // feePremix
     feePremix = 5;
     tx0Param = new Tx0Param(feeSatPerByte, feePremix, pool01btc, null);
-    tx0Preview = tx0PreviewService.tx0Preview(tx0PreviewConfig, tx0Param, tx0Data);
+    tx0Preview = tx0PreviewService.tx0PreviewOpt(tx0PreviewConfig, tx0Param, tx0Data).get();
     check(tx0Preview);
     Assertions.assertEquals(1000850, tx0Preview.getPremixValue());
 
     // feePremix
     feePremix = 20;
     tx0Param = new Tx0Param(feeSatPerByte, feePremix, pool01btc, null);
-    tx0Preview = tx0PreviewService.tx0Preview(tx0PreviewConfig, tx0Param, tx0Data);
+    tx0Preview = tx0PreviewService.tx0PreviewOpt(tx0PreviewConfig, tx0Param, tx0Data).get();
     check(tx0Preview);
     Assertions.assertEquals(1003400, tx0Preview.getPremixValue());
 
     // feePremix max
     feePremix = 99999;
     tx0Param = new Tx0Param(feeSatPerByte, feePremix, pool01btc, null);
-    tx0Preview = tx0PreviewService.tx0Preview(tx0PreviewConfig, tx0Param, tx0Data);
+    tx0Preview = tx0PreviewService.tx0PreviewOpt(tx0PreviewConfig, tx0Param, tx0Data).get();
     Assertions.assertEquals(1009500, tx0Preview.getPremixValue());
   }
 
   @Test
   public void tx0_5premix_withChange_scode_noFee() throws Exception {
-    HD_Address address = whirlpoolWallet.getWalletDeposit().getAddressAt(0, 61).getHdAddress();
-    long spendBalance = 500000000;
+    long spendBalance = 500000263;
     BipUtxo spendFromUtxo =
         newUtxo(
-            "cc588cdcb368f894a41c372d1f905770b61ecb3fb8e5e01a97e7cedbf5e324ae",
-            1,
-            500000000,
-            address);
+            "cc588cdcb368f894a41c372d1f905770b61ecb3fb8e5e01a97e7cedbf5e324ae", 1, spendBalance);
     mockUtxos(spendFromUtxo);
 
     Tx0Config tx0Config =
@@ -285,7 +284,7 @@ public class Tx0ServiceV1Test extends AbstractTx0ServiceV1Test {
     long premixValue = 1000150;
     String feePaymentCode =
         "PM8TJXp19gCE6hQzqRi719FGJzF6AreRwvoQKLRnQ7dpgaakakFns22jHUqhtPQWmfevPQRCyfFbdDrKvrfw9oZv5PjaCerQMa3BKkPyUf9yN1CDR3w6";
-    long tx0MinerFee = 1;
+    long tx0MinerFee = 264;
     long premixMinerFee = 150;
     long mixMinerFee = premixMinerFee * nbOutputsExpected;
     byte[] feePayload = encodeFeePayload(0, (short) 2, (short) 0);
@@ -308,7 +307,8 @@ public class Tx0ServiceV1Test extends AbstractTx0ServiceV1Test {
         new Tx0Preview(
             pool01btc,
             tx0Data,
-            12345,
+            spendBalance,
+            543,
             tx0MinerFee,
             mixMinerFee,
             premixMinerFee,
@@ -344,7 +344,7 @@ public class Tx0ServiceV1Test extends AbstractTx0ServiceV1Test {
     Assertions.assertEquals(
         "bd24ca49350534ca6b80e17512f94fc52653a4842f34853deb08540b4e52712c", tx0Hash);
     Assertions.assertEquals(
-        "01000000000101ae24e3f5dbcee7971ae0e5b83fcb1eb67057901f2d371ca494f868b3dc8c58cc0100000000ffffffff0d0000000000000000536a4c504d51fe709cbdb9ad363057318d1898fc2c024da31dca9796e1aa290e7db2c7226f83da6bc62fc79f15a3fe70694c036e350b47817fe80c931d2e7317d46b6017af2427f201bec425e41ae8d89a029d011027000000000000160014f6a884f18f4d7e78a4167c3e56773c3ae58e0164d6420f00000000001600141dffe6e395c95927e4a16e8e6bd6d05604447e4dd6420f00000000001600142540e8d450b7114a8b0b429709508735b4b1bbfbd6420f00000000001600145b1cdb2e6ae13f98034b84957d9e0975ad7e6da5d6420f000000000016001472df8c59071778ec20264e2aeb54dd4024bcee0ad6420f00000000001600147aca3eeaecc2ffefd434c70ed67bd579e629c29dd6420f0000000000160014833e54dd2bdc90a6d92aedbecef1ca9cdb24a4c4d6420f00000000001600148535df3b314d3191037e38c698ddb6bac83ba95ad6420f00000000001600149676ec398c2fe0736d61e09e1136958b4bf40cdad6420f0000000000160014adb93750e1ffcfcefc54c6be67bd3011878a5aa5d6420f0000000000160014ff715cbded0e6205a68a1f66a52ee56d56b44c8193a1341d000000001600141bd05eb7c9cb516fddd8187cecb2e0cb4e21ac87024730440220305b21d804f2f5cdd191c81498db1093bc8f0e613a1093c18a247653091f8bd702205b6eaa8ad3ffb911abc537887f1a09391ed5eaf8246675b8ad529b5bf3ae75ff0121032e56be09a66e8ef8bddcd5c79d3958a77ef10c964fd4808907debf285093466100000000",
+        "01000000000101ae24e3f5dbcee7971ae0e5b83fcb1eb67057901f2d371ca494f868b3dc8c58cc0100000000ffffffff0d0000000000000000536a4c504d51fe709cbdb9ad363057318d1898fc2c024da31dca9796e1aa290e7db2c7226f83da6bc62fc79f15a3fe70694c036e350b47817fe80c931d2e7317d46b6017af2427f201bec425e41ae8d89a029d011027000000000000160014f6a884f18f4d7e78a4167c3e56773c3ae58e0164d6420f00000000001600141dffe6e395c95927e4a16e8e6bd6d05604447e4dd6420f00000000001600142540e8d450b7114a8b0b429709508735b4b1bbfbd6420f00000000001600145b1cdb2e6ae13f98034b84957d9e0975ad7e6da5d6420f000000000016001472df8c59071778ec20264e2aeb54dd4024bcee0ad6420f00000000001600147aca3eeaecc2ffefd434c70ed67bd579e629c29dd6420f0000000000160014833e54dd2bdc90a6d92aedbecef1ca9cdb24a4c4d6420f00000000001600148535df3b314d3191037e38c698ddb6bac83ba95ad6420f00000000001600149676ec398c2fe0736d61e09e1136958b4bf40cdad6420f0000000000160014adb93750e1ffcfcefc54c6be67bd3011878a5aa5d6420f0000000000160014ff715cbded0e6205a68a1f66a52ee56d56b44c8193a1341d000000001600141bd05eb7c9cb516fddd8187cecb2e0cb4e21ac87024830450221009a1de6d38183fef000346b95c228a907d57a38071171a419b77ca63758ebcc7d02203bb44cd8f854fd3fb6b098cbb28a8c3647f9159b2dd8f1bfed96e724b35c0fa70121032e56be09a66e8ef8bddcd5c79d3958a77ef10c964fd4808907debf285093466100000000",
         tx0Hex);
   }
 
@@ -355,8 +355,6 @@ public class Tx0ServiceV1Test extends AbstractTx0ServiceV1Test {
     String passphrase = "whirlpool";
     byte[] seed = hdWalletFactory.computeSeedFromWords(seedWords);
     HD_Wallet bip84w = hdWalletFactory.getBIP84(seed, passphrase, params);
-
-    HD_Address address = whirlpoolWallet.getWalletDeposit().getAddressAt(0, 61).getHdAddress();
     ECKey spendFromKey = address.getECKey();
     UnspentOutput spendFrom =
         newUnspentOutput(
@@ -502,14 +500,12 @@ public class Tx0ServiceV1Test extends AbstractTx0ServiceV1Test {
 
   @Test
   public void tx0_1premix_withChange_scode_nofee() throws Exception {
-    HD_Address address = whirlpoolWallet.getWalletDeposit().getAddressAt(0, 61).getHdAddress();
-    long spendBalance = 1021397;
+    long spendBalance = 1021660;
     BipUtxo spendFromUtxo =
         newUtxo(
             "cc588cdcb368f894a41c372d1f905770b61ecb3fb8e5e01a97e7cedbf5e324ae",
             1,
-            1021397,
-            address); // balance with 11000 change
+            spendBalance); // balance with 11000 change
     mockUtxos(spendFromUtxo);
 
     Tx0Config tx0Config =
@@ -523,7 +519,7 @@ public class Tx0ServiceV1Test extends AbstractTx0ServiceV1Test {
     long premixValue = 1000150;
     String feePaymentCode =
         "PM8TJXp19gCE6hQzqRi719FGJzF6AreRwvoQKLRnQ7dpgaakakFns22jHUqhtPQWmfevPQRCyfFbdDrKvrfw9oZv5PjaCerQMa3BKkPyUf9yN1CDR3w6";
-    long tx0MinerFee = 1;
+    long tx0MinerFee = 264;
     long premixMinerFee = 150;
     long mixMinerFee = premixMinerFee * nbOutputsExpected;
     byte[] feePayload = encodeFeePayload(1, (short) 2, (short) 0);
@@ -548,7 +544,8 @@ public class Tx0ServiceV1Test extends AbstractTx0ServiceV1Test {
         new Tx0Preview(
             pool01btc,
             tx0Data,
-            12345,
+            spendBalance,
+            264,
             tx0MinerFee,
             premixMinerFee,
             mixMinerFee,
@@ -583,20 +580,18 @@ public class Tx0ServiceV1Test extends AbstractTx0ServiceV1Test {
     Assertions.assertEquals(
         "35fcb9366fc80b01609de812c024da922675211c12d7abc49ace29d825d315f6", tx0Hash);
     Assertions.assertEquals(
-        "01000000000101ae24e3f5dbcee7971ae0e5b83fcb1eb67057901f2d371ca494f868b3dc8c58cc0100000000ffffffff040000000000000000536a4c504d51fe709cbcb9ad363057318d1898fc2c024da31dca9796e1aa290e7db2c7226f83da6bc62fc79f15a3fe70694c036e350b47817fe80c931d2e7317d46b6017af2427f201bec425e41ae8d89a029d011027000000000000160014f6a884f18f4d7e78a4167c3e56773c3ae58e0164ee2b0000000000001600141bd05eb7c9cb516fddd8187cecb2e0cb4e21ac87d6420f00000000001600141dffe6e395c95927e4a16e8e6bd6d05604447e4d024830450221009f5670f0e44c519a07548b0dd785578dff8f3b6716b60c1b0ad49133b6d0ed08022059dbdf38bfd5876033d5acf721c3048bffb0b33d0789149b3e8a5fb9cd156b2e0121032e56be09a66e8ef8bddcd5c79d3958a77ef10c964fd4808907debf285093466100000000",
+        "01000000000101ae24e3f5dbcee7971ae0e5b83fcb1eb67057901f2d371ca494f868b3dc8c58cc0100000000ffffffff040000000000000000536a4c504d51fe709cbcb9ad363057318d1898fc2c024da31dca9796e1aa290e7db2c7226f83da6bc62fc79f15a3fe70694c036e350b47817fe80c931d2e7317d46b6017af2427f201bec425e41ae8d89a029d011027000000000000160014f6a884f18f4d7e78a4167c3e56773c3ae58e0164ee2b0000000000001600141bd05eb7c9cb516fddd8187cecb2e0cb4e21ac87d6420f00000000001600141dffe6e395c95927e4a16e8e6bd6d05604447e4d02483045022100b2a3085c6ba1be4b1b99c75721d3408037ec1ca5a9d349dbb5f008e63e55916e02206003c5339db8dc26a8ff2a2cde4c4fca52020c769147a5196d4e95fdb1c838600121032e56be09a66e8ef8bddcd5c79d3958a77ef10c964fd4808907debf285093466100000000",
         tx0Hex);
   }
 
   @Test
   public void tx0_1premix_withChange_scode_fee() throws Exception {
-    HD_Address address = whirlpoolWallet.getWalletDeposit().getAddressAt(0, 61).getHdAddress();
-    long spendBalance = 1021397;
+    long spendBalance = 1021660;
     BipUtxo spendFromUtxo =
         newUtxo(
             "cc588cdcb368f894a41c372d1f905770b61ecb3fb8e5e01a97e7cedbf5e324ae",
             1,
-            spendBalance,
-            address); // balance with 11000 change
+            spendBalance); // balance with 11000 change
     mockUtxos(spendFromUtxo);
 
     Tx0Config tx0Config =
@@ -610,7 +605,7 @@ public class Tx0ServiceV1Test extends AbstractTx0ServiceV1Test {
     long premixValue = 1000150;
     String feePaymentCode =
         "PM8TJXp19gCE6hQzqRi719FGJzF6AreRwvoQKLRnQ7dpgaakakFns22jHUqhtPQWmfevPQRCyfFbdDrKvrfw9oZv5PjaCerQMa3BKkPyUf9yN1CDR3w6";
-    long tx0MinerFee = 1;
+    long tx0MinerFee = 264;
     long premixMinerFee = 150;
     long mixMinerFee = premixMinerFee * nbOutputsExpected;
     byte[] feePayload = encodeFeePayload(0, (short) 2, (short) 0);
@@ -635,7 +630,8 @@ public class Tx0ServiceV1Test extends AbstractTx0ServiceV1Test {
         new Tx0Preview(
             pool01btc,
             tx0Data,
-            12345,
+            spendBalance,
+            264,
             tx0MinerFee,
             mixMinerFee,
             premixMinerFee,
@@ -670,20 +666,18 @@ public class Tx0ServiceV1Test extends AbstractTx0ServiceV1Test {
     Assertions.assertEquals(
         "b735c9aea2052bc32eec0bfe2470904f74488a19c33a7b71e56029dc4ace2762", tx0Hash);
     Assertions.assertEquals(
-        "01000000000101ae24e3f5dbcee7971ae0e5b83fcb1eb67057901f2d371ca494f868b3dc8c58cc0100000000ffffffff040000000000000000536a4c504d51fe709cbdb9ad363057318d1898fc2c024da31dca9796e1aa290e7db2c7226f83da6bc62fc79f15a3fe70694c036e350b47817fe80c931d2e7317d46b6017af2427f201bec425e41ae8d89a029d0188130000000000001600149747d7abc760e033a19d477d2091582f76b4308b763f000000000000160014f6a884f18f4d7e78a4167c3e56773c3ae58e0164d6420f00000000001600141dffe6e395c95927e4a16e8e6bd6d05604447e4d02483045022100a67a9116655c13e64c5e96c4642cc83f04320e5adf75ec8fbac7c7389663a45f022042671b904d47541bccc9deb9da31fd8e6c7df67eb9fd7a54606ad3c2d433c7e20121032e56be09a66e8ef8bddcd5c79d3958a77ef10c964fd4808907debf285093466100000000",
+        "01000000000101ae24e3f5dbcee7971ae0e5b83fcb1eb67057901f2d371ca494f868b3dc8c58cc0100000000ffffffff040000000000000000536a4c504d51fe709cbdb9ad363057318d1898fc2c024da31dca9796e1aa290e7db2c7226f83da6bc62fc79f15a3fe70694c036e350b47817fe80c931d2e7317d46b6017af2427f201bec425e41ae8d89a029d0188130000000000001600149747d7abc760e033a19d477d2091582f76b4308b763f000000000000160014f6a884f18f4d7e78a4167c3e56773c3ae58e0164d6420f00000000001600141dffe6e395c95927e4a16e8e6bd6d05604447e4d024830450221009835d3b5fc719195b042b115fa3a1bc3c0a6f7eaf01e2db70a63eb4b6f2b097802205d9757e03967fb345842e608ae17580033ea5e6b7a430ca5b5c6938f226b931b0121032e56be09a66e8ef8bddcd5c79d3958a77ef10c964fd4808907debf285093466100000000",
         tx0Hex);
   }
 
   @Test
   public void tx0_1premix_withChange_noScode() throws Exception {
-    HD_Address address = whirlpoolWallet.getWalletDeposit().getAddressAt(0, 61).getHdAddress();
-    long spendBalance = 1021397;
+    long spendBalance = 1021660;
     BipUtxo spendFromUtxo =
         newUtxo(
             "cc588cdcb368f894a41c372d1f905770b61ecb3fb8e5e01a97e7cedbf5e324ae",
             1,
-            spendBalance,
-            address); // balance with 11000 change
+            spendBalance); // balance with 11000 change
     mockUtxos(spendFromUtxo);
 
     Tx0Config tx0Config =
@@ -697,11 +691,11 @@ public class Tx0ServiceV1Test extends AbstractTx0ServiceV1Test {
     long premixValue = 1000150;
     String feePaymentCode =
         "PM8TJXp19gCE6hQzqRi719FGJzF6AreRwvoQKLRnQ7dpgaakakFns22jHUqhtPQWmfevPQRCyfFbdDrKvrfw9oZv5PjaCerQMa3BKkPyUf9yN1CDR3w6";
-    long tx0MinerFee = 1;
+    long tx0MinerFee = 264;
     long premixMinerFee = 150;
     long mixMinerFee = premixMinerFee * nbOutputsExpected;
-    long feeValue = 0;
-    long feeChange = FEE_VALUE;
+    long feeValue = FEE_VALUE;
+    long feeChange = 0;
     int feeDiscountPercent = 100;
     long changeValue = 11246;
 
@@ -721,7 +715,8 @@ public class Tx0ServiceV1Test extends AbstractTx0ServiceV1Test {
         new Tx0Preview(
             pool01btc,
             tx0Data,
-            12345,
+            spendBalance,
+            264,
             tx0MinerFee,
             mixMinerFee,
             premixMinerFee,
@@ -754,22 +749,20 @@ public class Tx0ServiceV1Test extends AbstractTx0ServiceV1Test {
     String tx0Hex = TxUtil.getInstance().getTxHex(tx);
     log.info(tx0.getTx().toString());
     Assertions.assertEquals(
-        "7e308efa2df096bbe4c87b90612286fe7f1716dff5af85ea248d31bbbcd71d32", tx0Hash);
+        "1986b7b12ab595c9a7e7718c41070dfe0e502c9583b98f0ac47f337f4746b6f3", tx0Hash);
     Assertions.assertEquals(
-        "01000000000101ae24e3f5dbcee7971ae0e5b83fcb1eb67057901f2d371ca494f868b3dc8c58cc0100000000ffffffff040000000000000000536a4c504d51fe709cbdb9af363057318d1898fc2c024da31dca9796e1aa290e7db2c7226f83da6bc62fc79f15a3fe70694c036e350b47817fe80c931d2e7317d46b6017af2427f201bec425e41ae8d89a029d011027000000000000160014f6a884f18f4d7e78a4167c3e56773c3ae58e0164ee2b0000000000001600141bd05eb7c9cb516fddd8187cecb2e0cb4e21ac87d6420f00000000001600141dffe6e395c95927e4a16e8e6bd6d05604447e4d02473044022036751367da11029e43133104fb5f3aac2492cd8d7aada9d09aa4c698e8db05f5022007f4ead180a104d05fb8aedb75ac3437f72829603cab606779d3221e98ce5b0c0121032e56be09a66e8ef8bddcd5c79d3958a77ef10c964fd4808907debf285093466100000000",
+        "01000000000101ae24e3f5dbcee7971ae0e5b83fcb1eb67057901f2d371ca494f868b3dc8c58cc0100000000ffffffff040000000000000000536a4c504d51fe709cbdb9af363057318d1898fc2c024da31dca9796e1aa290e7db2c7226f83da6bc62fc79f15a3fe70694c036e350b47817fe80c931d2e7317d46b6017af2427f201bec425e41ae8d89a029d0110270000000000001600149747d7abc760e033a19d477d2091582f76b4308bee2b000000000000160014f6a884f18f4d7e78a4167c3e56773c3ae58e0164d6420f00000000001600141dffe6e395c95927e4a16e8e6bd6d05604447e4d02483045022100d5889ef87831a77735ebda28e67376e4a371f5f4fd5f3850da985ea4338208b4022072d4547778f42c615811c5fa801260a3551575ad8885094b3c5b0439d98365010121032e56be09a66e8ef8bddcd5c79d3958a77ef10c964fd4808907debf285093466100000000",
         tx0Hex);
   }
 
   @Test
   public void tx0_1premix_withChangePostmix_noScode() throws Exception {
-    HD_Address address = whirlpoolWallet.getWalletDeposit().getAddressAt(0, 61).getHdAddress();
-    long spendBalance = 1021397;
+    long spendBalance = 1021660;
     BipUtxo spendFromUtxo =
         newUtxo(
             "cc588cdcb368f894a41c372d1f905770b61ecb3fb8e5e01a97e7cedbf5e324ae",
             1,
-            spendBalance,
-            address); // balance with 11000 change
+            spendBalance); // balance with 11000 change
     mockUtxos(spendFromUtxo);
 
     Tx0Config tx0Config =
@@ -783,11 +776,11 @@ public class Tx0ServiceV1Test extends AbstractTx0ServiceV1Test {
     long premixValue = 1000150;
     String feePaymentCode =
         "PM8TJXp19gCE6hQzqRi719FGJzF6AreRwvoQKLRnQ7dpgaakakFns22jHUqhtPQWmfevPQRCyfFbdDrKvrfw9oZv5PjaCerQMa3BKkPyUf9yN1CDR3w6";
-    long tx0MinerFee = 1;
+    long tx0MinerFee = 264;
     long premixMinerFee = 150;
     long mixMinerFee = premixMinerFee * nbOutputsExpected;
-    long feeValue = 0;
-    long feeChange = FEE_VALUE;
+    long feeValue = FEE_VALUE;
+    long feeChange = 0;
     int feeDiscountPercent = 100;
     long changeValue = 11246;
 
@@ -807,7 +800,8 @@ public class Tx0ServiceV1Test extends AbstractTx0ServiceV1Test {
         new Tx0Preview(
             pool01btc,
             tx0Data,
-            12345,
+            spendBalance,
+            264,
             tx0MinerFee,
             mixMinerFee,
             premixMinerFee,
@@ -841,9 +835,9 @@ public class Tx0ServiceV1Test extends AbstractTx0ServiceV1Test {
     log.info(tx0.getTx().toString());
 
     Assertions.assertEquals(
-        "f3fab2ed98896cf3519862a1d0c22e65aad25812530adc528e7dd89bb2bddd7d", tx0Hash);
+        "9e24a7dabecb8f8114a30755adb9ff2e9cdc435c41f43056245a4a3fc128f89c", tx0Hash);
     Assertions.assertEquals(
-        "01000000000101ae24e3f5dbcee7971ae0e5b83fcb1eb67057901f2d371ca494f868b3dc8c58cc0100000000ffffffff040000000000000000536a4c504d51fe709cbdb9af363057318d1898fc2c024da31dca9796e1aa290e7db2c7226f83da6bc62fc79f15a3fe70694c036e350b47817fe80c931d2e7317d46b6017af2427f201bec425e41ae8d89a029d011027000000000000160014f6a884f18f4d7e78a4167c3e56773c3ae58e0164ee2b000000000000160014d49377882fdc939d951aa51a3c0ad6dd4a152e26d6420f00000000001600141dffe6e395c95927e4a16e8e6bd6d05604447e4d0247304402201e580e26967ae67897a2530330c10685463469d9751792a136602ab2f2d3d36f0220629c9bf40c37bef2268fb5eb24d11595d991f873bc2cf0bf7bc2e71b33232c700121032e56be09a66e8ef8bddcd5c79d3958a77ef10c964fd4808907debf285093466100000000",
+        "01000000000101ae24e3f5dbcee7971ae0e5b83fcb1eb67057901f2d371ca494f868b3dc8c58cc0100000000ffffffff040000000000000000536a4c504d51fe709cbdb9af363057318d1898fc2c024da31dca9796e1aa290e7db2c7226f83da6bc62fc79f15a3fe70694c036e350b47817fe80c931d2e7317d46b6017af2427f201bec425e41ae8d89a029d0110270000000000001600149747d7abc760e033a19d477d2091582f76b4308bee2b000000000000160014d49377882fdc939d951aa51a3c0ad6dd4a152e26d6420f00000000001600141dffe6e395c95927e4a16e8e6bd6d05604447e4d02483045022100d1c7fbd82df635fed5ad1d2e96070ea223723d5d0d1781694039b44d9dfd9a42022062c3f6c8991cfebc5d4568031b031922f2f969adb4ac2454dd7d0400221f01490121032e56be09a66e8ef8bddcd5c79d3958a77ef10c964fd4808907debf285093466100000000",
         tx0Hex);
   }
 }

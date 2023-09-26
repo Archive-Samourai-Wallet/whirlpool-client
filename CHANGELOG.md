@@ -4,7 +4,8 @@ Changelog for whirlpool-client.
 ## Unreleased
 ### 
 
-- refactor: add utxo abstraction with UtxoRef, UtxoDetail, UtxoSpendable *(2023-09-22)*
+- refactor: count tx0 decoy change for fee estimation + add Tx0PreviewConfig.decoyTx0x2Forced *(2023-09-26)*
+- refactor: add utxo abstraction with UtxoRef, UtxoDetail, UtxoSpendable *(2023-09-24)*
 - add Tx0Preview.decoyTx0x2 *(2023-09-16)*
 
 ## 0.25.0-beta2

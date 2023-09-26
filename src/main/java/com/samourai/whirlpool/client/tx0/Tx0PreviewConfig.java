@@ -4,6 +4,7 @@ import com.samourai.wallet.utxo.UtxoDetail;
 import com.samourai.whirlpool.client.wallet.beans.Tx0FeeTarget;
 import com.samourai.whirlpool.client.whirlpool.beans.Pool;
 import java.util.Collection;
+import java.util.stream.Collectors;
 
 public class Tx0PreviewConfig {
   // list of pools being loaded by poolSupplier.computePools() (pool.tx0PreviewMinimal not yet set)
@@ -11,6 +12,7 @@ public class Tx0PreviewConfig {
   private Tx0FeeTarget tx0FeeTarget;
   private Tx0FeeTarget mixFeeTarget;
   private boolean decoyTx0x2;
+  private boolean decoyTx0x2Forced; // true=force tx0x2Decoy or fail, false=fallback to regular tx0
   private boolean _cascading; // internally set when cascading
   private Collection<? extends UtxoDetail> spendFroms; // may be NULL for general pools preview
 
@@ -23,7 +25,19 @@ public class Tx0PreviewConfig {
     this.tx0FeeTarget = tx0FeeTarget;
     this.mixFeeTarget = mixFeeTarget;
     this.decoyTx0x2 = true;
+    this.decoyTx0x2Forced = false;
     this._cascading = false;
+    this.spendFroms = spendFroms;
+  }
+
+  public Tx0PreviewConfig(
+      Tx0PreviewConfig tx0PreviewConfig, Collection<? extends UtxoDetail> spendFroms) {
+    this.pools = tx0PreviewConfig.pools;
+    this.tx0FeeTarget = tx0PreviewConfig.tx0FeeTarget;
+    this.mixFeeTarget = tx0PreviewConfig.mixFeeTarget;
+    this.decoyTx0x2 = tx0PreviewConfig.decoyTx0x2;
+    this.decoyTx0x2Forced = tx0PreviewConfig.decoyTx0x2Forced;
+    this._cascading = tx0PreviewConfig._cascading;
     this.spendFroms = spendFroms;
   }
 
@@ -55,6 +69,14 @@ public class Tx0PreviewConfig {
     this.decoyTx0x2 = decoyTx0x2;
   }
 
+  public boolean isDecoyTx0x2Forced() {
+    return decoyTx0x2Forced;
+  }
+
+  public void setDecoyTx0x2Forced(boolean decoyTx0x2Forced) {
+    this.decoyTx0x2Forced = decoyTx0x2Forced;
+  }
+
   public boolean _isCascading() {
     return _cascading;
   }
@@ -67,14 +89,10 @@ public class Tx0PreviewConfig {
     return spendFroms;
   }
 
-  public void setSpendFroms(Collection<? extends UtxoDetail> spendFroms) {
-    this.spendFroms = spendFroms;
-  }
-
   @Override
   public String toString() {
     return "pools="
-        + pools.stream().map(p -> p.getPoolId()).toArray()
+        + pools.stream().map(p -> p.getPoolId()).collect(Collectors.toList())
         + ", tx0FeeTarget="
         + tx0FeeTarget
         + ", mixFeeTarget="

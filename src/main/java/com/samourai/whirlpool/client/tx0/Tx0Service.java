@@ -34,6 +34,7 @@ import com.samourai.whirlpool.protocol.rest.PushTxSuccessResponse;
 import com.samourai.whirlpool.protocol.rest.Tx0PushRequest;
 import io.reactivex.Single;
 import java.util.*;
+import java.util.stream.Collectors;
 import org.bitcoinj.core.*;
 import org.bitcoinj.script.Script;
 import org.bitcoinj.script.ScriptBuilder;
@@ -66,31 +67,54 @@ public class Tx0Service {
     }
   }
 
-  /** Generate maxOutputs premixes outputs max. */
+  /**
+   * Generate maxOutputs premixes outputs max. Returns NULL when TX0 is not possible for this pool.
+   */
   public Tx0 tx0(
       WalletSupplier walletSupplier,
       Pool pool,
       Tx0Config tx0Config,
       UtxoKeyProvider utxoKeyProvider)
       throws Exception {
-    // compute & preview
-    Tx0Preview tx0Preview = tx0PreviewService.tx0Preview(tx0Config, pool.getPoolId());
-    if (tx0Preview == null) {
-      throw new NotifiableException("Tx0 not possible for pool: " + pool.getPoolId());
-    }
+    return tx0Opt(walletSupplier, pool, tx0Config, utxoKeyProvider)
+        .orElseThrow(
+            () -> new NotifiableException("Tx0 not possible for pool: " + pool.getPoolId()));
+  }
 
-    log.info(" • Tx0: tx0Config=" + tx0Config + ", tx0Preview={" + tx0Preview + "}");
+  /**
+   * Generate maxOutputs premixes outputs max. Returns NULL when TX0 is not possible for this pool.
+   */
+  public Optional<Tx0> tx0Opt(
+      WalletSupplier walletSupplier,
+      Pool pool,
+      Tx0Config tx0Config,
+      UtxoKeyProvider utxoKeyProvider)
+      throws Exception {
+    // compute & preview
+    Optional<Tx0Preview> tx0PreviewOpt =
+        tx0PreviewService.tx0PreviewOpt(tx0Config, pool.getPoolId());
+    if (!tx0PreviewOpt.isPresent()) {
+      if (log.isDebugEnabled()) {
+        log.debug("Tx0 not possible for pool: " + pool.getPoolId());
+      }
+      return Optional.empty();
+    }
+    Tx0Preview tx0Preview = tx0PreviewOpt.get();
+    log.info(" • Tx0: tx0Config={" + tx0Config + "} => tx0Preview={" + tx0Preview + "}");
 
     Tx0 tx0 = tx0(walletSupplier, tx0Config, tx0Preview, utxoKeyProvider);
+    if (tx0 == null) {
+      return Optional.empty();
+    }
     log.info(
         " • Tx0 result: txid="
             + tx0.getTx().getHashAsString()
             + ", nbPremixs="
             + tx0.getPremixOutputs().size());
     if (log.isDebugEnabled()) {
-      log.debug(tx0.toString());
+      log.debug("Tx0: " + tx0.toString());
     }
-    return tx0;
+    return Optional.of(tx0);
   }
 
   public Tx0 tx0(
@@ -212,18 +236,10 @@ public class Tx0Service {
 
     // at least 1 premix
     if (nbPremix < 1) {
-      throw new Exception("Invalid nbPremix=" + nbPremix);
-    }
-
-    // verify outputsSum
-    long totalValue = tx0Preview.getTotalValue();
-    long spendFromBalance = BipUtxo.sumValue(sortedSpendFroms);
-    if (totalValue != spendFromBalance) {
-      throw new Exception(
-          "Invalid totalValue for tx0: totalValue="
-              + totalValue
-              + " vs spendFromBalance="
-              + spendFromBalance);
+      if (log.isDebugEnabled()) {
+        log.debug("Invalid nbPremix=" + nbPremix);
+      }
+      return null; // TX0 not possible
     }
 
     //
@@ -399,7 +415,7 @@ public class Tx0Service {
     Iterator<Pool> poolsIter = pools.iterator();
     Pool poolInitial = poolsIter.next();
     if (log.isDebugEnabled()) {
-      log.debug(" +Tx0 cascading for poolId=" + poolInitial.getPoolId() + "... (1/x)");
+      log.debug(" > Tx0 cascading for poolId=" + poolInitial.getPoolId() + "... (1/x)");
     }
     Tx0 tx0 = tx0(walletSupplier, poolInitial, tx0Config, utxoKeyProvider);
     tx0List.add(tx0);
@@ -412,29 +428,30 @@ public class Tx0Service {
         break; // stop when no tx0 change
       }
 
-      try {
-        if (log.isDebugEnabled()) {
-          log.debug(
-              " +Tx0 cascading for poolId="
-                  + pool.getPoolId()
-                  + "... ("
-                  + (tx0List.size() + 1)
-                  + "/x)");
-        }
+      if (log.isDebugEnabled()) {
+        log.debug(
+            " > Tx0 cascading for poolId="
+                + pool.getPoolId()
+                + "... ("
+                + (tx0List.size() + 1)
+                + "/x)");
+      }
 
-        tx0Config._setCascading(true);
-        tx0Config.setSpendFromUtxos(changeUtxos);
-        tx0 = tx0(walletSupplier, pool, tx0Config, utxoKeyProvider);
+      tx0Config = new Tx0Config(tx0Config, changeUtxos);
+      tx0Config._setCascading(true);
+      tx0 = tx0Opt(walletSupplier, pool, tx0Config, utxoKeyProvider).orElse(null);
+      if (tx0 != null) {
         tx0List.add(tx0);
         changeUtxos = tx0.getChangeUtxos();
-      } catch (Exception e) {
-        // Tx0 is not possible for this pool, ignore it
-        if (log.isDebugEnabled()) {
-          log.debug(
-              "Tx0 cascading skipped for poolId=" + pool.getPoolId() + ": " + e.getMessage(), e);
-        }
+      } else {
+        // Tx0 is not possible for this pool, skip to next lower pool
       }
     }
+    List<String> poolIds =
+        tx0List.stream()
+            .map(t -> t.getPool().getPoolId() + ":" + (t.isDecoyTx0x2() ? "decoy" : "noDecoy"))
+            .collect(Collectors.toList());
+    log.info("Tx0 cascading success on " + tx0List.size() + " pools (" + poolIds + ")");
     return tx0List;
   }
 

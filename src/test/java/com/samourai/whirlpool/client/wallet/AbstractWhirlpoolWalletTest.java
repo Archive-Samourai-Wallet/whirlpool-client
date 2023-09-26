@@ -16,12 +16,14 @@ import com.samourai.whirlpool.client.wallet.data.utxo.UtxoSupplier;
 import com.samourai.whirlpool.client.wallet.data.utxoConfig.UtxoConfigSupplier;
 import com.samourai.whirlpool.client.whirlpool.beans.Pool;
 import com.samourai.whirlpool.protocol.rest.Tx0PushRequest;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.stream.Collectors;
 import org.bitcoinj.core.Transaction;
 import org.bitcoinj.core.TransactionOutput;
+import org.junit.jupiter.api.Assertions;
 
 public class AbstractWhirlpoolWalletTest extends AbstractTest {
   protected UtxoSupplier utxoSupplier;
@@ -29,6 +31,7 @@ public class AbstractWhirlpoolWalletTest extends AbstractTest {
 
   protected WhirlpoolUtxoChanges lastUtxoChanges;
   protected WhirlpoolWallet whirlpoolWallet;
+  private int newUtxoIndex;
 
   public AbstractWhirlpoolWalletTest() throws Exception {
     super();
@@ -49,6 +52,7 @@ public class AbstractWhirlpoolWalletTest extends AbstractTest {
     whirlpoolWallet = computeWhirlpoolWallet();
     utxoSupplier = whirlpoolWallet.getUtxoSupplier();
     utxoConfigSupplier = whirlpoolWallet.getUtxoConfigSupplier();
+    newUtxoIndex = 61;
   }
 
   @Override
@@ -83,9 +87,18 @@ public class AbstractWhirlpoolWalletTest extends AbstractTest {
     return whirlpoolWallet;
   }
 
-  protected void mockUtxos(BipUtxo... unspentOutputs) throws Exception {
+  protected List<BipUtxo> mockUtxos(BipUtxo... unspentOutputs) throws Exception {
     UtxoData utxoData = new UtxoData(unspentOutputs, new WalletResponse.Tx[] {});
     ((BasicUtxoSupplier) whirlpoolWallet.getUtxoSupplier())._mockValue(utxoData);
+    return Arrays.asList(unspentOutputs);
+  }
+
+  protected void assertUtxosEquals(
+      Collection<? extends BipUtxo> utxos1, Collection<? extends BipUtxo> utxos2) {
+    Assertions.assertEquals(utxos1.size(), utxos2.size());
+    for (BipUtxo utxo1 : utxos1) {
+      Assertions.assertTrue(utxosContains(utxos2, utxo1));
+    }
   }
 
   protected boolean utxosContains(Collection<? extends BipUtxo> unspentOutputs, BipUtxo utxo) {
@@ -114,5 +127,11 @@ public class AbstractWhirlpoolWalletTest extends AbstractTest {
     return poolSupplier.getPools().stream()
         .filter(pool -> pool.getDenomination() <= highestPool.getDenomination())
         .collect(Collectors.toList());
+  }
+
+  protected BipUtxo newUtxo(String hash, int index, long value) throws Exception {
+    HD_Address hdAddress =
+        whirlpoolWallet.getWalletDeposit().getAddressAt(0, newUtxoIndex++).getHdAddress();
+    return newUtxo(hash, index, value, hdAddress);
   }
 }

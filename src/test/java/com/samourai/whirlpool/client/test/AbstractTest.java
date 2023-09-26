@@ -20,7 +20,6 @@ import com.samourai.wallet.util.RandomUtil;
 import com.samourai.wallet.util.UtxoUtil;
 import com.samourai.wallet.utxo.BipUtxo;
 import com.samourai.wallet.utxo.BipUtxoImpl;
-import com.samourai.whirlpool.client.tx0.ITx0PreviewServiceConfig;
 import com.samourai.whirlpool.client.tx0.Tx0PreviewService;
 import com.samourai.whirlpool.client.tx0.Tx0Service;
 import com.samourai.whirlpool.client.utils.ClientUtils;
@@ -168,9 +167,9 @@ public class AbstractTest {
 
   protected void setup(boolean isOpReturnV0) throws Exception {
     // mock Tx0Data for reproductible test
-    poolSupplier = mockPoolSupplier();
-    tx0PreviewService = mockTx0PreviewService(isOpReturnV0);
     whirlpoolWalletConfig = computeWhirlpoolWalletConfig(isOpReturnV0);
+    tx0PreviewService = mockTx0PreviewService();
+    poolSupplier = mockPoolSupplier();
 
     tx0Service =
         new Tx0Service(params, tx0PreviewService, whirlpoolWalletConfig.getFeeOpReturnImpl());
@@ -182,57 +181,9 @@ public class AbstractTest {
     return ClientUtils.fromJson(WALLET_RESPONSE, WalletResponse.class);
   }
 
-  private Tx0PreviewService mockTx0PreviewService(boolean isOpReturnV0) throws Exception {
+  private Tx0PreviewService mockTx0PreviewService() throws Exception {
     MinerFeeSupplier minerFeeSupplier = mockMinerFeeSupplier();
-    return new Tx0PreviewService(
-        minerFeeSupplier,
-        bipFormatSupplier,
-        new ITx0PreviewServiceConfig() {
-          @Override
-          public NetworkParameters getNetworkParameters() {
-            return params;
-          }
-
-          @Override
-          public Long getOverspend(String poolId) {
-            return null;
-          }
-
-          @Override
-          public int getFeeMin() {
-            return 1;
-          }
-
-          @Override
-          public int getFeeMax() {
-            return 9999;
-          }
-
-          @Override
-          public int getTx0MaxOutputs() {
-            return 70;
-          }
-
-          @Override
-          public ServerApi getServerApi() {
-            return null;
-          }
-
-          @Override
-          public String getPartner() {
-            return null;
-          }
-
-          @Override
-          public String getScode() {
-            return null;
-          }
-
-          @Override
-          public boolean isOpReturnV0() {
-            return isOpReturnV0;
-          }
-        }) {
+    return new Tx0PreviewService(minerFeeSupplier, bipFormatSupplier, whirlpoolWalletConfig) {
       @Override
       protected Collection<Tx0Data> fetchTx0Data(String partnerId, boolean cascading)
           throws Exception {
@@ -244,13 +195,9 @@ public class AbstractTest {
     };
   }
 
-  private ExpirablePoolSupplier mockPoolSupplier() {
-    try {
-      PoolsResponse poolsResponse = ClientUtils.fromJson(POOLS_RESPONSE, PoolsResponse.class);
-      return new MockPoolSupplier(mockTx0PreviewService(false), poolsResponse.pools);
-    } catch (Exception e) {
-      throw new RuntimeException(e);
-    }
+  private ExpirablePoolSupplier mockPoolSupplier() throws Exception {
+    PoolsResponse poolsResponse = ClientUtils.fromJson(POOLS_RESPONSE, PoolsResponse.class);
+    return new MockPoolSupplier(tx0PreviewService, poolsResponse.pools);
   }
 
   protected MinerFeeSupplier mockMinerFeeSupplier() throws Exception {
@@ -369,8 +316,11 @@ public class AbstractTest {
               }
 
               @Override
-              public Tx0PreviewService getTx0PreviewService() {
-                return tx0PreviewService;
+              protected Tx0PreviewService computeTx0PreviewService(
+                  WhirlpoolWallet whirlpoolWallet,
+                  MinerFeeSupplier minerFeeSupplier,
+                  BipFormatSupplier bipFormatSupplier) {
+                return AbstractTest.this.tx0PreviewService;
               }
             };
           }
@@ -436,6 +386,8 @@ public class AbstractTest {
   }
 
   private void mockTx0Datas() throws Exception {
+    whirlpoolWalletConfig.setScode(null);
+    mockTx0Datas.clear();
     byte[] feePayload =
         whirlpoolWalletConfig.getFeeOpReturnImpl().computeFeePayload(0, (short) 0, (short) 0);
     mockTx0Datas.add(
@@ -475,6 +427,100 @@ public class AbstractTest {
             5000,
             0,
             0,
+            null,
+            feePayload,
+            MOCK_SAMOURAI_FEE_ADDRESS));
+  }
+
+  protected void mockTx0Datas_SCODE_100PERCENT() throws Exception {
+    whirlpoolWalletConfig.setScode("MOCK_100PERCENT");
+    mockTx0Datas.clear();
+    byte[] feePayload =
+        whirlpoolWalletConfig.getFeeOpReturnImpl().computeFeePayload(0, (short) 0, (short) 0);
+    mockTx0Datas.add(
+        new Tx0Data(
+            "0.5btc",
+            "PM8TJbEnXU7JpR8yMdQee9H5C4RNWTpWAgmb2TVyQ4zfnaQBDMTJ4yYVP9Re8NVsZDSwXvogYbssrqkfVwac9U1QnxdCU2G1zH7Gq6L3JJjzcuWGjB9N",
+            0,
+            1487500,
+            100,
+            null,
+            feePayload,
+            MOCK_SAMOURAI_FEE_ADDRESS));
+    mockTx0Datas.add(
+        new Tx0Data(
+            "0.05btc",
+            "PM8TJbEnXU7JpR8yMdQee9H5C4RNWTpWAgmb2TVyQ4zfnaQBDMTJ4yYVP9Re8NVsZDSwXvogYbssrqkfVwac9U1QnxdCU2G1zH7Gq6L3JJjzcuWGjB9N",
+            0,
+            148750,
+            100,
+            null,
+            feePayload,
+            MOCK_SAMOURAI_FEE_ADDRESS));
+    mockTx0Datas.add(
+        new Tx0Data(
+            "0.01btc",
+            "PM8TJbEnXU7JpR8yMdQee9H5C4RNWTpWAgmb2TVyQ4zfnaQBDMTJ4yYVP9Re8NVsZDSwXvogYbssrqkfVwac9U1QnxdCU2G1zH7Gq6L3JJjzcuWGjB9N",
+            0,
+            42500,
+            100,
+            null,
+            feePayload,
+            MOCK_SAMOURAI_FEE_ADDRESS));
+    mockTx0Datas.add(
+        new Tx0Data(
+            "0.001btc",
+            "PM8TJbEnXU7JpR8yMdQee9H5C4RNWTpWAgmb2TVyQ4zfnaQBDMTJ4yYVP9Re8NVsZDSwXvogYbssrqkfVwac9U1QnxdCU2G1zH7Gq6L3JJjzcuWGjB9N",
+            0,
+            5000,
+            100,
+            null,
+            feePayload,
+            MOCK_SAMOURAI_FEE_ADDRESS));
+  }
+
+  protected void mockTx0Datas_SCODE_50PERCENT() throws Exception {
+    whirlpoolWalletConfig.setScode("MOCK_50PERCENT");
+    mockTx0Datas.clear();
+    byte[] feePayload =
+        whirlpoolWalletConfig.getFeeOpReturnImpl().computeFeePayload(0, (short) 0, (short) 0);
+    mockTx0Datas.add(
+        new Tx0Data(
+            "0.5btc",
+            "PM8TJbEnXU7JpR8yMdQee9H5C4RNWTpWAgmb2TVyQ4zfnaQBDMTJ4yYVP9Re8NVsZDSwXvogYbssrqkfVwac9U1QnxdCU2G1zH7Gq6L3JJjzcuWGjB9N",
+            743750,
+            0,
+            50,
+            null,
+            feePayload,
+            MOCK_SAMOURAI_FEE_ADDRESS));
+    mockTx0Datas.add(
+        new Tx0Data(
+            "0.05btc",
+            "PM8TJbEnXU7JpR8yMdQee9H5C4RNWTpWAgmb2TVyQ4zfnaQBDMTJ4yYVP9Re8NVsZDSwXvogYbssrqkfVwac9U1QnxdCU2G1zH7Gq6L3JJjzcuWGjB9N",
+            74375,
+            0,
+            50,
+            null,
+            feePayload,
+            MOCK_SAMOURAI_FEE_ADDRESS));
+    mockTx0Datas.add(
+        new Tx0Data(
+            "0.01btc",
+            "PM8TJbEnXU7JpR8yMdQee9H5C4RNWTpWAgmb2TVyQ4zfnaQBDMTJ4yYVP9Re8NVsZDSwXvogYbssrqkfVwac9U1QnxdCU2G1zH7Gq6L3JJjzcuWGjB9N",
+            21250,
+            0,
+            50,
+            null,
+            feePayload,
+            MOCK_SAMOURAI_FEE_ADDRESS));
+    mockTx0Datas.add(
+        new Tx0Data(
+            "0.001btc",
+            "PM8TJbEnXU7JpR8yMdQee9H5C4RNWTpWAgmb2TVyQ4zfnaQBDMTJ4yYVP9Re8NVsZDSwXvogYbssrqkfVwac9U1QnxdCU2G1zH7Gq6L3JJjzcuWGjB9N",
+            2500,
+            0,
+            50,
             null,
             feePayload,
             MOCK_SAMOURAI_FEE_ADDRESS));

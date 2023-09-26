@@ -1,6 +1,7 @@
 package com.samourai.whirlpool.client.tx0;
 
 import com.samourai.whirlpool.client.wallet.AbstractWhirlpoolWalletTest;
+import java.util.List;
 import org.junit.jupiter.api.Assertions;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -48,6 +49,49 @@ public class AbstractTx0ServiceTest extends AbstractWhirlpoolWalletTest {
     Assertions.assertEquals(tp.getPremixValue(), tp2.getPremixValue());
     Assertions.assertEquals(tp.getChangeValue(), tp2.getChangeValue());
     Assertions.assertEquals(tp.getNbPremix(), tp2.getNbPremix());
+  }
+
+  protected void assertTx0Previews(
+      List<? extends Tx0Preview> tx0Previews,
+      List<String> poolIds,
+      List<Boolean> tx0x2Decoys,
+      List<Integer> nbPremixs) {
+    Assertions.assertArrayEquals(
+        poolIds.toArray(),
+        tx0Previews.stream().map(t -> t.getPool().getPoolId()).toArray(),
+        "poolIds");
+    Assertions.assertArrayEquals(
+        tx0x2Decoys.toArray(),
+        tx0Previews.stream().map(t -> t.isDecoyTx0x2()).toArray(),
+        "tx0x2Decoys");
+    Assertions.assertArrayEquals(
+        nbPremixs.toArray(), tx0Previews.stream().map(t -> t.getNbPremix()).toArray(), "nbPremixs");
+  }
+
+  protected void assertTx0Preview(
+      Tx0Preview tx0Preview, String poolId, boolean tx0Decoy, int nbPremix) {
+    Assertions.assertEquals(tx0Preview.getPool().getPoolId(), poolId, "poolId");
+    Assertions.assertEquals(tx0Decoy, tx0Preview.isDecoyTx0x2(), "decoyTx0x2");
+    Assertions.assertEquals(nbPremix, tx0Preview.getNbPremix(), "nbPremix");
+  }
+
+  protected void assertTx0(
+      Tx0 tx0, String poolId, boolean tx0Decoy, int nbPremix, List<Long> changeAmounts) {
+    assertTx0Preview(tx0, poolId, tx0Decoy, nbPremix);
+
+    // verify changes
+    Assertions.assertArrayEquals(
+        changeAmounts.toArray(), tx0.getChangeAmounts().toArray(), "changeAmounts");
+    Assertions.assertArrayEquals(
+        changeAmounts.toArray(),
+        tx0.getChangeOutputs().stream().map(o -> o.getValue().getValue()).toArray(),
+        "changeOutputs");
+    Assertions.assertEquals(tx0.getChangeValue(), changeAmounts.stream().mapToLong(v -> v).sum());
+
+    // verify tx outputs
+    int expectedOutputs =
+        nbPremix + changeAmounts.size() + 1 + 1; // changes + samouraiFee + opReturn
+    Assertions.assertEquals(expectedOutputs, tx0.getTx().getOutputs().size());
   }
 
   protected void check(Tx0Preview tx0Preview) {

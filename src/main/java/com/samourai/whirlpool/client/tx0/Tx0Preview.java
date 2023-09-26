@@ -4,10 +4,15 @@ import com.samourai.whirlpool.client.utils.ClientUtils;
 import com.samourai.whirlpool.client.whirlpool.beans.Pool;
 import com.samourai.whirlpool.client.whirlpool.beans.Tx0Data;
 import java.util.Collection;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class Tx0Preview {
+  private static final Logger log = LoggerFactory.getLogger(Tx0Preview.class);
+
   private Pool pool;
   private Tx0Data tx0Data; // may be null
+  private long spendFromValue;
   private int tx0Size;
   private long tx0MinerFee;
   private long mixMinerFee;
@@ -29,6 +34,7 @@ public class Tx0Preview {
     this(
         tx0Preview.pool,
         tx0Preview.tx0Data,
+        tx0Preview.spendFromValue,
         tx0Preview.tx0Size,
         tx0Preview.tx0MinerFee,
         tx0Preview.mixMinerFee,
@@ -45,6 +51,7 @@ public class Tx0Preview {
   public Tx0Preview(
       Pool pool,
       Tx0Data tx0Data,
+      long spendFromValue,
       int tx0Size,
       long tx0MinerFee,
       long mixMinerFee,
@@ -59,6 +66,7 @@ public class Tx0Preview {
       throws Exception {
     this.pool = pool;
     this.tx0Data = tx0Data;
+    this.spendFromValue = spendFromValue;
     this.tx0Size = tx0Size;
     this.tx0MinerFee = tx0MinerFee;
     this.mixMinerFee = mixMinerFee;
@@ -82,14 +90,21 @@ public class Tx0Preview {
   }
 
   private void consistencyCheck() throws Exception {
+    if (log.isDebugEnabled()) {
+      log.debug("Tx0Preview: " + this);
+    }
     if (changeValue < 0) {
-      throw new Exception(
-          "Negative change detected, please report this bug. tx0Preview=" + totalValue);
+      throw new Exception("Negative change detected, please report this bug.");
     }
 
     if (changeAmounts.stream().mapToLong(v -> v).sum() != changeValue) {
       throw new Exception(
           "Invalid changeAmounts=" + changeAmounts + " vs changeValue=" + changeValue);
+    }
+
+    if (totalValue != spendFromValue) {
+      throw new Exception(
+          "Invalid totalValue=" + totalValue + " vs spendFromValue=" + spendFromValue);
     }
   }
 
@@ -104,6 +119,10 @@ public class Tx0Preview {
   // used by Sparrow
   public Tx0Data getTx0Data() {
     return tx0Data;
+  }
+
+  public long getSpendFromValue() {
+    return spendFromValue;
   }
 
   public int getTx0Size() {
@@ -188,14 +207,14 @@ public class Tx0Preview {
         + feeDiscountPercent
         + ", premixValue="
         + premixValue
-        + ", changeValue="
-        + changeValue
         + ", nbPremix="
         + nbPremix
         + ", spendValue="
         + spendValue
         + ", totalValue="
         + totalValue
+        + ", changeValue="
+        + changeValue
         + ", changeAmounts="
         + changeAmounts
         + ", decoyTx0x2="

@@ -242,7 +242,7 @@ public class ClientUtils {
       BipFormatSupplier bipFormatSupplier,
       NetworkParameters params) {
     int nbOutputsNonOpReturn =
-        nbPremix + 2; // TODO zl !!! + (decoy ? 1 : 0); // premixs + change + fee + (decoyChange?)
+        nbPremix + 2 + (decoy ? 1 : 0); // premixs + change + fee + (decoyChange?)
 
     int nbP2PKH = 0;
     int nbP2SH = 0;
@@ -268,7 +268,7 @@ public class ClientUtils {
 
   public static int computeTx0Size(int nbPremix, boolean decoy, int nbSpendFrom) {
     int nbOutputsNonOpReturn =
-        nbPremix + 2; // TODO zl !!! + (decoy ? 1 : 0); // premixs + change + fee + (decoyChange?)
+        nbPremix + 2 + (decoy ? 1 : 0); // premixs + change + fee + (decoyChange?)
 
     int nbP2PKH = 0;
     int nbP2SH = 0;

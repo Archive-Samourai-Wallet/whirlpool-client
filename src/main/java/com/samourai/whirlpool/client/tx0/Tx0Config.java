@@ -19,6 +19,17 @@ public class Tx0Config extends Tx0PreviewConfig {
     super(pools, tx0FeeTarget, mixFeeTarget, spendFromUtxos);
     this.changeWallet = changeWallet;
     this.spendFromUtxos = spendFromUtxos;
+    consistencyCheck();
+  }
+
+  public Tx0Config(Tx0Config tx0Config, Collection<? extends BipUtxo> spendFromUtxos) {
+    super(tx0Config, spendFromUtxos);
+    this.changeWallet = tx0Config.changeWallet;
+    this.spendFromUtxos = spendFromUtxos;
+    consistencyCheck();
+  }
+
+  protected void consistencyCheck() {
     if (spendFromUtxos == null) {
       throw new IllegalArgumentException("Tx0Config.spendFromUtxos cannot be NULL");
     }
@@ -35,11 +46,6 @@ public class Tx0Config extends Tx0PreviewConfig {
 
   public Collection<? extends BipUtxo> getSpendFromUtxos() {
     return spendFromUtxos;
-  }
-
-  public void setSpendFromUtxos(Collection<? extends BipUtxo> spendFromUtxos) {
-    super.setSpendFroms(spendFromUtxos);
-    this.spendFromUtxos = spendFromUtxos;
   }
 
   @Override

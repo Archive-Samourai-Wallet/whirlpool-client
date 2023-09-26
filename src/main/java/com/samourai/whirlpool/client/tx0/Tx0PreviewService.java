@@ -4,11 +4,13 @@ import com.google.common.collect.Lists;
 import com.samourai.wallet.api.backend.beans.HttpException;
 import com.samourai.wallet.bipFormat.BipFormatSupplier;
 import com.samourai.wallet.cahoots.tx0x2.Tx0x2Service;
+import com.samourai.wallet.segwit.SegwitAddress;
 import com.samourai.wallet.util.AsyncUtil;
 import com.samourai.wallet.util.Pair;
 import com.samourai.wallet.util.RandomUtil;
 import com.samourai.wallet.utxo.UtxoDetail;
 import com.samourai.wallet.utxo.UtxoDetailComparator;
+import com.samourai.wallet.utxo.UtxoDetailImpl;
 import com.samourai.whirlpool.client.exception.NotifiableException;
 import com.samourai.whirlpool.client.utils.ClientUtils;
 import com.samourai.whirlpool.client.wallet.beans.Tx0FeeTarget;
@@ -19,6 +21,8 @@ import com.samourai.whirlpool.client.whirlpool.beans.Tx0Data;
 import com.samourai.whirlpool.protocol.rest.Tx0DataRequestV2;
 import com.samourai.whirlpool.protocol.rest.Tx0DataResponseV2;
 import java.util.*;
+import java.util.stream.Collectors;
+import org.bitcoinj.core.ECKey;
 import org.bitcoinj.core.NetworkParameters;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -152,7 +156,7 @@ public class Tx0PreviewService {
 
   protected Tx0Preview tx0PreviewMinimal(Tx0PreviewConfig tx0PreviewConfig, Tx0Param tx0Param)
       throws Exception {
-    return doTx0Preview(tx0Param, 1, null, null, null, tx0PreviewConfig.isDecoyTx0x2());
+    return doTx0Preview(tx0Param, 1, null, null, null, tx0PreviewConfig.isDecoyTx0x2()).get();
   }
 
   /** Preview for each pool. */
@@ -165,14 +169,10 @@ public class Tx0PreviewService {
     for (Tx0Data tx0Data : tx0Datas) {
       final String poolId = tx0Data.getPoolId();
       Tx0Param tx0Param = getTx0Param(tx0PreviewConfig, poolId);
-      try {
-        // real preview for outputs (with SCODE and outputs calculation)
-        Tx0Preview tx0Preview = tx0Preview(tx0PreviewConfig, tx0Param, tx0Data);
-        tx0PreviewsByPoolId.put(poolId, tx0Preview);
-      } catch (Exception e) {
-        if (log.isDebugEnabled()) {
-          log.debug("Pool not eligible for tx0: " + poolId, e.getMessage());
-        }
+      // real preview for outputs (with SCODE and outputs calculation)
+      Optional<Tx0Preview> tx0PreviewOpt = tx0PreviewOpt(tx0PreviewConfig, tx0Param, tx0Data);
+      if (tx0PreviewOpt.isPresent()) {
+        tx0PreviewsByPoolId.put(poolId, tx0PreviewOpt.get());
       }
     }
     return new Tx0Previews(tx0PreviewsByPoolId);
@@ -180,6 +180,12 @@ public class Tx0PreviewService {
 
   /** Preview a single TX0 for a specific pool. */
   public Tx0Preview tx0Preview(Tx0PreviewConfig tx0PreviewConfig, String poolId) throws Exception {
+    return tx0PreviewOpt(tx0PreviewConfig, poolId)
+        .orElseThrow(() -> new NotifiableException("Tx0 not possible for pool: " + poolId));
+  }
+
+  protected Optional<Tx0Preview> tx0PreviewOpt(Tx0PreviewConfig tx0PreviewConfig, String poolId)
+      throws Exception {
     // fetch fresh Tx0Data
     boolean useCascading = tx0PreviewConfig._isCascading();
     Collection<Tx0Data> tx0Datas = fetchTx0Data(config.getPartner(), useCascading);
@@ -188,7 +194,7 @@ public class Tx0PreviewService {
 
     // real preview for outputs (with SCODE and outputs calculation)
     Tx0Param tx0Param = getTx0Param(tx0PreviewConfig, poolId);
-    return tx0Preview(tx0PreviewConfig, tx0Param, tx0Data);
+    return tx0PreviewOpt(tx0PreviewConfig, tx0Param, tx0Data);
   }
 
   /** Preview a TX0 cascade for a specific pool. */
@@ -209,7 +215,7 @@ public class Tx0PreviewService {
     Tx0Preview tx0Preview = tx0Preview(tx0PreviewConfig, poolInitial.getPoolId());
     tx0Previews.add(tx0Preview);
 
-    Collection<UtxoDetail> changeUtxos = null; // TODO zl !!!!tx0Preview.getChangeUtxos();
+    Collection<UtxoDetail> changeUtxos = mockChangeUtxos(tx0Preview.getChangeAmounts());
 
     // Tx0 cascading for remaining pools
     while (poolsIter.hasNext()) {
@@ -218,54 +224,76 @@ public class Tx0PreviewService {
         break; // stop when no tx0 change
       }
 
-      try {
-        if (log.isDebugEnabled()) {
-          log.debug(
-              " +Tx0 cascading for poolId="
-                  + pool.getPoolId()
-                  + "... ("
-                  + (tx0Previews.size() + 1)
-                  + "/x)");
-        }
+      if (log.isDebugEnabled()) {
+        log.debug(
+            " +Tx0 cascading for poolId="
+                + pool.getPoolId()
+                + "... ("
+                + (tx0Previews.size() + 1)
+                + "/x)");
+      }
 
-        tx0PreviewConfig._setCascading(true);
-        tx0PreviewConfig.setSpendFroms(changeUtxos);
-        tx0Preview = tx0Preview(tx0PreviewConfig, pool.getPoolId());
+      tx0PreviewConfig = new Tx0PreviewConfig(tx0PreviewConfig, changeUtxos);
+      tx0PreviewConfig._setCascading(true);
+      tx0Preview = tx0PreviewOpt(tx0PreviewConfig, pool.getPoolId()).orElse(null);
+      if (tx0Preview != null) {
         tx0Previews.add(tx0Preview);
-        // TODO zl !!!! changeUtxos = tx0Preview.getChangeUtxos();
-      } catch (Exception e) {
-        // Tx0 is not possible for this pool, ignore it
-        if (log.isDebugEnabled()) {
-          log.debug(
-              "Tx0 cascading skipped for poolId=" + pool.getPoolId() + ": " + e.getMessage(), e);
-        }
+        changeUtxos = mockChangeUtxos(tx0Preview.getChangeAmounts());
+      } else {
+        // Tx0 is not possible for this pool, skip to next lower pool
       }
     }
     return new Tx0PreviewCascade(tx0Previews);
   }
 
-  protected Tx0Preview tx0Preview(
+  protected Collection<UtxoDetail> mockChangeUtxos(Collection<Long> changeAmounts) {
+    String mockAddressBech32 =
+        new SegwitAddress(new ECKey(), config.getNetworkParameters()).getBech32AsString();
+    return changeAmounts.stream()
+        .map(value -> new UtxoDetailImpl("previewhash", 0, value, mockAddressBech32, null))
+        .collect(Collectors.toList());
+  }
+
+  protected Optional<Tx0Preview> tx0PreviewOpt(
       Tx0PreviewConfig tx0PreviewConfig, Tx0Param tx0Param, Tx0Data tx0Data) throws Exception {
+    if (log.isDebugEnabled()) {
+      log.debug(" • Tx0Preview: config={" + tx0PreviewConfig + "}");
+    }
     Collection<? extends UtxoDetail> spendFroms = tx0PreviewConfig.getSpendFroms();
     Integer nbPremix = null;
     Collection<Long> changeAmounts = null;
     boolean isDecoyTx0x2 = false;
     if (tx0PreviewConfig.isDecoyTx0x2()) {
       // attempt to decoy Tx0x2
-      Pair<Integer, Collection<Long>> changeAmountsStonewall =
-          computeChangeAmountsStonewall(tx0PreviewConfig, tx0Param, tx0Data);
-      if (changeAmountsStonewall != null) {
+      Pair<Integer, Collection<Long>> tx0x2DecoyChanges =
+          computeTx0x2DecoyChanges(tx0PreviewConfig, tx0Param, tx0Data);
+      if (tx0x2DecoyChanges != null) {
         // use tx0x2 decoy
-        nbPremix = changeAmountsStonewall.getLeft();
-        changeAmounts = changeAmountsStonewall.getRight();
+        nbPremix = tx0x2DecoyChanges.getLeft();
+        changeAmounts = tx0x2DecoyChanges.getRight();
         isDecoyTx0x2 = true;
         if (log.isDebugEnabled()) {
           log.debug("Tx0: decoy Tx0, " + changeAmounts.size() + " changes");
         }
+      } else {
+        // tx0x2 decoy not possible
+        if (tx0PreviewConfig.isDecoyTx0x2Forced() || tx0PreviewConfig._isCascading()) {
+          if (log.isDebugEnabled()) {
+            log.debug(
+                "Tx0: decoy Tx0 is not possible => aborting pool: "
+                    + tx0Param.getPool().getPoolId());
+          }
+          return Optional.empty(); // skip to next lower pool instead of regular tx0 fallback
+        }
       }
     }
     if (nbPremix == null) {
-      // use regular Tx0 (no decoy)
+      // tx0x2 decoy not possible => use regular Tx0 (no decoy)
+      if (log.isDebugEnabled()) {
+        log.debug(
+            "Tx0: decoy Tx0 is not possible => trying regular Tx0 for pool: "
+                + tx0Param.getPool().getPoolId());
+      }
       nbPremix = computeNbPremixMax(tx0Param, tx0Data, spendFroms, false);
       changeAmounts = null; // regular changes
       isDecoyTx0x2 = false;
@@ -273,7 +301,7 @@ public class Tx0PreviewService {
     return doTx0Preview(tx0Param, nbPremix, spendFroms, tx0Data, changeAmounts, isDecoyTx0x2);
   }
 
-  protected Tx0Preview doTx0Preview(
+  protected Optional<Tx0Preview> doTx0Preview(
       Tx0Param tx0Param,
       int nbPremix,
       Collection<? extends UtxoDetail> spendFromsOrNull,
@@ -286,8 +314,12 @@ public class Tx0PreviewService {
           "Tx0 not possible for poolId="
               + tx0Param.getPool().getPoolId()
               + ": nbPremix="
-              + nbPremix);
-      return null;
+              + nbPremix
+              + ", spendFroms="
+              + (spendFromsOrNull != null ? UtxoDetail.sumValue(spendFromsOrNull) : "null")
+              + ", pool.minSpendValue="
+              + tx0Param.getPool().getTx0PreviewMinSpendValue());
+      return Optional.empty();
     }
 
     // check fee (duplicate safety check)
@@ -319,9 +351,19 @@ public class Tx0PreviewService {
     long mixMinerFee = nbPremix * premixMinerFee;
     long spendValue =
         ClientUtils.computeTx0SpendValue(premixValue, nbPremix, feeValueOrFeeChange, tx0MinerFee);
-    long spendFromBalance =
+    long spendFromValue =
         spendFromsOrNull != null ? UtxoDetail.sumValue(spendFromsOrNull) : spendValue;
-    long changeValue = spendFromBalance - spendValue;
+    long changeValue = spendFromValue - spendValue;
+    if (log.isDebugEnabled()) {
+      log.debug("spendFromBalance=" + spendFromValue);
+      log.debug(
+          "changeValue="
+              + spendFromValue
+              + "(spendFromValue) - "
+              + spendValue
+              + "(spendValue) = "
+              + changeValue);
+    }
     if (changeAmountsOrNull == null) {
       // regular tx0 change: O or 1 change
       changeAmountsOrNull = (changeValue == 0 ? Lists.newLinkedList() : Arrays.asList(changeValue));
@@ -339,6 +381,7 @@ public class Tx0PreviewService {
         new Tx0Preview(
             pool,
             tx0DataOrNull,
+            spendFromValue,
             tx0Size,
             tx0MinerFee,
             mixMinerFee,
@@ -350,20 +393,7 @@ public class Tx0PreviewService {
             nbPremix,
             changeAmountsOrNull,
             isDecoyTx0x2);
-
-    // verify outputsSum
-    long totalValue = tx0Preview.getTotalValue();
-    if (totalValue != spendFromBalance) {
-      throw new Exception(
-          "Invalid outputsSum for tx0: "
-              + totalValue
-              + " vs "
-              + spendFromBalance
-              + " for tx0Preview=["
-              + tx0Preview
-              + "]");
-    }
-    return tx0Preview;
+    return Optional.of(tx0Preview);
   }
 
   protected Collection<Tx0Data> fetchTx0Data(String partnerId, boolean cascading) throws Exception {
@@ -386,13 +416,13 @@ public class Tx0PreviewService {
     }
   }
 
-  private Pair<Integer, Collection<Long>> computeChangeAmountsStonewall(
+  private Pair<Integer, Collection<Long>> computeTx0x2DecoyChanges(
       Tx0PreviewConfig tx0PreviewConfig, Tx0Param tx0Param, Tx0Data tx0Data)
       throws NotifiableException {
     Pair<Collection<? extends UtxoDetail>, Collection<? extends UtxoDetail>> spendFromsStonewall =
         computeSpendFromsStonewall(tx0PreviewConfig, tx0Param, tx0Data);
     if (spendFromsStonewall == null) {
-      // stonewall is not possible
+      // tx0x2Decoy is not possible
       return null;
     }
 
@@ -404,14 +434,14 @@ public class Tx0PreviewService {
     Collection<? extends UtxoDetail> spendFroms = tx0PreviewConfig.getSpendFroms();
     if (log.isDebugEnabled()) {
       log.debug(
-          "computeTx0PreviewDecoy: spendFroms = "
+          "computeTx0x2DecoyChanges: spendFromsA="
               + spendFromsA
-              + " + "
+              + ", spendFromsB="
               + spendFromsB
-              + " = "
+              + " => "
               + (spendFroms.size() + " utxos"));
       log.debug(
-          "computeTx0PreviewDecoy: spendValue = "
+          "computeTx0x2DecoyChanges: spendValue = "
               + spendValueA
               + " ("
               + spendFromsA.size()
@@ -431,30 +461,30 @@ public class Tx0PreviewService {
     // recalculate nbPremix (which may be lower than initial tx0Preview due to stonewall overhead)
     int nbPremixA = computeNbPremixMax(tx0Param, tx0Data, spendFromsA, true);
     int nbPremixB = computeNbPremixMax(tx0Param, tx0Data, spendFromsB, true);
+    if (nbPremixA == 0 || nbPremixB == 0) {
+      // tx0x2Decoy is not possible
+      return null;
+    }
     int nbPremixTotal = nbPremixA + nbPremixB;
 
     // calculate changes
     long changeValueA = spendValueA - nbPremixA * tx0Param.getPremixValue();
     long changeValueB = spendValueB - nbPremixB * tx0Param.getPremixValue();
 
-    // deduce feeValue
-    if (!tx0PreviewConfig._isCascading()) {
-      // initial pool, split fee
-      long feeValueA = (long) Math.ceil(tx0Data.getFeeValue() / 2);
-      long feeValueB = tx0Data.getFeeValue() - feeValueA;
-      changeValueA -= feeValueA;
-      changeValueB -= feeValueB;
-      log.debug(
-          "computeTx0PreviewDecoy: feeValue = "
-              + feeValueA
-              + " + "
-              + feeValueB
-              + " = "
-              + tx0Data.getFeeValue());
-    } else {
-      // lower pools
-      changeValueA -= tx0Data.getFeeChange();
-    }
+    // deduce feeValue (initial pool: split feeValue, lower pools: split feeChange received back via
+    // samouraiFeeOutput)
+    long feeValueOrFeeChange = tx0Data.computeFeeValueOrFeeChange();
+    long feeValueA = (long) Math.ceil(feeValueOrFeeChange / 2);
+    long feeValueB = feeValueOrFeeChange - feeValueA;
+    changeValueA -= feeValueA;
+    changeValueB -= feeValueB;
+    log.debug(
+        "computeTx0x2DecoyChanges: feeValueOrFeeChange = "
+            + feeValueA
+            + " + "
+            + feeValueB
+            + " = "
+            + tx0Data.getFeeValue());
 
     // calculate tx0MinerFee for new nbPremix
     NetworkParameters params = config.getNetworkParameters();
@@ -471,21 +501,21 @@ public class Tx0PreviewService {
     long changeValueTotal = changeValueA + changeValueB;
     if (log.isDebugEnabled()) {
       log.debug(
-          "computeTx0PreviewDecoy: nbPremix = "
+          "computeTx0x2DecoyChanges: nbPremix = "
               + nbPremixA
               + " + "
               + nbPremixB
               + " = "
               + nbPremixTotal);
       log.debug(
-          "computeTx0PreviewDecoy: minerFee = "
+          "computeTx0x2DecoyChanges: minerFee = "
               + minerFeeA
               + " + "
               + minerFeeB
               + " = "
               + tx0MinerFee);
       log.debug(
-          "computeTx0PreviewDecoy: changeValue = "
+          "computeTx0x2DecoyChanges: changeValue = "
               + changeValueA
               + " + "
               + changeValueB
@@ -499,7 +529,8 @@ public class Tx0PreviewService {
       changeValueA = changeValueTotal / 2L;
       changeValueB = changeValueTotal - changeValueA;
       if (log.isDebugEnabled()) {
-        log.debug("computeTx0PreviewDecoy: changeValue2 = " + changeValueA + " + " + changeValueB);
+        log.debug(
+            "computeTx0x2DecoyChanges: changeValueSplit = " + changeValueA + " + " + changeValueB);
       }
     }
 
@@ -514,6 +545,9 @@ public class Tx0PreviewService {
           throws NotifiableException {
     NetworkParameters params = config.getNetworkParameters();
     Collection<? extends UtxoDetail> spendFroms = tx0PreviewConfig.getSpendFroms();
+    if (spendFroms.size() < 2) {
+      return null; // 2 utxos min required for stonewall
+    }
 
     // estimate max tx0MinerFee as it would be for regular tx0
     // it will be recalculated later more precisely with real nbPremix (wich maybe lower)
@@ -590,18 +624,11 @@ public class Tx0PreviewService {
                 + Arrays.toString(spendFromValues)
                 + ", spendFromA="
                 + spendFromA
-                + ", spendFrtomB="
+                + ", spendFromB="
                 + spendFromB
                 + ", minSpendFrom="
                 + minSpendFrom);
       }
-
-      // if both inputs (higher pool change outputs) are not large enough for decoy tx02, skip to
-      // next lower pool
-      if (!initialPool) {
-        throw new NotifiableException("Decoy Tx0x2 not possible for lower pool");
-      }
-
       return null;
     }
     return Pair.of(spendFromsA.values(), spendFromsB.values());
