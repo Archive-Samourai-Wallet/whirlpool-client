@@ -185,6 +185,15 @@ public class WhirlpoolWallet {
     return dataSource.getTx0PreviewService().tx0Preview(tx0PreviewConfig, poolId);
   }
 
+  public List<Tx0> tx0Cascade(Tx0Config tx0Config) throws Exception {
+    // adapt tx0Cascade() for WhirlpoolUtxo
+    tx0Config.setDecoyTx0x2Forced(false);
+    Collection<Pool> pools =
+        getPoolSupplier().findPoolsForTx0(BipUtxo.sumValue(tx0Config.getSpendFromUtxos()));
+    Callable<List<Tx0>> runTx0 = () -> doTx0Cascade(tx0Config, pools);
+    return handleTx0(tx0Config.getSpendFromUtxos(), runTx0);
+  }
+
   public List<Tx0> tx0Cascade(Tx0Config tx0Config, Collection<Pool> pools) throws Exception {
     // adapt tx0Cascade() for WhirlpoolUtxo
     Callable<List<Tx0>> runTx0 = () -> doTx0Cascade(tx0Config, pools);

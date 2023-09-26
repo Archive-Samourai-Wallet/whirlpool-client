@@ -35,6 +35,7 @@ import com.samourai.whirlpool.protocol.rest.Tx0PushRequest;
 import io.reactivex.Single;
 import java.util.*;
 import java.util.stream.Collectors;
+import org.apache.commons.lang3.StringUtils;
 import org.bitcoinj.core.*;
 import org.bitcoinj.script.Script;
 import org.bitcoinj.script.ScriptBuilder;
@@ -100,7 +101,9 @@ public class Tx0Service {
       return Optional.empty();
     }
     Tx0Preview tx0Preview = tx0PreviewOpt.get();
-    log.info(" • Tx0: tx0Config={" + tx0Config + "} => tx0Preview={" + tx0Preview + "}");
+    if (log.isDebugEnabled()) {
+      log.debug(" • Tx0: tx0Config={" + tx0Config + "}\n=> tx0Preview={" + tx0Preview + "}");
+    }
 
     Tx0 tx0 = tx0(walletSupplier, tx0Config, tx0Preview, utxoKeyProvider);
     if (tx0 == null) {
@@ -110,7 +113,9 @@ public class Tx0Service {
         " • Tx0 result: txid="
             + tx0.getTx().getHashAsString()
             + ", nbPremixs="
-            + tx0.getPremixOutputs().size());
+            + tx0.getPremixOutputs().size()
+            + ", decoyTx0x2="
+            + tx0.isDecoyTx0x2());
     if (log.isDebugEnabled()) {
       log.debug("Tx0: " + tx0.toString());
     }
@@ -439,6 +444,7 @@ public class Tx0Service {
 
       tx0Config = new Tx0Config(tx0Config, changeUtxos);
       tx0Config._setCascading(true);
+      tx0Config.setDecoyTx0x2Forced(true); // skip to next lower pool when decoy is not possible
       tx0 = tx0Opt(walletSupplier, pool, tx0Config, utxoKeyProvider).orElse(null);
       if (tx0 != null) {
         tx0List.add(tx0);
@@ -449,9 +455,19 @@ public class Tx0Service {
     }
     List<String> poolIds =
         tx0List.stream()
-            .map(t -> t.getPool().getPoolId() + ":" + (t.isDecoyTx0x2() ? "decoy" : "noDecoy"))
+            .map(
+                t ->
+                    t.getPool().getPoolId()
+                        + "("
+                        + t.getNbPremix()
+                        + (t.isDecoyTx0x2() ? "+decoy" : "")
+                        + ")")
             .collect(Collectors.toList());
-    log.info("Tx0 cascading success on " + tx0List.size() + " pools (" + poolIds + ")");
+    log.info(
+        " • Tx0 cascading success on "
+            + tx0List.size()
+            + " pools: "
+            + StringUtils.join(poolIds, "->"));
     return tx0List;
   }
 

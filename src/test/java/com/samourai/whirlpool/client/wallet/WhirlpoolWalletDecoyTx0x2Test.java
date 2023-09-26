@@ -183,6 +183,59 @@ public class WhirlpoolWalletDecoyTx0x2Test extends AbstractTx0ServiceV1Test {
   }
 
   @Test
+  public void tx0x2_decoy_maxOutputsLimit() throws Exception {
+    // mock initial data
+    BipUtxo spendFromUtxo0 =
+        newUtxo("cc588cdcb368f894a41c372d1f905770b61ecb3fb8e5e01a97e7cedbf5e324ae", 1, 23299910);
+    BipUtxo spendFromUtxo1 =
+        newUtxo("7408819d56ec916ea3754abe927ef99590cfb0c5a675366a7bcd7ce6ac9ed69a", 2, 30000000);
+    List<BipUtxo> spendFroms = mockUtxos(spendFromUtxo0, spendFromUtxo1);
+
+    // configure TX0
+    Pool pool = poolSupplier.findPoolById("0.01btc");
+    Tx0Config tx0Config =
+        whirlpoolWallet.getTx0Config(spendFroms, Tx0FeeTarget.BLOCKS_12, Tx0FeeTarget.BLOCKS_12);
+    tx0Config.setDecoyTx0x2(true); // set decoy Tx0x2 flag
+    whirlpoolWalletConfig.setTx0MaxOutputs(2); // set max premixs
+
+    // run
+    Tx0 decoyTx0x2 = whirlpoolWallet.tx0(tx0Config, pool);
+
+    // verify
+    log.info("decoyTx0x2 = " + decoyTx0x2);
+    assertTx0(decoyTx0x2, "0.01btc", true, 2, Arrays.asList(28978297L, 22278207L));
+    assertUtxosEquals(decoyTx0x2.getSpendFroms(), spendFroms);
+  }
+
+  @Test
+  public void tx0x2_decoy_samehash() throws Exception {
+    // mock initial data
+    BipUtxo utxo1 =
+        newUtxo("cc588cdcb368f894a41c372d1f905770b61ecb3fb8e5e01a97e7cedbf5e324ae", 1, 1000000);
+    BipUtxo utxo2 =
+        newUtxo("cc588cdcb368f894a41c372d1f905770b61ecb3fb8e5e01a97e7cedbf5e324ae", 2, 2000000);
+    BipUtxo utxo3 =
+        newUtxo("7408819d56ec916ea3754abe927ef99590cfb0c5a675366a7bcd7ce6ac9ed69a", 1, 3000000);
+    BipUtxo utxo4 =
+        newUtxo("7408819d56ec916ea3754abe927ef99590cfb0c5a675366a7bcd7ce6ac9ed69a", 2, 4000000);
+    List<BipUtxo> spendFroms = mockUtxos(utxo1, utxo2, utxo3, utxo4);
+
+    // configure TX0
+    Pool pool = poolSupplier.findPoolById("0.01btc");
+    Tx0Config tx0Config =
+        whirlpoolWallet.getTx0Config(spendFroms, Tx0FeeTarget.BLOCKS_12, Tx0FeeTarget.BLOCKS_12);
+    tx0Config.setDecoyTx0x2(true); // set decoy Tx0x2 flag
+
+    // run
+    Tx0 decoyTx0x2 = whirlpoolWallet.tx0(tx0Config, pool);
+
+    // verify
+    log.info("decoyTx0x2 = " + decoyTx0x2);
+    assertTx0(decoyTx0x2, "0.01btc", true, 8, Arrays.asList(976605L, 978135L));
+    assertUtxosEquals(decoyTx0x2.getSpendFroms(), spendFroms);
+  }
+
+  @Test
   public void tx0x2_decoy_fail() throws Exception {
     log.info("Decoy tx0x2 failure due to not having required amount. Should create normal tx0.");
 

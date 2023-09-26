@@ -67,12 +67,14 @@ public class Tx0PreviewService {
 
   protected int capNbPremix(int nbPremix, Pool pool, boolean isDecoyTx0x2) {
     int maxOutputs = config.getTx0MaxOutputs();
-    if (maxOutputs > 0) {
-      nbPremix = Math.min(maxOutputs, nbPremix); // cap with maxOutputs
-    }
     int poolMaxOutputs = pool.getTx0MaxOutputs();
     if (isDecoyTx0x2) {
-      poolMaxOutputs /= 2; // cap each tx0x2 participant to half
+      // cap each tx0x2 participant to half
+      maxOutputs /= 2;
+      poolMaxOutputs /= 2;
+    }
+    if (maxOutputs > 0) {
+      nbPremix = Math.min(maxOutputs, nbPremix); // cap with maxOutputs
     }
     nbPremix = Math.min(poolMaxOutputs, nbPremix); // cap with pool.tx0MaxOutputs
     return nbPremix;
@@ -114,7 +116,7 @@ public class Tx0PreviewService {
                 + spendValue
                 + ", tx0MinerFee="
                 + tx0MinerFee
-                + ", isDecoyTx0x2="
+                + ", decoyTx0x2="
                 + isDecoyTx0x2
                 + ", spendFromBalance="
                 + spendFromBalance
@@ -235,6 +237,8 @@ public class Tx0PreviewService {
 
       tx0PreviewConfig = new Tx0PreviewConfig(tx0PreviewConfig, changeUtxos);
       tx0PreviewConfig._setCascading(true);
+      tx0PreviewConfig.setDecoyTx0x2Forced(
+          true); // skip to next lower pool when decoy is not possible
       tx0Preview = tx0PreviewOpt(tx0PreviewConfig, pool.getPoolId()).orElse(null);
       if (tx0Preview != null) {
         tx0Previews.add(tx0Preview);
@@ -277,7 +281,7 @@ public class Tx0PreviewService {
         }
       } else {
         // tx0x2 decoy not possible
-        if (tx0PreviewConfig.isDecoyTx0x2Forced() || tx0PreviewConfig._isCascading()) {
+        if (tx0PreviewConfig.isDecoyTx0x2Forced()) {
           if (log.isDebugEnabled()) {
             log.debug(
                 "Tx0: decoy Tx0 is not possible => aborting pool: "
@@ -546,6 +550,9 @@ public class Tx0PreviewService {
     NetworkParameters params = config.getNetworkParameters();
     Collection<? extends UtxoDetail> spendFroms = tx0PreviewConfig.getSpendFroms();
     if (spendFroms.size() < 2) {
+      if (log.isDebugEnabled()) {
+        log.debug("Decoy Tx0x2 is not possible: spendFroms=" + spendFroms.size() + " utxos < 2");
+      }
       return null; // 2 utxos min required for stonewall
     }
 
@@ -582,16 +589,18 @@ public class Tx0PreviewService {
     // check for min spend amount
     long spendFromA = 0L;
     long spendFromB = 0L;
-    Map<String, UtxoDetail> spendFromsA = new HashMap<>();
-    Map<String, UtxoDetail> spendFromsB = new HashMap<>();
+    Set<String> utxosHashA = new LinkedHashSet<>();
+    Set<String> utxosHashB = new LinkedHashSet<>();
+    List<UtxoDetail> utxosA = new LinkedList<>();
+    List<UtxoDetail> utxosB = new LinkedList<>();
 
     for (UtxoDetail spendFrom : spendFroms) {
       String hash = spendFrom.getTxHash();
 
       // initial pool: check outpoints to avoid spending same prev-tx from both A & B
       // lower pools: does not check outpoints as we are cascading from same prev-tx0
-      boolean allowA = !initialPool || !spendFromsB.containsKey(hash);
-      boolean allowB = !initialPool || !spendFromsA.containsKey(hash);
+      boolean allowA = !initialPool || !utxosHashB.contains(hash);
+      boolean allowB = !initialPool || !utxosHashA.contains(hash);
 
       boolean choice; // true=A, false=B
       if (allowA && spendFromA < minSpendFrom) {
@@ -607,11 +616,13 @@ public class Tx0PreviewService {
 
       if (choice) {
         // choose A
-        spendFromsA.put(hash, spendFrom);
+        utxosA.add(spendFrom);
+        utxosHashA.add(hash);
         spendFromA += spendFrom.getValue();
       } else {
         // choose B
-        spendFromsB.put(hash, spendFrom);
+        utxosB.add(spendFrom);
+        utxosHashB.add(hash);
         spendFromB += spendFrom.getValue();
       }
     }
@@ -631,6 +642,6 @@ public class Tx0PreviewService {
       }
       return null;
     }
-    return Pair.of(spendFromsA.values(), spendFromsB.values());
+    return Pair.of(utxosA, utxosB);
   }
 }
