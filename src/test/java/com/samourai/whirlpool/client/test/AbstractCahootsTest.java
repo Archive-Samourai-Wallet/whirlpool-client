@@ -9,19 +9,20 @@ import com.samourai.wallet.cahoots.tx0x2.Tx0x2Service;
 import com.samourai.wallet.hd.BIP_WALLET;
 import com.samourai.wallet.hd.Chain;
 import com.samourai.wallet.util.TxUtil;
-import com.samourai.whirlpool.client.wallet.AbstractWhirlpoolWalletTest;
+import com.samourai.whirlpool.client.tx0.AbstractTx0ServiceV1Test;
 import com.samourai.whirlpool.client.wallet.WhirlpoolWallet;
 import com.samourai.whirlpool.client.wallet.WhirlpoolWalletConfig;
-import java.util.LinkedHashMap;
-import java.util.Map;
-import java.util.stream.Collectors;
 import org.bitcoinj.core.Transaction;
 import org.bitcoinj.core.TransactionOutput;
 import org.junit.jupiter.api.Assertions;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public abstract class AbstractCahootsTest extends AbstractWhirlpoolWalletTest {
+import java.util.LinkedHashMap;
+import java.util.Map;
+import java.util.stream.Collectors;
+
+public abstract class AbstractCahootsTest extends AbstractTx0ServiceV1Test {
   private static final Logger log = LoggerFactory.getLogger(AbstractCahootsTest.class);
 
   private static final String SEED_WORDS = "all all all all all all all all all all all all";
@@ -336,5 +337,84 @@ public abstract class AbstractCahootsTest extends AbstractWhirlpoolWalletTest {
         .collect(
             Collectors.toMap(
                 Map.Entry::getKey, Map.Entry::getValue, (e1, e2) -> e1, LinkedHashMap::new));
+  }
+
+  protected void assertTx0x2(
+      Transaction tx,
+      String txid,
+      String raw,
+      int nbInputs,
+      int nbPremixSender,
+      int nbPremixCounterparty,
+      long premixValue,
+      long changeValueSender,
+      long changeValueCp,
+      long samouraiFeeValue)
+      throws Exception {
+    Assertions.assertEquals(nbInputs, tx.getInputs().size(), "inputs");
+    int expectedOutputs =
+        nbPremixSender + nbPremixCounterparty + 2 + 1 + 1; // 2 changes + samouraiFee + opReturn
+    Assertions.assertEquals(expectedOutputs, tx.getOutputs().size(), "outputs");
+
+    // verify TX
+    Map<String, Long> outputs = new LinkedHashMap<>();
+    outputs.put(COUNTERPARTY_CHANGE_84[0], changeValueCp);
+    outputs.put(SENDER_CHANGE_84[0], changeValueSender);
+    for (int i = 0; i < nbPremixSender; i++) {
+      outputs.put(SENDER_PREMIX_84[i], premixValue);
+    }
+    for (int i = 0; i < nbPremixCounterparty; i++) {
+      outputs.put(COUNTERPARTY_PREMIX_84[i], premixValue);
+    }
+    outputs.put(MOCK_SAMOURAI_FEE_ADDRESS, samouraiFeeValue);
+    verifyTx(tx, txid, raw, outputs);
+
+    // DEPOSIT receive indexs
+    Assertions.assertEquals(
+        0,
+        whirlpoolWalletSender
+            .getWalletSupplier()
+            .getWallet(BIP_WALLET.DEPOSIT_BIP84)
+            .getIndexHandlerReceive()
+            .get());
+    Assertions.assertEquals(
+        0,
+        whirlpoolWalletCounterparty
+            .getWalletSupplier()
+            .getWallet(BIP_WALLET.DEPOSIT_BIP84)
+            .getIndexHandlerReceive()
+            .get());
+
+    // DEPOSIT change indexs
+    Assertions.assertEquals(
+        1,
+        whirlpoolWalletSender
+            .getWalletSupplier()
+            .getWallet(BIP_WALLET.DEPOSIT_BIP84)
+            .getIndexHandlerChange()
+            .get());
+    Assertions.assertEquals(
+        1,
+        whirlpoolWalletCounterparty
+            .getWalletSupplier()
+            .getWallet(BIP_WALLET.DEPOSIT_BIP84)
+            .getIndexHandlerChange()
+            .get());
+
+    // PREMIX receive indexs
+    Assertions.assertEquals(
+        nbPremixSender,
+        whirlpoolWalletSender
+            .getWalletSupplier()
+            .getWallet(BIP_WALLET.PREMIX_BIP84)
+            .getIndexHandlerReceive()
+            .get());
+    Assertions.assertEquals(
+        nbPremixCounterparty,
+        whirlpoolWalletCounterparty
+            .getWalletSupplier()
+            .getWallet(BIP_WALLET.PREMIX_BIP84)
+            .getIndexHandlerReceive()
+            .get());
   }
 }

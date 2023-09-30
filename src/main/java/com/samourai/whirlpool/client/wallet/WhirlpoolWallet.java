@@ -18,6 +18,7 @@ import com.samourai.wallet.cahoots.tx0x2.MultiTx0x2Context;
 import com.samourai.wallet.cahoots.tx0x2.Tx0x2Context;
 import com.samourai.wallet.chain.ChainSupplier;
 import com.samourai.wallet.hd.BIP_WALLET;
+import com.samourai.wallet.hd.Chain;
 import com.samourai.wallet.hd.HD_Wallet;
 import com.samourai.wallet.hd.HD_WalletFactoryGeneric;
 import com.samourai.wallet.ricochet.RicochetConfig;
@@ -159,11 +160,17 @@ public class WhirlpoolWallet {
   }
 
   public Tx0x2Context tx0x2Context(Tx0Config tx0Config) throws Exception {
+    // backup wallet indexs before Tx0Initial
+    Map<String, Map<Chain, Integer>> indexsBackup = getWalletSupplier().indexsBackup();
+
     // build initial TX0
     tx0Config.setDecoyTx0x2(false); // no decoy for Tx0x2
     tx0Config.setCascade(false); // no cascade: use multiTx0x2Context() for cascade
     Tx0 tx0Initial =
         tx0Service.tx0(getWalletSupplier(), tx0Config, getUtxoSupplier()).iterator().next();
+
+    // restore wallet indexs (to avoid indexs gap)
+    getWalletSupplier().indexsRestore(indexsBackup);
 
     // start Cahoots
     long minerFee = getMinerFeeSupplier().getFee(MinerFeeTarget.BLOCKS_4); // never used

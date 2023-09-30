@@ -26,6 +26,8 @@ import com.samourai.whirlpool.client.wallet.WhirlpoolWallet;
 import com.samourai.whirlpool.client.wallet.WhirlpoolWalletConfig;
 import com.samourai.whirlpool.client.wallet.beans.WhirlpoolServer;
 import com.samourai.whirlpool.client.wallet.beans.WhirlpoolUtxo;
+import com.samourai.whirlpool.client.wallet.data.chain.BasicChainSupplier;
+import com.samourai.whirlpool.client.wallet.data.chain.ChainData;
 import com.samourai.whirlpool.client.wallet.data.dataPersister.MemoryDataPersisterFactory;
 import com.samourai.whirlpool.client.wallet.data.dataSource.DataSource;
 import com.samourai.whirlpool.client.wallet.data.dataSource.DataSourceFactory;
@@ -67,6 +69,21 @@ public class AbstractTest {
   private static final UtxoUtil utxoUtil = UtxoUtil.getInstance();
 
   protected IHttpClient httpClient;
+
+  protected BasicChainSupplier chainSupplier =
+      new BasicChainSupplier() {
+        @Override
+        public ChainData getValue() {
+          WalletResponse.InfoBlock infoBlock = new WalletResponse.InfoBlock();
+          infoBlock.height = 1234;
+          return new ChainData(infoBlock);
+        }
+
+        @Override
+        public void setValue(ChainData value) throws Exception {
+          // ignore
+        }
+      };
 
   protected BipFormatSupplier bipFormatSupplier = BIP_FORMAT.PROVIDER;
   protected NetworkParameters params = TestNet3Params.get();
@@ -314,6 +331,11 @@ public class AbstractTest {
                   MinerFeeSupplier minerFeeSupplier,
                   BipFormatSupplier bipFormatSupplier) {
                 return AbstractTest.this.tx0PreviewService;
+              }
+
+              @Override
+              protected BasicChainSupplier computeChainSupplier() throws Exception {
+                return AbstractTest.this.chainSupplier;
               }
             };
           }
