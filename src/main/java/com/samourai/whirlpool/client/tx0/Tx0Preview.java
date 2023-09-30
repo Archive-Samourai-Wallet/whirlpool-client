@@ -90,9 +90,6 @@ public class Tx0Preview {
   }
 
   private void consistencyCheck() throws Exception {
-    if (log.isDebugEnabled()) {
-      log.debug("Tx0Preview: " + this);
-    }
     if (changeValue < 0) {
       throw new Exception("Negative change detected, please report this bug.");
     }

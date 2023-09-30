@@ -14,6 +14,7 @@ import com.samourai.wallet.bipWallet.BipWallet;
 import com.samourai.wallet.bipWallet.WalletSupplier;
 import com.samourai.wallet.cahoots.Cahoots;
 import com.samourai.wallet.cahoots.CahootsWallet;
+import com.samourai.wallet.cahoots.tx0x2.MultiTx0x2Context;
 import com.samourai.wallet.cahoots.tx0x2.Tx0x2Context;
 import com.samourai.wallet.chain.ChainSupplier;
 import com.samourai.wallet.hd.BIP_WALLET;
@@ -157,59 +158,86 @@ public class WhirlpoolWallet {
         Bytes.concat(seed, seedPassphrase.getBytes(), params.getId().getBytes()));
   }
 
-  public Single<Cahoots> tx0x2(Tx0Config tx0Config, Pool pool, PaymentCode paymentCodeCounterparty)
-      throws Exception {
-    // adapt tx0() for WhirlpoolUtxo
-    Callable<Single<Cahoots>> runTx0x2 = () -> doTx0x2(tx0Config, pool, paymentCodeCounterparty);
-    return handleTx0(tx0Config.getSpendFromUtxos(), runTx0x2);
-  }
-
-  protected Single<Cahoots> doTx0x2(
-      Tx0Config tx0Config, Pool pool, PaymentCode paymentCodeCounterparty) throws Exception {
+  public Tx0x2Context tx0x2Context(Tx0Config tx0Config) throws Exception {
     // build initial TX0
-    Tx0 tx0Initial = tx0Service.tx0(getWalletSupplier(), pool, tx0Config, getUtxoSupplier());
+    tx0Config.setDecoyTx0x2(false); // no decoy for Tx0x2
+    tx0Config.setCascade(false); // no cascade: use multiTx0x2Context() for cascade
+    Tx0 tx0Initial =
+        tx0Service.tx0(getWalletSupplier(), tx0Config, getUtxoSupplier()).iterator().next();
 
     // start Cahoots
     long minerFee = getMinerFeeSupplier().getFee(MinerFeeTarget.BLOCKS_4); // never used
     int account = 0; // never used
-    Tx0x2Context tx0x2Context =
-        Tx0x2Context.newInitiator(getCahootsWallet(), account, minerFee, tx0Service, tx0Initial);
-    return getSorobanWalletInitiator().meetAndInitiate(tx0x2Context, paymentCodeCounterparty);
+    return Tx0x2Context.newInitiator(getCahootsWallet(), account, minerFee, tx0Service, tx0Initial);
   }
 
-  public Tx0Previews tx0Previews(Tx0PreviewConfig tx0PreviewConfig) throws Exception {
-    return dataSource.getTx0PreviewService().tx0Previews(tx0PreviewConfig);
+  public Single<Cahoots> tx0x2(Tx0Config tx0Config, PaymentCode paymentCodeCounterparty)
+      throws Exception {
+    Callable<Single<Cahoots>> runTx0x2 = () -> doTx0x2(tx0Config, paymentCodeCounterparty);
+    return handleTx0(tx0Config.getSpendFromUtxos(), runTx0x2);
   }
 
-  public Tx0Preview tx0Preview(Tx0PreviewConfig tx0PreviewConfig, String poolId) throws Exception {
-    return dataSource.getTx0PreviewService().tx0Preview(tx0PreviewConfig, poolId);
+  protected Single<Cahoots> doTx0x2(Tx0Config tx0Config, PaymentCode paymentCodeCounterparty)
+      throws Exception {
+    // initiator context
+    Tx0x2Context context = tx0x2Context(tx0Config);
+
+    // start Cahoots
+    return getSorobanWalletInitiator().meetAndInitiate(context, paymentCodeCounterparty);
   }
 
-  public List<Tx0> tx0Cascade(Tx0Config tx0Config) throws Exception {
-    // adapt tx0Cascade() for WhirlpoolUtxo
-    tx0Config.setDecoyTx0x2Forced(false);
-    Collection<Pool> pools =
-        getPoolSupplier().findPoolsForTx0(BipUtxo.sumValue(tx0Config.getSpendFromUtxos()));
-    Callable<List<Tx0>> runTx0 = () -> doTx0Cascade(tx0Config, pools);
+  public Single<Cahoots> tx0x2Multi(Tx0Config tx0Config, PaymentCode paymentCodeCounterparty)
+      throws Exception {
+    Callable<Single<Cahoots>> runTx0x2 = () -> doTx0x2Multi(tx0Config, paymentCodeCounterparty);
+    return handleTx0(tx0Config.getSpendFromUtxos(), runTx0x2);
+  }
+
+  public MultiTx0x2Context tx0x2MultiContext(Tx0Config tx0Config) throws Exception {
+    // build initial TX0
+    tx0Config.setDecoyTx0x2(true); // no decoy for Tx0x2
+    tx0Config.setCascade(true); // cascade: use tx0x2Context() for no-cascade
+    List<Tx0> tx0Initials = tx0Service.tx0(getWalletSupplier(), tx0Config, getUtxoSupplier());
+
+    // start Cahoots
+    long minerFee = getMinerFeeSupplier().getFee(MinerFeeTarget.BLOCKS_4); // never used
+    int account = 0; // never used
+    return MultiTx0x2Context.newInitiator(
+        getCahootsWallet(), account, minerFee, tx0Service, tx0Initials);
+  }
+
+  protected Single<Cahoots> doTx0x2Multi(Tx0Config tx0Config, PaymentCode paymentCodeCounterparty)
+      throws Exception {
+    // initiator context
+    MultiTx0x2Context context = tx0x2MultiContext(tx0Config);
+
+    // start Cahoots
+    return getSorobanWalletInitiator().meetAndInitiate(context, paymentCodeCounterparty);
+  }
+
+  public Optional<Tx0PreviewResult> tx0Preview(Tx0PreviewConfig tx0PreviewConfig, Pool pool)
+      throws Exception {
+    return dataSource.getTx0PreviewService().tx0Preview(tx0PreviewConfig, pool);
+  }
+
+  public Map<String, Tx0PreviewResult> tx0Previews(
+      Tx0PreviewConfig tx0PreviewConfig, Collection<Pool> pools) throws Exception {
+    return dataSource.getTx0PreviewService().tx0Previews(tx0PreviewConfig, pools);
+  }
+
+  public Tx0Result tx0(Tx0Config tx0Config) throws Exception {
+    Callable<Tx0Result> runTx0 = () -> doTx0(tx0Config);
     return handleTx0(tx0Config.getSpendFromUtxos(), runTx0);
   }
 
-  public List<Tx0> tx0Cascade(Tx0Config tx0Config, Collection<Pool> pools) throws Exception {
-    // adapt tx0Cascade() for WhirlpoolUtxo
-    Callable<List<Tx0>> runTx0 = () -> doTx0Cascade(tx0Config, pools);
-    return handleTx0(tx0Config.getSpendFromUtxos(), runTx0);
-  }
-
-  protected List<Tx0> doTx0Cascade(Tx0Config tx0Config, Collection<Pool> pools) throws Exception {
+  protected Tx0Result doTx0(Tx0Config tx0Config) throws Exception {
     // create TX0s
-    List<Tx0> tx0List =
-        tx0Service.tx0Cascade(getWalletSupplier(), pools, tx0Config, getUtxoSupplier());
+    List<Tx0> tx0List = tx0Service.tx0(getWalletSupplier(), tx0Config, getUtxoSupplier());
 
     // broadcast each TX0
     int num = 1;
     for (Tx0 tx0 : tx0List) {
       if (log.isDebugEnabled()) {
-        log.debug("Pushing Tx0 " + (num) + "/" + tx0List.size() + ": " + tx0);
+        log.debug("Pushing Tx0 (" + (num) + "/" + tx0List.size() + "): " + tx0);
       }
       // broadcast
       tx0Service.pushTx0WithRetryOnAddressReuse(tx0, this);
@@ -217,25 +245,7 @@ public class WhirlpoolWallet {
     }
     // refresh new utxos in background
     refreshUtxosDelayAsync().subscribe();
-    return tx0List;
-  }
-
-  public Tx0 tx0(Tx0Config tx0Config, Pool pool) throws Exception {
-    // adapt tx0() for WhirlpoolUtxo
-    Callable<Tx0> doTx0 = () -> doTx0(tx0Config, pool);
-    return handleTx0(tx0Config.getSpendFromUtxos(), doTx0);
-  }
-
-  protected Tx0 doTx0(Tx0Config tx0Config, Pool pool) throws Exception {
-    // create tx0
-    Tx0 tx0 = tx0Service.tx0(getWalletSupplier(), pool, tx0Config, getUtxoSupplier());
-
-    // broadcast (or retry on address-reuse)
-    tx0Service.pushTx0WithRetryOnAddressReuse(tx0, this);
-
-    // refresh new utxos in background
-    refreshUtxosDelayAsync().subscribe();
-    return tx0;
+    return new Tx0Result(tx0List);
   }
 
   private <T> T handleTx0(Collection<? extends BipUtxo> utxos, Callable<T> runTx0)
@@ -299,16 +309,12 @@ public class WhirlpoolWallet {
   }
 
   public Tx0Config getTx0Config(
+      Pool pool,
       Collection<? extends BipUtxo> spendFroms,
       Tx0FeeTarget tx0FeeTarget,
       Tx0FeeTarget mixFeeTarget) {
     Tx0Config tx0Config =
-        new Tx0Config(
-            getPoolSupplier().getPools(),
-            tx0FeeTarget,
-            mixFeeTarget,
-            WhirlpoolAccount.DEPOSIT,
-            spendFroms);
+        new Tx0Config(tx0FeeTarget, mixFeeTarget, spendFroms, WhirlpoolAccount.DEPOSIT, pool);
     return tx0Config;
   }
 
@@ -332,6 +338,7 @@ public class WhirlpoolWallet {
                 passphrase,
                 dataPersister.getWalletStateSupplier(),
                 dataPersister.getUtxoConfigSupplier());
+    dataSource.getTx0PreviewService()._setPoolSupplier(dataSource.getPoolSupplier());
     this.tx0Service =
         new Tx0Service(
             config.getNetworkParameters(),

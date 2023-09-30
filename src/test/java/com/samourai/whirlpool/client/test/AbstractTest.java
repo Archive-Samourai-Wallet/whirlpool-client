@@ -10,7 +10,6 @@ import com.samourai.wallet.bip47.rpc.java.SecretPointFactoryJava;
 import com.samourai.wallet.bip47.rpc.secretPoint.ISecretPointFactory;
 import com.samourai.wallet.bipFormat.BIP_FORMAT;
 import com.samourai.wallet.bipFormat.BipFormatSupplier;
-import com.samourai.wallet.chain.ChainSupplier;
 import com.samourai.wallet.hd.HD_Address;
 import com.samourai.wallet.hd.HD_Wallet;
 import com.samourai.wallet.hd.HD_WalletFactoryGeneric;
@@ -69,13 +68,6 @@ public class AbstractTest {
 
   protected IHttpClient httpClient;
 
-  protected ChainSupplier mockChainSupplier =
-      () -> {
-        WalletResponse.InfoBlock infoBlock = new WalletResponse.InfoBlock();
-        infoBlock.height = 1234;
-        return infoBlock;
-      };
-
   protected BipFormatSupplier bipFormatSupplier = BIP_FORMAT.PROVIDER;
   protected NetworkParameters params = TestNet3Params.get();
   protected HD_WalletFactoryGeneric hdWalletFactory = HD_WalletFactoryGeneric.getInstance();
@@ -94,7 +86,7 @@ public class AbstractTest {
           + "\",\"final_balance\": 116640227,\"account_index\": 511,\"change_index\": 183,\"n_tx\": 137}],\"txs\": [],\"unspent_outputs\": []}";
 
   protected MockPushTx pushTx = new MockPushTx(params);
-  protected Collection<Tx0Data> mockTx0Datas = new ArrayList<>();
+  protected Map<String, Tx0Data> mockTx0Datas = new LinkedHashMap<>();
   protected static final String MOCK_SAMOURAI_FEE_ADDRESS =
       "tb1qfd0ukes4xw3xvxwhj9m53nt2huh75khrrdm5dv";
 
@@ -127,7 +119,7 @@ public class AbstractTest {
     pool01btc.setNbConfirmed(0);
 
     pool001btc = new Pool();
-    pool001btc.setPoolId("0.01btc");
+    pool001btc.setPoolId("0.001btc");
     pool001btc.setDenomination(100000);
     pool001btc.setFeeValue(5000);
     pool001btc.setMustMixBalanceMin(100017);
@@ -135,7 +127,7 @@ public class AbstractTest {
     pool001btc.setMustMixBalanceMax(101000);
     pool001btc.setMinAnonymitySet(5);
     pool001btc.setMinMustMix(3);
-    pool01btc.setTx0MaxOutputs(70);
+    pool001btc.setTx0MaxOutputs(70);
     pool001btc.setNbRegistered(0);
     pool001btc.setMixAnonymitySet(5);
     pool001btc.setMixStatus(MixStatus.CONFIRM_INPUT);
@@ -151,7 +143,7 @@ public class AbstractTest {
     pool05btc.setMustMixBalanceMax(5010000);
     pool05btc.setMinAnonymitySet(5);
     pool05btc.setMinMustMix(3);
-    pool01btc.setTx0MaxOutputs(70);
+    pool05btc.setTx0MaxOutputs(70);
     pool05btc.setNbRegistered(0);
     pool05btc.setMixAnonymitySet(5);
     pool05btc.setMixStatus(MixStatus.CONFIRM_INPUT);
@@ -170,6 +162,7 @@ public class AbstractTest {
     whirlpoolWalletConfig = computeWhirlpoolWalletConfig(isOpReturnV0);
     tx0PreviewService = mockTx0PreviewService();
     poolSupplier = mockPoolSupplier();
+    tx0PreviewService._setPoolSupplier(poolSupplier);
 
     tx0Service =
         new Tx0Service(params, tx0PreviewService, whirlpoolWalletConfig.getFeeOpReturnImpl());
@@ -185,7 +178,7 @@ public class AbstractTest {
     MinerFeeSupplier minerFeeSupplier = mockMinerFeeSupplier();
     return new Tx0PreviewService(minerFeeSupplier, bipFormatSupplier, whirlpoolWalletConfig) {
       @Override
-      protected Collection<Tx0Data> fetchTx0Data(String partnerId, boolean cascading)
+      protected Map<String, Tx0Data> fetchTx0Data(String partnerId, boolean cascading)
           throws Exception {
         if (mockTx0Datas != null) {
           return mockTx0Datas;
@@ -277,7 +270,7 @@ public class AbstractTest {
     };
   }
 
-  private WhirlpoolWalletConfig computeWhirlpoolWalletConfig(boolean isOpReturnV0) {
+  protected WhirlpoolWalletConfig computeWhirlpoolWalletConfig(boolean isOpReturnV0) {
     ServerApi serverApi = computeServerApi();
     return computeWhirlpoolWalletConfig(isOpReturnV0, serverApi);
   }
@@ -390,7 +383,8 @@ public class AbstractTest {
     mockTx0Datas.clear();
     byte[] feePayload =
         whirlpoolWalletConfig.getFeeOpReturnImpl().computeFeePayload(0, (short) 0, (short) 0);
-    mockTx0Datas.add(
+    mockTx0Datas.put(
+        "0.5btc",
         new Tx0Data(
             "0.5btc",
             "PM8TJbEnXU7JpR8yMdQee9H5C4RNWTpWAgmb2TVyQ4zfnaQBDMTJ4yYVP9Re8NVsZDSwXvogYbssrqkfVwac9U1QnxdCU2G1zH7Gq6L3JJjzcuWGjB9N",
@@ -400,7 +394,8 @@ public class AbstractTest {
             null,
             feePayload,
             MOCK_SAMOURAI_FEE_ADDRESS));
-    mockTx0Datas.add(
+    mockTx0Datas.put(
+        "0.05btc",
         new Tx0Data(
             "0.05btc",
             "PM8TJbEnXU7JpR8yMdQee9H5C4RNWTpWAgmb2TVyQ4zfnaQBDMTJ4yYVP9Re8NVsZDSwXvogYbssrqkfVwac9U1QnxdCU2G1zH7Gq6L3JJjzcuWGjB9N",
@@ -410,7 +405,8 @@ public class AbstractTest {
             null,
             feePayload,
             MOCK_SAMOURAI_FEE_ADDRESS));
-    mockTx0Datas.add(
+    mockTx0Datas.put(
+        "0.01btc",
         new Tx0Data(
             "0.01btc",
             "PM8TJbEnXU7JpR8yMdQee9H5C4RNWTpWAgmb2TVyQ4zfnaQBDMTJ4yYVP9Re8NVsZDSwXvogYbssrqkfVwac9U1QnxdCU2G1zH7Gq6L3JJjzcuWGjB9N",
@@ -420,7 +416,8 @@ public class AbstractTest {
             null,
             feePayload,
             MOCK_SAMOURAI_FEE_ADDRESS));
-    mockTx0Datas.add(
+    mockTx0Datas.put(
+        "0.001btc",
         new Tx0Data(
             "0.001btc",
             "PM8TJbEnXU7JpR8yMdQee9H5C4RNWTpWAgmb2TVyQ4zfnaQBDMTJ4yYVP9Re8NVsZDSwXvogYbssrqkfVwac9U1QnxdCU2G1zH7Gq6L3JJjzcuWGjB9N",
@@ -437,7 +434,8 @@ public class AbstractTest {
     mockTx0Datas.clear();
     byte[] feePayload =
         whirlpoolWalletConfig.getFeeOpReturnImpl().computeFeePayload(0, (short) 0, (short) 0);
-    mockTx0Datas.add(
+    mockTx0Datas.put(
+        "0.5btc",
         new Tx0Data(
             "0.5btc",
             "PM8TJbEnXU7JpR8yMdQee9H5C4RNWTpWAgmb2TVyQ4zfnaQBDMTJ4yYVP9Re8NVsZDSwXvogYbssrqkfVwac9U1QnxdCU2G1zH7Gq6L3JJjzcuWGjB9N",
@@ -447,7 +445,8 @@ public class AbstractTest {
             null,
             feePayload,
             MOCK_SAMOURAI_FEE_ADDRESS));
-    mockTx0Datas.add(
+    mockTx0Datas.put(
+        "0.05btc",
         new Tx0Data(
             "0.05btc",
             "PM8TJbEnXU7JpR8yMdQee9H5C4RNWTpWAgmb2TVyQ4zfnaQBDMTJ4yYVP9Re8NVsZDSwXvogYbssrqkfVwac9U1QnxdCU2G1zH7Gq6L3JJjzcuWGjB9N",
@@ -457,7 +456,8 @@ public class AbstractTest {
             null,
             feePayload,
             MOCK_SAMOURAI_FEE_ADDRESS));
-    mockTx0Datas.add(
+    mockTx0Datas.put(
+        "0.01btc",
         new Tx0Data(
             "0.01btc",
             "PM8TJbEnXU7JpR8yMdQee9H5C4RNWTpWAgmb2TVyQ4zfnaQBDMTJ4yYVP9Re8NVsZDSwXvogYbssrqkfVwac9U1QnxdCU2G1zH7Gq6L3JJjzcuWGjB9N",
@@ -467,7 +467,8 @@ public class AbstractTest {
             null,
             feePayload,
             MOCK_SAMOURAI_FEE_ADDRESS));
-    mockTx0Datas.add(
+    mockTx0Datas.put(
+        "0.001btc",
         new Tx0Data(
             "0.001btc",
             "PM8TJbEnXU7JpR8yMdQee9H5C4RNWTpWAgmb2TVyQ4zfnaQBDMTJ4yYVP9Re8NVsZDSwXvogYbssrqkfVwac9U1QnxdCU2G1zH7Gq6L3JJjzcuWGjB9N",
@@ -484,7 +485,8 @@ public class AbstractTest {
     mockTx0Datas.clear();
     byte[] feePayload =
         whirlpoolWalletConfig.getFeeOpReturnImpl().computeFeePayload(0, (short) 0, (short) 0);
-    mockTx0Datas.add(
+    mockTx0Datas.put(
+        "0.5btc",
         new Tx0Data(
             "0.5btc",
             "PM8TJbEnXU7JpR8yMdQee9H5C4RNWTpWAgmb2TVyQ4zfnaQBDMTJ4yYVP9Re8NVsZDSwXvogYbssrqkfVwac9U1QnxdCU2G1zH7Gq6L3JJjzcuWGjB9N",
@@ -494,7 +496,8 @@ public class AbstractTest {
             null,
             feePayload,
             MOCK_SAMOURAI_FEE_ADDRESS));
-    mockTx0Datas.add(
+    mockTx0Datas.put(
+        "0.05btc",
         new Tx0Data(
             "0.05btc",
             "PM8TJbEnXU7JpR8yMdQee9H5C4RNWTpWAgmb2TVyQ4zfnaQBDMTJ4yYVP9Re8NVsZDSwXvogYbssrqkfVwac9U1QnxdCU2G1zH7Gq6L3JJjzcuWGjB9N",
@@ -504,7 +507,8 @@ public class AbstractTest {
             null,
             feePayload,
             MOCK_SAMOURAI_FEE_ADDRESS));
-    mockTx0Datas.add(
+    mockTx0Datas.put(
+        "0.01btc",
         new Tx0Data(
             "0.01btc",
             "PM8TJbEnXU7JpR8yMdQee9H5C4RNWTpWAgmb2TVyQ4zfnaQBDMTJ4yYVP9Re8NVsZDSwXvogYbssrqkfVwac9U1QnxdCU2G1zH7Gq6L3JJjzcuWGjB9N",
@@ -514,7 +518,8 @@ public class AbstractTest {
             null,
             feePayload,
             MOCK_SAMOURAI_FEE_ADDRESS));
-    mockTx0Datas.add(
+    mockTx0Datas.put(
+        "0.001btc",
         new Tx0Data(
             "0.001btc",
             "PM8TJbEnXU7JpR8yMdQee9H5C4RNWTpWAgmb2TVyQ4zfnaQBDMTJ4yYVP9Re8NVsZDSwXvogYbssrqkfVwac9U1QnxdCU2G1zH7Gq6L3JJjzcuWGjB9N",

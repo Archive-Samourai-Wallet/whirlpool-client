@@ -92,7 +92,7 @@ public class MultiTx0x2 extends Cahoots {
         return tx0x2.getTransaction();
       }
     }
-    throw new Exception("Unavailable or unrecognized pool: " + pool);
+    throw new Exception("Transaction not found for pool: " + pool);
   }
 
   // all tx0x2 transactions from tx0x2List

@@ -3,19 +3,15 @@ package com.samourai.whirlpool.client.test;
 import com.samourai.soroban.cahoots.CahootsContext;
 import com.samourai.soroban.cahoots.ManualCahootsMessage;
 import com.samourai.wallet.bipFormat.BIP_FORMAT;
-import com.samourai.wallet.bipWallet.WalletSupplier;
-import com.samourai.wallet.bipWallet.WalletSupplierImpl;
 import com.samourai.wallet.cahoots.*;
 import com.samourai.wallet.cahoots.tx0x2.MultiTx0x2Service;
 import com.samourai.wallet.cahoots.tx0x2.Tx0x2Service;
-import com.samourai.wallet.client.indexHandler.MemoryIndexHandlerSupplier;
 import com.samourai.wallet.hd.BIP_WALLET;
 import com.samourai.wallet.hd.Chain;
-import com.samourai.wallet.hd.HD_Wallet;
-import com.samourai.wallet.send.provider.MockUtxoProvider;
-import com.samourai.wallet.util.TestUtil;
 import com.samourai.wallet.util.TxUtil;
 import com.samourai.whirlpool.client.wallet.AbstractWhirlpoolWalletTest;
+import com.samourai.whirlpool.client.wallet.WhirlpoolWallet;
+import com.samourai.whirlpool.client.wallet.WhirlpoolWalletConfig;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -31,16 +27,13 @@ public abstract class AbstractCahootsTest extends AbstractWhirlpoolWalletTest {
   private static final String SEED_WORDS = "all all all all all all all all all all all all";
   private static final String SEED_PASSPHRASE_INITIATOR = "initiator";
   private static final String SEED_PASSPHRASE_COUNTERPARTY = "counterparty";
-  protected static final int FEE_PER_B = 1;
 
-  protected WalletSupplier walletSupplierSender;
-  protected WalletSupplier walletSupplierCounterparty;
-
-  protected CahootsWallet cahootsWalletSender;
+  protected WhirlpoolWallet whirlpoolWalletSender;
+  protected WhirlpoolWallet whirlpoolWalletCounterparty;
   protected CahootsWallet cahootsWalletCounterparty;
 
-  protected MockUtxoProvider utxoProviderSender;
-  protected MockUtxoProvider utxoProviderCounterparty;
+  protected MockUtxoSupplier utxoProviderSender;
+  protected MockUtxoSupplier utxoProviderCounterparty;
 
   protected static String[] SENDER_RECEIVE_84;
   protected static String[] COUNTERPARTY_RECEIVE_84;
@@ -68,38 +61,23 @@ public abstract class AbstractCahootsTest extends AbstractWhirlpoolWalletTest {
   public void setup() throws Exception {
     super.setup();
 
-    final HD_Wallet bip84WalletSender =
-        TestUtil.computeBip84wallet(SEED_WORDS, SEED_PASSPHRASE_INITIATOR);
-    walletSupplierSender =
-        new WalletSupplierImpl(
-            bipFormatSupplier, new MemoryIndexHandlerSupplier(), bip84WalletSender);
-    utxoProviderSender = new MockUtxoProvider(params, walletSupplierSender);
-    cahootsWalletSender =
-        new CahootsWallet(
-            walletSupplierSender,
-            mockChainSupplier,
-            bipFormatSupplier,
-            params,
-            utxoProviderSender.getCahootsUtxoProvider());
+    WhirlpoolWalletConfig whirlpoolWalletConfigSender = computeWhirlpoolWalletConfig(false);
+    whirlpoolWalletSender =
+        computeWhirlpoolWallet(SEED_WORDS, SEED_PASSPHRASE_INITIATOR, whirlpoolWalletConfigSender);
+    utxoProviderSender = new MockUtxoSupplier(whirlpoolWalletSender);
 
-    final HD_Wallet bip84WalletCounterparty =
-        TestUtil.computeBip84wallet(SEED_WORDS, SEED_PASSPHRASE_COUNTERPARTY);
-    walletSupplierCounterparty =
-        new WalletSupplierImpl(
-            bipFormatSupplier, new MemoryIndexHandlerSupplier(), bip84WalletCounterparty);
-    utxoProviderCounterparty = new MockUtxoProvider(params, walletSupplierCounterparty);
-    cahootsWalletCounterparty =
-        new CahootsWallet(
-            walletSupplierCounterparty,
-            mockChainSupplier,
-            bipFormatSupplier,
-            params,
-            utxoProviderCounterparty.getCahootsUtxoProvider());
+    WhirlpoolWalletConfig whirlpoolWalletConfigCounterparty = computeWhirlpoolWalletConfig(false);
+    whirlpoolWalletCounterparty =
+        computeWhirlpoolWallet(
+            SEED_WORDS, SEED_PASSPHRASE_COUNTERPARTY, whirlpoolWalletConfigCounterparty);
+    utxoProviderCounterparty = new MockUtxoSupplier(whirlpoolWalletCounterparty);
+    cahootsWalletCounterparty = whirlpoolWalletCounterparty.getCahootsWallet();
 
     SENDER_RECEIVE_84 = new String[4];
     for (int i = 0; i < 4; i++) {
       SENDER_RECEIVE_84[i] =
-          walletSupplierSender
+          whirlpoolWalletSender
+              .getWalletSupplier()
               .getWallet(BIP_WALLET.DEPOSIT_BIP84)
               .getAddressAt(Chain.RECEIVE.getIndex(), i)
               .getAddressString();
@@ -108,7 +86,8 @@ public abstract class AbstractCahootsTest extends AbstractWhirlpoolWalletTest {
     COUNTERPARTY_RECEIVE_84 = new String[4];
     for (int i = 0; i < 4; i++) {
       COUNTERPARTY_RECEIVE_84[i] =
-          walletSupplierCounterparty
+          whirlpoolWalletCounterparty
+              .getWalletSupplier()
               .getWallet(BIP_WALLET.DEPOSIT_BIP84)
               .getAddressAt(Chain.RECEIVE.getIndex(), i)
               .getAddressString();
@@ -117,7 +96,8 @@ public abstract class AbstractCahootsTest extends AbstractWhirlpoolWalletTest {
     COUNTERPARTY_RECEIVE_44 = new String[4];
     for (int i = 0; i < 4; i++) {
       COUNTERPARTY_RECEIVE_44[i] =
-          walletSupplierCounterparty
+          whirlpoolWalletCounterparty
+              .getWalletSupplier()
               .getWallet(BIP_WALLET.DEPOSIT_BIP44)
               .getAddressAt(Chain.RECEIVE.getIndex(), i)
               .getAddressString();
@@ -126,7 +106,8 @@ public abstract class AbstractCahootsTest extends AbstractWhirlpoolWalletTest {
     COUNTERPARTY_RECEIVE_49 = new String[4];
     for (int i = 0; i < 4; i++) {
       COUNTERPARTY_RECEIVE_49[i] =
-          walletSupplierCounterparty
+          whirlpoolWalletCounterparty
+              .getWalletSupplier()
               .getWallet(BIP_WALLET.DEPOSIT_BIP49)
               .getAddressAt(Chain.RECEIVE.getIndex(), i)
               .getAddressString();
@@ -136,7 +117,8 @@ public abstract class AbstractCahootsTest extends AbstractWhirlpoolWalletTest {
     for (int i = 0; i < 4; i++) {
       COUNTERPARTY_RECEIVE_POSTMIX_84[i] =
           BIP_FORMAT.SEGWIT_NATIVE.getAddressString(
-              walletSupplierCounterparty
+              whirlpoolWalletCounterparty
+                  .getWalletSupplier()
                   .getWallet(BIP_WALLET.POSTMIX_BIP84)
                   .getAddressAt(Chain.RECEIVE.getIndex(), i)
                   .getHdAddress());
@@ -145,7 +127,8 @@ public abstract class AbstractCahootsTest extends AbstractWhirlpoolWalletTest {
     SENDER_CHANGE_84 = new String[4];
     for (int i = 0; i < 4; i++) {
       SENDER_CHANGE_84[i] =
-          walletSupplierSender
+          whirlpoolWalletSender
+              .getWalletSupplier()
               .getWallet(BIP_WALLET.DEPOSIT_BIP84)
               .getAddressAt(Chain.CHANGE.getIndex(), i)
               .getAddressString();
@@ -155,7 +138,8 @@ public abstract class AbstractCahootsTest extends AbstractWhirlpoolWalletTest {
     for (int i = 0; i < 4; i++) {
       SENDER_CHANGE_POSTMIX_84[i] =
           BIP_FORMAT.SEGWIT_NATIVE.getAddressString(
-              walletSupplierSender
+              whirlpoolWalletSender
+                  .getWalletSupplier()
                   .getWallet(BIP_WALLET.POSTMIX_BIP84)
                   .getAddressAt(Chain.CHANGE.getIndex(), i)
                   .getHdAddress());
@@ -164,7 +148,8 @@ public abstract class AbstractCahootsTest extends AbstractWhirlpoolWalletTest {
     COUNTERPARTY_CHANGE_44 = new String[4];
     for (int i = 0; i < 4; i++) {
       COUNTERPARTY_CHANGE_44[i] =
-          walletSupplierCounterparty
+          whirlpoolWalletCounterparty
+              .getWalletSupplier()
               .getWallet(BIP_WALLET.DEPOSIT_BIP44)
               .getAddressAt(Chain.CHANGE.getIndex(), i)
               .getAddressString();
@@ -173,7 +158,8 @@ public abstract class AbstractCahootsTest extends AbstractWhirlpoolWalletTest {
     COUNTERPARTY_CHANGE_49 = new String[4];
     for (int i = 0; i < 4; i++) {
       COUNTERPARTY_CHANGE_49[i] =
-          walletSupplierCounterparty
+          whirlpoolWalletCounterparty
+              .getWalletSupplier()
               .getWallet(BIP_WALLET.DEPOSIT_BIP49)
               .getAddressAt(Chain.CHANGE.getIndex(), i)
               .getAddressString();
@@ -182,7 +168,8 @@ public abstract class AbstractCahootsTest extends AbstractWhirlpoolWalletTest {
     COUNTERPARTY_CHANGE_84 = new String[4];
     for (int i = 0; i < 4; i++) {
       COUNTERPARTY_CHANGE_84[i] =
-          walletSupplierCounterparty
+          whirlpoolWalletCounterparty
+              .getWalletSupplier()
               .getWallet(BIP_WALLET.DEPOSIT_BIP84)
               .getAddressAt(Chain.CHANGE.getIndex(), i)
               .getAddressString();
@@ -192,7 +179,8 @@ public abstract class AbstractCahootsTest extends AbstractWhirlpoolWalletTest {
     for (int i = 0; i < 4; i++) {
       COUNTERPARTY_CHANGE_POSTMIX_84[i] =
           BIP_FORMAT.SEGWIT_NATIVE.getAddressString(
-              walletSupplierCounterparty
+              whirlpoolWalletCounterparty
+                  .getWalletSupplier()
                   .getWallet(BIP_WALLET.POSTMIX_BIP84)
                   .getAddressAt(Chain.CHANGE.getIndex(), i)
                   .getHdAddress());
@@ -202,7 +190,8 @@ public abstract class AbstractCahootsTest extends AbstractWhirlpoolWalletTest {
     for (int i = 0; i < 4; i++) {
       COUNTERPARTY_CHANGE_POSTMIX_44[i] =
           BIP_FORMAT.LEGACY.getAddressString(
-              walletSupplierCounterparty
+              whirlpoolWalletCounterparty
+                  .getWalletSupplier()
                   .getWallet(BIP_WALLET.POSTMIX_BIP84)
                   .getAddressAt(Chain.CHANGE.getIndex(), i)
                   .getHdAddress());
@@ -212,7 +201,8 @@ public abstract class AbstractCahootsTest extends AbstractWhirlpoolWalletTest {
     for (int i = 0; i < 40; i++) {
       SENDER_PREMIX_84[i] =
           BIP_FORMAT.SEGWIT_NATIVE.getAddressString(
-              walletSupplierSender
+              whirlpoolWalletSender
+                  .getWalletSupplier()
                   .getWallet(BIP_WALLET.PREMIX_BIP84)
                   .getAddressAt(Chain.RECEIVE.getIndex(), i)
                   .getHdAddress());
@@ -222,7 +212,8 @@ public abstract class AbstractCahootsTest extends AbstractWhirlpoolWalletTest {
     for (int i = 0; i < 40; i++) {
       COUNTERPARTY_PREMIX_84[i] =
           BIP_FORMAT.SEGWIT_NATIVE.getAddressString(
-              walletSupplierCounterparty
+              whirlpoolWalletCounterparty
+                  .getWalletSupplier()
                   .getWallet(BIP_WALLET.PREMIX_BIP84)
                   .getAddressAt(Chain.RECEIVE.getIndex(), i)
                   .getHdAddress());

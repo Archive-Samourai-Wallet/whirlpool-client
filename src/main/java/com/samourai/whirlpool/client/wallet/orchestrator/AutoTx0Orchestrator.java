@@ -4,15 +4,14 @@ import com.samourai.wallet.util.AbstractOrchestrator;
 import com.samourai.wallet.utxo.BipUtxo;
 import com.samourai.whirlpool.client.exception.AutoTx0InsufficientBalanceException;
 import com.samourai.whirlpool.client.exception.NotifiableException;
-import com.samourai.whirlpool.client.tx0.Tx0;
 import com.samourai.whirlpool.client.tx0.Tx0Config;
+import com.samourai.whirlpool.client.tx0.Tx0Result;
 import com.samourai.whirlpool.client.utils.ClientUtils;
 import com.samourai.whirlpool.client.wallet.WhirlpoolWallet;
 import com.samourai.whirlpool.client.wallet.WhirlpoolWalletConfig;
 import com.samourai.whirlpool.client.wallet.beans.*;
 import com.samourai.whirlpool.client.whirlpool.beans.Pool;
 import java.util.Collection;
-import java.util.List;
 import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -48,7 +47,7 @@ public class AutoTx0Orchestrator extends AbstractOrchestrator {
     }
   }
 
-  public List<Tx0> autoTx0() throws Exception { // throws AutoMixInsufficientBalanceException
+  public Tx0Result autoTx0() throws Exception { // throws AutoMixInsufficientBalanceException
     String poolId = config.getAutoTx0PoolId();
     Pool pool = whirlpoolWallet.getPoolSupplier().findPoolById(poolId);
     if (pool == null) {
@@ -61,8 +60,9 @@ public class AutoTx0Orchestrator extends AbstractOrchestrator {
         findAutoTx0SpendFrom(
             pool, tx0FeeTarget, mixFeeTarget); // throws AutoMixInsufficientBalanceException
 
-    Tx0Config tx0Config = whirlpoolWallet.getTx0Config(spendFroms, tx0FeeTarget, mixFeeTarget);
-    return whirlpoolWallet.tx0Cascade(tx0Config);
+    Tx0Config tx0Config =
+        whirlpoolWallet.getTx0Config(pool, spendFroms, tx0FeeTarget, mixFeeTarget);
+    return whirlpoolWallet.tx0(tx0Config);
   }
 
   private Collection<WhirlpoolUtxo> findAutoTx0SpendFrom(

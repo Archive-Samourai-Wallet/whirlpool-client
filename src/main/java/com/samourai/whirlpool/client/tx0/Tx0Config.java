@@ -7,25 +7,36 @@ import com.samourai.whirlpool.client.whirlpool.beans.Pool;
 import java.util.Collection;
 
 public class Tx0Config extends Tx0PreviewConfig {
-  private WhirlpoolAccount changeWallet;
   private Collection<? extends BipUtxo> spendFromUtxos; // not NULL
+  private WhirlpoolAccount changeWallet;
+  private Pool pool;
 
   public Tx0Config(
-      Collection<Pool> pools,
       Tx0FeeTarget tx0FeeTarget,
       Tx0FeeTarget mixFeeTarget,
+      Collection<? extends BipUtxo> spendFromUtxos,
       WhirlpoolAccount changeWallet,
-      Collection<? extends BipUtxo> spendFromUtxos) {
-    super(pools, tx0FeeTarget, mixFeeTarget, spendFromUtxos);
-    this.changeWallet = changeWallet;
+      Pool pool) {
+    super(tx0FeeTarget, mixFeeTarget, spendFromUtxos);
     this.spendFromUtxos = spendFromUtxos;
+    this.changeWallet = changeWallet;
+    this.pool = pool;
     consistencyCheck();
   }
 
-  public Tx0Config(Tx0Config tx0Config, Collection<? extends BipUtxo> spendFromUtxos) {
+  public Tx0Config(Tx0Config tx0Config) {
+    super(tx0Config);
+    this.changeWallet = tx0Config.changeWallet;
+    this.spendFromUtxos = tx0Config.spendFromUtxos;
+    this.pool = tx0Config.pool;
+    consistencyCheck();
+  }
+
+  public Tx0Config(Tx0Config tx0Config, Collection<? extends BipUtxo> spendFromUtxos, Pool pool) {
     super(tx0Config, spendFromUtxos);
     this.changeWallet = tx0Config.changeWallet;
     this.spendFromUtxos = spendFromUtxos;
+    this.pool = pool;
     consistencyCheck();
   }
 
@@ -46,6 +57,10 @@ public class Tx0Config extends Tx0PreviewConfig {
 
   public Collection<? extends BipUtxo> getSpendFromUtxos() {
     return spendFromUtxos;
+  }
+
+  public Pool getPool() {
+    return pool;
   }
 
   @Override

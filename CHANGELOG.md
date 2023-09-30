@@ -1,7 +1,7 @@
 # CHANGELOG
 Changelog for whirlpool-client.
 
-## Unreleased
+## 0.25.0-beta3
 ### 
 
 - refactor: fix tx0 decoy when spending utxos with same hash or with tx0MaxOutputs limit *(2023-09-26)*

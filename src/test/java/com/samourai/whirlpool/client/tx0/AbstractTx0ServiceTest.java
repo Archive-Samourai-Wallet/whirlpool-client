@@ -31,11 +31,12 @@ public class AbstractTx0ServiceTest extends AbstractWhirlpoolWalletTest {
     Tx0 tx0 =
         whirlpoolWallet
             .getTx0Service()
-            .tx0(
+            .buildTx0(
                 whirlpoolWallet.getWalletSupplier(),
                 tx0Config,
-                tx0Preview,
-                whirlpoolWallet.getUtxoSupplier());
+                whirlpoolWallet.getUtxoSupplier(),
+                tx0Preview)
+            .get();
 
     Assertions.assertEquals(FEE_PAYLOAD_LENGTH, tx0.getTx0Data().getFeePayload().length);
     return tx0;

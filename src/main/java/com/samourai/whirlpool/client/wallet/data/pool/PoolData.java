@@ -51,12 +51,14 @@ public class PoolData {
 
     // compute & set tx0PreviewMin
     Tx0PreviewConfig tx0PreviewConfig =
-        new Tx0PreviewConfig(poolsOrdered, Tx0FeeTarget.MIN, Tx0FeeTarget.MIN, null);
-    tx0PreviewConfig.setDecoyTx0x2(false);
-    final Tx0Previews tx0PreviewsMin = tx0PreviewService.tx0PreviewsMinimal(tx0PreviewConfig);
+        new Tx0PreviewConfig(Tx0FeeTarget.MIN, Tx0FeeTarget.MIN, null);
+    final Tx0PreviewResult tx0PreviewsMin =
+        tx0PreviewService.tx0PreviewsMinimal(tx0PreviewConfig, poolsOrdered);
     for (Pool pool : poolsOrdered) {
-      Tx0Preview tx0PreviewMin = tx0PreviewsMin.getTx0Preview(pool.getPoolId());
-      pool.setTx0PreviewMin(tx0PreviewMin);
+      Tx0Preview tx0PreviewMin = tx0PreviewsMin.getByPoolId(pool.getPoolId()).orElse(null);
+      if (tx0PreviewMin != null) {
+        pool.setTx0PreviewMin(tx0PreviewMin);
+      }
     }
 
     // map by id

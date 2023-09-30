@@ -1,6 +1,5 @@
 package com.samourai.whirlpool.client.wallet;
 
-import com.samourai.wallet.bipWallet.BipWallet;
 import com.samourai.wallet.cahoots.Cahoots;
 import com.samourai.wallet.cahoots.tx0x2.MultiTx0x2;
 import com.samourai.wallet.cahoots.tx0x2.MultiTx0x2Context;
@@ -9,16 +8,13 @@ import com.samourai.wallet.hd.BIP_WALLET;
 import com.samourai.wallet.send.UTXO;
 import com.samourai.wallet.utxo.BipUtxo;
 import com.samourai.whirlpool.client.test.AbstractCahootsTest;
-import com.samourai.whirlpool.client.tx0.Tx0;
 import com.samourai.whirlpool.client.tx0.Tx0Config;
 import com.samourai.whirlpool.client.wallet.beans.Tx0FeeTarget;
-import com.samourai.whirlpool.client.wallet.data.pool.PoolSupplier;
 import com.samourai.whirlpool.client.whirlpool.beans.Pool;
 import java.util.Collection;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 import org.bitcoinj.core.Transaction;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
@@ -43,25 +39,20 @@ public class WhirlpoolWalletTx0x2Test extends AbstractCahootsTest {
   @Test
   public void tx0x2() throws Exception {
     int account = 0;
-    Pool pool = pool001btc;
+    Pool pool = pool01btc;
 
     // setup wallets
-    BipWallet bipWalletSender = walletSupplierSender.getWallet(BIP_WALLET.DEPOSIT_BIP84);
-    BipWallet bipWalletCounterparty =
-        walletSupplierCounterparty.getWallet(BIP_WALLET.DEPOSIT_BIP84);
-    UTXO utxoSender1 = utxoProviderSender.addUtxo(bipWalletSender, 10000000);
-    UTXO utxoCounterparty1 = utxoProviderCounterparty.addUtxo(bipWalletCounterparty, 20000000);
+    UTXO utxoSender1 = utxoProviderSender.addUtxo(BIP_WALLET.DEPOSIT_BIP84, 10000000);
+    UTXO utxoCounterparty1 = utxoProviderCounterparty.addUtxo(BIP_WALLET.DEPOSIT_BIP84, 20000000);
 
-    // initiator: build initial TX0
+    // initiator context
     Collection<? extends BipUtxo> spendFroms = utxoSender1.toBipUtxos();
     Tx0Config tx0Config =
-        whirlpoolWallet.getTx0Config(spendFroms, Tx0FeeTarget.BLOCKS_24, Tx0FeeTarget.BLOCKS_24);
-    Tx0 tx0Initiator = tx0Service.tx0(walletSupplierSender, pool, tx0Config, utxoProviderSender);
+        whirlpoolWallet.getTx0Config(
+            pool, spendFroms, Tx0FeeTarget.BLOCKS_24, Tx0FeeTarget.BLOCKS_24);
+    Tx0x2Context cahootsContextSender = whirlpoolWalletSender.tx0x2Context(tx0Config);
 
     // run Cahoots
-    Tx0x2Context cahootsContextSender =
-        Tx0x2Context.newInitiator(
-            cahootsWalletSender, account, FEE_PER_B, tx0Service, tx0Initiator);
     Tx0x2Context cahootsContextCp =
         Tx0x2Context.newCounterparty(cahootsWalletCounterparty, account, tx0Service);
 
@@ -78,44 +69,39 @@ public class WhirlpoolWalletTx0x2Test extends AbstractCahootsTest {
     Assertions.assertEquals(expectedOutputs, tx.getOutputs().size());
 
     Map<String, Long> outputs = new LinkedHashMap<>();
-    outputs.put(COUNTERPARTY_CHANGE_84[0], 973304L);
-    outputs.put(SENDER_CHANGE_84[0], 975854L);
+    outputs.put(COUNTERPARTY_CHANGE_84[0], 974919L);
+    outputs.put(SENDER_CHANGE_84[0], 976619L);
     for (int i = 0; i < nbPremixSender; i++) {
-      outputs.put(SENDER_PREMIX_84[i], 1000255L);
+      outputs.put(SENDER_PREMIX_84[i], 1000170L);
     }
     for (int i = 0; i < nbPremixCounterparty; i++) {
-      outputs.put(COUNTERPARTY_PREMIX_84[i], 1000255L);
+      outputs.put(COUNTERPARTY_PREMIX_84[i], 1000170L);
     }
     outputs.put(MOCK_SAMOURAI_FEE_ADDRESS, 42500L);
 
-    String txid = "6b48ec2da968618c4f0d716d68872f817ceca52b3c3867dc2ec05839c11d1fa5";
+    String txid = "9a1c4b0095196448880f61019390f61c552391d1d952740897a19895b05f678b";
     String raw =
-        "02000000000102d1428941eb7e336ce4975d2be2eb25e52124a01b8da49899072826e62c97fea30100000000fdffffff145dd6494b7f99ef1bc18598bd3cd4b33189f0bc0b025e6c60c6c420a89f73c30100000000fdffffff200000000000000000536a4c50994ee75d59ff12a76f5efce443806dfdbab4acf1d9a13aeed77cc9e46af3018a8d53fae635619c5275fa93577aad036e350b47817fe80c931d2e7317d46b6017af2427f201bec425e41ae8d89a029d0104a60000000000001600144b5fcb661533a26619d7917748cd6abf2fea5ae3f8d90e0000000000160014657b6afdeef6809fdabce7face295632fbd94febeee30e00000000001600144e4fed51986dbaf322d2b36e690b8638fa0f02043f430f0000000000160014017424f9c82844a174199281729d5901fdd4d4bc3f430f00000000001600140343e55f94af500cc2c47118385045ec3d00c55a3f430f000000000016001418e3117fd88cad9df567d6bcd3a3fa0dabda57393f430f00000000001600141a37775cede4d783afe1cb296c871fd9facdda303f430f00000000001600141f66d537194f95931b09380b7b6db51d64aa94353f430f0000000000160014247a4ca99bf1bcb1571de1a3011931d8aa0e29973f430f000000000016001429eeb74c01870e0311d2994378f865ec02b8c9843f430f00000000001600143db0ef375a1dccbb1a86034653d09d1de2d890293f430f00000000001600143f0411e7eec430370bc856e668a2f857bbab5f013f430f00000000001600144110ac3a6e09db80aa945c6012f45c58c77095ff3f430f0000000000160014477f15a93764f8bd3edbcf5651dd4b2039383bab3f430f00000000001600144a4c5d096379eec5fcf245c35d54ae09f355107f3f430f00000000001600145ba893c54abed7a35a7ff196f36a154912a6f1823f430f0000000000160014615fa4b02e45660153710f4a47ed1a68ea26dd3d3f430f000000000016001461e4399378a590936cd7ab7d403e1dcf108d99ea3f430f000000000016001468bd973bee395cffa7c545642b1a4ae1f60f662b3f430f00000000001600146be0c5c092328f099f9c44488807fa58941313963f430f00000000001600148b6b1721fc02decbf213ae94c40e10aba8230bd13f430f00000000001600149f657d702027d98db03966e8948cd474098031ef3f430f0000000000160014a12ebded759cb6ac94b6b138a9393e1dab3fd3113f430f0000000000160014b6033f0f44c6fa14a55d53950547349ed7ff572f3f430f0000000000160014b819e4adf525db52ff333a90e8d2db6f5d49276f3f430f0000000000160014bc8a5ee7ee21f56b1e3723bcddc4c787f6087be23f430f0000000000160014c987135a12804d2ee147ccf2746e5e1cdc1e18a13f430f0000000000160014d43293f095321ffd512b9705cc22fbb292b1c8673f430f0000000000160014d9daf2c942d964019eb5e1fd364768797a56ebbc3f430f0000000000160014ef4263a4e81eff6c8e53bd7f3bb1324982b358303f430f0000000000160014fb4d10bd3fa9c712118c7eaa5cbaa6d65b10cde102483045022100fd904412cf246a5c5ee01b253d73494b4f50cafcf9b17beb53f859068125d5850220622d023c4e91977bb6ba737e9322d91bb44d6b0515814bec7142b8b382c7388a012102cf5095b76bf3715a729c7bad8cb5b38cf26245b4863ea14137ec86992aa466d50247304402202eda1e3d81a3f4884a916bbdc45e5d63878ba6b6649c123351e09d30a91c9bfb02207148a41b36c65e1d0881b77fe06790b15e580597ee220a0a640287781f7562170121035eb1bcb96f29bdb55b0ca6d1ec5136fe5afc893a03ab4a29efd4263214c7f49ed2040000";
+        "02000000000102d1428941eb7e336ce4975d2be2eb25e52124a01b8da49899072826e62c97fea30100000000fdffffff145dd6494b7f99ef1bc18598bd3cd4b33189f0bc0b025e6c60c6c420a89f73c30100000000fdffffff200000000000000000536a4c50994ee75d59ff12a76f5efce443806dfdbab4acf1d9a13aeed77cc9e46af3018a8d53fae635619c5275fa93577aad036e350b47817fe80c931d2e7317d46b6017af2427f201bec425e41ae8d89a029d0104a60000000000001600144b5fcb661533a26619d7917748cd6abf2fea5ae347e00e0000000000160014657b6afdeef6809fdabce7face295632fbd94febebe60e00000000001600144e4fed51986dbaf322d2b36e690b8638fa0f0204ea420f0000000000160014017424f9c82844a174199281729d5901fdd4d4bcea420f00000000001600140343e55f94af500cc2c47118385045ec3d00c55aea420f000000000016001418e3117fd88cad9df567d6bcd3a3fa0dabda5739ea420f00000000001600141a37775cede4d783afe1cb296c871fd9facdda30ea420f00000000001600141f66d537194f95931b09380b7b6db51d64aa9435ea420f0000000000160014247a4ca99bf1bcb1571de1a3011931d8aa0e2997ea420f000000000016001429eeb74c01870e0311d2994378f865ec02b8c984ea420f00000000001600143db0ef375a1dccbb1a86034653d09d1de2d89029ea420f00000000001600143f0411e7eec430370bc856e668a2f857bbab5f01ea420f00000000001600144110ac3a6e09db80aa945c6012f45c58c77095ffea420f0000000000160014477f15a93764f8bd3edbcf5651dd4b2039383babea420f00000000001600144a4c5d096379eec5fcf245c35d54ae09f355107fea420f00000000001600145ba893c54abed7a35a7ff196f36a154912a6f182ea420f0000000000160014615fa4b02e45660153710f4a47ed1a68ea26dd3dea420f000000000016001461e4399378a590936cd7ab7d403e1dcf108d99eaea420f000000000016001468bd973bee395cffa7c545642b1a4ae1f60f662bea420f00000000001600146be0c5c092328f099f9c44488807fa5894131396ea420f00000000001600148b6b1721fc02decbf213ae94c40e10aba8230bd1ea420f00000000001600149f657d702027d98db03966e8948cd474098031efea420f0000000000160014a12ebded759cb6ac94b6b138a9393e1dab3fd311ea420f0000000000160014b6033f0f44c6fa14a55d53950547349ed7ff572fea420f0000000000160014b819e4adf525db52ff333a90e8d2db6f5d49276fea420f0000000000160014bc8a5ee7ee21f56b1e3723bcddc4c787f6087be2ea420f0000000000160014c987135a12804d2ee147ccf2746e5e1cdc1e18a1ea420f0000000000160014d43293f095321ffd512b9705cc22fbb292b1c867ea420f0000000000160014d9daf2c942d964019eb5e1fd364768797a56ebbcea420f0000000000160014ef4263a4e81eff6c8e53bd7f3bb1324982b35830ea420f0000000000160014fb4d10bd3fa9c712118c7eaa5cbaa6d65b10cde102473044022062a96e2abb0cf77395909e2dfde4593c981277839031ac63ff883437a03646fe02203bae91af11cbfd55feef15e829727ad0748814d4dc9921b5839c427adfea4402012102cf5095b76bf3715a729c7bad8cb5b38cf26245b4863ea14137ec86992aa466d502483045022100da52c9a234bf0d8b944d007d36da1e142637ba57cfeb28c36bbdb69abd305565022063554db30f61e2d44599a70a9f41ae2f76b6e19b67ba06a00b90540056dba98c0121035eb1bcb96f29bdb55b0ca6d1ec5136fe5afc893a03ab4a29efd4263214c7f49e083c2600";
     verifyTx(tx, txid, raw, outputs);
   }
 
   @Test
   public void tx0x2_maxOutputsEach() throws Exception {
     int account = 0;
-    Pool pool = pool001btc;
+    Pool pool = pool01btc;
 
     // setup wallets
-    BipWallet bipWalletSender = walletSupplierSender.getWallet(BIP_WALLET.DEPOSIT_BIP84);
-    BipWallet bipWalletCounterparty =
-        walletSupplierCounterparty.getWallet(BIP_WALLET.DEPOSIT_BIP84);
-    UTXO utxoSender1 = utxoProviderSender.addUtxo(bipWalletSender, 40000000);
-    UTXO utxoCounterparty1 = utxoProviderCounterparty.addUtxo(bipWalletCounterparty, 50000000);
+    UTXO utxoSender1 = utxoProviderSender.addUtxo(BIP_WALLET.DEPOSIT_BIP84, 40000000);
+    UTXO utxoCounterparty1 = utxoProviderCounterparty.addUtxo(BIP_WALLET.DEPOSIT_BIP84, 50000000);
 
-    // initiator: build initial TX0
+    // initiator context
     Collection<? extends BipUtxo> spendFroms = utxoSender1.toBipUtxos();
     Tx0Config tx0Config =
-        whirlpoolWallet.getTx0Config(spendFroms, Tx0FeeTarget.BLOCKS_24, Tx0FeeTarget.BLOCKS_24);
-    Tx0 tx0Initiator = tx0Service.tx0(walletSupplierSender, pool, tx0Config, utxoProviderSender);
+        whirlpoolWallet.getTx0Config(
+            pool, spendFroms, Tx0FeeTarget.BLOCKS_24, Tx0FeeTarget.BLOCKS_24);
+    Tx0x2Context cahootsContextSender = whirlpoolWalletSender.tx0x2Context(tx0Config);
 
     // run Cahoots
-    Tx0x2Context cahootsContextSender =
-        Tx0x2Context.newInitiator(
-            cahootsWalletSender, account, FEE_PER_B, tx0Service, tx0Initiator);
     Tx0x2Context cahootsContextCp =
         Tx0x2Context.newCounterparty(cahootsWalletCounterparty, account, tx0Service);
 
@@ -132,19 +118,19 @@ public class WhirlpoolWalletTx0x2Test extends AbstractCahootsTest {
     Assertions.assertEquals(expectedOutputs, tx.getOutputs().size());
 
     Map<String, Long> outputs = new LinkedHashMap<>();
-    outputs.put(COUNTERPARTY_CHANGE_84[0], 14968573L);
-    outputs.put(SENDER_CHANGE_84[0], 4968573L);
+    outputs.put(COUNTERPARTY_CHANGE_84[0], 14971548L);
+    outputs.put(SENDER_CHANGE_84[0], 4971548L);
     for (int i = 0; i < nbPremixSender; i++) {
-      outputs.put(SENDER_PREMIX_84[i], 1000255L);
+      outputs.put(SENDER_PREMIX_84[i], 1000170L);
     }
     for (int i = 0; i < nbPremixCounterparty; i++) {
-      outputs.put(COUNTERPARTY_PREMIX_84[i], 1000255L);
+      outputs.put(COUNTERPARTY_PREMIX_84[i], 1000170L);
     }
     outputs.put(MOCK_SAMOURAI_FEE_ADDRESS, 42500L);
 
-    String txid = "5789c23db36915aa5b5146237a12f2b93c7965c56018c7586c04764d1e8e1460";
+    String txid = "1b4c30998ba99f137399af5ea5052d2a1bb911fd1e97fe5f021f171b197d5abb";
     String raw =
-        "02000000000102d1428941eb7e336ce4975d2be2eb25e52124a01b8da49899072826e62c97fea30100000000fdffffff145dd6494b7f99ef1bc18598bd3cd4b33189f0bc0b025e6c60c6c420a89f73c30100000000fdffffff4a0000000000000000536a4c50994ee75d59ff12a76f5efce443806dfdbab4acf1d9a13aeed77cc9e46af3018a8d53fae635619c5275fa93577aad036e350b47817fe80c931d2e7317d46b6017af2427f201bec425e41ae8d89a029d0104a60000000000001600144b5fcb661533a26619d7917748cd6abf2fea5ae33f430f0000000000160014017424f9c82844a174199281729d5901fdd4d4bc3f430f00000000001600140343e55f94af500cc2c47118385045ec3d00c55a3f430f0000000000160014074d0a20ecbb784cae6e9e78d2bece7e0fed267f3f430f00000000001600141439df62d219314f4629ecedcbe23e24586d3cd33f430f000000000016001415b36f0218556c90ea713f78d4a9d9e8f6b5442d3f430f000000000016001418e3117fd88cad9df567d6bcd3a3fa0dabda57393f430f00000000001600141a37775cede4d783afe1cb296c871fd9facdda303f430f00000000001600141bcc24b74b6d68a6d07a34b14e6d4fd72e998a623f430f00000000001600141f66d537194f95931b09380b7b6db51d64aa94353f430f000000000016001423631d8f88b4a47609b6c151d7bd65f27609d6d03f430f0000000000160014247a4ca99bf1bcb1571de1a3011931d8aa0e29973f430f00000000001600142525a95f3378924bc5cec937c6a7a1b489c5ff863f430f000000000016001429eeb74c01870e0311d2994378f865ec02b8c9843f430f0000000000160014378ac72b08d43acd2d9e70c6791e5f186ec395dc3f430f00000000001600143ac59e5cdf902524b4d721b5a633a82526c535973f430f00000000001600143db0ef375a1dccbb1a86034653d09d1de2d890293f430f00000000001600143f0411e7eec430370bc856e668a2f857bbab5f013f430f000000000016001440d04347d5f2696e4600a383b154a619162f54283f430f00000000001600144110ac3a6e09db80aa945c6012f45c58c77095ff3f430f000000000016001441a73bec4bd8c083c62746fcf8617d060b3c391a3f430f00000000001600144288958e3bb02ba9c6d6187fe169279c71caa4e63f430f00000000001600144518c234185a62d62245d0adff79228e554c62de3f430f000000000016001445cc6ccf7b32b6ba6e5f29f8f8c9a5fe2b5595293f430f0000000000160014477f15a93764f8bd3edbcf5651dd4b2039383bab3f430f0000000000160014482e4619fb70e25918bdb570b67d551d3d4aab9f3f430f00000000001600144a4c5d096379eec5fcf245c35d54ae09f355107f3f430f00000000001600144ecd8a26f6fc2ae301bbc52358d95ff50137ee6b3f430f0000000000160014524a759e76003300ccb475eb812e65817c6653c53f430f00000000001600145343a394e8ff7f4f52c978ec697cdd70062c4d563f430f00000000001600145ba893c54abed7a35a7ff196f36a154912a6f1823f430f0000000000160014615fa4b02e45660153710f4a47ed1a68ea26dd3d3f430f000000000016001461e4399378a590936cd7ab7d403e1dcf108d99ea3f430f000000000016001462e123682b149978f834a5fce14f4e71cdd133e23f430f0000000000160014635a4bb83ea24dc7485d53f9cd606415cdd99b783f430f000000000016001468bd973bee395cffa7c545642b1a4ae1f60f662b3f430f00000000001600146be0c5c092328f099f9c44488807fa58941313963f430f00000000001600146ff0703b7b540c70625baa21448110f560bcb25c3f430f00000000001600147055ad1d5f86f7823ff0c4c7915d6b3147cc55243f430f000000000016001476b64af1eb81d03ee7e9e0a6116a54830e7295733f430f00000000001600147dfc158a08a2ee738ea610796c35e68f202cf06c3f430f0000000000160014851204bc2e59ace9cfbe86bbc9e96898721c060d3f430f00000000001600148b6b1721fc02decbf213ae94c40e10aba8230bd13f430f00000000001600149c991b06c08b1a44b69fe2dca56b900fd91fd0bf3f430f00000000001600149f657d702027d98db03966e8948cd474098031ef3f430f0000000000160014a12ebded759cb6ac94b6b138a9393e1dab3fd3113f430f0000000000160014a7511c3778c3e5bc1b16f95945e4d52be430e7e33f430f0000000000160014ac64d97c6ee84eff2ce8373dfe5186f6dda8e3ac3f430f0000000000160014aea5b03bcc8bdc4940e995c24a7ffe774f57154c3f430f0000000000160014b3332b095d7ddf74a6fd94f3f9e7412390d3bed93f430f0000000000160014b6033f0f44c6fa14a55d53950547349ed7ff572f3f430f0000000000160014b696b85812d9b961967ba20fa8790d08f8b9340b3f430f0000000000160014b6e1b3638c917904cc8de4b86b40c846149d35303f430f0000000000160014b819e4adf525db52ff333a90e8d2db6f5d49276f3f430f0000000000160014bc8a5ee7ee21f56b1e3723bcddc4c787f6087be23f430f0000000000160014c1c95595d7b48b73f5b51414f807c5bd9f2379853f430f0000000000160014c72ae606b371fc9fbf6bf8618374096e9b4caafe3f430f0000000000160014c88fb64ea3063496876c224711e8b93c18d4bb533f430f0000000000160014c987135a12804d2ee147ccf2746e5e1cdc1e18a13f430f0000000000160014cdf3140b7268772bd46ffc2d59fa399d63ecb8ba3f430f0000000000160014d43293f095321ffd512b9705cc22fbb292b1c8673f430f0000000000160014d9daf2c942d964019eb5e1fd364768797a56ebbc3f430f0000000000160014e7056147da987fc9ca73003d5b807ec145e1b4ce3f430f0000000000160014e736d0bbc2bcfbec2c577223c1f75d096440fd013f430f0000000000160014e9339ff8d935d4b9205706c9db58c03b03acc3563f430f0000000000160014e9989a636c0f3cae20777ac0766a9b6220e4700b3f430f0000000000160014ef4263a4e81eff6c8e53bd7f3bb1324982b358303f430f0000000000160014f0e99871ae8ce7b56a9e91a5bea7d5e4bffcb8cc3f430f0000000000160014fb4d10bd3fa9c712118c7eaa5cbaa6d65b10cde13f430f0000000000160014fbcdad4696c0e0e9dbb4c40772ac55683463408a3f430f0000000000160014ff4a86dbd7efe4a7ab616c987685229db24d91ae7dd04b00000000001600144e4fed51986dbaf322d2b36e690b8638fa0f0204fd66e40000000000160014657b6afdeef6809fdabce7face295632fbd94feb0247304402207397b82156ccdd79c3140b580f9ab70c8c6da2122d97757694ed2e90fbff3eb2022016b8b329e1f95ae0b525b95c5005cf2f375c32c9a8d9189a0491f41fd88b322a012102cf5095b76bf3715a729c7bad8cb5b38cf26245b4863ea14137ec86992aa466d50247304402207549bbdc470da93f36cc31b45351ba920133ac5540bfaec20e92cb789a3cf19202204b8adba282fd9b201350399c03fb2c525d6155e19836324ce27b204128e6f3870121035eb1bcb96f29bdb55b0ca6d1ec5136fe5afc893a03ab4a29efd4263214c7f49ed2040000";
+        "02000000000102d1428941eb7e336ce4975d2be2eb25e52124a01b8da49899072826e62c97fea30100000000fdffffff145dd6494b7f99ef1bc18598bd3cd4b33189f0bc0b025e6c60c6c420a89f73c30100000000fdffffff4a0000000000000000536a4c50994ee75d59ff12a76f5efce443806dfdbab4acf1d9a13aeed77cc9e46af3018a8d53fae635619c5275fa93577aad036e350b47817fe80c931d2e7317d46b6017af2427f201bec425e41ae8d89a029d0104a60000000000001600144b5fcb661533a26619d7917748cd6abf2fea5ae3ea420f0000000000160014017424f9c82844a174199281729d5901fdd4d4bcea420f00000000001600140343e55f94af500cc2c47118385045ec3d00c55aea420f0000000000160014074d0a20ecbb784cae6e9e78d2bece7e0fed267fea420f00000000001600141439df62d219314f4629ecedcbe23e24586d3cd3ea420f000000000016001415b36f0218556c90ea713f78d4a9d9e8f6b5442dea420f000000000016001418e3117fd88cad9df567d6bcd3a3fa0dabda5739ea420f00000000001600141a37775cede4d783afe1cb296c871fd9facdda30ea420f00000000001600141bcc24b74b6d68a6d07a34b14e6d4fd72e998a62ea420f00000000001600141f66d537194f95931b09380b7b6db51d64aa9435ea420f000000000016001423631d8f88b4a47609b6c151d7bd65f27609d6d0ea420f0000000000160014247a4ca99bf1bcb1571de1a3011931d8aa0e2997ea420f00000000001600142525a95f3378924bc5cec937c6a7a1b489c5ff86ea420f000000000016001429eeb74c01870e0311d2994378f865ec02b8c984ea420f0000000000160014378ac72b08d43acd2d9e70c6791e5f186ec395dcea420f00000000001600143ac59e5cdf902524b4d721b5a633a82526c53597ea420f00000000001600143db0ef375a1dccbb1a86034653d09d1de2d89029ea420f00000000001600143f0411e7eec430370bc856e668a2f857bbab5f01ea420f000000000016001440d04347d5f2696e4600a383b154a619162f5428ea420f00000000001600144110ac3a6e09db80aa945c6012f45c58c77095ffea420f000000000016001441a73bec4bd8c083c62746fcf8617d060b3c391aea420f00000000001600144288958e3bb02ba9c6d6187fe169279c71caa4e6ea420f00000000001600144518c234185a62d62245d0adff79228e554c62deea420f000000000016001445cc6ccf7b32b6ba6e5f29f8f8c9a5fe2b559529ea420f0000000000160014477f15a93764f8bd3edbcf5651dd4b2039383babea420f0000000000160014482e4619fb70e25918bdb570b67d551d3d4aab9fea420f00000000001600144a4c5d096379eec5fcf245c35d54ae09f355107fea420f00000000001600144ecd8a26f6fc2ae301bbc52358d95ff50137ee6bea420f0000000000160014524a759e76003300ccb475eb812e65817c6653c5ea420f00000000001600145343a394e8ff7f4f52c978ec697cdd70062c4d56ea420f00000000001600145ba893c54abed7a35a7ff196f36a154912a6f182ea420f0000000000160014615fa4b02e45660153710f4a47ed1a68ea26dd3dea420f000000000016001461e4399378a590936cd7ab7d403e1dcf108d99eaea420f000000000016001462e123682b149978f834a5fce14f4e71cdd133e2ea420f0000000000160014635a4bb83ea24dc7485d53f9cd606415cdd99b78ea420f000000000016001468bd973bee395cffa7c545642b1a4ae1f60f662bea420f00000000001600146be0c5c092328f099f9c44488807fa5894131396ea420f00000000001600146ff0703b7b540c70625baa21448110f560bcb25cea420f00000000001600147055ad1d5f86f7823ff0c4c7915d6b3147cc5524ea420f000000000016001476b64af1eb81d03ee7e9e0a6116a54830e729573ea420f00000000001600147dfc158a08a2ee738ea610796c35e68f202cf06cea420f0000000000160014851204bc2e59ace9cfbe86bbc9e96898721c060dea420f00000000001600148b6b1721fc02decbf213ae94c40e10aba8230bd1ea420f00000000001600149c991b06c08b1a44b69fe2dca56b900fd91fd0bfea420f00000000001600149f657d702027d98db03966e8948cd474098031efea420f0000000000160014a12ebded759cb6ac94b6b138a9393e1dab3fd311ea420f0000000000160014a7511c3778c3e5bc1b16f95945e4d52be430e7e3ea420f0000000000160014ac64d97c6ee84eff2ce8373dfe5186f6dda8e3acea420f0000000000160014aea5b03bcc8bdc4940e995c24a7ffe774f57154cea420f0000000000160014b3332b095d7ddf74a6fd94f3f9e7412390d3bed9ea420f0000000000160014b6033f0f44c6fa14a55d53950547349ed7ff572fea420f0000000000160014b696b85812d9b961967ba20fa8790d08f8b9340bea420f0000000000160014b6e1b3638c917904cc8de4b86b40c846149d3530ea420f0000000000160014b819e4adf525db52ff333a90e8d2db6f5d49276fea420f0000000000160014bc8a5ee7ee21f56b1e3723bcddc4c787f6087be2ea420f0000000000160014c1c95595d7b48b73f5b51414f807c5bd9f237985ea420f0000000000160014c72ae606b371fc9fbf6bf8618374096e9b4caafeea420f0000000000160014c88fb64ea3063496876c224711e8b93c18d4bb53ea420f0000000000160014c987135a12804d2ee147ccf2746e5e1cdc1e18a1ea420f0000000000160014cdf3140b7268772bd46ffc2d59fa399d63ecb8baea420f0000000000160014d43293f095321ffd512b9705cc22fbb292b1c867ea420f0000000000160014d9daf2c942d964019eb5e1fd364768797a56ebbcea420f0000000000160014e7056147da987fc9ca73003d5b807ec145e1b4ceea420f0000000000160014e736d0bbc2bcfbec2c577223c1f75d096440fd01ea420f0000000000160014e9339ff8d935d4b9205706c9db58c03b03acc356ea420f0000000000160014e9989a636c0f3cae20777ac0766a9b6220e4700bea420f0000000000160014ef4263a4e81eff6c8e53bd7f3bb1324982b35830ea420f0000000000160014f0e99871ae8ce7b56a9e91a5bea7d5e4bffcb8ccea420f0000000000160014fb4d10bd3fa9c712118c7eaa5cbaa6d65b10cde1ea420f0000000000160014fbcdad4696c0e0e9dbb4c40772ac55683463408aea420f0000000000160014ff4a86dbd7efe4a7ab616c987685229db24d91ae1cdc4b00000000001600144e4fed51986dbaf322d2b36e690b8638fa0f02049c72e40000000000160014657b6afdeef6809fdabce7face295632fbd94feb0247304402201a3fd9eec32ea9fab67757a7c48bf292fe6eff052a39f5eea5909d042320a8ef0220571839995bfc8454e5e172ed92e7d9661713d6717d61f47fc6c3ac5317b3b19c012102cf5095b76bf3715a729c7bad8cb5b38cf26245b4863ea14137ec86992aa466d502483045022100c2bb113144d05440d42bc167f43e4a2f520e96cec937b72c3ef116a470ef5448022070ccd6bae314c580f4515e69eb127729b3334ece14c2f0c6add65f96d0df5a0c0121035eb1bcb96f29bdb55b0ca6d1ec5136fe5afc893a03ab4a29efd4263214c7f49e083c2600";
     verifyTx(tx, txid, raw, outputs);
   }
 
@@ -154,27 +140,20 @@ public class WhirlpoolWalletTx0x2Test extends AbstractCahootsTest {
     log.info("Testing Tx0x2 for pool 0.001");
 
     int account = 0;
+    Pool pool = pool001btc;
 
     // setup wallets
-    BipWallet bipWalletSender = walletSupplierSender.getWallet(BIP_WALLET.DEPOSIT_BIP84);
-    BipWallet bipWalletCounterparty =
-        walletSupplierCounterparty.getWallet(BIP_WALLET.DEPOSIT_BIP84);
-    UTXO utxoSender1 = utxoProviderSender.addUtxo(bipWalletSender, 500000);
-    UTXO utxoCounterparty1 = utxoProviderCounterparty.addUtxo(bipWalletCounterparty, 1000000);
+    UTXO utxoSender1 = utxoProviderSender.addUtxo(BIP_WALLET.DEPOSIT_BIP84, 500000);
+    UTXO utxoCounterparty1 = utxoProviderCounterparty.addUtxo(BIP_WALLET.DEPOSIT_BIP84, 1000000);
 
-    // initiator: build initial TX0
+    // initiator context
     Collection<? extends BipUtxo> spendFroms = utxoSender1.toBipUtxos();
     Tx0Config tx0Config =
-        whirlpoolWallet.getTx0Config(spendFroms, Tx0FeeTarget.BLOCKS_24, Tx0FeeTarget.BLOCKS_24);
-
-    Collection<Pool> pools = findPoolsLowerOrEqual("0.001btc", whirlpoolWallet.getPoolSupplier());
-    List<Tx0> tx0Initiators =
-        tx0Service.tx0Cascade(walletSupplierSender, pools, tx0Config, utxoProviderSender);
+        whirlpoolWallet.getTx0Config(
+            pool, spendFroms, Tx0FeeTarget.BLOCKS_24, Tx0FeeTarget.BLOCKS_24);
+    MultiTx0x2Context cahootsContextSender = whirlpoolWalletSender.tx0x2MultiContext(tx0Config);
 
     // run Cahoots
-    MultiTx0x2Context cahootsContextSender =
-        MultiTx0x2Context.newInitiator(
-            cahootsWalletSender, account, FEE_PER_B, tx0Service, tx0Initiators);
     MultiTx0x2Context cahootsContextCp =
         MultiTx0x2Context.newCounterparty(cahootsWalletCounterparty, account, tx0Service);
 
@@ -194,19 +173,19 @@ public class WhirlpoolWalletTx0x2Test extends AbstractCahootsTest {
     Assertions.assertEquals(expectedOutputs, tx001.getOutputs().size());
 
     Map<String, Long> outputs = new LinkedHashMap<>();
-    outputs.put(COUNTERPARTY_CHANGE_84[0], 95474L);
-    outputs.put(SENDER_CHANGE_84[0], 95474L);
+    outputs.put(COUNTERPARTY_CHANGE_84[0], 96027L);
+    outputs.put(SENDER_CHANGE_84[0], 96027L);
     for (int i = 0; i < nbPremixSender; i++) {
-      outputs.put(SENDER_PREMIX_84[i], 100255L);
+      outputs.put(SENDER_PREMIX_84[i], 100170L);
     }
     for (int i = 0; i < nbPremixCounterparty; i++) {
-      outputs.put(COUNTERPARTY_PREMIX_84[i], 100255L);
+      outputs.put(COUNTERPARTY_PREMIX_84[i], 100170L);
     }
     outputs.put(MOCK_SAMOURAI_FEE_ADDRESS, 5000L);
 
-    String txid = "be52c2d4aae669d2722d4427b77128cf768c029d20334cfa3e79ee31849729d9";
+    String txid = "ed62b2b511e9eca16539fec179faaa732bdcb84f33e5eb3917ec3bafbf3e2cdd";
     String raw =
-        "02000000000102d1428941eb7e336ce4975d2be2eb25e52124a01b8da49899072826e62c97fea30100000000fdffffff145dd6494b7f99ef1bc18598bd3cd4b33189f0bc0b025e6c60c6c420a89f73c30100000000fdffffff110000000000000000536a4c50994ee75d59ff12a76f5efce443806dfdbab4acf1d9a13aeed77cc9e46af3018a8d53fae635619c5275fa93577aad036e350b47817fe80c931d2e7317d46b6017af2427f201bec425e41ae8d89a029d0188130000000000001600144b5fcb661533a26619d7917748cd6abf2fea5ae3f2740100000000001600144e4fed51986dbaf322d2b36e690b8638fa0f0204f274010000000000160014657b6afdeef6809fdabce7face295632fbd94feb9f870100000000001600140343e55f94af500cc2c47118385045ec3d00c55a9f8701000000000016001418e3117fd88cad9df567d6bcd3a3fa0dabda57399f87010000000000160014247a4ca99bf1bcb1571de1a3011931d8aa0e29979f870100000000001600144a4c5d096379eec5fcf245c35d54ae09f355107f9f87010000000000160014615fa4b02e45660153710f4a47ed1a68ea26dd3d9f8701000000000016001461e4399378a590936cd7ab7d403e1dcf108d99ea9f870100000000001600146be0c5c092328f099f9c44488807fa58941313969f870100000000001600149f657d702027d98db03966e8948cd474098031ef9f87010000000000160014a12ebded759cb6ac94b6b138a9393e1dab3fd3119f87010000000000160014b819e4adf525db52ff333a90e8d2db6f5d49276f9f87010000000000160014d43293f095321ffd512b9705cc22fbb292b1c8679f87010000000000160014d9daf2c942d964019eb5e1fd364768797a56ebbc9f87010000000000160014ef4263a4e81eff6c8e53bd7f3bb1324982b3583002483045022100cab33f87320ec7b7d46f700d8e3f7bd27d98199f91ee42ebfb3a801172d1619e0220053a75b7fee3c1e2828007c2e8b4ef220fd809d7a9b24d33348434ae58a44faf012102cf5095b76bf3715a729c7bad8cb5b38cf26245b4863ea14137ec86992aa466d50247304402207e0cf446a0e0e5bf980e2928355699c48e440b47a4e447b5fd86529355abefb902201ed2983fb6c524a5d2a62b5035a4198487687d9a1d4dd7e53a31ffad4edb05a90121035eb1bcb96f29bdb55b0ca6d1ec5136fe5afc893a03ab4a29efd4263214c7f49ed2040000";
+        "02000000000102d1428941eb7e336ce4975d2be2eb25e52124a01b8da49899072826e62c97fea30100000000fdffffff145dd6494b7f99ef1bc18598bd3cd4b33189f0bc0b025e6c60c6c420a89f73c30100000000fdffffff110000000000000000536a4c50994ee75d59ff12a76f5efce443806dfdbab4acf1d9a13aeed77cc9e46af3018a8d53fae635619c5275fa93577aad036e350b47817fe80c931d2e7317d46b6017af2427f201bec425e41ae8d89a029d0188130000000000001600144b5fcb661533a26619d7917748cd6abf2fea5ae31b770100000000001600144e4fed51986dbaf322d2b36e690b8638fa0f02041b77010000000000160014657b6afdeef6809fdabce7face295632fbd94feb4a870100000000001600140343e55f94af500cc2c47118385045ec3d00c55a4a8701000000000016001418e3117fd88cad9df567d6bcd3a3fa0dabda57394a87010000000000160014247a4ca99bf1bcb1571de1a3011931d8aa0e29974a870100000000001600144a4c5d096379eec5fcf245c35d54ae09f355107f4a87010000000000160014615fa4b02e45660153710f4a47ed1a68ea26dd3d4a8701000000000016001461e4399378a590936cd7ab7d403e1dcf108d99ea4a870100000000001600146be0c5c092328f099f9c44488807fa58941313964a870100000000001600149f657d702027d98db03966e8948cd474098031ef4a87010000000000160014a12ebded759cb6ac94b6b138a9393e1dab3fd3114a87010000000000160014b819e4adf525db52ff333a90e8d2db6f5d49276f4a87010000000000160014d43293f095321ffd512b9705cc22fbb292b1c8674a87010000000000160014d9daf2c942d964019eb5e1fd364768797a56ebbc4a87010000000000160014ef4263a4e81eff6c8e53bd7f3bb1324982b358300247304402203cf71edb2fc004de30d11566145a505bb33b795ceab7574406440d5f29b0e0ec022029487f2d2c22136edca36ee05e0a786d42f46c9d226013d1c5ca90fd6107eb4a012102cf5095b76bf3715a729c7bad8cb5b38cf26245b4863ea14137ec86992aa466d502483045022100f054607e9fc8c6f4bcb89858d3ca1ae83ba3a4d5fc459b6665bf992300a3fb2d02203b8b90195a3a4e4acc64420032a4f772929811a8ce72a7a03e8c41b95072432a0121035eb1bcb96f29bdb55b0ca6d1ec5136fe5afc893a03ab4a29efd4263214c7f49e083c2600";
     verifyTx(tx001, txid, raw, outputs);
   }
 
@@ -219,29 +198,20 @@ public class WhirlpoolWalletTx0x2Test extends AbstractCahootsTest {
     log.info("Testing Tx0x2s for pools 0.01 & 0.001");
 
     int account = 0;
+    Pool pool = pool01btc;
 
     // setup wallets
-    BipWallet bipWalletSender = walletSupplierSender.getWallet(BIP_WALLET.DEPOSIT_BIP84);
-    BipWallet bipWalletCounterparty =
-        walletSupplierCounterparty.getWallet(BIP_WALLET.DEPOSIT_BIP84);
-    UTXO utxoSender1 = utxoProviderSender.addUtxo(bipWalletSender, 10000000);
-    UTXO utxoCounterparty1 = utxoProviderCounterparty.addUtxo(bipWalletCounterparty, 20000000);
+    UTXO utxoSender1 = utxoProviderSender.addUtxo(BIP_WALLET.DEPOSIT_BIP84, 10000000);
+    UTXO utxoCounterparty1 = utxoProviderCounterparty.addUtxo(BIP_WALLET.DEPOSIT_BIP84, 20000000);
 
-    // initiator: build initial TX0
+    // initiator context
     Collection<? extends BipUtxo> spendFroms = utxoSender1.toBipUtxos();
     Tx0Config tx0Config =
-        whirlpoolWallet.getTx0Config(spendFroms, Tx0FeeTarget.BLOCKS_24, Tx0FeeTarget.BLOCKS_24);
-    tx0Config.setDecoyTx0x2(false);
-
-    Collection<Pool> pools = findPoolsLowerOrEqual("0.01btc", whirlpoolWallet.getPoolSupplier());
-    List<Tx0> tx0Initiators =
-        tx0Service.tx0Cascade(walletSupplierSender, pools, tx0Config, utxoProviderSender);
-    Assertions.assertEquals(2, tx0Initiators.size());
+        whirlpoolWallet.getTx0Config(
+            pool, spendFroms, Tx0FeeTarget.BLOCKS_24, Tx0FeeTarget.BLOCKS_24);
+    MultiTx0x2Context cahootsContextSender = whirlpoolWalletSender.tx0x2MultiContext(tx0Config);
 
     // run Cahoots
-    MultiTx0x2Context cahootsContextSender =
-        MultiTx0x2Context.newInitiator(
-            cahootsWalletSender, account, FEE_PER_B, tx0Service, tx0Initiators);
     MultiTx0x2Context cahootsContextCp =
         MultiTx0x2Context.newCounterparty(cahootsWalletCounterparty, account, tx0Service);
 
@@ -263,13 +233,13 @@ public class WhirlpoolWalletTx0x2Test extends AbstractCahootsTest {
     Assertions.assertEquals(expectedOutputs, tx01.getOutputs().size());
 
     Map<String, Long> outputs = new LinkedHashMap<>();
-    outputs.put(COUNTERPARTY_CHANGE_84[0], 973304L);
-    outputs.put(SENDER_CHANGE_84[0], 975854L);
+    outputs.put(COUNTERPARTY_CHANGE_84[0], 974919L);
+    outputs.put(SENDER_CHANGE_84[0], 976619L);
     for (int i = 0; i < nbPremixSender; i++) {
-      outputs.put(SENDER_PREMIX_84[i], 1000255L);
+      outputs.put(SENDER_PREMIX_84[i], 1000170L);
     }
     for (int i = 0; i < nbPremixCounterparty; i++) {
-      outputs.put(COUNTERPARTY_PREMIX_84[i], 1000255L);
+      outputs.put(COUNTERPARTY_PREMIX_84[i], 1000170L);
     }
     outputs.put(MOCK_SAMOURAI_FEE_ADDRESS, 42500L);
 
@@ -295,10 +265,10 @@ public class WhirlpoolWalletTx0x2Test extends AbstractCahootsTest {
     outputs.put(COUNTERPARTY_CHANGE_84[1], 69338L);
     outputs.put(SENDER_CHANGE_84[1], 69338L);
     for (int i = 0; i < nbPremixSender; i++) {
-      outputs.put(SENDER_PREMIX_84[senderIndex001 + i], 100255L);
+      outputs.put(SENDER_PREMIX_84[senderIndex001 + i], 100170L);
     }
     for (int i = 0; i < nbPremixCounterparty; i++) {
-      outputs.put(COUNTERPARTY_PREMIX_84[counterpartyIndex001 + i], 100255L);
+      outputs.put(COUNTERPARTY_PREMIX_84[counterpartyIndex001 + i], 100170L);
     }
     outputs.put(MOCK_SAMOURAI_FEE_ADDRESS, 5000L);
 
@@ -317,29 +287,20 @@ public class WhirlpoolWalletTx0x2Test extends AbstractCahootsTest {
     log.info("Testing Tx0x2s for pools 0.05, 0.01, & 0.001");
 
     int account = 0;
+    Pool pool = pool05btc;
 
     // setup wallets
-    BipWallet bipWalletSender = walletSupplierSender.getWallet(BIP_WALLET.DEPOSIT_BIP84);
-    BipWallet bipWalletCounterparty =
-        walletSupplierCounterparty.getWallet(BIP_WALLET.DEPOSIT_BIP84);
-    UTXO utxoSender1 = utxoProviderSender.addUtxo(bipWalletSender, 10000000);
-    UTXO utxoCounterparty1 = utxoProviderCounterparty.addUtxo(bipWalletCounterparty, 20000000);
+    UTXO utxoSender1 = utxoProviderSender.addUtxo(BIP_WALLET.DEPOSIT_BIP84, 10000000);
+    UTXO utxoCounterparty1 = utxoProviderCounterparty.addUtxo(BIP_WALLET.DEPOSIT_BIP84, 20000000);
 
-    // initiator: build initial TX0
+    // initiator context
     Collection<? extends BipUtxo> spendFroms = utxoSender1.toBipUtxos();
     Tx0Config tx0Config =
-        whirlpoolWallet.getTx0Config(spendFroms, Tx0FeeTarget.BLOCKS_24, Tx0FeeTarget.BLOCKS_24);
-    tx0Config.setDecoyTx0x2(false);
-
-    Collection<Pool> pools = findPoolsLowerOrEqual("0.05btc", whirlpoolWallet.getPoolSupplier());
-    List<Tx0> tx0Initiators =
-        tx0Service.tx0Cascade(walletSupplierSender, pools, tx0Config, utxoProviderSender);
-    Assertions.assertEquals(3, tx0Initiators.size());
+        whirlpoolWallet.getTx0Config(
+            pool, spendFroms, Tx0FeeTarget.BLOCKS_24, Tx0FeeTarget.BLOCKS_24);
+    MultiTx0x2Context cahootsContextSender = whirlpoolWalletSender.tx0x2MultiContext(tx0Config);
 
     // run Cahoots
-    MultiTx0x2Context cahootsContextSender =
-        MultiTx0x2Context.newInitiator(
-            cahootsWalletSender, account, FEE_PER_B, tx0Service, tx0Initiators);
     MultiTx0x2Context cahootsContextCp =
         MultiTx0x2Context.newCounterparty(cahootsWalletCounterparty, account, tx0Service);
 
@@ -391,10 +352,10 @@ public class WhirlpoolWalletTx0x2Test extends AbstractCahootsTest {
     outputs.put(COUNTERPARTY_CHANGE_84[1], 923320L);
     outputs.put(SENDER_CHANGE_84[1], 881330L);
     for (int i = 0; i < nbPremixSender; i++) {
-      outputs.put(SENDER_PREMIX_84[senderIndex005 + i], 1000255L);
+      outputs.put(SENDER_PREMIX_84[senderIndex005 + i], 1000170L);
     }
     for (int i = 0; i < nbPremixCounterparty; i++) {
-      outputs.put(COUNTERPARTY_PREMIX_84[counterpartyIndex005 + i], 1000255L);
+      outputs.put(COUNTERPARTY_PREMIX_84[counterpartyIndex005 + i], 1000170L);
     }
     outputs.put(MOCK_SAMOURAI_FEE_ADDRESS, 42500L);
 
@@ -420,10 +381,10 @@ public class WhirlpoolWalletTx0x2Test extends AbstractCahootsTest {
     outputs.put(COUNTERPARTY_CHANGE_84[2], 47242L);
     outputs.put(SENDER_CHANGE_84[2], 47242L);
     for (int i = 0; i < nbPremixSender; i++) {
-      outputs.put(SENDER_PREMIX_84[senderIndex005 + senderIndex001 + i], 100255L);
+      outputs.put(SENDER_PREMIX_84[senderIndex005 + senderIndex001 + i], 100170L);
     }
     for (int i = 0; i < nbPremixCounterparty; i++) {
-      outputs.put(COUNTERPARTY_PREMIX_84[counterpartyIndex005 + counterpartyIndex001 + i], 100255L);
+      outputs.put(COUNTERPARTY_PREMIX_84[counterpartyIndex005 + counterpartyIndex001 + i], 100170L);
     }
     outputs.put(MOCK_SAMOURAI_FEE_ADDRESS, 5000L);
 
@@ -448,29 +409,20 @@ public class WhirlpoolWalletTx0x2Test extends AbstractCahootsTest {
     log.info("Testing Tx0x2s for pools 0.05 & 0.001");
 
     int account = 0;
+    Pool pool = pool05btc;
 
     // setup wallets
-    BipWallet bipWalletSender = walletSupplierSender.getWallet(BIP_WALLET.DEPOSIT_BIP84);
-    BipWallet bipWalletCounterparty =
-        walletSupplierCounterparty.getWallet(BIP_WALLET.DEPOSIT_BIP84);
-    UTXO utxoSender1 = utxoProviderSender.addUtxo(bipWalletSender, 6000000);
-    UTXO utxoCounterparty1 = utxoProviderCounterparty.addUtxo(bipWalletCounterparty, 20000000);
+    UTXO utxoSender1 = utxoProviderSender.addUtxo(BIP_WALLET.DEPOSIT_BIP84, 6000000);
+    UTXO utxoCounterparty1 = utxoProviderCounterparty.addUtxo(BIP_WALLET.DEPOSIT_BIP84, 20000000);
 
-    // initiator: build initial TX0
+    // initiator context
     Collection<? extends BipUtxo> spendFroms = utxoSender1.toBipUtxos();
     Tx0Config tx0Config =
-        whirlpoolWallet.getTx0Config(spendFroms, Tx0FeeTarget.BLOCKS_24, Tx0FeeTarget.BLOCKS_24);
-    tx0Config.setDecoyTx0x2(false);
-
-    Collection<Pool> pools = findPoolsLowerOrEqual("0.05btc", whirlpoolWallet.getPoolSupplier());
-    List<Tx0> tx0Initiators =
-        tx0Service.tx0Cascade(walletSupplierSender, pools, tx0Config, utxoProviderSender);
-    Assertions.assertEquals(2, tx0Initiators.size());
+        whirlpoolWallet.getTx0Config(
+            pool, spendFroms, Tx0FeeTarget.BLOCKS_24, Tx0FeeTarget.BLOCKS_24);
+    MultiTx0x2Context cahootsContextSender = whirlpoolWalletSender.tx0x2MultiContext(tx0Config);
 
     // run Cahoots
-    MultiTx0x2Context cahootsContextSender =
-        MultiTx0x2Context.newInitiator(
-            cahootsWalletSender, account, FEE_PER_B, tx0Service, tx0Initiators);
     MultiTx0x2Context cahootsContextCp =
         MultiTx0x2Context.newCounterparty(cahootsWalletCounterparty, account, tx0Service);
 
@@ -520,10 +472,10 @@ public class WhirlpoolWalletTx0x2Test extends AbstractCahootsTest {
     outputs.put(COUNTERPARTY_CHANGE_84[1], 3721094L);
     outputs.put(SENDER_CHANGE_84[1], 17369L);
     for (int i = 0; i < nbPremixSender; i++) {
-      outputs.put(SENDER_PREMIX_84[senderIndex005 + i], 100255L);
+      outputs.put(SENDER_PREMIX_84[senderIndex005 + i], 100170L);
     }
     for (int i = 0; i < nbPremixCounterparty; i++) {
-      outputs.put(COUNTERPARTY_PREMIX_84[counterpartyIndex005 + i], 100255L);
+      outputs.put(COUNTERPARTY_PREMIX_84[counterpartyIndex005 + i], 100170L);
     }
     outputs.put(MOCK_SAMOURAI_FEE_ADDRESS, 5000L);
 
@@ -548,29 +500,20 @@ public class WhirlpoolWalletTx0x2Test extends AbstractCahootsTest {
     log.info("Testing Tx0x2s for pools 0.05, 0.01, & 0.001");
 
     int account = 0;
+    Pool pool = pool05btc;
 
     // setup wallets
-    BipWallet bipWalletSender = walletSupplierSender.getWallet(BIP_WALLET.DEPOSIT_BIP84);
-    BipWallet bipWalletCounterparty =
-        walletSupplierCounterparty.getWallet(BIP_WALLET.DEPOSIT_BIP84);
-    UTXO utxoSender1 = utxoProviderSender.addUtxo(bipWalletSender, 20000000);
-    UTXO utxoCounterparty1 = utxoProviderCounterparty.addUtxo(bipWalletCounterparty, 6000000);
+    UTXO utxoSender1 = utxoProviderSender.addUtxo(BIP_WALLET.DEPOSIT_BIP84, 20000000);
+    UTXO utxoCounterparty1 = utxoProviderCounterparty.addUtxo(BIP_WALLET.DEPOSIT_BIP84, 6000000);
 
     // initiator: build initial TX0
     Collection<? extends BipUtxo> spendFroms = utxoSender1.toBipUtxos();
     Tx0Config tx0Config =
-        whirlpoolWallet.getTx0Config(spendFroms, Tx0FeeTarget.BLOCKS_24, Tx0FeeTarget.BLOCKS_24);
-    tx0Config.setDecoyTx0x2(false);
-
-    Collection<Pool> pools = findPoolsLowerOrEqual("0.05btc", whirlpoolWallet.getPoolSupplier());
-    List<Tx0> tx0Initiators =
-        tx0Service.tx0Cascade(walletSupplierSender, pools, tx0Config, utxoProviderSender);
-    Assertions.assertEquals(3, tx0Initiators.size());
+        whirlpoolWallet.getTx0Config(
+            pool, spendFroms, Tx0FeeTarget.BLOCKS_24, Tx0FeeTarget.BLOCKS_24);
+    MultiTx0x2Context cahootsContextSender = whirlpoolWalletSender.tx0x2MultiContext(tx0Config);
 
     // run Cahoots
-    MultiTx0x2Context cahootsContextSender =
-        MultiTx0x2Context.newInitiator(
-            cahootsWalletSender, account, FEE_PER_B, tx0Service, tx0Initiators);
     MultiTx0x2Context cahootsContextCp =
         MultiTx0x2Context.newCounterparty(cahootsWalletCounterparty, account, tx0Service);
 
@@ -622,10 +565,10 @@ public class WhirlpoolWalletTx0x2Test extends AbstractCahootsTest {
     outputs.put(COUNTERPARTY_CHANGE_84[1], 924912L);
     outputs.put(SENDER_CHANGE_84[1], 880882L);
     for (int i = 0; i < nbPremixSender; i++) {
-      outputs.put(SENDER_PREMIX_84[senderIndex005 + i], 1000255L);
+      outputs.put(SENDER_PREMIX_84[senderIndex005 + i], 1000170L);
     }
     for (int i = 0; i < nbPremixCounterparty; i++) {
-      outputs.put(COUNTERPARTY_PREMIX_84[counterpartyIndex005 + i], 1000255L);
+      outputs.put(COUNTERPARTY_PREMIX_84[counterpartyIndex005 + i], 1000170L);
     }
     outputs.put(MOCK_SAMOURAI_FEE_ADDRESS, 42500L);
 
@@ -651,10 +594,10 @@ public class WhirlpoolWalletTx0x2Test extends AbstractCahootsTest {
     outputs.put(COUNTERPARTY_CHANGE_84[2], 47814L);
     outputs.put(SENDER_CHANGE_84[2], 47814L);
     for (int i = 0; i < nbPremixSender; i++) {
-      outputs.put(SENDER_PREMIX_84[senderIndex005 + senderIndex001 + i], 100255L);
+      outputs.put(SENDER_PREMIX_84[senderIndex005 + senderIndex001 + i], 100170L);
     }
     for (int i = 0; i < nbPremixCounterparty; i++) {
-      outputs.put(COUNTERPARTY_PREMIX_84[counterpartyIndex005 + counterpartyIndex001 + i], 100255L);
+      outputs.put(COUNTERPARTY_PREMIX_84[counterpartyIndex005 + counterpartyIndex001 + i], 100170L);
     }
     outputs.put(MOCK_SAMOURAI_FEE_ADDRESS, 5000L);
 
@@ -675,29 +618,20 @@ public class WhirlpoolWalletTx0x2Test extends AbstractCahootsTest {
     log.info("Testing Tx0x2s for pools 0.05 & 0.01. Doesn't reach pool 0.001.");
 
     int account = 0;
+    Pool pool = pool05btc;
 
     // setup wallets
-    BipWallet bipWalletSender = walletSupplierSender.getWallet(BIP_WALLET.DEPOSIT_BIP84);
-    BipWallet bipWalletCounterparty =
-        walletSupplierCounterparty.getWallet(BIP_WALLET.DEPOSIT_BIP84);
-    UTXO utxoSender1 = utxoProviderSender.addUtxo(bipWalletSender, 9200000);
-    UTXO utxoCounterparty1 = utxoProviderCounterparty.addUtxo(bipWalletCounterparty, 19130000);
+    UTXO utxoSender1 = utxoProviderSender.addUtxo(BIP_WALLET.DEPOSIT_BIP84, 9200000);
+    UTXO utxoCounterparty1 = utxoProviderCounterparty.addUtxo(BIP_WALLET.DEPOSIT_BIP84, 19130000);
 
-    // initiator: build initial TX0
+    // initiator context
     Collection<? extends BipUtxo> spendFroms = utxoSender1.toBipUtxos();
     Tx0Config tx0Config =
-        whirlpoolWallet.getTx0Config(spendFroms, Tx0FeeTarget.BLOCKS_24, Tx0FeeTarget.BLOCKS_24);
-    tx0Config.setDecoyTx0x2(false);
-
-    Collection<Pool> pools = findPoolsLowerOrEqual("0.05btc", whirlpoolWallet.getPoolSupplier());
-    List<Tx0> tx0Initiators =
-        tx0Service.tx0Cascade(walletSupplierSender, pools, tx0Config, utxoProviderSender);
-    Assertions.assertEquals(2, tx0Initiators.size());
+        whirlpoolWallet.getTx0Config(
+            pool, spendFroms, Tx0FeeTarget.BLOCKS_24, Tx0FeeTarget.BLOCKS_24);
+    MultiTx0x2Context cahootsContextSender = whirlpoolWalletSender.tx0x2MultiContext(tx0Config);
 
     // run Cahoots
-    MultiTx0x2Context cahootsContextSender =
-        MultiTx0x2Context.newInitiator(
-            cahootsWalletSender, account, FEE_PER_B, tx0Service, tx0Initiators);
     MultiTx0x2Context cahootsContextCp =
         MultiTx0x2Context.newCounterparty(cahootsWalletCounterparty, account, tx0Service);
 
@@ -749,10 +683,10 @@ public class WhirlpoolWalletTx0x2Test extends AbstractCahootsTest {
     outputs.put(COUNTERPARTY_CHANGE_84[1], 67325L);
     outputs.put(SENDER_CHANGE_84[1], 67325L);
     for (int i = 0; i < nbPremixSender; i++) {
-      outputs.put(SENDER_PREMIX_84[senderIndex005 + i], 1000255L);
+      outputs.put(SENDER_PREMIX_84[senderIndex005 + i], 1000170L);
     }
     for (int i = 0; i < nbPremixCounterparty; i++) {
-      outputs.put(COUNTERPARTY_PREMIX_84[counterpartyIndex005 + i], 1000255L);
+      outputs.put(COUNTERPARTY_PREMIX_84[counterpartyIndex005 + i], 1000170L);
     }
     outputs.put(MOCK_SAMOURAI_FEE_ADDRESS, 42500L);
 
@@ -762,12 +696,5 @@ public class WhirlpoolWalletTx0x2Test extends AbstractCahootsTest {
     verifyTx(tx01, txid, raw, outputs);
 
     // 0.001btc pool not reached
-  }
-
-  protected Collection<Pool> findPoolsLowerOrEqual(String maxPoolId, PoolSupplier poolSupplier) {
-    Pool highestPool = poolSupplier.findPoolById(maxPoolId);
-    return poolSupplier.getPools().stream()
-        .filter(pool -> pool.getDenomination() <= highestPool.getDenomination())
-        .collect(Collectors.toList());
   }
 }

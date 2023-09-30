@@ -68,66 +68,37 @@ public class Tx0Service {
     }
   }
 
-  /**
-   * Generate maxOutputs premixes outputs max. Returns NULL when TX0 is not possible for this pool.
-   */
-  public Tx0 tx0(
-      WalletSupplier walletSupplier,
-      Pool pool,
-      Tx0Config tx0Config,
-      UtxoKeyProvider utxoKeyProvider)
+  /** Generate maxOutputs premixes outputs max. */
+  public Optional<Tx0> buildTx0(
+      WalletSupplier walletSupplier, Tx0Config tx0Config, UtxoKeyProvider utxoKeyProvider)
       throws Exception {
-    return tx0Opt(walletSupplier, pool, tx0Config, utxoKeyProvider)
-        .orElseThrow(
-            () -> new NotifiableException("Tx0 not possible for pool: " + pool.getPoolId()));
+    // preview
+    Pool pool = tx0Config.getPool();
+    Tx0Preview tx0Preview = tx0PreviewService.tx0PreviewSingle(tx0Config, pool).orElse(null);
+    if (tx0Preview != null) {
+      // compute Tx0
+      return buildTx0(walletSupplier, tx0Config, utxoKeyProvider, tx0Preview);
+    }
+    return Optional.empty();
   }
 
-  /**
-   * Generate maxOutputs premixes outputs max. Returns NULL when TX0 is not possible for this pool.
-   */
-  public Optional<Tx0> tx0Opt(
-      WalletSupplier walletSupplier,
-      Pool pool,
-      Tx0Config tx0Config,
-      UtxoKeyProvider utxoKeyProvider)
-      throws Exception {
-    // compute & preview
-    Optional<Tx0Preview> tx0PreviewOpt =
-        tx0PreviewService.tx0PreviewOpt(tx0Config, pool.getPoolId());
-    if (!tx0PreviewOpt.isPresent()) {
-      if (log.isDebugEnabled()) {
-        log.debug("Tx0 not possible for pool: " + pool.getPoolId());
-      }
-      return Optional.empty();
-    }
-    Tx0Preview tx0Preview = tx0PreviewOpt.get();
-    if (log.isDebugEnabled()) {
-      log.debug(" • Tx0: tx0Config={" + tx0Config + "}\n=> tx0Preview={" + tx0Preview + "}");
-    }
-
-    Tx0 tx0 = tx0(walletSupplier, tx0Config, tx0Preview, utxoKeyProvider);
-    if (tx0 == null) {
-      return Optional.empty();
-    }
-    log.info(
-        " • Tx0 result: txid="
-            + tx0.getTx().getHashAsString()
-            + ", nbPremixs="
-            + tx0.getPremixOutputs().size()
-            + ", decoyTx0x2="
-            + tx0.isDecoyTx0x2());
-    if (log.isDebugEnabled()) {
-      log.debug("Tx0: " + tx0.toString());
-    }
-    return Optional.of(tx0);
-  }
-
-  public Tx0 tx0(
+  protected Optional<Tx0> buildTx0(
       WalletSupplier walletSupplier,
       Tx0Config tx0Config,
-      Tx0Preview tx0Preview,
-      UtxoKeyProvider utxoKeyProvider)
+      UtxoKeyProvider utxoKeyProvider,
+      Tx0Preview tx0Preview)
       throws Exception {
+    if (log.isDebugEnabled()) {
+      String poolId = tx0Preview.getPool().getPoolId();
+      log.debug(
+          " • Tx0["
+              + poolId
+              + "]: tx0Config={"
+              + tx0Config
+              + "}\n=> tx0Preview={"
+              + tx0Preview
+              + "}");
+    }
 
     // save indexes state with Tx0Context
     BipWallet premixWallet = walletSupplier.getWallet(BIP_WALLET.PREMIX_BIP84);
@@ -172,46 +143,20 @@ public class Tx0Service {
     // tx0
     //
 
-    Tx0 tx0 =
-        buildTx0(
-            tx0Config,
-            sortedSpendFroms,
-            walletSupplier,
-            premixWallet,
-            tx0Preview,
-            opReturn,
-            feeOrBackAddressBech32,
-            changeWallet,
-            utxoKeyProvider,
-            tx0Context);
-
-    Transaction tx = tx0.getTx();
-    final String hexTx = TxUtil.getInstance().getTxHex(tx);
-    final String strTxHash = tx.getHashAsString();
-
-    tx.verify();
-    // System.out.println(tx);
-    if (log.isDebugEnabled()) {
-      log.debug("Tx0 hash: " + strTxHash);
-      log.debug("Tx0 hex: " + hexTx);
-      long feePrice = tx0Preview.getTx0MinerFee() / tx.getVirtualTransactionSize();
-      log.debug("Tx0 size: " + tx.getVirtualTransactionSize() + "b, feePrice=" + feePrice + "s/b");
-    }
-    return tx0;
+    return buildTx0(
+        tx0Config,
+        sortedSpendFroms,
+        walletSupplier,
+        premixWallet,
+        tx0Preview,
+        opReturn,
+        feeOrBackAddressBech32,
+        changeWallet,
+        utxoKeyProvider,
+        tx0Context);
   }
 
-  protected byte[] computeOpReturn(BipUtxo firstInput, byte[] firstInputKey, Tx0Data tx0Data)
-      throws Exception {
-
-    // use input0 for masking
-    TransactionOutPoint maskingOutpoint = utxoUtil.computeOutpoint(firstInput, params);
-    String feePaymentCode = tx0Data.getFeePaymentCode();
-    byte[] feePayload = tx0Data.getFeePayload();
-    return feeOpReturnImpl.computeOpReturn(
-        feePaymentCode, feePayload, maskingOutpoint, firstInputKey);
-  }
-
-  protected Tx0 buildTx0(
+  protected Optional<Tx0> buildTx0(
       Tx0Config tx0Config,
       Collection<BipUtxo> sortedSpendFroms,
       WalletSupplier walletSupplier,
@@ -244,7 +189,7 @@ public class Tx0Service {
       if (log.isDebugEnabled()) {
         log.debug("Invalid nbPremix=" + nbPremix);
       }
-      return null; // TX0 not possible
+      return Optional.empty(); // TX0 not possible
     }
 
     //
@@ -375,7 +320,43 @@ public class Tx0Service {
             changeUtxos,
             opReturnOutput,
             samouraiFeeOutput);
-    return tx0;
+    String poolId = tx0Config.getPool().getPoolId();
+    log.info(
+        " • Tx0["
+            + poolId
+            + "]: txid="
+            + tx0.getTx().getHashAsString()
+            + ", nbPremixs="
+            + tx0.getPremixOutputs().size()
+            + ", decoyTx0x2="
+            + tx0.isDecoyTx0x2());
+    if (log.isDebugEnabled()) {
+      log.debug(
+          "Tx0["
+              + poolId
+              + "]: size="
+              + tx.getVirtualTransactionSize()
+              + "b, feePrice="
+              + tx0.getTx0MinerFeePrice()
+              + "s/b"
+              + "\nhex="
+              + TxUtil.getInstance().getTxHex(tx)
+              + "\ntx0={"
+              + tx0
+              + "}");
+    }
+    return Optional.of(tx0);
+  }
+
+  protected byte[] computeOpReturn(BipUtxo firstInput, byte[] firstInputKey, Tx0Data tx0Data)
+      throws Exception {
+
+    // use input0 for masking
+    TransactionOutPoint maskingOutpoint = utxoUtil.computeOutpoint(firstInput, params);
+    String feePaymentCode = tx0Data.getFeePaymentCode();
+    byte[] feePayload = tx0Data.getFeePayload();
+    return feeOpReturnImpl.computeOpReturn(
+        feePaymentCode, feePayload, maskingOutpoint, firstInputKey);
   }
 
   private List<? extends BipUtxo> computeChangeUtxos(
@@ -404,69 +385,70 @@ public class Tx0Service {
     return changeUtxos;
   }
 
-  public List<Tx0> tx0Cascade(
-      WalletSupplier walletSupplier,
-      Collection<Pool> poolsChoice,
-      Tx0Config tx0Config,
-      UtxoKeyProvider utxoKeyProvider)
+  public List<Tx0> tx0(
+      WalletSupplier walletSupplier, Tx0Config tx0Config, UtxoKeyProvider utxoKeyProvider)
       throws Exception {
     List<Tx0> tx0List = new ArrayList<>();
 
-    // sort pools by denomination
-    List<Pool> pools = new LinkedList<>(poolsChoice);
-    Collections.sort(pools, new PoolComparatorByDenominationDesc());
-
     // initial Tx0 on highest pool
-    Iterator<Pool> poolsIter = pools.iterator();
-    Pool poolInitial = poolsIter.next();
+    Pool poolInitial = tx0Config.getPool();
     if (log.isDebugEnabled()) {
-      log.debug(" > Tx0 cascading for poolId=" + poolInitial.getPoolId() + "... (1/x)");
+      if (tx0Config.isCascade()) {
+        log.debug(" • Tx0 cascading (1/x): trying poolId=" + poolInitial.getPoolId());
+      } else {
+        log.debug(" • Tx0: poolId=" + poolInitial.getPoolId());
+      }
     }
-    Tx0 tx0 = tx0(walletSupplier, poolInitial, tx0Config, utxoKeyProvider);
+    Tx0 tx0 =
+        buildTx0(walletSupplier, tx0Config, utxoKeyProvider)
+            .orElseThrow(
+                () ->
+                    new NotifiableException(
+                        "Tx0 is not possible for pool: " + poolInitial.getPoolId()));
     tx0List.add(tx0);
     Collection<? extends BipUtxo> changeUtxos = tx0.getChangeUtxos();
 
     // Tx0 cascading for remaining pools
-    while (poolsIter.hasNext()) {
-      Pool pool = poolsIter.next();
-      if (changeUtxos.isEmpty()) {
-        break; // stop when no tx0 change
-      }
+    if (tx0Config.isCascade()) {
+      // sort pools by denomination
+      List<Pool> cascadingPools = tx0PreviewService.findCascadingPools(poolInitial.getPoolId());
+      Collections.sort(cascadingPools, new PoolComparatorByDenominationDesc());
 
-      if (log.isDebugEnabled()) {
-        log.debug(
-            " > Tx0 cascading for poolId="
-                + pool.getPoolId()
-                + "... ("
-                + (tx0List.size() + 1)
-                + "/x)");
-      }
+      for (Pool pool : cascadingPools) {
+        if (changeUtxos.isEmpty()) {
+          break; // stop when no tx0 change
+        }
 
-      tx0Config = new Tx0Config(tx0Config, changeUtxos);
-      tx0Config._setCascading(true);
-      tx0Config.setDecoyTx0x2Forced(true); // skip to next lower pool when decoy is not possible
-      tx0 = tx0Opt(walletSupplier, pool, tx0Config, utxoKeyProvider).orElse(null);
-      if (tx0 != null) {
-        tx0List.add(tx0);
-        changeUtxos = tx0.getChangeUtxos();
-      } else {
-        // Tx0 is not possible for this pool, skip to next lower pool
+        if (log.isDebugEnabled()) {
+          log.debug(
+              " • Tx0 cascading ("
+                  + (tx0List.size() + 1)
+                  + "/x): trying poolId="
+                  + pool.getPoolId());
+        }
+
+        tx0Config = new Tx0Config(tx0Config, changeUtxos, pool);
+        tx0Config._setCascading(true);
+        tx0Config.setDecoyTx0x2Forced(true); // skip to next lower pool when decoy is not possible
+        tx0 = this.buildTx0(walletSupplier, tx0Config, utxoKeyProvider).orElse(null);
+        if (tx0 != null) {
+          tx0List.add(tx0);
+          changeUtxos = tx0.getChangeUtxos();
+        } else {
+          // Tx0 is not possible for this pool, skip to next lower pool
+        }
       }
     }
     List<String> poolIds =
         tx0List.stream()
-            .map(
-                t ->
-                    t.getPool().getPoolId()
-                        + "("
-                        + t.getNbPremix()
-                        + (t.isDecoyTx0x2() ? "+decoy" : "")
-                        + ")")
+            .map(t -> t.getPool().getPoolId() + "(" + t.getNbPremix() + ")")
             .collect(Collectors.toList());
     log.info(
-        " • Tx0 cascading success on "
+        " • Tx0 success on "
             + tx0List.size()
-            + " pools: "
+            + " pool"
+            + (tx0List.size() > 1 ? "s" : "")
+            + ": "
             + StringUtils.join(poolIds, "->"));
     return tx0List;
   }
@@ -526,16 +508,17 @@ public class Tx0Service {
         pushTx0Exception = e;
         tx0 =
             tx0Retry(
-                tx0,
-                pushTxErrorResponse,
-                whirlpoolWallet.getWalletSupplier(),
-                whirlpoolWallet.getUtxoSupplier());
+                    tx0,
+                    pushTxErrorResponse,
+                    whirlpoolWallet.getWalletSupplier(),
+                    whirlpoolWallet.getUtxoSupplier())
+                .get();
       }
     }
     throw pushTx0Exception;
   }
 
-  private Tx0 tx0Retry(
+  private Optional<Tx0> tx0Retry(
       Tx0 tx0,
       PushTxErrorResponse pushTxErrorResponse,
       WalletSupplier walletSupplier,
@@ -569,7 +552,7 @@ public class Tx0Service {
     }
 
     // rebuild a TX0 with new indexes
-    return tx0(walletSupplier, tx0.getTx0Config(), tx0, utxoKeyProvider);
+    return buildTx0(walletSupplier, tx0.getTx0Config(), utxoKeyProvider, tx0);
   }
 
   public Tx0PreviewService getTx0PreviewService() {

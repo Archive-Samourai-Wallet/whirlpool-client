@@ -9,18 +9,15 @@ import com.samourai.wallet.utxo.BipUtxo;
 import com.samourai.whirlpool.client.event.UtxoChangesEvent;
 import com.samourai.whirlpool.client.test.AbstractTest;
 import com.samourai.whirlpool.client.wallet.beans.WhirlpoolUtxoChanges;
-import com.samourai.whirlpool.client.wallet.data.pool.PoolSupplier;
 import com.samourai.whirlpool.client.wallet.data.utxo.BasicUtxoSupplier;
 import com.samourai.whirlpool.client.wallet.data.utxo.UtxoData;
 import com.samourai.whirlpool.client.wallet.data.utxo.UtxoSupplier;
 import com.samourai.whirlpool.client.wallet.data.utxoConfig.UtxoConfigSupplier;
-import com.samourai.whirlpool.client.whirlpool.beans.Pool;
 import com.samourai.whirlpool.protocol.rest.Tx0PushRequest;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.stream.Collectors;
 import org.bitcoinj.core.Transaction;
 import org.bitcoinj.core.TransactionOutput;
 import org.junit.jupiter.api.Assertions;
@@ -49,7 +46,9 @@ public class AbstractWhirlpoolWalletTest extends AbstractTest {
               }
             });
 
-    whirlpoolWallet = computeWhirlpoolWallet();
+    String seedWords = "all all all all all all all all all all all all";
+    String passphrase = "whirlpool";
+    whirlpoolWallet = computeWhirlpoolWallet(seedWords, passphrase, whirlpoolWalletConfig);
     utxoSupplier = whirlpoolWallet.getUtxoSupplier();
     utxoConfigSupplier = whirlpoolWallet.getUtxoConfigSupplier();
     newUtxoIndex = 61;
@@ -70,9 +69,9 @@ public class AbstractWhirlpoolWalletTest extends AbstractTest {
     mockUtxos(unspentOutputs.toArray(new BipUtxo[] {}));
   }
 
-  protected WhirlpoolWallet computeWhirlpoolWallet() throws Exception {
-    String seedWords = "all all all all all all all all all all all all";
-    String passphrase = "whirlpool";
+  protected WhirlpoolWallet computeWhirlpoolWallet(
+      String seedWords, String passphrase, WhirlpoolWalletConfig whirlpoolWalletConfig)
+      throws Exception {
     byte[] seed = hdWalletFactory.computeSeedFromWords(seedWords);
 
     WhirlpoolWalletService whirlpoolWalletService = new WhirlpoolWalletService();
@@ -120,13 +119,6 @@ public class AbstractWhirlpoolWalletTest extends AbstractTest {
                         && index == unspentOutput.getTxOutputIndex())
             .count()
         > 0;
-  }
-
-  protected Collection<Pool> findPoolsLowerOrEqual(String maxPoolId, PoolSupplier poolSupplier) {
-    Pool highestPool = poolSupplier.findPoolById(maxPoolId);
-    return poolSupplier.getPools().stream()
-        .filter(pool -> pool.getDenomination() <= highestPool.getDenomination())
-        .collect(Collectors.toList());
   }
 
   protected BipUtxo newUtxo(String hash, int index, long value) throws Exception {

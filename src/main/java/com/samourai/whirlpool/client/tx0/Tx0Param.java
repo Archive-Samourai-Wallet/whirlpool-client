@@ -59,14 +59,14 @@ public class Tx0Param {
 
     if (log.isDebugEnabled()) {
       log.debug(
-          "premixValueFinal="
+          "Tx0Param["
+              + pool.getPoolId()
+              + "]: premixValueFinal="
               + premixValueFinal
               + ", premixValue="
               + premixValue
               + ", premixOverspend="
-              + premixOverspend
-              + " for poolId="
-              + pool.getPoolId());
+              + premixOverspend);
     }
     return premixValueFinal;
   }

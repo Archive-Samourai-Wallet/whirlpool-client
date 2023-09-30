@@ -40,8 +40,8 @@ public class Pool {
 
   public long getTx0PreviewMinSpendValue() {
     if (tx0PreviewMin == null) {
-      log.error("getTx0MinSpendValue() failed: tx0PreviewMin is NULL!");
-      return 0; // shouldn't happen
+      // shouldn't happen
+      throw new RuntimeException("pool.tx0PreviewMin is NULL!");
     }
     return tx0PreviewMin.getSpendValue();
   }

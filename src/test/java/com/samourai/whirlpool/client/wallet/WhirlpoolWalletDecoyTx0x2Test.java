@@ -4,10 +4,10 @@ import com.samourai.wallet.utxo.BipUtxo;
 import com.samourai.whirlpool.client.tx0.AbstractTx0ServiceV1Test;
 import com.samourai.whirlpool.client.tx0.Tx0;
 import com.samourai.whirlpool.client.tx0.Tx0Config;
+import com.samourai.whirlpool.client.tx0.Tx0Result;
 import com.samourai.whirlpool.client.wallet.beans.Tx0FeeTarget;
 import com.samourai.whirlpool.client.whirlpool.beans.Pool;
 import java.util.Arrays;
-import java.util.Collection;
 import java.util.List;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
@@ -41,11 +41,14 @@ public class WhirlpoolWalletDecoyTx0x2Test extends AbstractTx0ServiceV1Test {
     // configure TX0
     Pool pool = poolSupplier.findPoolById("0.01btc");
     Tx0Config tx0Config =
-        whirlpoolWallet.getTx0Config(spendFroms, Tx0FeeTarget.BLOCKS_12, Tx0FeeTarget.BLOCKS_12);
+        whirlpoolWallet.getTx0Config(
+            pool, spendFroms, Tx0FeeTarget.BLOCKS_12, Tx0FeeTarget.BLOCKS_12);
     tx0Config.setDecoyTx0x2(true); // set decoy Tx0x2 flag
 
     // run
-    Tx0 decoyTx0x2 = whirlpoolWallet.tx0(tx0Config, pool);
+    Tx0Result tx0Result = whirlpoolWallet.tx0(tx0Config);
+    Assertions.assertEquals(1, tx0Result.getList().size());
+    Tx0 decoyTx0x2 = tx0Result.getList().iterator().next();
 
     // verify
     log.info("decoyTx0x2 = " + decoyTx0x2);
@@ -80,11 +83,14 @@ public class WhirlpoolWalletDecoyTx0x2Test extends AbstractTx0ServiceV1Test {
     // configure TX0
     Pool pool = poolSupplier.findPoolById("0.01btc");
     Tx0Config tx0Config =
-        whirlpoolWallet.getTx0Config(spendFroms, Tx0FeeTarget.BLOCKS_12, Tx0FeeTarget.BLOCKS_12);
+        whirlpoolWallet.getTx0Config(
+            pool, spendFroms, Tx0FeeTarget.BLOCKS_12, Tx0FeeTarget.BLOCKS_12);
     tx0Config.setDecoyTx0x2(true); // set decoy Tx0x2 flag
 
     // run
-    Tx0 decoyTx0x2 = whirlpoolWallet.tx0(tx0Config, pool);
+    Tx0Result tx0Result = whirlpoolWallet.tx0(tx0Config);
+    Assertions.assertEquals(1, tx0Result.getList().size());
+    Tx0 decoyTx0x2 = tx0Result.getList().iterator().next();
 
     // verify
     log.info("decoyTx0x2 = " + decoyTx0x2);
@@ -126,11 +132,14 @@ public class WhirlpoolWalletDecoyTx0x2Test extends AbstractTx0ServiceV1Test {
     // configure TX0
     Pool pool = poolSupplier.findPoolById("0.01btc");
     Tx0Config tx0Config =
-        whirlpoolWallet.getTx0Config(spendFroms, Tx0FeeTarget.BLOCKS_12, Tx0FeeTarget.BLOCKS_12);
+        whirlpoolWallet.getTx0Config(
+            pool, spendFroms, Tx0FeeTarget.BLOCKS_12, Tx0FeeTarget.BLOCKS_12);
     tx0Config.setDecoyTx0x2(true); // set decoy Tx0x2 flag
 
     // run
-    Tx0 decoyTx0x2 = whirlpoolWallet.tx0(tx0Config, pool);
+    Tx0Result tx0Result = whirlpoolWallet.tx0(tx0Config);
+    Assertions.assertEquals(1, tx0Result.getList().size());
+    Tx0 decoyTx0x2 = tx0Result.getList().iterator().next();
 
     // verify
     log.info("decoyTx0x2 = " + decoyTx0x2);
@@ -170,11 +179,14 @@ public class WhirlpoolWalletDecoyTx0x2Test extends AbstractTx0ServiceV1Test {
     // configure TX0
     Pool pool = poolSupplier.findPoolById("0.01btc");
     Tx0Config tx0Config =
-        whirlpoolWallet.getTx0Config(spendFroms, Tx0FeeTarget.BLOCKS_12, Tx0FeeTarget.BLOCKS_12);
+        whirlpoolWallet.getTx0Config(
+            pool, spendFroms, Tx0FeeTarget.BLOCKS_12, Tx0FeeTarget.BLOCKS_12);
     tx0Config.setDecoyTx0x2(true); // set decoy Tx0x2 flag
 
     // run
-    Tx0 decoyTx0x2 = whirlpoolWallet.tx0(tx0Config, pool);
+    Tx0Result tx0Result = whirlpoolWallet.tx0(tx0Config);
+    Assertions.assertEquals(1, tx0Result.getList().size());
+    Tx0 decoyTx0x2 = tx0Result.getList().iterator().next();
 
     // verify
     log.info("decoyTx0x2 = " + decoyTx0x2);
@@ -194,12 +206,15 @@ public class WhirlpoolWalletDecoyTx0x2Test extends AbstractTx0ServiceV1Test {
     // configure TX0
     Pool pool = poolSupplier.findPoolById("0.01btc");
     Tx0Config tx0Config =
-        whirlpoolWallet.getTx0Config(spendFroms, Tx0FeeTarget.BLOCKS_12, Tx0FeeTarget.BLOCKS_12);
+        whirlpoolWallet.getTx0Config(
+            pool, spendFroms, Tx0FeeTarget.BLOCKS_12, Tx0FeeTarget.BLOCKS_12);
     tx0Config.setDecoyTx0x2(true); // set decoy Tx0x2 flag
     whirlpoolWalletConfig.setTx0MaxOutputs(2); // set max premixs
 
     // run
-    Tx0 decoyTx0x2 = whirlpoolWallet.tx0(tx0Config, pool);
+    Tx0Result tx0Result = whirlpoolWallet.tx0(tx0Config);
+    Assertions.assertEquals(1, tx0Result.getList().size());
+    Tx0 decoyTx0x2 = tx0Result.getList().iterator().next();
 
     // verify
     log.info("decoyTx0x2 = " + decoyTx0x2);
@@ -223,11 +238,14 @@ public class WhirlpoolWalletDecoyTx0x2Test extends AbstractTx0ServiceV1Test {
     // configure TX0
     Pool pool = poolSupplier.findPoolById("0.01btc");
     Tx0Config tx0Config =
-        whirlpoolWallet.getTx0Config(spendFroms, Tx0FeeTarget.BLOCKS_12, Tx0FeeTarget.BLOCKS_12);
+        whirlpoolWallet.getTx0Config(
+            pool, spendFroms, Tx0FeeTarget.BLOCKS_12, Tx0FeeTarget.BLOCKS_12);
     tx0Config.setDecoyTx0x2(true); // set decoy Tx0x2 flag
 
     // run
-    Tx0 decoyTx0x2 = whirlpoolWallet.tx0(tx0Config, pool);
+    Tx0Result tx0Result = whirlpoolWallet.tx0(tx0Config);
+    Assertions.assertEquals(1, tx0Result.getList().size());
+    Tx0 decoyTx0x2 = tx0Result.getList().iterator().next();
 
     // verify
     log.info("decoyTx0x2 = " + decoyTx0x2);
@@ -249,11 +267,14 @@ public class WhirlpoolWalletDecoyTx0x2Test extends AbstractTx0ServiceV1Test {
     // configure TX0
     Pool pool = poolSupplier.findPoolById("0.01btc");
     Tx0Config tx0Config =
-        whirlpoolWallet.getTx0Config(spendFroms, Tx0FeeTarget.BLOCKS_12, Tx0FeeTarget.BLOCKS_12);
+        whirlpoolWallet.getTx0Config(
+            pool, spendFroms, Tx0FeeTarget.BLOCKS_12, Tx0FeeTarget.BLOCKS_12);
     tx0Config.setDecoyTx0x2(true); // set Decoy Tx0x2 flag
 
     // run
-    Tx0 decoyTx0x2 = whirlpoolWallet.tx0(tx0Config, pool);
+    Tx0Result tx0Result = whirlpoolWallet.tx0(tx0Config);
+    Assertions.assertEquals(1, tx0Result.getList().size());
+    Tx0 decoyTx0x2 = tx0Result.getList().iterator().next();
 
     // verify
     log.info("decoyTx0x2 = " + decoyTx0x2);
@@ -278,11 +299,13 @@ public class WhirlpoolWalletDecoyTx0x2Test extends AbstractTx0ServiceV1Test {
     Pool pool = poolSupplier.findPoolById("0.01btc");
     Tx0Config tx0Config =
         whirlpoolWallet.getTx0Config(
-            Arrays.asList(spendFromUtxo), Tx0FeeTarget.BLOCKS_12, Tx0FeeTarget.BLOCKS_12);
+            pool, Arrays.asList(spendFromUtxo), Tx0FeeTarget.BLOCKS_12, Tx0FeeTarget.BLOCKS_12);
     tx0Config.setDecoyTx0x2(true); // set Decoy Tx0x2 flag
 
     // run
-    Tx0 decoyTx0x2 = whirlpoolWallet.tx0(tx0Config, pool);
+    Tx0Result tx0Result = whirlpoolWallet.tx0(tx0Config);
+    Assertions.assertEquals(1, tx0Result.getList().size());
+    Tx0 decoyTx0x2 = tx0Result.getList().iterator().next();
 
     // verify
     log.info("decoyTx0x2 = " + decoyTx0x2);
@@ -309,11 +332,14 @@ public class WhirlpoolWalletDecoyTx0x2Test extends AbstractTx0ServiceV1Test {
     // configure TX0
     Pool pool = poolSupplier.findPoolById("0.01btc");
     Tx0Config tx0Config =
-        whirlpoolWallet.getTx0Config(spendFroms, Tx0FeeTarget.BLOCKS_12, Tx0FeeTarget.BLOCKS_12);
+        whirlpoolWallet.getTx0Config(
+            pool, spendFroms, Tx0FeeTarget.BLOCKS_12, Tx0FeeTarget.BLOCKS_12);
     tx0Config.setDecoyTx0x2(true); // set decoy Tx0x2 flag
 
     // run
-    Tx0 decoyTx0x2 = whirlpoolWallet.tx0(tx0Config, pool);
+    Tx0Result tx0Result = whirlpoolWallet.tx0(tx0Config);
+    Assertions.assertEquals(1, tx0Result.getList().size());
+    Tx0 decoyTx0x2 = tx0Result.getList().iterator().next();
 
     // verify
     log.info("decoyTx0x2 = " + decoyTx0x2);
@@ -335,13 +361,17 @@ public class WhirlpoolWalletDecoyTx0x2Test extends AbstractTx0ServiceV1Test {
     List<BipUtxo> spendFroms = mockUtxos(spendFromUtxo0, spendFromUtxo1);
 
     // configure TX0
-    Collection<Pool> pools = findPoolsLowerOrEqual("0.01btc", poolSupplier);
+    Pool pool = poolSupplier.findPoolById("0.01btc");
     Tx0Config tx0Config =
-        whirlpoolWallet.getTx0Config(spendFroms, Tx0FeeTarget.BLOCKS_12, Tx0FeeTarget.BLOCKS_12);
+        whirlpoolWallet.getTx0Config(
+            pool, spendFroms, Tx0FeeTarget.BLOCKS_12, Tx0FeeTarget.BLOCKS_12);
     tx0Config.setDecoyTx0x2(true); // set decoy Tx0x2 flag
+    tx0Config.setCascade(true);
 
     // run
-    List<Tx0> decoyTx0x2s = whirlpoolWallet.tx0Cascade(tx0Config, pools);
+    Tx0Result tx0Result = whirlpoolWallet.tx0(tx0Config);
+    Assertions.assertEquals(2, tx0Result.getList().size());
+    List<Tx0> decoyTx0x2s = tx0Result.getList();
 
     // verify
     log.info("decoyTx0x2s = " + decoyTx0x2s);
@@ -379,11 +409,14 @@ public class WhirlpoolWalletDecoyTx0x2Test extends AbstractTx0ServiceV1Test {
     // configure TX0
     Pool pool = poolSupplier.findPoolById("0.001btc");
     Tx0Config tx0Config =
-        whirlpoolWallet.getTx0Config(spendFroms, Tx0FeeTarget.BLOCKS_12, Tx0FeeTarget.BLOCKS_12);
+        whirlpoolWallet.getTx0Config(
+            pool, spendFroms, Tx0FeeTarget.BLOCKS_12, Tx0FeeTarget.BLOCKS_12);
     tx0Config.setDecoyTx0x2(true); // set decoy Tx0x2 flag
 
     // run
-    Tx0 decoyTx0x2 = whirlpoolWallet.tx0(tx0Config, pool);
+    Tx0Result tx0Result = whirlpoolWallet.tx0(tx0Config);
+    Assertions.assertEquals(1, tx0Result.getList().size());
+    Tx0 decoyTx0x2 = tx0Result.getList().iterator().next();
 
     // verify
     log.info("decoyTx0x2 = " + decoyTx0x2);
@@ -406,11 +439,14 @@ public class WhirlpoolWalletDecoyTx0x2Test extends AbstractTx0ServiceV1Test {
     // configure TX0
     Pool pool = poolSupplier.findPoolById("0.001btc");
     Tx0Config tx0Config =
-        whirlpoolWallet.getTx0Config(spendFroms, Tx0FeeTarget.BLOCKS_12, Tx0FeeTarget.BLOCKS_12);
+        whirlpoolWallet.getTx0Config(
+            pool, spendFroms, Tx0FeeTarget.BLOCKS_12, Tx0FeeTarget.BLOCKS_12);
     tx0Config.setDecoyTx0x2(true); // set decoy Tx0x2 flag
 
     // run
-    Tx0 decoyTx0x2 = whirlpoolWallet.tx0(tx0Config, pool);
+    Tx0Result tx0Result = whirlpoolWallet.tx0(tx0Config);
+    Assertions.assertEquals(1, tx0Result.getList().size());
+    Tx0 decoyTx0x2 = tx0Result.getList().iterator().next();
 
     // verify
     log.info("decoyTx0x2 = " + decoyTx0x2);
@@ -434,13 +470,16 @@ public class WhirlpoolWalletDecoyTx0x2Test extends AbstractTx0ServiceV1Test {
     List<BipUtxo> spendFroms = mockUtxos(spendFromUtxo0, spendFromUtxo1);
 
     // configure TX0
-    Collection<Pool> pools = findPoolsLowerOrEqual("0.01btc", poolSupplier);
+    Pool pool = poolSupplier.findPoolById("0.01btc");
     Tx0Config tx0Config =
-        whirlpoolWallet.getTx0Config(spendFroms, Tx0FeeTarget.BLOCKS_12, Tx0FeeTarget.BLOCKS_12);
+        whirlpoolWallet.getTx0Config(
+            pool, spendFroms, Tx0FeeTarget.BLOCKS_12, Tx0FeeTarget.BLOCKS_12);
     tx0Config.setDecoyTx0x2(true); // set decoy Tx0x2 flag
+    tx0Config.setCascade(true);
 
     // run
-    List<Tx0> decoyTx0x2s = whirlpoolWallet.tx0Cascade(tx0Config, pools);
+    Tx0Result tx0Result = whirlpoolWallet.tx0(tx0Config);
+    List<Tx0> decoyTx0x2s = tx0Result.getList();
 
     // verify
     log.info("decoyTx0x2s = " + decoyTx0x2s);
@@ -479,13 +518,16 @@ public class WhirlpoolWalletDecoyTx0x2Test extends AbstractTx0ServiceV1Test {
     List<BipUtxo> spendFroms = mockUtxos(spendFromUtxo0, spendFromUtxo1);
 
     // configure TX0
-    Collection<Pool> pools = findPoolsLowerOrEqual("0.05btc", poolSupplier);
+    Pool pool = poolSupplier.findPoolById("0.05btc");
     Tx0Config tx0Config =
-        whirlpoolWallet.getTx0Config(spendFroms, Tx0FeeTarget.BLOCKS_12, Tx0FeeTarget.BLOCKS_12);
+        whirlpoolWallet.getTx0Config(
+            pool, spendFroms, Tx0FeeTarget.BLOCKS_12, Tx0FeeTarget.BLOCKS_12);
     tx0Config.setDecoyTx0x2(true); // set decoy Tx0x2 flag
+    tx0Config.setCascade(true);
 
     // run
-    List<Tx0> decoyTx0x2s = whirlpoolWallet.tx0Cascade(tx0Config, pools);
+    Tx0Result tx0Result = whirlpoolWallet.tx0(tx0Config);
+    List<Tx0> decoyTx0x2s = tx0Result.getList();
 
     // verify
     log.info("decoyTx0x2s = " + decoyTx0x2s);
@@ -533,11 +575,14 @@ public class WhirlpoolWalletDecoyTx0x2Test extends AbstractTx0ServiceV1Test {
     // configure TX0
     Pool pool = poolSupplier.findPoolById("0.01btc");
     Tx0Config tx0Config =
-        whirlpoolWallet.getTx0Config(spendFroms, Tx0FeeTarget.BLOCKS_12, Tx0FeeTarget.BLOCKS_12);
+        whirlpoolWallet.getTx0Config(
+            pool, spendFroms, Tx0FeeTarget.BLOCKS_12, Tx0FeeTarget.BLOCKS_12);
     tx0Config.setDecoyTx0x2(true); // set decoy Tx0x2 flag
 
     // run
-    Tx0 decoyTx0x2 = whirlpoolWallet.tx0(tx0Config, pool);
+    Tx0Result tx0Result = whirlpoolWallet.tx0(tx0Config);
+    Assertions.assertEquals(1, tx0Result.getList().size());
+    Tx0 decoyTx0x2 = tx0Result.getList().iterator().next();
 
     // verify
     log.info("decoyTx0x2 = " + decoyTx0x2);
@@ -571,14 +616,17 @@ public class WhirlpoolWalletDecoyTx0x2Test extends AbstractTx0ServiceV1Test {
     List<BipUtxo> spendFroms = mockUtxos(spendFromUtxo0, spendFromUtxo1);
 
     // configure TX0
-    Collection<Pool> pools = findPoolsLowerOrEqual("0.05btc", poolSupplier);
+    Pool pool = poolSupplier.findPoolById("0.05btc");
     Tx0Config tx0Config =
-        whirlpoolWallet.getTx0Config(spendFroms, Tx0FeeTarget.BLOCKS_12, Tx0FeeTarget.BLOCKS_12);
+        whirlpoolWallet.getTx0Config(
+            pool, spendFroms, Tx0FeeTarget.BLOCKS_12, Tx0FeeTarget.BLOCKS_12);
     tx0Config.setDecoyTx0x2(true); // set decoy Tx0x2 flag
     tx0Config.setDecoyTx0x2Forced(true); // force Tx0x2 decoy => skip 01
+    tx0Config.setCascade(true);
 
     // run
-    List<Tx0> decoyTx0x2s = whirlpoolWallet.tx0Cascade(tx0Config, pools);
+    Tx0Result tx0Result = whirlpoolWallet.tx0(tx0Config);
+    List<Tx0> decoyTx0x2s = tx0Result.getList();
 
     // verify
     log.info("decoyTx0x2s = " + decoyTx0x2s);
@@ -624,13 +672,16 @@ public class WhirlpoolWalletDecoyTx0x2Test extends AbstractTx0ServiceV1Test {
     List<BipUtxo> spendFroms = mockUtxos(spendFromUtxo0, spendFromUtxo1);
 
     // configure TX0
-    Collection<Pool> pools = findPoolsLowerOrEqual("0.05btc", poolSupplier);
+    Pool pool = poolSupplier.findPoolById("0.05btc");
     Tx0Config tx0Config =
-        whirlpoolWallet.getTx0Config(spendFroms, Tx0FeeTarget.BLOCKS_12, Tx0FeeTarget.BLOCKS_12);
+        whirlpoolWallet.getTx0Config(
+            pool, spendFroms, Tx0FeeTarget.BLOCKS_12, Tx0FeeTarget.BLOCKS_12);
     tx0Config.setDecoyTx0x2(true); // set decoy Tx0x2 flag
+    tx0Config.setCascade(true);
 
     // run
-    List<Tx0> decoyTx0x2s = whirlpoolWallet.tx0Cascade(tx0Config, pools);
+    Tx0Result tx0Result = whirlpoolWallet.tx0(tx0Config);
+    List<Tx0> decoyTx0x2s = tx0Result.getList();
 
     // verify
     log.info("decoyTx0x2s = " + decoyTx0x2s);
