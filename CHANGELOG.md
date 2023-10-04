@@ -1,6 +1,12 @@
 # CHANGELOG
 Changelog for whirlpool-client.
 
+## Unreleased
+### 
+
+- fix: Tx0x2 index gap for sender premixs *(2023-10-02)*
+- refactor: single entry point for regular+cascade TX0 with WhirlpoolWallet.tx0() *(2023-09-30)*
+
 ## 0.25.0-beta3
 ### 
 

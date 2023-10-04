@@ -5,6 +5,8 @@ import com.samourai.wallet.bipFormat.BipFormatSupplier;
 import com.samourai.wallet.cahoots.AbstractCahootsService;
 import com.samourai.wallet.cahoots.CahootsType;
 import com.samourai.wallet.cahoots.multi.MultiCahootsService;
+import com.samourai.wallet.send.MyTransactionOutPoint;
+import com.samourai.wallet.util.Pair;
 import java.util.ArrayList;
 import java.util.List;
 import org.bitcoinj.core.NetworkParameters;
@@ -96,27 +98,24 @@ public class MultiTx0x2Service extends AbstractCahootsService<MultiTx0x2, MultiT
       throws Exception {
     debug("BEGINING MULTI TX0X2 STEP 1", multiTx0x2Context);
 
-    Tx0x2 payload1;
+    Tx0x2 tx0x2;
     List<Tx0x2> tx0x2List = new ArrayList<>();
-    TransactionOutput higherPoolChange = null;
+    MyTransactionOutPoint higherPoolChangeCp = null;
     for (int i = 0; i < multiTx0x2.getTx0x2List().size(); i++) {
+      Tx0x2 subTx0x2 = multiTx0x2.getTx0x2List().get(i);
+      Tx0x2Context subContext = multiTx0x2Context.getTx0x2ContextList().get(i);
 
-      if (higherPoolChange == null) {
+      Pair<Tx0x2, MyTransactionOutPoint> result;
+      if (higherPoolChangeCp == null) {
         // initial pool
-        payload1 =
-            tx0x2Service.doStep1Initial(
-                multiTx0x2.getTx0x2List().get(i), multiTx0x2Context.getTx0x2ContextList().get(i));
+        result = tx0x2Service.doStep1Initial(subTx0x2, subContext);
       } else {
         // lower pools
-        payload1 =
-            tx0x2Service.doStep1Cascading(
-                multiTx0x2.getTx0x2List().get(i),
-                multiTx0x2Context.getTx0x2ContextList().get(i),
-                higherPoolChange);
+        result = tx0x2Service.doStep1Cascading(subTx0x2, subContext, higherPoolChangeCp);
       }
-      tx0x2List.add(payload1);
-
-      higherPoolChange = payload1.findChange();
+      tx0x2 = result.getLeft();
+      higherPoolChangeCp = result.getRight();
+      tx0x2List.add(tx0x2);
     }
 
     MultiTx0x2 multiPayload1 = new MultiTx0x2(params, tx0x2List);
@@ -129,41 +128,40 @@ public class MultiTx0x2Service extends AbstractCahootsService<MultiTx0x2, MultiT
   //
   // sender
   //
-  private MultiTx0x2 doStep2(MultiTx0x2Context multiTx0x2Context, MultiTx0x2 multiTx0x2)
+  protected MultiTx0x2 doStep2(MultiTx0x2Context multiTx0x2Context, MultiTx0x2 multiTx0x2)
       throws Exception {
     debug("BEGING MULTI TX0X2 STEP 2", multiTx0x2Context);
 
     Tx0x2 payload2;
     List<Tx0x2> tx0x2List = new ArrayList<>();
-    TransactionOutput higherPoolSenderChange = null;
+    MyTransactionOutPoint higherPoolSenderChange = null;
     TransactionOutput higherPoolCounterpartyChange = null;
     long higherPoolMinerFee = 0L;
     for (int i = 0; i < multiTx0x2.getTx0x2List().size(); i++) {
+      Pair<Tx0x2, MyTransactionOutPoint> result;
+      Tx0x2 subTx0x2 = multiTx0x2.getTx0x2List().get(i);
+      Tx0x2Context subContext = multiTx0x2Context.getTx0x2ContextList().get(i);
       if (higherPoolSenderChange == null) {
-        payload2 =
-            tx0x2Service.doStep2Initial(
-                multiTx0x2.getTx0x2List().get(i), multiTx0x2Context.getTx0x2ContextList().get(i));
+        result = tx0x2Service.doStep2Initial(subTx0x2, subContext);
       } else {
-        payload2 =
+        result =
             tx0x2Service.doStep2Cascading(
-                multiTx0x2.getTx0x2List().get(i),
-                multiTx0x2Context.getTx0x2ContextList().get(i),
+                subTx0x2,
+                subContext,
                 higherPoolSenderChange,
                 higherPoolCounterpartyChange,
                 higherPoolMinerFee);
       }
-
-      if (payload2 == null) { // negative change value
+      if (result == null) { // negative change value
+        log.error("negative change detected: subTx0x2=" + subTx0x2);
         multiTx0x2.getTx0x2List().remove(i);
         continue;
       }
+      payload2 = result.getLeft();
+      higherPoolSenderChange = result.getRight();
       tx0x2List.add(payload2);
 
-      // higher pool changes used for lower pools
-      higherPoolSenderChange = payload2.findChange();
-
       higherPoolCounterpartyChange = multiTx0x2.getTx0x2List().get(i).findCollabChange();
-
       higherPoolMinerFee += payload2.getFeeAmount() / 2L;
     }
 

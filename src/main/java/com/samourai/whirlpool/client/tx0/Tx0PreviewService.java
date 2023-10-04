@@ -8,6 +8,7 @@ import com.samourai.wallet.segwit.SegwitAddress;
 import com.samourai.wallet.util.AsyncUtil;
 import com.samourai.wallet.util.Pair;
 import com.samourai.wallet.util.RandomUtil;
+import com.samourai.wallet.util.UtxoUtil;
 import com.samourai.wallet.utxo.BipUtxo;
 import com.samourai.wallet.utxo.UtxoDetail;
 import com.samourai.wallet.utxo.UtxoDetailComparator;
@@ -31,6 +32,7 @@ import org.slf4j.LoggerFactory;
 
 public class Tx0PreviewService {
   private Logger log = LoggerFactory.getLogger(Tx0PreviewService.class);
+  private static final UtxoUtil utxoUtil = UtxoUtil.getInstance();
 
   private MinerFeeSupplier minerFeeSupplier;
   private BipFormatSupplier bipFormatSupplier;
@@ -291,10 +293,11 @@ public class Tx0PreviewService {
   }
 
   protected Collection<UtxoDetail> mockChangeUtxos(Collection<Long> changeAmounts) {
+    NetworkParameters params = config.getNetworkParameters();
     String mockAddressBech32 =
         new SegwitAddress(new ECKey(), config.getNetworkParameters()).getBech32AsString();
     return changeAmounts.stream()
-        .map(value -> new UtxoDetailImpl("previewhash", 0, value, mockAddressBech32, null))
+        .map(value -> new UtxoDetailImpl("previewhash", 0, value, mockAddressBech32, null, params))
         .collect(Collectors.toList());
   }
 
@@ -700,7 +703,7 @@ public class Tx0PreviewService {
   protected String debugUtxos(Collection<? extends UtxoDetail> utxos) {
     return Arrays.toString(
         utxos.stream()
-            .map(u -> ClientUtils.utxoToKey((BipUtxo) u) + "(" + u.getValue() + "sat)")
+            .map(u -> utxoUtil.utxoToKey((BipUtxo) u) + "(" + u.getValue() + "sat)")
             .toArray());
   }
 

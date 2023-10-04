@@ -1,8 +1,8 @@
 package com.samourai.whirlpool.client.wallet.beans;
 
 import com.samourai.wallet.chain.ChainSupplier;
+import com.samourai.wallet.util.UtxoUtil;
 import com.samourai.wallet.utxo.BipUtxo;
-import com.samourai.whirlpool.client.utils.ClientUtils;
 import com.samourai.whirlpool.client.wallet.data.pool.PoolSupplier;
 import com.samourai.whirlpool.client.wallet.data.utxo.UtxoSupplier;
 import com.samourai.whirlpool.client.whirlpool.beans.Pool;
@@ -15,6 +15,7 @@ import org.slf4j.LoggerFactory;
 
 public class MixOrchestratorData {
   private final Logger log = LoggerFactory.getLogger(MixOrchestratorData.class);
+  private final UtxoUtil utxoUtil = UtxoUtil.getInstance();
 
   private ConcurrentHashMap<String, Mixing> mixing;
   private Set<String> mixingHashs;
@@ -64,7 +65,7 @@ public class MixOrchestratorData {
   }
 
   public synchronized void removeMixing(WhirlpoolUtxo whirlpoolUtxo) {
-    String key = ClientUtils.utxoToKey(whirlpoolUtxo);
+    String key = utxoUtil.utxoToKey(whirlpoolUtxo);
     mixing.remove(key);
     mixingHashs.remove(whirlpoolUtxo.getTxHash());
     mixingPerPool = computeMixingPerPool();
@@ -73,7 +74,7 @@ public class MixOrchestratorData {
 
   public synchronized void addMixing(Mixing mixingToAdd) {
     WhirlpoolUtxo whirlpoolUtxo = mixingToAdd.getUtxo();
-    String key = ClientUtils.utxoToKey(whirlpoolUtxo);
+    String key = utxoUtil.utxoToKey(whirlpoolUtxo);
     mixing.put(key, mixingToAdd);
     mixingHashs.add(whirlpoolUtxo.getTxHash());
     mixingPerPool = computeMixingPerPool();
@@ -103,7 +104,7 @@ public class MixOrchestratorData {
   }
 
   public Mixing getMixing(BipUtxo utxo) {
-    final String key = ClientUtils.utxoToKey(utxo);
+    final String key = utxoUtil.utxoToKey(utxo);
     return mixing.get(key);
   }
 

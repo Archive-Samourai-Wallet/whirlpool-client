@@ -22,7 +22,6 @@ import java.util.Collection;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.stream.Collectors;
-import org.bitcoinj.core.NetworkParameters;
 import org.bouncycastle.util.encoders.Hex;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -171,12 +170,8 @@ public abstract class BasicUtxoSupplier extends BasicSupplier<UtxoData>
   }
 
   @Override
-  public byte[] _getPrivKey(String utxoHash, int utxoIndex) throws Exception {
-    WhirlpoolUtxo whirlpoolUtxo = findUtxo(utxoHash, utxoIndex);
-    if (whirlpoolUtxo == null) {
-      throw new Exception("Utxo not found: " + utxoHash + ":" + utxoIndex);
-    }
-    return _getPrivKey(whirlpoolUtxo);
+  public byte[] _getPrivKey(BipUtxo bipUtxo) {
+    return bipUtxo.getBipAddress(walletSupplier).getHdAddress().getECKey().getPrivKeyBytes();
   }
 
   @Override
@@ -210,8 +205,7 @@ public abstract class BasicUtxoSupplier extends BasicSupplier<UtxoData>
     // group utxos by script = same address
     Map<String, UTXO> utxoByScript = new LinkedHashMap<String, UTXO>();
     for (WhirlpoolUtxo whirlpoolUtxo : whirlpoolUtxos) {
-      NetworkParameters params = whirlpoolUtxo.getBipWallet().getParams();
-      MyTransactionOutPoint outPoint = utxoUtil.computeOutpoint(whirlpoolUtxo, params);
+      MyTransactionOutPoint outPoint = utxoUtil.computeOutpoint(whirlpoolUtxo);
       String script =
           whirlpoolUtxo.getScriptBytes() != null
               ? Hex.toHexString(whirlpoolUtxo.getScriptBytes())

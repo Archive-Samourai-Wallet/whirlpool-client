@@ -296,9 +296,7 @@ public class JavaExample {
     Tx0FeeTarget tx0FeeTarget = Tx0FeeTarget.BLOCKS_4;
     Tx0FeeTarget mixFeeTarget = Tx0FeeTarget.BLOCKS_4;
     Tx0Config tx0Config =
-        whirlpoolWallet
-            .getTx0Config(pool05btc, utxos, tx0FeeTarget, mixFeeTarget)
-            .setChangeWallet(WhirlpoolAccount.BADBANK);
+        whirlpoolWallet.getTx0Config(pool05btc, utxos, tx0FeeTarget, mixFeeTarget);
 
     // preview tx0
     try {

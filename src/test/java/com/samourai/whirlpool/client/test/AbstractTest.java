@@ -239,6 +239,7 @@ public class AbstractTest {
             value,
             bech32Address,
             1234,
+            params,
             XPUB_DEPOSIT_BIP84,
             false,
             0,

@@ -2,6 +2,7 @@ package com.samourai.wallet.cahoots.tx0x2;
 
 import com.samourai.soroban.cahoots.CahootsContext;
 import com.samourai.wallet.api.backend.IPushTx;
+import com.samourai.wallet.bipWallet.KeyBag;
 import com.samourai.wallet.cahoots.Cahoots;
 import com.samourai.wallet.cahoots.CahootsType;
 import com.samourai.wallet.cahoots.psbt.PSBT;
@@ -10,12 +11,11 @@ import com.samourai.wallet.send.exceptions.SpendException;
 import com.samourai.wallet.send.provider.UtxoKeyProvider;
 import com.samourai.wallet.util.TxUtil;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.stream.Collectors;
-import org.bitcoinj.core.ECKey;
 import org.bitcoinj.core.NetworkParameters;
 import org.bitcoinj.core.Transaction;
+import org.bitcoinj.core.TransactionOutPoint;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
@@ -62,9 +62,20 @@ public class MultiTx0x2 extends Cahoots {
   }
 
   // inital tx0x2 outpoints
+
   @Override
-  public HashMap<String, Long> getOutpoints() {
-    return tx0x2List.get(0).getOutpoints();
+  public Long getOutpointsSum() {
+    throw new RuntimeException("Not available");
+  }
+
+  @Override
+  public Long getOutpointValue(TransactionOutPoint txOut) {
+    throw new RuntimeException("Not available");
+  }
+
+  @Override
+  public void setOutpointValue(TransactionOutPoint txOut, long value) {
+    throw new RuntimeException("Not available");
   }
 
   // inital tx0x2 destination
@@ -115,7 +126,7 @@ public class MultiTx0x2 extends Cahoots {
   }
 
   @Override
-  public void signTx(HashMap<String, ECKey> keyBag) {
+  public void signTx(KeyBag keyBag) {
     for (Tx0x2 tx0x2 : tx0x2List) {
       tx0x2.signTx(keyBag);
     }

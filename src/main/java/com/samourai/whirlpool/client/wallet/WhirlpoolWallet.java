@@ -166,8 +166,7 @@ public class WhirlpoolWallet {
     // build initial TX0
     tx0Config.setDecoyTx0x2(false); // no decoy for Tx0x2
     tx0Config.setCascade(false); // no cascade: use multiTx0x2Context() for cascade
-    Tx0 tx0Initial =
-        tx0Service.tx0(getWalletSupplier(), tx0Config, getUtxoSupplier()).iterator().next();
+    Tx0 tx0Initial = tx0Service.tx0(tx0Config).iterator().next();
 
     // restore wallet indexs (to avoid indexs gap)
     getWalletSupplier().indexsRestore(indexsBackup);
@@ -200,10 +199,16 @@ public class WhirlpoolWallet {
   }
 
   public MultiTx0x2Context tx0x2MultiContext(Tx0Config tx0Config) throws Exception {
+    // backup wallet indexs before Tx0Initial
+    Map<String, Map<Chain, Integer>> indexsBackup = getWalletSupplier().indexsBackup();
+
     // build initial TX0
-    tx0Config.setDecoyTx0x2(true); // no decoy for Tx0x2
+    tx0Config.setDecoyTx0x2(false); // no decoy for Tx0x2
     tx0Config.setCascade(true); // cascade: use tx0x2Context() for no-cascade
-    List<Tx0> tx0Initials = tx0Service.tx0(getWalletSupplier(), tx0Config, getUtxoSupplier());
+    List<Tx0> tx0Initials = tx0Service.tx0(tx0Config);
+
+    // restore wallet indexs (to avoid indexs gap)
+    getWalletSupplier().indexsRestore(indexsBackup);
 
     // start Cahoots
     long minerFee = getMinerFeeSupplier().getFee(MinerFeeTarget.BLOCKS_4); // never used
@@ -238,7 +243,7 @@ public class WhirlpoolWallet {
 
   protected Tx0Result doTx0(Tx0Config tx0Config) throws Exception {
     // create TX0s
-    List<Tx0> tx0List = tx0Service.tx0(getWalletSupplier(), tx0Config, getUtxoSupplier());
+    List<Tx0> tx0List = tx0Service.tx0(tx0Config);
 
     // broadcast each TX0
     int num = 1;
@@ -320,8 +325,19 @@ public class WhirlpoolWallet {
       Collection<? extends BipUtxo> spendFroms,
       Tx0FeeTarget tx0FeeTarget,
       Tx0FeeTarget mixFeeTarget) {
+    BipWallet premixWallet = getWalletSupplier().getWallet(BIP_WALLET.PREMIX_BIP84);
+    BipWallet changeWallet = getWalletSupplier().getWallet(BIP_WALLET.DEPOSIT_BIP84);
+    BipWallet feeChangeWallet = changeWallet;
     Tx0Config tx0Config =
-        new Tx0Config(tx0FeeTarget, mixFeeTarget, spendFroms, WhirlpoolAccount.DEPOSIT, pool);
+        new Tx0Config(
+            tx0FeeTarget,
+            mixFeeTarget,
+            spendFroms,
+            getUtxoSupplier(),
+            premixWallet,
+            changeWallet,
+            feeChangeWallet,
+            pool);
     return tx0Config;
   }
 

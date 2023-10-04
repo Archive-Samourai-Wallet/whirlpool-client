@@ -3,6 +3,7 @@ package com.samourai.whirlpool.client.wallet;
 import com.samourai.wallet.api.backend.MinerFeeTarget;
 import com.samourai.wallet.bip69.BIP69InputComparator;
 import com.samourai.wallet.bipWallet.BipWallet;
+import com.samourai.wallet.bipWallet.KeyBag;
 import com.samourai.wallet.segwit.bech32.Bech32UtilGeneric;
 import com.samourai.wallet.send.SendFactoryGeneric;
 import com.samourai.wallet.util.FeeUtil;
@@ -145,10 +146,11 @@ public class WalletAggregateService {
 
     // prepare N inputs
     List<TransactionInput> inputs = new ArrayList<TransactionInput>();
-    for (int i = 0; i < spendFroms.size(); i++) {
-      BipUtxo spendFrom = spendFroms.get(i);
-      TransactionInput txInput = utxoUtil.computeOutpoint(spendFrom, params).computeSpendInput();
+    KeyBag keyBag = new KeyBag();
+    for (BipUtxo spendFrom : spendFroms) {
+      TransactionInput txInput = utxoUtil.computeOutpoint(spendFrom).computeSpendInput();
       inputs.add(txInput);
+      keyBag.add(spendFrom, whirlpoolWallet.getUtxoSupplier());
       if (log.isDebugEnabled()) {
         log.debug("Tx in: " + spendFrom);
       }
@@ -161,7 +163,8 @@ public class WalletAggregateService {
     }
 
     // sign inputs
-    SendFactoryGeneric.getInstance().signTransaction(tx, whirlpoolWallet.getUtxoSupplier());
+    SendFactoryGeneric.getInstance()
+        .signTransaction(tx, keyBag, whirlpoolWallet.getUtxoSupplier().getBipFormatSupplier());
 
     final String hexTx = TxUtil.getInstance().getTxHex(tx);
     final String strTxHash = tx.getHashAsString();

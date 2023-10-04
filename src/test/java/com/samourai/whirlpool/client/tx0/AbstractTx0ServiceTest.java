@@ -28,15 +28,7 @@ public class AbstractTx0ServiceTest extends AbstractWhirlpoolWalletTest {
   }
 
   protected Tx0 tx0(Tx0Config tx0Config, Tx0Preview tx0Preview) throws Exception {
-    Tx0 tx0 =
-        whirlpoolWallet
-            .getTx0Service()
-            .buildTx0(
-                whirlpoolWallet.getWalletSupplier(),
-                tx0Config,
-                whirlpoolWallet.getUtxoSupplier(),
-                tx0Preview)
-            .get();
+    Tx0 tx0 = whirlpoolWallet.getTx0Service().buildTx0(tx0Config, tx0Preview).get();
 
     Assertions.assertEquals(FEE_PAYLOAD_LENGTH, tx0.getTx0Data().getFeePayload().length);
     return tx0;

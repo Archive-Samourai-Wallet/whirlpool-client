@@ -6,7 +6,6 @@ import com.samourai.wallet.bipWallet.BipWallet;
 import com.samourai.wallet.bipWallet.WalletSupplier;
 import com.samourai.wallet.util.UtxoUtil;
 import com.samourai.wallet.utxo.BipUtxo;
-import com.samourai.whirlpool.client.utils.ClientUtils;
 import com.samourai.whirlpool.client.wallet.beans.WhirlpoolAccount;
 import com.samourai.whirlpool.client.wallet.beans.WhirlpoolUtxo;
 import com.samourai.whirlpool.client.wallet.beans.WhirlpoolUtxoChanges;
@@ -64,7 +63,7 @@ public class UtxoData {
     // fresh utxos
     final Map<String, BipUtxo> freshUtxos = new LinkedHashMap<>();
     for (BipUtxo utxo : unspentOutputs) {
-      String utxoKey = ClientUtils.utxoToKey(utxo);
+      String utxoKey = utxoUtil.utxoToKey(utxo);
       freshUtxos.put(utxoKey, utxo);
 
       // init 'confirmedBlockHeight' (from 'confirmations') when missing (required for
@@ -89,7 +88,7 @@ public class UtxoData {
 
     // add existing utxos
     for (WhirlpoolUtxo whirlpoolUtxo : previousUtxos.values()) {
-      String key = ClientUtils.utxoToKey(whirlpoolUtxo);
+      String key = utxoUtil.utxoToKey(whirlpoolUtxo);
 
       BipUtxo freshUtxo = freshUtxos.get(key);
       if (freshUtxo != null) {
@@ -116,7 +115,7 @@ public class UtxoData {
           // find account
           BipWallet bipWallet = utxo.getBipWallet(walletSupplier);
           if (bipWallet == null) {
-            throw new Exception("Unknown wallet for utxo: " + ClientUtils.utxoToKey(utxo));
+            throw new Exception("Unknown wallet for utxo: " + utxoUtil.utxoToKey(utxo));
           }
           WhirlpoolAccount whirlpoolAccount = bipWallet.getAccount();
 
@@ -197,7 +196,7 @@ public class UtxoData {
   }
 
   private void addUtxo(WhirlpoolUtxo whirlpoolUtxo) {
-    String key = ClientUtils.utxoToKey(whirlpoolUtxo);
+    String key = utxoUtil.utxoToKey(whirlpoolUtxo);
     utxos.put(key, whirlpoolUtxo);
 
     String addr = whirlpoolUtxo.getAddress();
@@ -244,7 +243,7 @@ public class UtxoData {
   }
 
   public WhirlpoolUtxo findByUtxoKey(String utxoHash, int utxoIndex) {
-    String utxoKey = ClientUtils.utxoToKey(utxoHash, utxoIndex);
+    String utxoKey = utxoUtil.utxoToKey(utxoHash, utxoIndex);
     return utxos.get(utxoKey);
   }
 

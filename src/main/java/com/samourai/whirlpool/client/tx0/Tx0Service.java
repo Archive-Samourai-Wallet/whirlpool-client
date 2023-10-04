@@ -2,12 +2,9 @@ package com.samourai.whirlpool.client.tx0;
 
 import com.samourai.wallet.bip69.BIP69InputComparatorBipUtxo;
 import com.samourai.wallet.bip69.BIP69OutputComparator;
-import com.samourai.wallet.bipFormat.BIP_FORMAT;
 import com.samourai.wallet.bipFormat.BipFormatSupplier;
 import com.samourai.wallet.bipWallet.BipWallet;
 import com.samourai.wallet.bipWallet.KeyBag;
-import com.samourai.wallet.bipWallet.WalletSupplier;
-import com.samourai.wallet.hd.BIP_WALLET;
 import com.samourai.wallet.hd.BipAddress;
 import com.samourai.wallet.segwit.bech32.Bech32UtilGeneric;
 import com.samourai.wallet.send.SendFactoryGeneric;
@@ -69,25 +66,18 @@ public class Tx0Service {
   }
 
   /** Generate maxOutputs premixes outputs max. */
-  public Optional<Tx0> buildTx0(
-      WalletSupplier walletSupplier, Tx0Config tx0Config, UtxoKeyProvider utxoKeyProvider)
-      throws Exception {
+  public Optional<Tx0> buildTx0(Tx0Config tx0Config) throws Exception {
     // preview
     Pool pool = tx0Config.getPool();
     Tx0Preview tx0Preview = tx0PreviewService.tx0PreviewSingle(tx0Config, pool).orElse(null);
     if (tx0Preview != null) {
       // compute Tx0
-      return buildTx0(walletSupplier, tx0Config, utxoKeyProvider, tx0Preview);
+      return buildTx0(tx0Config, tx0Preview);
     }
     return Optional.empty();
   }
 
-  protected Optional<Tx0> buildTx0(
-      WalletSupplier walletSupplier,
-      Tx0Config tx0Config,
-      UtxoKeyProvider utxoKeyProvider,
-      Tx0Preview tx0Preview)
-      throws Exception {
+  protected Optional<Tx0> buildTx0(Tx0Config tx0Config, Tx0Preview tx0Preview) throws Exception {
     if (log.isDebugEnabled()) {
       String poolId = tx0Preview.getPool().getPoolId();
       log.debug(
@@ -101,9 +91,8 @@ public class Tx0Service {
     }
 
     // save indexes state with Tx0Context
-    BipWallet premixWallet = walletSupplier.getWallet(BIP_WALLET.PREMIX_BIP84);
-    BipWallet changeWallet =
-        walletSupplier.getWallet(tx0Config.getChangeWallet(), BIP_FORMAT.SEGWIT_NATIVE);
+    BipWallet premixWallet = tx0Config.getPremixWallet();
+    BipWallet changeWallet = tx0Config.getChangeWallet();
     Tx0Context tx0Context = new Tx0Context(premixWallet, changeWallet);
 
     Tx0Data tx0Data = tx0Preview.getTx0Data();
@@ -118,8 +107,8 @@ public class Tx0Service {
       }
     } else {
       // pay to deposit
-      BipWallet depositWallet = walletSupplier.getWallet(BIP_WALLET.DEPOSIT_BIP84);
-      feeOrBackAddressBech32 = depositWallet.getNextAddressChange().getAddressString();
+      BipWallet feeChangeWallet = tx0Config.getFeeChangeWallet();
+      feeOrBackAddressBech32 = feeChangeWallet.getNextAddressChange().getAddressString();
       if (log.isDebugEnabled()) {
         log.debug("feeAddressDestination: back to deposit => " + feeOrBackAddressBech32);
       }
@@ -135,8 +124,8 @@ public class Tx0Service {
       throw new IllegalArgumentException("spendFroms should be > 0");
     }
     BipUtxo firstInput = sortedSpendFroms.get(0);
-    BipAddress firstInputAddress = firstInput.getBipAddress(walletSupplier);
-    byte[] firstInputKey = firstInputAddress.getHdAddress().getECKey().getPrivKeyBytes();
+    UtxoKeyProvider utxoKeyProvider = tx0Config.getUtxoKeyProvider();
+    byte[] firstInputKey = utxoKeyProvider._getPrivKey(firstInput);
     byte[] opReturn = computeOpReturn(firstInput, firstInputKey, tx0Data);
 
     //
@@ -146,26 +135,22 @@ public class Tx0Service {
     return buildTx0(
         tx0Config,
         sortedSpendFroms,
-        walletSupplier,
         premixWallet,
         tx0Preview,
         opReturn,
         feeOrBackAddressBech32,
         changeWallet,
-        utxoKeyProvider,
         tx0Context);
   }
 
   protected Optional<Tx0> buildTx0(
       Tx0Config tx0Config,
       Collection<BipUtxo> sortedSpendFroms,
-      WalletSupplier walletSupplier,
       BipWallet premixWallet,
       Tx0Preview tx0Preview,
       byte[] opReturn,
       String feeOrBackAddressBech32,
       BipWallet changeWallet,
-      UtxoKeyProvider utxoKeyProvider,
       Tx0Context tx0Context)
       throws Exception {
 
@@ -292,16 +277,17 @@ public class Tx0Service {
 
     // all inputs
     for (BipUtxo spendFrom : sortedSpendFroms) {
-      TransactionInput input = utxoUtil.computeOutpoint(spendFrom, params).computeSpendInput();
+      TransactionInput input = utxoUtil.computeOutpoint(spendFrom).computeSpendInput();
       tx.addInput(input);
       if (log.isDebugEnabled()) {
         log.debug("Tx0 in: utxo=" + spendFrom);
       }
     }
 
+    UtxoKeyProvider keyProvider = tx0Config.getUtxoKeyProvider();
     KeyBag keyBag = new KeyBag();
-    keyBag.addAll(sortedSpendFroms, walletSupplier);
-    signTx0(tx, keyBag, utxoKeyProvider.getBipFormatSupplier());
+    keyBag.addAll(sortedSpendFroms, keyProvider);
+    signTx0(tx, keyBag, keyProvider.getBipFormatSupplier());
     tx.verify();
 
     // build changeUtxos *after* tx is signed
@@ -352,7 +338,7 @@ public class Tx0Service {
       throws Exception {
 
     // use input0 for masking
-    TransactionOutPoint maskingOutpoint = utxoUtil.computeOutpoint(firstInput, params);
+    TransactionOutPoint maskingOutpoint = utxoUtil.computeOutpoint(firstInput);
     String feePaymentCode = tx0Data.getFeePaymentCode();
     byte[] feePayload = tx0Data.getFeePayload();
     return feeOpReturnImpl.computeOpReturn(
@@ -370,24 +356,19 @@ public class Tx0Service {
       String changeAddressBech32 = bipAddress.getAddressString();
       BipUtxo changeUtxo =
           new BipUtxoImpl(
-              changeOutput.getParentTransactionHash().toString(),
-              changeOutput.getIndex(),
-              changeOutput.getValue().getValue(),
+              changeOutput,
               changeAddressBech32,
               null,
               changeWallet.getXPub(),
               false,
               bipAddress.getHdAddress().getChainIndex(),
-              bipAddress.getHdAddress().getAddressIndex(),
-              changeOutput.getScriptBytes());
+              bipAddress.getHdAddress().getAddressIndex());
       changeUtxos.add(changeUtxo);
     }
     return changeUtxos;
   }
 
-  public List<Tx0> tx0(
-      WalletSupplier walletSupplier, Tx0Config tx0Config, UtxoKeyProvider utxoKeyProvider)
-      throws Exception {
+  public List<Tx0> tx0(Tx0Config tx0Config) throws Exception {
     List<Tx0> tx0List = new ArrayList<>();
 
     // initial Tx0 on highest pool
@@ -400,7 +381,7 @@ public class Tx0Service {
       }
     }
     Tx0 tx0 =
-        buildTx0(walletSupplier, tx0Config, utxoKeyProvider)
+        buildTx0(tx0Config)
             .orElseThrow(
                 () ->
                     new NotifiableException(
@@ -430,7 +411,7 @@ public class Tx0Service {
         tx0Config = new Tx0Config(tx0Config, changeUtxos, pool);
         tx0Config._setCascading(true);
         tx0Config.setDecoyTx0x2Forced(true); // skip to next lower pool when decoy is not possible
-        tx0 = this.buildTx0(walletSupplier, tx0Config, utxoKeyProvider).orElse(null);
+        tx0 = this.buildTx0(tx0Config).orElse(null);
         if (tx0 != null) {
           tx0List.add(tx0);
           changeUtxos = tx0.getChangeUtxos();
@@ -506,23 +487,13 @@ public class Tx0Service {
 
         // retry on address-reuse
         pushTx0Exception = e;
-        tx0 =
-            tx0Retry(
-                    tx0,
-                    pushTxErrorResponse,
-                    whirlpoolWallet.getWalletSupplier(),
-                    whirlpoolWallet.getUtxoSupplier())
-                .get();
+        tx0 = tx0Retry(tx0, pushTxErrorResponse).get();
       }
     }
     throw pushTx0Exception;
   }
 
-  private Optional<Tx0> tx0Retry(
-      Tx0 tx0,
-      PushTxErrorResponse pushTxErrorResponse,
-      WalletSupplier walletSupplier,
-      UtxoKeyProvider utxoKeyProvider)
+  private Optional<Tx0> tx0Retry(Tx0 tx0, PushTxErrorResponse pushTxErrorResponse)
       throws Exception {
     // manage premix address reuses
     Collection<Integer> premixOutputIndexs = ClientUtils.getOutputIndexs(tx0.getPremixOutputs());
@@ -552,7 +523,7 @@ public class Tx0Service {
     }
 
     // rebuild a TX0 with new indexes
-    return buildTx0(walletSupplier, tx0.getTx0Config(), utxoKeyProvider, tx0);
+    return buildTx0(tx0.getTx0Config(), tx0);
   }
 
   public Tx0PreviewService getTx0PreviewService() {

@@ -79,10 +79,6 @@ public class Tx0x2 extends Cahoots2x {
     }
   }
 
-  public TransactionOutput findChange() {
-    return getTransaction().getOutput(getTransaction().getOutputs().size() - 1);
-  }
-
   public TransactionOutput findCollabChange() throws Exception {
     return TxUtil.getInstance()
         .findOutputByAddress(getTransaction(), getCollabChange(), BIP_FORMAT.PROVIDER);

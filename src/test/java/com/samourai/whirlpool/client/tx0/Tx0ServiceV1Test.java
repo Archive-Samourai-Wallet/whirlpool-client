@@ -4,7 +4,6 @@ import com.samourai.wallet.util.TxUtil;
 import com.samourai.wallet.utxo.BipUtxo;
 import com.samourai.wallet.utxo.UtxoDetailImpl;
 import com.samourai.whirlpool.client.wallet.beans.Tx0FeeTarget;
-import com.samourai.whirlpool.client.wallet.beans.WhirlpoolAccount;
 import com.samourai.whirlpool.client.whirlpool.beans.Tx0Data;
 import java.util.Arrays;
 import org.bitcoinj.core.Transaction;
@@ -34,7 +33,8 @@ public class Tx0ServiceV1Test extends AbstractTx0ServiceV1Test {
             1,
             500000000,
             "tb1qjara0278vrsr8gvaga7jpy2c9amtgvytr44xym",
-            null);
+            null,
+            params);
 
     int nbOutputsExpected = 70;
     long premixValue = 1000170;
@@ -84,7 +84,8 @@ public class Tx0ServiceV1Test extends AbstractTx0ServiceV1Test {
             1,
             500000000,
             "tb1qjara0278vrsr8gvaga7jpy2c9amtgvytr44xym",
-            null);
+            null,
+            params);
 
     String feePaymentCode =
         "PM8TJXp19gCE6hQzqRi719FGJzF6AreRwvoQKLRnQ7dpgaakakFns22jHUqhtPQWmfevPQRCyfFbdDrKvrfw9oZv5PjaCerQMa3BKkPyUf9yN1CDR3w6";
@@ -141,7 +142,8 @@ public class Tx0ServiceV1Test extends AbstractTx0ServiceV1Test {
             1,
             500000000,
             "tb1qjara0278vrsr8gvaga7jpy2c9amtgvytr44xym",
-            null);
+            null,
+            params);
 
     String feePaymentCode =
         "PM8TJXp19gCE6hQzqRi719FGJzF6AreRwvoQKLRnQ7dpgaakakFns22jHUqhtPQWmfevPQRCyfFbdDrKvrfw9oZv5PjaCerQMa3BKkPyUf9yN1CDR3w6";
@@ -202,7 +204,8 @@ public class Tx0ServiceV1Test extends AbstractTx0ServiceV1Test {
             1,
             500000000,
             "tb1qjara0278vrsr8gvaga7jpy2c9amtgvytr44xym",
-            null);
+            null,
+            params);
 
     String feePaymentCode =
         "PM8TJXp19gCE6hQzqRi719FGJzF6AreRwvoQKLRnQ7dpgaakakFns22jHUqhtPQWmfevPQRCyfFbdDrKvrfw9oZv5PjaCerQMa3BKkPyUf9yN1CDR3w6";
@@ -270,12 +273,11 @@ public class Tx0ServiceV1Test extends AbstractTx0ServiceV1Test {
     mockUtxos(spendFromUtxo);
 
     Tx0Config tx0Config =
-        new Tx0Config(
-            Tx0FeeTarget.BLOCKS_24,
-            Tx0FeeTarget.BLOCKS_24,
+        whirlpoolWallet.getTx0Config(
+            pool01btc,
             Arrays.asList(new BipUtxo[] {spendFromUtxo}),
-            WhirlpoolAccount.DEPOSIT,
-            pool01btc);
+            Tx0FeeTarget.BLOCKS_24,
+            Tx0FeeTarget.BLOCKS_24);
     int nbOutputsExpected = 10;
     long premixValue = 1000150;
     String feePaymentCode =
@@ -505,12 +507,11 @@ public class Tx0ServiceV1Test extends AbstractTx0ServiceV1Test {
     mockUtxos(spendFromUtxo);
 
     Tx0Config tx0Config =
-        new Tx0Config(
-            Tx0FeeTarget.BLOCKS_24,
-            Tx0FeeTarget.BLOCKS_24,
+        whirlpoolWallet.getTx0Config(
+            pool01btc,
             Arrays.asList(new BipUtxo[] {spendFromUtxo}),
-            WhirlpoolAccount.DEPOSIT,
-            pool01btc);
+            Tx0FeeTarget.BLOCKS_24,
+            Tx0FeeTarget.BLOCKS_24);
     int nbOutputsExpected = 1;
     long premixValue = 1000150;
     String feePaymentCode =
@@ -591,12 +592,11 @@ public class Tx0ServiceV1Test extends AbstractTx0ServiceV1Test {
     mockUtxos(spendFromUtxo);
 
     Tx0Config tx0Config =
-        new Tx0Config(
-            Tx0FeeTarget.BLOCKS_24,
-            Tx0FeeTarget.BLOCKS_24,
+        whirlpoolWallet.getTx0Config(
+            pool01btc,
             Arrays.asList(new BipUtxo[] {spendFromUtxo}),
-            WhirlpoolAccount.DEPOSIT,
-            pool01btc);
+            Tx0FeeTarget.BLOCKS_24,
+            Tx0FeeTarget.BLOCKS_24);
     int nbOutputsExpected = 1;
     long premixValue = 1000150;
     String feePaymentCode =
@@ -677,12 +677,11 @@ public class Tx0ServiceV1Test extends AbstractTx0ServiceV1Test {
     mockUtxos(spendFromUtxo);
 
     Tx0Config tx0Config =
-        new Tx0Config(
-            Tx0FeeTarget.BLOCKS_24,
-            Tx0FeeTarget.BLOCKS_24,
+        whirlpoolWallet.getTx0Config(
+            pool01btc,
             Arrays.asList(new BipUtxo[] {spendFromUtxo}),
-            WhirlpoolAccount.DEPOSIT,
-            pool01btc);
+            Tx0FeeTarget.BLOCKS_24,
+            Tx0FeeTarget.BLOCKS_24);
     int nbOutputsExpected = 1;
     long premixValue = 1000150;
     String feePaymentCode =
@@ -762,12 +761,12 @@ public class Tx0ServiceV1Test extends AbstractTx0ServiceV1Test {
     mockUtxos(spendFromUtxo);
 
     Tx0Config tx0Config =
-        new Tx0Config(
-            Tx0FeeTarget.BLOCKS_24,
-            Tx0FeeTarget.BLOCKS_24,
+        whirlpoolWallet.getTx0Config(
+            pool01btc,
             Arrays.asList(new BipUtxo[] {spendFromUtxo}),
-            WhirlpoolAccount.POSTMIX,
-            pool01btc);
+            Tx0FeeTarget.BLOCKS_24,
+            Tx0FeeTarget.BLOCKS_24);
+    tx0Config.setChangeWallet(whirlpoolWallet.getWalletPostmix());
     int nbOutputsExpected = 1;
     long premixValue = 1000150;
     String feePaymentCode =

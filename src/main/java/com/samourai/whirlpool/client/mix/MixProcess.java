@@ -329,7 +329,8 @@ public class MixProcess {
     }
     long outputValue = tx.getOutput(outputIndex).getValue().getValue();
     receiveUtxo =
-        new UtxoDetailImpl(tx.getHashAsString(), outputIndex, outputValue, outputAddress, null);
+        new UtxoDetailImpl(
+            tx.getHashAsString(), outputIndex, outputValue, outputAddress, null, params);
 
     // verify my input
     UtxoDetail utxo = premixHandler.getUtxo();

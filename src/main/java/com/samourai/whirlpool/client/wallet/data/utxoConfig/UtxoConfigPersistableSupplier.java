@@ -1,6 +1,7 @@
 package com.samourai.whirlpool.client.wallet.data.utxoConfig;
 
 import com.samourai.wallet.util.CallbackWithArg;
+import com.samourai.wallet.util.UtxoUtil;
 import com.samourai.whirlpool.client.utils.ClientUtils;
 import com.samourai.whirlpool.client.wallet.beans.WhirlpoolUtxo;
 import com.samourai.whirlpool.client.wallet.data.supplier.AbstractPersistableSupplier;
@@ -14,6 +15,7 @@ import org.slf4j.LoggerFactory;
 public class UtxoConfigPersistableSupplier extends AbstractPersistableSupplier<UtxoConfigData>
     implements UtxoConfigSupplier {
   private static final Logger log = LoggerFactory.getLogger(UtxoConfigPersistableSupplier.class);
+  private final UtxoUtil utxoUtil = UtxoUtil.getInstance();
 
   public UtxoConfigPersistableSupplier(IPersister<UtxoConfigData> persister) {
     super(persister, log);
@@ -85,6 +87,6 @@ public class UtxoConfigPersistableSupplier extends AbstractPersistableSupplier<U
   }
 
   protected String computeUtxoConfigKey(String hash, int index) {
-    return ClientUtils.sha256Hash(ClientUtils.utxoToKey(hash, index));
+    return ClientUtils.sha256Hash(utxoUtil.utxoToKey(hash, index));
   }
 }

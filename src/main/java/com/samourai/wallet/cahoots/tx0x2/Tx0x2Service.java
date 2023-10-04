@@ -8,9 +8,8 @@ import com.samourai.wallet.cahoots.CahootsType;
 import com.samourai.wallet.cahoots.CahootsUtxo;
 import com.samourai.wallet.cahoots.CahootsWallet;
 import com.samourai.wallet.hd.BipAddress;
-import com.samourai.wallet.hd.Chain;
-import com.samourai.wallet.hd.HD_Address;
 import com.samourai.wallet.send.MyTransactionOutPoint;
+import com.samourai.wallet.util.Pair;
 import com.samourai.wallet.util.RandomUtil;
 import com.samourai.wallet.util.TxUtil;
 import com.samourai.wallet.util.UtxoUtil;
@@ -26,7 +25,7 @@ import org.slf4j.LoggerFactory;
 
 public class Tx0x2Service extends AbstractCahoots2xService<Tx0x2, Tx0x2Context> {
   private static final Logger log = LoggerFactory.getLogger(Tx0x2Service.class);
-  private final UtxoUtil utxoUtil = UtxoUtil.getInstance();
+  private static final UtxoUtil utxoUtil = UtxoUtil.getInstance();
   public static final long CHANGE_SPLIT_THRESHOLD = 100000; // lowest pool denomination (0.001btc)
 
   public Tx0x2Service(BipFormatSupplier bipFormatSupplier, NetworkParameters params) {
@@ -58,7 +57,7 @@ public class Tx0x2Service extends AbstractCahoots2xService<Tx0x2, Tx0x2Context> 
   //
   @Override
   public Tx0x2 startCollaborator(Tx0x2Context cahootsContext, Tx0x2 tx0x20) throws Exception {
-    Tx0x2 tx0x21 = doStep1Initial(tx0x20, cahootsContext);
+    Tx0x2 tx0x21 = doStep1Initial(tx0x20, cahootsContext).getLeft();
     if (log.isDebugEnabled()) {
       log.debug("# Tx0x2 COUNTERPARTY => step=" + tx0x21.getStep());
     }
@@ -75,7 +74,7 @@ public class Tx0x2Service extends AbstractCahoots2xService<Tx0x2, Tx0x2Context> 
     switch (step) {
       case 1:
         // sender
-        payload = doStep2Initial(cahoots, cahootsContext);
+        payload = doStep2Initial(cahoots, cahootsContext).getLeft();
         break;
       case 2:
         // counterparty
@@ -100,7 +99,8 @@ public class Tx0x2Service extends AbstractCahoots2xService<Tx0x2, Tx0x2Context> 
   //
   // counterparty: handles initial pool
   //
-  protected Tx0x2 doStep1Initial(Tx0x2 payload0, Tx0x2Context cahootsContext) throws Exception {
+  protected Pair<Tx0x2, MyTransactionOutPoint> doStep1Initial(
+      Tx0x2 payload0, Tx0x2Context cahootsContext) throws Exception {
     // counterparty inputs
     CahootsWallet cahootsWallet = cahootsContext.getCahootsWallet();
     int account = cahootsContext.getAccount();
@@ -109,33 +109,37 @@ public class Tx0x2Service extends AbstractCahoots2xService<Tx0x2, Tx0x2Context> 
     long spendTarget =
         payload0.getPremixValue() * payload0.getMaxOutputsEach()
             + payload0.getSamouraiFeeValueEach();
-    List<CahootsUtxo> counterpartyInputs = contributeInputs(utxos, spendMin, spendTarget);
+    List<CahootsUtxo> inputsCp = contributeInputs(utxos, spendMin, spendTarget);
     long samouraiFeeValueEach =
         payload0.getSamouraiFeeValueEach(); // pay samourai fee for initial pool
 
     // add counterparty inputs & outputs
-    return doStep1(payload0, cahootsContext, counterpartyInputs, samouraiFeeValueEach);
+    List<MyTransactionOutPoint> outPointsCp =
+        inputsCp.stream().map(utxo -> utxo.getOutpoint()).collect(Collectors.toList());
+    return doStep1(payload0, cahootsContext, outPointsCp, samouraiFeeValueEach);
   }
 
   //
   // counterparty: handles lower pools
   //
-  protected Tx0x2 doStep1Cascading(
-      Tx0x2 payload0, Tx0x2Context cahootsContext, TransactionOutput higherPoolChange)
+  protected Pair<Tx0x2, MyTransactionOutPoint> doStep1Cascading(
+      Tx0x2 payload0, Tx0x2Context cahootsContext, MyTransactionOutPoint higherPoolChangeCp)
       throws Exception {
     // counterparty inputs (higher pool change output)
-    List<CahootsUtxo> counterpartyInputs =
-        Arrays.asList(toCahootsUtxo(cahootsContext, higherPoolChange));
+    List<MyTransactionOutPoint> counterpartyInputs = new LinkedList<>();
+    if (higherPoolChangeCp != null) {
+      counterpartyInputs.add(higherPoolChangeCp);
+    }
     long samouraiFeeValueEach = 0; // no samourai fee for lower pools
 
     // add counterparty inputs & outputs
     return doStep1(payload0, cahootsContext, counterpartyInputs, samouraiFeeValueEach);
   }
 
-  protected Tx0x2 doStep1(
+  protected Pair<Tx0x2, MyTransactionOutPoint> doStep1(
       Tx0x2 payload0,
       Tx0x2Context cahootsContext,
-      List<CahootsUtxo> counterpartyInputs,
+      List<MyTransactionOutPoint> counterpartyInputs,
       long samouraiFeeValueEach)
       throws Exception {
     Tx0x2 payload1 = payload0.copy();
@@ -148,7 +152,7 @@ public class Tx0x2Service extends AbstractCahoots2xService<Tx0x2, Tx0x2Context> 
     List<TransactionInput> inputs = cahootsContext.addInputs(counterpartyInputs);
 
     // add counterparty premix outputs
-    long myInputsSum = CahootsUtxo.sumValue(counterpartyInputs).longValue();
+    long myInputsSum = MyTransactionOutPoint.sumValue(counterpartyInputs);
     int nbPremixs =
         (int)
             Math.min(
@@ -159,27 +163,34 @@ public class Tx0x2Service extends AbstractCahoots2xService<Tx0x2, Tx0x2Context> 
     long myPremixOutputsSum = outputs.size() * payload0.getPremixValue();
 
     // add counterparty change output
+    TransactionOutput changeOutput = null;
+    String changeAddressString = null;
     long changeAmount =
         myInputsSum - myPremixOutputsSum - samouraiFeeValueEach; // not including minerFee yet
     if (changeAmount > 0) {
-      BipAddress changeAddress =
+      BipAddress changeAddressCp =
           cahootsWallet.fetchAddressChange(
               payload0.getCounterpartyAccount(), true, BIP_FORMAT.SEGWIT_NATIVE);
       if (log.isDebugEnabled()) {
-        log.debug("+output (CounterParty change) = " + changeAddress + ", value=" + changeAmount);
+        log.debug("+output (CounterParty change) = " + changeAddressCp + ", value=" + changeAmount);
       }
-      TransactionOutput changeOutput = computeTxOutput(changeAddress, changeAmount, cahootsContext);
-      payload1.setCollabChange(changeAddress.getAddressString());
+      changeOutput = computeTxOutput(changeAddressCp, changeAmount, cahootsContext);
+      changeAddressString = changeAddressCp.getAddressString();
+      payload1.setCollabChange(changeAddressString);
       outputs.add(changeOutput);
     }
 
     payload1.doStep1(inputs, outputs, cahootsWallet.getChainSupplier());
-    return payload1;
+
+    // change will be spent on next lower pool (save it once added to TX)
+    MyTransactionOutPoint changeOutPointCp = changeOutput != null ? new MyTransactionOutPoint(changeOutput, changeAddressString, 0) : null;
+
+    return Pair.of(payload1, changeOutPointCp);
   }
 
   private List<CahootsUtxo> contributeInputs(
       List<CahootsUtxo> utxos, long spendMin, long spendTarget) throws Exception {
-    long totalBalance = CahootsUtxo.sumValue(utxos).longValue();
+    long totalBalance = CahootsUtxo.sumValue(utxos);
 
     if (totalBalance < spendMin) {
       throw new Exception("Cannot compose #Cahoots: insufficient wallet balance");
@@ -199,9 +210,7 @@ public class Tx0x2Service extends AbstractCahoots2xService<Tx0x2, Tx0x2Context> 
       long utxoValue = utxo.getOutpoint().getValue().longValue();
       if (utxoValue >= spendTarget) {
         // select single utxo
-        List<CahootsUtxo> singleSelectedUTXO = new ArrayList<CahootsUtxo>();
-        singleSelectedUTXO.add(utxo);
-        return singleSelectedUTXO;
+        return Arrays.asList(utxo);
       } else if (sumSelectedUTXOs < spendTarget) {
         // add utxos until target reached
         selectedUTXOs.add(utxo);
@@ -232,9 +241,13 @@ public class Tx0x2Service extends AbstractCahoots2xService<Tx0x2, Tx0x2Context> 
   //
   // sender: handles initial pool
   //
-  protected Tx0x2 doStep2Initial(Tx0x2 payload1, Tx0x2Context cahootsContext) throws Exception {
+  protected Pair<Tx0x2, MyTransactionOutPoint> doStep2Initial(
+      Tx0x2 payload1, Tx0x2Context cahootsContext) throws Exception {
     Tx0 tx0Initiator = cahootsContext.getTx0Initiator();
-    List<CahootsUtxo> counterpartyInputs = toCahootsUtxos(tx0Initiator.getSpendFroms(), cahootsContext);
+    List<MyTransactionOutPoint> counterpartyInputs =
+        tx0Initiator.getSpendFroms().stream()
+            .map(utxo -> utxoUtil.computeOutpoint(utxo))
+            .collect(Collectors.toList());
     long samouraiFeeValueEach = payload1.getSamouraiFeeValueEach();
 
     // add sender inputs & outputs, compute minerFee & adjust counterparty change
@@ -244,32 +257,35 @@ public class Tx0x2Service extends AbstractCahoots2xService<Tx0x2, Tx0x2Context> 
   //
   // sender: handles lower pools
   //
-  protected Tx0x2 doStep2Cascading(
+  protected Pair<Tx0x2, MyTransactionOutPoint> doStep2Cascading(
       Tx0x2 payload1,
       Tx0x2Context cahootsContext,
-      TransactionOutput higherPoolSenderChange,
+      MyTransactionOutPoint higherPoolSenderChange,
       TransactionOutput higherPoolCounterpartyChange,
       long higherPoolMinerFee)
       throws Exception {
 
     Tx0 tx0Initiator = cahootsContext.getTx0Initiator();
-    List<CahootsUtxo> counterpartyInputs = Arrays.asList(toCahootsUtxo(cahootsContext, higherPoolSenderChange));
+    List<MyTransactionOutPoint> senderInputs = new LinkedList<>();
+    if (higherPoolSenderChange != null) {
+      senderInputs.add(higherPoolSenderChange);
+    }
     long samouraiFeeValueEach = tx0Initiator.getSamouraiFeeOutput().getValue().getValue();
 
     // add sender inputs & outputs, compute minerFee & adjust counterparty change
     return doStep2(
         payload1,
         cahootsContext,
-        counterpartyInputs,
+        senderInputs,
         samouraiFeeValueEach,
         higherPoolCounterpartyChange,
         higherPoolMinerFee);
   }
 
-  protected Tx0x2 doStep2(
+  protected Pair<Tx0x2, MyTransactionOutPoint> doStep2(
       Tx0x2 payload1,
       Tx0x2Context cahootsContext,
-      List<CahootsUtxo> counterpartyInputs,
+      List<MyTransactionOutPoint> senderInputs,
       long samouraiFeeValueEach,
       TransactionOutput higherPoolCounterpartyChangeOrNull,
       long higherPoolMinerFee)
@@ -295,15 +311,11 @@ public class Tx0x2Service extends AbstractCahoots2xService<Tx0x2, Tx0x2Context> 
       counterpartyChangeInput.setValue(higherPoolCounterpartyChangeOrNull.getValue());
       TransactionOutPoint outpoint = counterpartyChangeInput.getOutpoint();
       outpoint.setValue(higherPoolCounterpartyChangeOrNull.getValue());
-      payload2
-          .getOutpoints()
-          .put(
-              outpoint.getHash().toString() + "-" + outpoint.getIndex(),
-              higherPoolCounterpartyChangeOrNull.getValue().value);
+      payload2.setOutpointValue(outpoint, higherPoolCounterpartyChangeOrNull.getValue().value);
     }
 
     // add sender inputs
-    List<TransactionInput> inputs = cahootsContext.addInputs(counterpartyInputs);
+    List<TransactionInput> inputs = cahootsContext.addInputs(senderInputs);
 
     // add sender outputs
     List<TransactionOutput> outputs = new ArrayList<>();
@@ -324,7 +336,7 @@ public class Tx0x2Service extends AbstractCahoots2xService<Tx0x2, Tx0x2Context> 
     // add sender change output
     // (senderInputsSum - senderPremixOutputsSum - samouraiFeeValueEach - minerFeePaid)
     int nbPremixSender = Math.min(tx0Initiator.getNbPremix(), payload2.getMaxOutputsEach());
-    long senderInputsSum = CahootsUtxo.sumValue(counterpartyInputs).longValue();
+    long senderInputsSum = MyTransactionOutPoint.sumValue(senderInputs);
     long senderPremixOutputsSum = payload2.getPremixValue() * nbPremixSender;
     long senderChangeValue =
         senderInputsSum - senderPremixOutputsSum - samouraiFeeValueEach - minerFeePaid;
@@ -404,20 +416,26 @@ public class Tx0x2Service extends AbstractCahoots2xService<Tx0x2, Tx0x2Context> 
     counterpartyChangeOutput.setValue(counterpartyChangeValue);
 
     // sender change output
+    TransactionOutput changeOutput = null;
+    String changeAddressString = null;
     if (senderChangeValue > 0) {
       BipAddress changeAddress =
           cahootsWallet.fetchAddressChange(payload2.getAccount(), true, BIP_FORMAT.SEGWIT_NATIVE);
       if (log.isDebugEnabled()) {
         log.debug("+output (Sender change) = " + changeAddress + ", value=" + senderChangeValue);
       }
-      TransactionOutput changeOutput =
-          computeTxOutput(changeAddress, senderChangeValue, cahootsContext);
+      changeOutput = computeTxOutput(changeAddress, senderChangeValue, cahootsContext);
+      changeAddressString = changeAddress.getAddressString();
       outputs.add(changeOutput);
     }
 
     payload2.getPSBT().setTransaction(tx);
     payload2.doStep2(inputs, outputs);
-    return payload2;
+
+    // change will be spent on next lower pool (save it once added to TX)
+    MyTransactionOutPoint changeOutPointSender = changeOutput != null ? new MyTransactionOutPoint(changeOutput, changeAddressString, 0) : null;
+
+    return Pair.of(payload2, changeOutPointSender);
   }
 
   private long computeMinerFee(Tx0x2 payload, Tx0 tx0Initiator) {
@@ -470,31 +488,6 @@ public class Tx0x2Service extends AbstractCahoots2xService<Tx0x2, Tx0x2Context> 
       throw new Exception("CahootsUtxo not found for TX0 input");
     }
     return cahootsUtxos;
-  }
-
-  // used to create lower pool input from higher pool change output
-  private CahootsUtxo toCahootsUtxo(Tx0x2Context cahootsContext, TransactionOutput higherPoolChange)
-      throws Exception {
-    HD_Address address =
-        cahootsContext
-            .getCahootsWallet()
-            .getReceiveWallet(cahootsContext.getAccount(), BIP_FORMAT.SEGWIT_NATIVE)
-            .getAddressAt(Chain.CHANGE.getIndex(), 0)
-            .getHdAddress();
-    byte[] key =
-        cahootsContext
-            .getCahootsWallet()
-            .getUtxosWpkhByAccount(cahootsContext.getAccount())
-            .get(0)
-            .getKey();
-    return new CahootsUtxo(
-        new MyTransactionOutPoint(higherPoolChange, address.getAddressString(), 0),
-        utxoUtil.computePath(address),
-        cahootsContext
-            .getCahootsWallet()
-            .getReceiveWallet(cahootsContext.getAccount(), BIP_FORMAT.SEGWIT_NATIVE)
-            .getXPub(),
-        key);
   }
 
   //
@@ -553,7 +546,7 @@ public class Tx0x2Service extends AbstractCahoots2xService<Tx0x2, Tx0x2Context> 
           }
         } else if (!cahootsContext.isLowerPool() && cahootsContext.isBottomPool()) {
           // 0.001btc pool only
-          long inputValue = cahootsContext.getInputs().get(0).getValue();
+          long inputValue = cahootsContext.getInputs().get(0).getValue().getValue();
           long outputValue =
               cahootsContext.getTx0Initiator().getPremixValue()
                   * (cahootsContext.getOutputAddresses().size() - 1);
@@ -587,7 +580,7 @@ public class Tx0x2Service extends AbstractCahoots2xService<Tx0x2, Tx0x2Context> 
           }
         } else if (cahootsContext.isLowerPool() && cahootsContext.isBottomPool()) {
           // bottom pool (0.001btc)
-          long inputValue = cahootsContext.getInputs().get(0).getValue();
+          long inputValue = cahootsContext.getInputs().get(0).getValue().getValue();
           long outputValue =
               cahootsContext.getTx0Initiator().getPremixValue()
                   * (cahootsContext.getOutputAddresses().size() - 1);
@@ -625,7 +618,7 @@ public class Tx0x2Service extends AbstractCahoots2xService<Tx0x2, Tx0x2Context> 
         } else if (!cahootsContext.isLowerPool() && cahootsContext.isBottomPool()) {
           // 0.001btc pool only
           long maxBottomPoolSplit =
-              cahootsContext.getInputs().get(0).getValue(); // TODO more accurate check
+              cahootsContext.getInputs().get(0).getValue().getValue(); // TODO more accurate check
           maxSpendAmount = samouraiFeeValueEach + sharedMinerFee + maxBottomPoolSplit;
           if (log.isDebugEnabled()) {
             log.debug(
@@ -653,7 +646,7 @@ public class Tx0x2Service extends AbstractCahoots2xService<Tx0x2, Tx0x2Context> 
         } else if (cahootsContext.isLowerPool() && cahootsContext.isBottomPool()) {
           // bottom pool (0.001btc)
           long maxBottomPoolSplit =
-              cahootsContext.getInputs().get(0).getValue(); // TODO more accurate check
+              cahootsContext.getInputs().get(0).getValue().getValue(); // TODO more accurate check
           maxSpendAmount = sharedMinerFee + maxBottomPoolSplit;
           if (log.isDebugEnabled()) {
             log.debug(

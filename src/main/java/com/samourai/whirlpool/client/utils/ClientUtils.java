@@ -10,7 +10,6 @@ import com.samourai.wallet.bipFormat.BipFormatSupplier;
 import com.samourai.wallet.client.indexHandler.IIndexHandler;
 import com.samourai.wallet.segwit.bech32.Bech32UtilGeneric;
 import com.samourai.wallet.util.*;
-import com.samourai.wallet.utxo.BipUtxo;
 import com.samourai.wallet.utxo.UtxoDetail;
 import com.samourai.whirlpool.client.exception.NotifiableException;
 import com.samourai.whirlpool.client.wallet.beans.IndexRange;
@@ -163,14 +162,6 @@ public class ClientUtils {
 
   public static double satToBtc(long sat) {
     return sat / 100000000.0;
-  }
-
-  public static String utxoToKey(BipUtxo unspentOutput) {
-    return unspentOutput.getTxHash() + ':' + unspentOutput.getTxOutputIndex();
-  }
-
-  public static String utxoToKey(String utxoHash, int utxoIndex) {
-    return utxoHash + ':' + utxoIndex;
   }
 
   public static Completable sleepUtxosDelayAsync(final NetworkParameters params) {
