@@ -102,7 +102,7 @@ public class AutoTx0Orchestrator extends AbstractOrchestrator {
   private long computeTotalUnconfirmedDeposits() {
     return BipUtxo.sumValue(
         whirlpoolWallet.getUtxoSupplier().findUtxos(WhirlpoolAccount.DEPOSIT).stream()
-            .filter(whirlpoolUtxo -> !whirlpoolUtxo.isConfirmed())
+            .filter(whirlpoolUtxo -> !whirlpoolUtxo.getConfirmInfo().isConfirmed())
             .collect(Collectors.toList()));
   }
 

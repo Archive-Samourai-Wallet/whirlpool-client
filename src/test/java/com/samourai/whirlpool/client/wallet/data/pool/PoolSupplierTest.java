@@ -21,22 +21,38 @@ public class PoolSupplierTest extends AbstractTest {
   }
 
   @Test
-  public void testValid() throws Exception {
-    // valid
-    doTest();
+  public void findPoolByMaxId() {
+    Object[] poolsByMaxId =
+        poolSupplier.findPoolsByMaxId("0.01btc").stream().map(p -> p.getPoolId()).toArray();
+    Assertions.assertArrayEquals(new String[] {"0.01btc", "0.001btc"}, poolsByMaxId);
+
+    poolsByMaxId =
+        poolSupplier.findPoolsByMaxId("0.5btc").stream().map(p -> p.getPoolId()).toArray();
+    Assertions.assertArrayEquals(
+        new String[] {"0.5btc", "0.05btc", "0.01btc", "0.001btc"}, poolsByMaxId);
+  }
+
+  @Test
+  public void getPools() throws Exception {
+    // verify getPools
+    Collection<Pool> getPools = poolSupplier.getPools();
+    Object[] poolIds = getPools.stream().map(p -> p.getPoolId()).toArray();
+    Assertions.assertArrayEquals(
+        new String[] {"0.5btc", "0.05btc", "0.01btc", "0.001btc"}, poolIds);
+  }
+
+  @Test
+  public void findPoolById() throws Exception {
+    // existing pool
+    Assertions.assertEquals("0.001btc", poolSupplier.findPoolById("0.001btc").getPoolId());
 
     // non-existing pool
     Assertions.assertNull(poolSupplier.findPoolById("foo"));
   }
 
-  private void doTest() throws Exception {
-    ((ExpirablePoolSupplier) poolSupplier).load();
-
-    // verify getPools
-    Collection<Pool> getPools = poolSupplier.getPools();
-    Assertions.assertEquals(4, getPools.size());
-
-    // verify findPoolById
+  @Test
+  public void poolData() throws Exception {
+    // verify pool data
     Pool pool01 = poolSupplier.findPoolById("0.01btc");
     Assertions.assertEquals("0.01btc", pool01.getPoolId());
     Assertions.assertEquals(1000000, pool01.getDenomination());
@@ -52,6 +68,9 @@ public class PoolSupplierTest extends AbstractTest {
     Assertions.assertEquals(MixStatus.CONFIRM_INPUT, pool01.getMixStatus());
     Assertions.assertEquals(672969, pool01.getElapsedTime());
     Assertions.assertEquals(2, pool01.getNbConfirmed());
+    Assertions.assertEquals(1050519, pool01.getTx0PreviewMinSpendValue());
+    Assertions.assertEquals(70070253, pool01.getTx0PreviewMaxSpendValue());
+    Assertions.assertEquals(72582636, pool01.getTx0PreviewMaxSpendValueCascading());
 
     // verify getTx0PreviewMin
     Tx0Preview tx0Preview = pool01.getTx0PreviewMin();
@@ -68,6 +87,5 @@ public class PoolSupplierTest extends AbstractTest {
     Assertions.assertEquals(1, tx0Preview.getTx0MinerFeePrice());
     Assertions.assertEquals(0, tx0Preview.getChangeValue());
     Assertions.assertEquals("0.01btc", tx0Preview.getPool().getPoolId());
-    Assertions.assertEquals(1050519, pool01.getTx0PreviewMinSpendValue());
   }
 }

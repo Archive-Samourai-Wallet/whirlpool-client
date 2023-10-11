@@ -6,6 +6,8 @@ import com.samourai.wallet.bipWallet.BipWallet;
 import com.samourai.wallet.hd.HD_Address;
 import com.samourai.wallet.util.MessageListener;
 import com.samourai.wallet.utxo.BipUtxo;
+import com.samourai.wallet.utxo.UtxoOutPoint;
+import com.samourai.wallet.utxo.UtxoRef;
 import com.samourai.whirlpool.client.event.UtxoChangesEvent;
 import com.samourai.whirlpool.client.test.AbstractTest;
 import com.samourai.whirlpool.client.wallet.beans.WhirlpoolUtxoChanges;
@@ -93,14 +95,14 @@ public class AbstractWhirlpoolWalletTest extends AbstractTest {
   }
 
   protected void assertUtxosEquals(
-      Collection<? extends BipUtxo> utxos1, Collection<? extends BipUtxo> utxos2) {
+      Collection<UtxoOutPoint> utxos1, Collection<? extends BipUtxo> utxos2) {
     Assertions.assertEquals(utxos1.size(), utxos2.size());
-    for (BipUtxo utxo1 : utxos1) {
+    for (UtxoOutPoint utxo1 : utxos1) {
       Assertions.assertTrue(utxosContains(utxos2, utxo1));
     }
   }
 
-  protected boolean utxosContains(Collection<? extends BipUtxo> unspentOutputs, BipUtxo utxo) {
+  protected boolean utxosContains(Collection<? extends UtxoRef> unspentOutputs, UtxoRef utxo) {
     return unspentOutputs.stream()
             .filter(
                 unspentOutput ->

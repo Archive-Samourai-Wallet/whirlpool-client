@@ -1,18 +1,20 @@
-package com.samourai.whirlpool.client.test;
+package com.samourai.wallet.cahoots;
 
 import com.samourai.soroban.cahoots.CahootsContext;
 import com.samourai.soroban.cahoots.ManualCahootsMessage;
 import com.samourai.wallet.bipFormat.BIP_FORMAT;
-import com.samourai.wallet.cahoots.*;
-import com.samourai.wallet.cahoots.tx0x2.MultiTx0x2Service;
 import com.samourai.wallet.cahoots.tx0x2.Tx0x2;
+import com.samourai.wallet.cahoots.tx0x2.Tx0x2Result;
 import com.samourai.wallet.cahoots.tx0x2.Tx0x2Service;
 import com.samourai.wallet.hd.BIP_WALLET;
 import com.samourai.wallet.hd.Chain;
-import com.samourai.wallet.util.TxUtil;
+import com.samourai.whirlpool.client.test.MockUtxoSupplier;
 import com.samourai.whirlpool.client.tx0.AbstractTx0ServiceV1Test;
+import com.samourai.whirlpool.client.tx0.Tx0;
+import com.samourai.whirlpool.client.tx0.Tx0x2CahootsResult;
 import com.samourai.whirlpool.client.wallet.WhirlpoolWallet;
 import com.samourai.whirlpool.client.wallet.WhirlpoolWalletConfig;
+import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -51,9 +53,7 @@ public abstract class AbstractCahootsTest extends AbstractTx0ServiceV1Test {
   protected static String[] SENDER_PREMIX_84;
   protected static String[] COUNTERPARTY_PREMIX_84;
 
-  protected Tx0x2Service tx0x2Service = new Tx0x2Service(bipFormatSupplier, params);
-  protected MultiTx0x2Service multiTx0x2Service =
-      new MultiTx0x2Service(bipFormatSupplier, params, tx0x2Service);
+  protected Tx0x2Service tx0x2Service;
 
   public AbstractCahootsTest() throws Exception {
     super();
@@ -61,6 +61,8 @@ public abstract class AbstractCahootsTest extends AbstractTx0ServiceV1Test {
 
   public void setup() throws Exception {
     super.setup();
+
+    tx0x2Service = new Tx0x2Service(bipFormatSupplier, tx0Service);
 
     WhirlpoolWalletConfig whirlpoolWalletConfigSender = computeWhirlpoolWalletConfig(false);
     whirlpoolWalletSender =
@@ -245,7 +247,7 @@ public abstract class AbstractCahootsTest extends AbstractTx0ServiceV1Test {
     Assertions.assertEquals(typeUser, cahootsMessage.getTypeUser());
   }
 
-  protected Cahoots doCahoots(
+  protected CahootsResult doCahoots(
       AbstractCahootsService cahootsService,
       CahootsContext cahootsContextSender,
       CahootsContext cahootsContextCp,
@@ -298,8 +300,12 @@ public abstract class AbstractCahootsTest extends AbstractTx0ServiceV1Test {
       }
     }
     Cahoots cahoots = Cahoots.parse(lastPayload);
-    cahoots.pushTx(pushTx);
-    return cahoots;
+
+    // sender broadcasts signed cahoots
+    CahootsResult cahootsResult =
+        cahootsService.computeCahootsResult(cahootsContextSender, cahoots);
+    cahootsResult.pushTx(pushTx);
+    return cahootsResult;
   }
 
   protected void verifyTx(
@@ -327,8 +333,10 @@ public abstract class AbstractCahootsTest extends AbstractTx0ServiceV1Test {
       Assertions.assertEquals(txid, tx.getHashAsString());
     }
     if (raw != null) {
-      Assertions.assertEquals(raw, TxUtil.getInstance().getTxHex(tx));
+      Assertions.assertEquals(raw, txUtil.getTxHex(tx));
     }
+    // verify bip69 sorted
+    Assertions.assertTrue(txUtil.isBip69Sorted(tx));
   }
 
   protected Map<String, Long> sortMapOutputs(Map<String, Long> map) {
@@ -340,7 +348,8 @@ public abstract class AbstractCahootsTest extends AbstractTx0ServiceV1Test {
   }
 
   protected void assertTx0x2(
-      Transaction tx,
+      Tx0x2Result tx0x2Result,
+      String poolId,
       String txid,
       String raw,
       int nbInputs,
@@ -355,6 +364,28 @@ public abstract class AbstractCahootsTest extends AbstractTx0ServiceV1Test {
       int senderPremixIndex,
       int counterpartyPremixIndex)
       throws Exception {
+
+    // verify TX0
+    Tx0 tx0 = tx0x2Result.getTx0Result().getByPoolId(poolId).get();
+    assertTx0(
+        tx0,
+        poolId,
+        false,
+        nbPremixSender + nbPremixCounterparty,
+        Arrays.asList(changeValueSender, changeValueCp));
+
+    // verify tx0x2
+    Tx0x2CahootsResult tx0x2CahootsResult = tx0.getTx0x2CahootsResult();
+    Assertions.assertEquals(nbPremixSender, tx0x2CahootsResult.getNbPremixSender());
+    Assertions.assertEquals(nbPremixCounterparty, tx0x2CahootsResult.getNbPremixCounterparty());
+    Assertions.assertEquals(changeValueSender, tx0x2CahootsResult.getChangeAmountSender());
+    Assertions.assertEquals(changeValueCp, tx0x2CahootsResult.getChangeAmountCounterparty());
+    Assertions.assertEquals(nbPremixSender + nbPremixCounterparty, tx0.getNbPremix());
+    Assertions.assertEquals(samouraiFeeValue, tx0.getFeeValue());
+    Assertions.assertEquals(premixValue, tx0.getPremixValue());
+
+    Tx0x2 cahoots = tx0x2Result.getCahoots();
+    Transaction tx = cahoots.getTransaction(poolId);
     Assertions.assertEquals(nbInputs, tx.getInputs().size(), "inputs");
     int expectedOutputs =
         nbPremixSender + nbPremixCounterparty + 2 + 1 + 1; // 2 changes + samouraiFee + opReturn
@@ -363,65 +394,96 @@ public abstract class AbstractCahootsTest extends AbstractTx0ServiceV1Test {
     // verify TX
     Map<String, Long> outputs = new LinkedHashMap<>();
     outputs.put(COUNTERPARTY_CHANGE_84[counterpartyChangeIndex], changeValueCp);
-    outputs.put(SENDER_CHANGE_84[senderChangeIndex], changeValueSender);
-    for (int i = senderPremixIndex; i < (senderPremixIndex+nbPremixSender); i++) {
-      outputs.put(SENDER_PREMIX_84[i], premixValue);
+    if (log.isDebugEnabled()) {
+      log.debug(
+          "COUNTERPARTY_CHANGE_84["
+              + counterpartyChangeIndex
+              + "] = "
+              + COUNTERPARTY_CHANGE_84[counterpartyChangeIndex]);
     }
-    for (int i = counterpartyPremixIndex; i < (counterpartyPremixIndex+nbPremixCounterparty); i++) {
+    outputs.put(SENDER_CHANGE_84[senderChangeIndex], changeValueSender);
+    if (log.isDebugEnabled()) {
+      log.debug(
+          "SENDER_CHANGE_84[" + senderChangeIndex + "] = " + SENDER_CHANGE_84[senderChangeIndex]);
+    }
+    for (int i = senderPremixIndex; i < (senderPremixIndex + nbPremixSender); i++) {
+      outputs.put(SENDER_PREMIX_84[i], premixValue);
+      if (log.isDebugEnabled()) {
+        log.debug("SENDER_PREMIX_84[" + i + "] = " + SENDER_PREMIX_84[i]);
+      }
+    }
+    for (int i = counterpartyPremixIndex;
+        i < (counterpartyPremixIndex + nbPremixCounterparty);
+        i++) {
       outputs.put(COUNTERPARTY_PREMIX_84[i], premixValue);
+      if (log.isDebugEnabled()) {
+        log.debug("COUNTERPARTY_PREMIX_84[" + i + "] = " + SENDER_PREMIX_84[i]);
+      }
     }
     outputs.put(MOCK_SAMOURAI_FEE_ADDRESS, samouraiFeeValue);
+    if (log.isDebugEnabled()) {
+      log.debug("MOCK_SAMOURAI_FEE_ADDRESS = " + MOCK_SAMOURAI_FEE_ADDRESS);
+    }
     verifyTx(tx, txid, raw, outputs);
   }
 
-  protected void assertTx0x2State(int senderChangeIndex, int counterpartyChangeIndex,
-                                  int nbPremixSender, int nbPremixCounterparty) {
+  protected void assertTx0x2State(
+      int senderChangeIndex,
+      int counterpartyChangeIndex,
+      int nbPremixSender,
+      int nbPremixCounterparty) {
     // DEPOSIT receive indexs
     Assertions.assertEquals(
-            0,
-            whirlpoolWalletSender
-                    .getWalletSupplier()
-                    .getWallet(BIP_WALLET.DEPOSIT_BIP84)
-                    .getIndexHandlerReceive()
-                    .get());
+        0,
+        whirlpoolWalletSender
+            .getWalletSupplier()
+            .getWallet(BIP_WALLET.DEPOSIT_BIP84)
+            .getIndexHandlerReceive()
+            .get(),
+        "senderDepositIndex");
     Assertions.assertEquals(
-            0,
-            whirlpoolWalletCounterparty
-                    .getWalletSupplier()
-                    .getWallet(BIP_WALLET.DEPOSIT_BIP84)
-                    .getIndexHandlerReceive()
-                    .get());
+        0,
+        whirlpoolWalletCounterparty
+            .getWalletSupplier()
+            .getWallet(BIP_WALLET.DEPOSIT_BIP84)
+            .getIndexHandlerReceive()
+            .get(),
+        "counterpartyDepositIndex");
 
     // DEPOSIT change indexs
     Assertions.assertEquals(
-            senderChangeIndex,
-            whirlpoolWalletSender
-                    .getWalletSupplier()
-                    .getWallet(BIP_WALLET.DEPOSIT_BIP84)
-                    .getIndexHandlerChange()
-                    .get());
+        senderChangeIndex,
+        whirlpoolWalletSender
+            .getWalletSupplier()
+            .getWallet(BIP_WALLET.DEPOSIT_BIP84)
+            .getIndexHandlerChange()
+            .get(),
+        "senderChangeIndex");
     Assertions.assertEquals(
-            counterpartyChangeIndex,
-            whirlpoolWalletCounterparty
-                    .getWalletSupplier()
-                    .getWallet(BIP_WALLET.DEPOSIT_BIP84)
-                    .getIndexHandlerChange()
-                    .get());
+        counterpartyChangeIndex,
+        whirlpoolWalletCounterparty
+            .getWalletSupplier()
+            .getWallet(BIP_WALLET.DEPOSIT_BIP84)
+            .getIndexHandlerChange()
+            .get(),
+        "counterpartyChangeIndex");
 
     // PREMIX receive indexs
     Assertions.assertEquals(
-            nbPremixSender,
-            whirlpoolWalletSender
-                    .getWalletSupplier()
-                    .getWallet(BIP_WALLET.PREMIX_BIP84)
-                    .getIndexHandlerReceive()
-                    .get());
+        nbPremixSender,
+        whirlpoolWalletSender
+            .getWalletSupplier()
+            .getWallet(BIP_WALLET.PREMIX_BIP84)
+            .getIndexHandlerReceive()
+            .get(),
+        "senderPremixIndex");
     Assertions.assertEquals(
-            nbPremixCounterparty,
-            whirlpoolWalletCounterparty
-                    .getWalletSupplier()
-                    .getWallet(BIP_WALLET.PREMIX_BIP84)
-                    .getIndexHandlerReceive()
-                    .get());
+        nbPremixCounterparty,
+        whirlpoolWalletCounterparty
+            .getWalletSupplier()
+            .getWallet(BIP_WALLET.PREMIX_BIP84)
+            .getIndexHandlerReceive()
+            .get(),
+        "counterpartyPremixIndex");
   }
 }

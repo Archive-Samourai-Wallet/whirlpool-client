@@ -6,16 +6,13 @@ import com.samourai.wallet.hd.BipAddress;
 import com.samourai.wallet.util.UtxoUtil;
 import com.samourai.wallet.utxo.BipUtxo;
 import com.samourai.wallet.utxo.BipUtxoImpl;
+import com.samourai.wallet.utxo.UtxoConfirmInfo;
 import com.samourai.whirlpool.client.wallet.data.utxoConfig.UtxoConfig;
 import com.samourai.whirlpool.client.wallet.data.utxoConfig.UtxoConfigPersisted;
 import com.samourai.whirlpool.client.wallet.data.utxoConfig.UtxoConfigSupplier;
 import org.bitcoinj.core.NetworkParameters;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public class WhirlpoolUtxo extends BipUtxoImpl {
-  private static final Logger log = LoggerFactory.getLogger(WhirlpoolUtxo.class);
-
   private BipWallet bipWallet;
   private BipFormat bipFormat;
   private WhirlpoolUtxoState utxoState;
@@ -52,7 +49,7 @@ public class WhirlpoolUtxo extends BipUtxoImpl {
     }
 
     // check confirmations
-    if (!isConfirmed()) {
+    if (!getConfirmInfo().isConfirmed()) {
       return MixableStatus.UNCONFIRMED;
     }
 
@@ -155,8 +152,8 @@ public class WhirlpoolUtxo extends BipUtxoImpl {
   }
 
   @Override
-  public void setConfirmedBlockHeight(Integer confirmedBlockHeight) {
-    super.setConfirmedBlockHeight(confirmedBlockHeight);
-    this.setMixableStatus();
+  public void setConfirmInfo(UtxoConfirmInfo confirmInfo) {
+    super.setConfirmInfo(confirmInfo);
+    setMixableStatus();
   }
 }

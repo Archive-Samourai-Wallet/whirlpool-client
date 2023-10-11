@@ -199,8 +199,8 @@ public class DebugUtils {
       sb.append(
           String.format(
               lineFormat,
-              ClientUtils.satToBtc(whirlpoolUtxo.getValue()),
-              whirlpoolUtxo.getConfirmations(latestBlockHeight),
+              ClientUtils.satToBtc(whirlpoolUtxo.getValueLong()),
+              whirlpoolUtxo.getConfirmInfo().getConfirmations(latestBlockHeight),
               utxo,
               whirlpoolUtxo.getAddress(),
               whirlpoolUtxo.getBipFormat().getId(),
@@ -302,8 +302,8 @@ public class DebugUtils {
                 progress,
                 since,
                 whirlpoolUtxo.getAccount().name(),
-                ClientUtils.satToBtc(whirlpoolUtxo.getValue()),
-                whirlpoolUtxo.getConfirmations(latestBlockHeight),
+                ClientUtils.satToBtc(whirlpoolUtxo.getValueLong()),
+                whirlpoolUtxo.getConfirmInfo().getConfirmations(latestBlockHeight),
                 utxo,
                 utxoUtil.computePath(whirlpoolUtxo),
                 mixProgress.getPoolId() != null ? mixProgress.getPoolId() : "-",
@@ -339,15 +339,16 @@ public class DebugUtils {
       sb.append("⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿" + "\n");
       sb.append("⣿ POOLS:" + "\n");
 
-      String lineFormat = "| %15s | %15s | %15s | %18s | %20s | %15s |\n";
+      String lineFormat = "| %15s | %15s | %20s | %15s | %15s | %20s | %15s |\n";
       sb.append(
           String.format(
               lineFormat,
               "NAME",
               "DENOMINATION",
-              "MIN. DEPOSIT",
-              "ANON. SET PER MIX",
               "MAX. PREMIXS PER TX0",
+              "MIN. DEPOSIT",
+              "MAX. PER TX0",
+              "MAX. PER CASCADING",
               "FLAT ENTRY FEE"));
 
       for (Pool pool : poolSupplier.getPools()) {
@@ -356,9 +357,10 @@ public class DebugUtils {
                 lineFormat,
                 pool.getPoolId(),
                 ClientUtils.satToBtc(pool.getDenomination()),
-                ClientUtils.satToBtc(pool.getTx0PreviewMinSpendValue()),
-                pool.getMinAnonymitySet(),
                 pool.getTx0MaxOutputs(),
+                ClientUtils.satToBtc(pool.getTx0PreviewMinSpendValue()),
+                ClientUtils.satToBtc(pool.getTx0PreviewMaxSpendValue()),
+                ClientUtils.satToBtc(pool.getTx0PreviewMaxSpendValueCascading()),
                 ClientUtils.satToBtc(pool.getFeeValue())));
       }
     } catch (Exception e) {

@@ -218,9 +218,9 @@ public class ClientUtils {
     LogbackUtils.setLogLevel("org.eclipse.jetty", org.slf4j.event.Level.INFO.toString());
   }
 
-  public static long computeTx0MinerFee(int tx0Size, long tx0FeePerB, boolean adjustForTx0x2) {
+  public static long computeTx0MinerFee(int tx0Size, long tx0FeePerB, boolean tx0x2) {
     long tx0MinerFee = FeeUtil.getInstance().calculateFee(tx0Size, tx0FeePerB);
-    if (adjustForTx0x2 && tx0MinerFee % 2L != 0) {
+    if (tx0x2 && tx0MinerFee % 2L != 0) {
       tx0MinerFee++; // use even minerFee to easily split it
     }
     return tx0MinerFee;
@@ -228,18 +228,18 @@ public class ClientUtils {
 
   public static int computeTx0Size(
       int nbPremix,
-      boolean decoy,
-      Collection<? extends UtxoDetail> spendFromsOrNull,
+      boolean tx0x2,
+      Collection<? extends UtxoDetail> allSpendFromsOrNull,
       BipFormatSupplier bipFormatSupplier,
       NetworkParameters params) {
-    int nbOutputsNonOpReturn =
-        nbPremix + 2 + (decoy ? 1 : 0); // premixs + change + fee + (decoyChange?)
+    int nbChanges = tx0x2 ? 2 : 1;
+    int nbOutputsNonOpReturn = nbPremix + 1 + nbChanges; // premixs + samouraiFee + change(s)
 
     int nbP2PKH = 0;
     int nbP2SH = 0;
     int nbP2WPKH = 0;
-    if (spendFromsOrNull != null) { // spendFroms can be NULL (for fee simulation)
-      for (UtxoDetail u : spendFromsOrNull) {
+    if (allSpendFromsOrNull != null) { // spendFroms can be NULL (for fee simulation)
+      for (UtxoDetail u : allSpendFromsOrNull) {
         BipFormat bipFormat = bipFormatSupplier.findByAddress(u.getAddress(), params);
         if (BIP_FORMAT.SEGWIT_NATIVE.getId().equals(bipFormat.getId())) {
           nbP2WPKH++;
@@ -253,19 +253,6 @@ public class ClientUtils {
       // estimate with 1 P2WPKH
       nbP2WPKH++;
     }
-    int tx0Size = feeUtil.estimatedSizeSegwit(nbP2PKH, nbP2SH, nbP2WPKH, nbOutputsNonOpReturn, 1);
-    return tx0Size;
-  }
-
-  public static int computeTx0Size(int nbPremix, boolean decoy, int nbSpendFrom) {
-    int nbOutputsNonOpReturn =
-        nbPremix + 2 + (decoy ? 1 : 0); // premixs + change + fee + (decoyChange?)
-
-    int nbP2PKH = 0;
-    int nbP2SH = 0;
-    int nbP2WPKH = 0;
-
-    nbP2WPKH += nbSpendFrom; // estimate inputs with P2WPKH
     int tx0Size = feeUtil.estimatedSizeSegwit(nbP2PKH, nbP2SH, nbP2WPKH, nbOutputsNonOpReturn, 1);
     return tx0Size;
   }

@@ -7,39 +7,44 @@ import java.util.Collection;
 public class Tx0PreviewConfig {
   private Tx0FeeTarget tx0FeeTarget;
   private Tx0FeeTarget mixFeeTarget;
-  private boolean decoyTx0x2;
-  private boolean decoyTx0x2Forced; // true=force tx0x2Decoy or fail, false=fallback to regular tx0
+  private boolean tx0x2Decoy;
+  private boolean tx0x2DecoyForced; // true=force tx0x2Decoy or fail, false=fallback to regular tx0
   private boolean _cascading; // internally set when cascading
-  private Collection<? extends UtxoDetail> spendFroms; // may be NULL for general pools preview
+  // own inputs for initial pool, may be NULL for general pools preview
+  private Collection<? extends UtxoDetail> ownSpendFroms;
+  // counterparty inputs for initial pool with tx0x2Cahoots (2-party)
+  private Collection<? extends UtxoDetail> tx0x2SpendFromsCounterparty;
   private boolean cascade;
 
   public Tx0PreviewConfig(
       Tx0FeeTarget tx0FeeTarget,
       Tx0FeeTarget mixFeeTarget,
-      Collection<? extends UtxoDetail> spendFroms) {
+      Collection<? extends UtxoDetail> ownSpendFroms) {
     this.tx0FeeTarget = tx0FeeTarget;
     this.mixFeeTarget = mixFeeTarget;
-    this.decoyTx0x2 = true;
-    this.decoyTx0x2Forced = false;
+    this.tx0x2Decoy = true;
+    this.tx0x2DecoyForced = false;
     this._cascading = false;
-    this.spendFroms = spendFroms;
+    this.ownSpendFroms = ownSpendFroms;
+    this.tx0x2SpendFromsCounterparty = null;
     this.cascade = false;
   }
 
   public Tx0PreviewConfig(Tx0PreviewConfig tx0PreviewConfig) {
     this.tx0FeeTarget = tx0PreviewConfig.tx0FeeTarget;
     this.mixFeeTarget = tx0PreviewConfig.mixFeeTarget;
-    this.decoyTx0x2 = tx0PreviewConfig.decoyTx0x2;
-    this.decoyTx0x2Forced = tx0PreviewConfig.decoyTx0x2Forced;
+    this.tx0x2Decoy = tx0PreviewConfig.tx0x2Decoy;
+    this.tx0x2DecoyForced = tx0PreviewConfig.tx0x2DecoyForced;
     this._cascading = tx0PreviewConfig._cascading;
-    this.spendFroms = tx0PreviewConfig.spendFroms;
+    this.ownSpendFroms = tx0PreviewConfig.ownSpendFroms;
+    this.tx0x2SpendFromsCounterparty = tx0PreviewConfig.tx0x2SpendFromsCounterparty;
     this.cascade = tx0PreviewConfig.cascade;
   }
 
   public Tx0PreviewConfig(
-      Tx0PreviewConfig tx0PreviewConfig, Collection<? extends UtxoDetail> spendFroms) {
+      Tx0PreviewConfig tx0PreviewConfig, Collection<? extends UtxoDetail> ownSpendFroms) {
     this(tx0PreviewConfig);
-    this.spendFroms = spendFroms;
+    this.ownSpendFroms = ownSpendFroms;
   }
 
   public Tx0FeeTarget getTx0FeeTarget() {
@@ -58,20 +63,28 @@ public class Tx0PreviewConfig {
     this.mixFeeTarget = mixFeeTarget;
   }
 
-  public boolean isDecoyTx0x2() {
-    return decoyTx0x2;
+  public boolean isTx0x2Decoy() {
+    return tx0x2Decoy;
   }
 
-  public void setDecoyTx0x2(boolean decoyTx0x2) {
-    this.decoyTx0x2 = decoyTx0x2;
+  public boolean isTx0x2Cahoots() {
+    return tx0x2SpendFromsCounterparty != null;
   }
 
-  public boolean isDecoyTx0x2Forced() {
-    return decoyTx0x2Forced;
+  public boolean isTx0x2Any() {
+    return isTx0x2Cahoots() || tx0x2Decoy;
   }
 
-  public void setDecoyTx0x2Forced(boolean decoyTx0x2Forced) {
-    this.decoyTx0x2Forced = decoyTx0x2Forced;
+  public void setTx0x2Decoy(boolean tx0x2Decoy) {
+    this.tx0x2Decoy = tx0x2Decoy;
+  }
+
+  public boolean isTx0x2DecoyForced() {
+    return tx0x2DecoyForced;
+  }
+
+  public void setTx0x2DecoyForced(boolean tx0x2DecoyForced) {
+    this.tx0x2DecoyForced = tx0x2DecoyForced;
   }
 
   public boolean _isCascading() {
@@ -82,8 +95,17 @@ public class Tx0PreviewConfig {
     this._cascading = _cascading;
   }
 
-  public Collection<? extends UtxoDetail> getSpendFroms() {
-    return spendFroms;
+  public Collection<? extends UtxoDetail> getOwnSpendFroms() {
+    return ownSpendFroms;
+  }
+
+  public Collection<? extends UtxoDetail> getTx0x2SpendFromsCounterparty() {
+    return tx0x2SpendFromsCounterparty;
+  }
+
+  public void setTx0x2SpendFromsCounterparty(
+      Collection<? extends UtxoDetail> tx0x2SpendFromsCounterparty) {
+    this.tx0x2SpendFromsCounterparty = tx0x2SpendFromsCounterparty;
   }
 
   public boolean isCascade() {
@@ -103,9 +125,9 @@ public class Tx0PreviewConfig {
         + ", _cascading="
         + _cascading
         + ", decoyTx0x2="
-        + decoyTx0x2
+        + tx0x2Decoy
         + ", spendFroms="
-        + (spendFroms != null ? spendFroms.size() + " utxos" : "null")
+        + (ownSpendFroms != null ? ownSpendFroms.size() + " utxos" : "null")
         + ", cascade="
         + cascade;
   }

@@ -43,7 +43,7 @@ public class WhirlpoolWalletDecoyTx0x2Test extends AbstractTx0ServiceV1Test {
     Tx0Config tx0Config =
         whirlpoolWallet.getTx0Config(
             pool, spendFroms, Tx0FeeTarget.BLOCKS_12, Tx0FeeTarget.BLOCKS_12);
-    tx0Config.setDecoyTx0x2(true); // set decoy Tx0x2 flag
+    tx0Config.setTx0x2Decoy(true); // set decoy Tx0x2 flag
 
     // run
     Tx0Result tx0Result = whirlpoolWallet.tx0(tx0Config);
@@ -85,7 +85,7 @@ public class WhirlpoolWalletDecoyTx0x2Test extends AbstractTx0ServiceV1Test {
     Tx0Config tx0Config =
         whirlpoolWallet.getTx0Config(
             pool, spendFroms, Tx0FeeTarget.BLOCKS_12, Tx0FeeTarget.BLOCKS_12);
-    tx0Config.setDecoyTx0x2(true); // set decoy Tx0x2 flag
+    tx0Config.setTx0x2Decoy(true); // set decoy Tx0x2 flag
 
     // run
     Tx0Result tx0Result = whirlpoolWallet.tx0(tx0Config);
@@ -134,7 +134,7 @@ public class WhirlpoolWalletDecoyTx0x2Test extends AbstractTx0ServiceV1Test {
     Tx0Config tx0Config =
         whirlpoolWallet.getTx0Config(
             pool, spendFroms, Tx0FeeTarget.BLOCKS_12, Tx0FeeTarget.BLOCKS_12);
-    tx0Config.setDecoyTx0x2(true); // set decoy Tx0x2 flag
+    tx0Config.setTx0x2Decoy(true); // set decoy Tx0x2 flag
 
     // run
     Tx0Result tx0Result = whirlpoolWallet.tx0(tx0Config);
@@ -181,7 +181,7 @@ public class WhirlpoolWalletDecoyTx0x2Test extends AbstractTx0ServiceV1Test {
     Tx0Config tx0Config =
         whirlpoolWallet.getTx0Config(
             pool, spendFroms, Tx0FeeTarget.BLOCKS_12, Tx0FeeTarget.BLOCKS_12);
-    tx0Config.setDecoyTx0x2(true); // set decoy Tx0x2 flag
+    tx0Config.setTx0x2Decoy(true); // set decoy Tx0x2 flag
 
     // run
     Tx0Result tx0Result = whirlpoolWallet.tx0(tx0Config);
@@ -208,7 +208,7 @@ public class WhirlpoolWalletDecoyTx0x2Test extends AbstractTx0ServiceV1Test {
     Tx0Config tx0Config =
         whirlpoolWallet.getTx0Config(
             pool, spendFroms, Tx0FeeTarget.BLOCKS_12, Tx0FeeTarget.BLOCKS_12);
-    tx0Config.setDecoyTx0x2(true); // set decoy Tx0x2 flag
+    tx0Config.setTx0x2Decoy(true); // set decoy Tx0x2 flag
     whirlpoolWalletConfig.setTx0MaxOutputs(2); // set max premixs
 
     // run
@@ -240,7 +240,7 @@ public class WhirlpoolWalletDecoyTx0x2Test extends AbstractTx0ServiceV1Test {
     Tx0Config tx0Config =
         whirlpoolWallet.getTx0Config(
             pool, spendFroms, Tx0FeeTarget.BLOCKS_12, Tx0FeeTarget.BLOCKS_12);
-    tx0Config.setDecoyTx0x2(true); // set decoy Tx0x2 flag
+    tx0Config.setTx0x2Decoy(true); // set decoy Tx0x2 flag
 
     // run
     Tx0Result tx0Result = whirlpoolWallet.tx0(tx0Config);
@@ -269,7 +269,7 @@ public class WhirlpoolWalletDecoyTx0x2Test extends AbstractTx0ServiceV1Test {
     Tx0Config tx0Config =
         whirlpoolWallet.getTx0Config(
             pool, spendFroms, Tx0FeeTarget.BLOCKS_12, Tx0FeeTarget.BLOCKS_12);
-    tx0Config.setDecoyTx0x2(true); // set Decoy Tx0x2 flag
+    tx0Config.setTx0x2Decoy(true); // set Decoy Tx0x2 flag
 
     // run
     Tx0Result tx0Result = whirlpoolWallet.tx0(tx0Config);
@@ -300,7 +300,7 @@ public class WhirlpoolWalletDecoyTx0x2Test extends AbstractTx0ServiceV1Test {
     Tx0Config tx0Config =
         whirlpoolWallet.getTx0Config(
             pool, Arrays.asList(spendFromUtxo), Tx0FeeTarget.BLOCKS_12, Tx0FeeTarget.BLOCKS_12);
-    tx0Config.setDecoyTx0x2(true); // set Decoy Tx0x2 flag
+    tx0Config.setTx0x2Decoy(true); // set Decoy Tx0x2 flag
 
     // run
     Tx0Result tx0Result = whirlpoolWallet.tx0(tx0Config);
@@ -334,7 +334,7 @@ public class WhirlpoolWalletDecoyTx0x2Test extends AbstractTx0ServiceV1Test {
     Tx0Config tx0Config =
         whirlpoolWallet.getTx0Config(
             pool, spendFroms, Tx0FeeTarget.BLOCKS_12, Tx0FeeTarget.BLOCKS_12);
-    tx0Config.setDecoyTx0x2(true); // set decoy Tx0x2 flag
+    tx0Config.setTx0x2Decoy(true); // set decoy Tx0x2 flag
 
     // run
     Tx0Result tx0Result = whirlpoolWallet.tx0(tx0Config);
@@ -365,7 +365,7 @@ public class WhirlpoolWalletDecoyTx0x2Test extends AbstractTx0ServiceV1Test {
     Tx0Config tx0Config =
         whirlpoolWallet.getTx0Config(
             pool, spendFroms, Tx0FeeTarget.BLOCKS_12, Tx0FeeTarget.BLOCKS_12);
-    tx0Config.setDecoyTx0x2(true); // set decoy Tx0x2 flag
+    tx0Config.setTx0x2Decoy(true); // set decoy Tx0x2 flag
     tx0Config.setCascade(true);
 
     // run
@@ -391,7 +391,7 @@ public class WhirlpoolWalletDecoyTx0x2Test extends AbstractTx0ServiceV1Test {
     Tx0 tx0x2_pool001 = decoyTx0x2s.get(1);
     log.info("tx0_pool001 = " + tx0x2_pool001);
     assertTx0(tx0x2_pool001, "0.001btc", true, 12, Arrays.asList(38623L, 38624L));
-    assertUtxosEquals(tx0x2_pool001.getSpendFroms(), tx0x2_pool01.getChangeUtxos());
+    assertUtxosEquals(tx0x2_pool001.getSpendFroms(), tx0x2_pool01.getOwnChangeUtxos());
   }
 
   /** Compare with tx0x2 test {@link WhirlpoolWalletTx0x2Test#tx0x2_pool001()} */
@@ -411,7 +411,7 @@ public class WhirlpoolWalletDecoyTx0x2Test extends AbstractTx0ServiceV1Test {
     Tx0Config tx0Config =
         whirlpoolWallet.getTx0Config(
             pool, spendFroms, Tx0FeeTarget.BLOCKS_12, Tx0FeeTarget.BLOCKS_12);
-    tx0Config.setDecoyTx0x2(true); // set decoy Tx0x2 flag
+    tx0Config.setTx0x2Decoy(true); // set decoy Tx0x2 flag
 
     // run
     Tx0Result tx0Result = whirlpoolWallet.tx0(tx0Config);
@@ -441,7 +441,7 @@ public class WhirlpoolWalletDecoyTx0x2Test extends AbstractTx0ServiceV1Test {
     Tx0Config tx0Config =
         whirlpoolWallet.getTx0Config(
             pool, spendFroms, Tx0FeeTarget.BLOCKS_12, Tx0FeeTarget.BLOCKS_12);
-    tx0Config.setDecoyTx0x2(true); // set decoy Tx0x2 flag
+    tx0Config.setTx0x2Decoy(true); // set decoy Tx0x2 flag
 
     // run
     Tx0Result tx0Result = whirlpoolWallet.tx0(tx0Config);
@@ -474,7 +474,7 @@ public class WhirlpoolWalletDecoyTx0x2Test extends AbstractTx0ServiceV1Test {
     Tx0Config tx0Config =
         whirlpoolWallet.getTx0Config(
             pool, spendFroms, Tx0FeeTarget.BLOCKS_12, Tx0FeeTarget.BLOCKS_12);
-    tx0Config.setDecoyTx0x2(true); // set decoy Tx0x2 flag
+    tx0Config.setTx0x2Decoy(true); // set decoy Tx0x2 flag
     tx0Config.setCascade(true);
 
     // run
@@ -499,7 +499,7 @@ public class WhirlpoolWalletDecoyTx0x2Test extends AbstractTx0ServiceV1Test {
     Tx0 tx0x2_pool001 = decoyTx0x2s.get(1);
     log.info("tx0_pool001 = " + tx0x2_pool001);
     assertTx0(tx0x2_pool001, "0.001btc", true, 18, Arrays.asList(69338L, 69338L)); // split
-    assertUtxosEquals(tx0x2_pool001.getSpendFroms(), tx0x2_pool01.getChangeUtxos());
+    assertUtxosEquals(tx0x2_pool001.getSpendFroms(), tx0x2_pool01.getOwnChangeUtxos());
   }
 
   /**
@@ -522,7 +522,7 @@ public class WhirlpoolWalletDecoyTx0x2Test extends AbstractTx0ServiceV1Test {
     Tx0Config tx0Config =
         whirlpoolWallet.getTx0Config(
             pool, spendFroms, Tx0FeeTarget.BLOCKS_12, Tx0FeeTarget.BLOCKS_12);
-    tx0Config.setDecoyTx0x2(true); // set decoy Tx0x2 flag
+    tx0Config.setTx0x2Decoy(true); // set decoy Tx0x2 flag
     tx0Config.setCascade(true);
 
     // run
@@ -547,13 +547,13 @@ public class WhirlpoolWalletDecoyTx0x2Test extends AbstractTx0ServiceV1Test {
     Tx0 tx0x2_pool01 = decoyTx0x2s.get(1);
     log.info("tx0_pool01 = " + tx0x2_pool01);
     assertTx0(tx0x2_pool01, "0.01btc", true, 8, Arrays.asList(902070L, 902580L));
-    assertUtxosEquals(tx0x2_pool01.getSpendFroms(), tx0x2_pool05.getChangeUtxos());
+    assertUtxosEquals(tx0x2_pool01.getSpendFroms(), tx0x2_pool05.getOwnChangeUtxos());
 
     // 0.001 pool
     Tx0 tx0x2_pool001 = decoyTx0x2s.get(2);
     log.info("tx0_pool001 = " + tx0x2_pool001);
     assertTx0(tx0x2_pool001, "0.001btc", true, 16, Arrays.asList(97370L, 97370L)); // split
-    assertUtxosEquals(tx0x2_pool001.getSpendFroms(), tx0x2_pool01.getChangeUtxos());
+    assertUtxosEquals(tx0x2_pool001.getSpendFroms(), tx0x2_pool01.getOwnChangeUtxos());
   }
 
   /**
@@ -577,7 +577,7 @@ public class WhirlpoolWalletDecoyTx0x2Test extends AbstractTx0ServiceV1Test {
     Tx0Config tx0Config =
         whirlpoolWallet.getTx0Config(
             pool, spendFroms, Tx0FeeTarget.BLOCKS_12, Tx0FeeTarget.BLOCKS_12);
-    tx0Config.setDecoyTx0x2(true); // set decoy Tx0x2 flag
+    tx0Config.setTx0x2Decoy(true); // set decoy Tx0x2 flag
 
     // run
     Tx0Result tx0Result = whirlpoolWallet.tx0(tx0Config);
@@ -620,8 +620,8 @@ public class WhirlpoolWalletDecoyTx0x2Test extends AbstractTx0ServiceV1Test {
     Tx0Config tx0Config =
         whirlpoolWallet.getTx0Config(
             pool, spendFroms, Tx0FeeTarget.BLOCKS_12, Tx0FeeTarget.BLOCKS_12);
-    tx0Config.setDecoyTx0x2(true); // set decoy Tx0x2 flag
-    tx0Config.setDecoyTx0x2Forced(true); // force Tx0x2 decoy => skip 01
+    tx0Config.setTx0x2Decoy(true); // set decoy Tx0x2 flag
+    tx0Config.setTx0x2DecoyForced(true); // force Tx0x2 decoy => skip 01
     tx0Config.setCascade(true);
 
     // run
@@ -646,7 +646,7 @@ public class WhirlpoolWalletDecoyTx0x2Test extends AbstractTx0ServiceV1Test {
     Tx0 tx0x2_pool001 = decoyTx0x2s.get(1);
     log.info("tx0_pool001 = " + tx0x2_pool001);
     assertTx0(tx0x2_pool001, "0.001btc", true, 21, Arrays.asList(3718579L, 19854L));
-    assertUtxosEquals(tx0x2_pool001.getSpendFroms(), tx0x2_pool05.getChangeUtxos());
+    assertUtxosEquals(tx0x2_pool001.getSpendFroms(), tx0x2_pool05.getOwnChangeUtxos());
   }
 
   // TODO: This test also needs to be reevaluated.
@@ -676,7 +676,7 @@ public class WhirlpoolWalletDecoyTx0x2Test extends AbstractTx0ServiceV1Test {
     Tx0Config tx0Config =
         whirlpoolWallet.getTx0Config(
             pool, spendFroms, Tx0FeeTarget.BLOCKS_12, Tx0FeeTarget.BLOCKS_12);
-    tx0Config.setDecoyTx0x2(true); // set decoy Tx0x2 flag
+    tx0Config.setTx0x2Decoy(true); // set decoy Tx0x2 flag
     tx0Config.setCascade(true);
 
     // run
@@ -701,7 +701,7 @@ public class WhirlpoolWalletDecoyTx0x2Test extends AbstractTx0ServiceV1Test {
     Tx0 tx0x2_pool01 = decoyTx0x2s.get(1);
     log.info("tx0_pool01 = " + tx0x2_pool01);
     assertTx0(tx0x2_pool01, "0.01btc", true, 8, Arrays.asList(52325L, 52325L));
-    assertUtxosEquals(tx0x2_pool01.getSpendFroms(), tx0x2_pool05.getChangeUtxos());
+    assertUtxosEquals(tx0x2_pool01.getSpendFroms(), tx0x2_pool05.getOwnChangeUtxos());
 
     // 0.001 pool not reached
   }

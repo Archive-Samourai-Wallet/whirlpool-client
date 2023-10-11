@@ -148,7 +148,7 @@ public class WalletAggregateService {
     List<TransactionInput> inputs = new ArrayList<TransactionInput>();
     KeyBag keyBag = new KeyBag();
     for (BipUtxo spendFrom : spendFroms) {
-      TransactionInput txInput = utxoUtil.computeOutpoint(spendFrom).computeSpendInput();
+      TransactionInput txInput = utxoUtil.computeSpendInput(spendFrom, params);
       inputs.add(txInput);
       keyBag.add(spendFrom, whirlpoolWallet.getUtxoSupplier());
       if (log.isDebugEnabled()) {

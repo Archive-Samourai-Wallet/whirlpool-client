@@ -6,6 +6,8 @@ import com.samourai.wallet.bipWallet.BipWallet;
 import com.samourai.wallet.bipWallet.WalletSupplier;
 import com.samourai.wallet.util.UtxoUtil;
 import com.samourai.wallet.utxo.BipUtxo;
+import com.samourai.wallet.utxo.UtxoConfirmInfo;
+import com.samourai.wallet.utxo.UtxoConfirmInfoImpl;
 import com.samourai.whirlpool.client.wallet.beans.WhirlpoolAccount;
 import com.samourai.whirlpool.client.wallet.beans.WhirlpoolUtxo;
 import com.samourai.whirlpool.client.wallet.beans.WhirlpoolUtxoChanges;
@@ -68,10 +70,12 @@ public class UtxoData {
 
       // init 'confirmedBlockHeight' (from 'confirmations') when missing (required for
       // UnspentOutput)
-      int confirmations = utxo.getConfirmations(latestBlockHeight);
-      if (utxo.getConfirmedBlockHeight() == null && confirmations > 0) {
-        utxo.setConfirmedBlockHeight(
-            utxoUtil.computeConfirmedBlockHeight(confirmations, latestBlockHeight));
+      UtxoConfirmInfo confirmInfo = utxo.getConfirmInfo();
+      int confirmations = confirmInfo.getConfirmations(latestBlockHeight);
+      if (confirmInfo.getConfirmedBlockHeight() == null && confirmations > 0) {
+        Integer confirmBlockHeight =
+            utxoUtil.computeConfirmedBlockHeight(confirmations, latestBlockHeight);
+        utxo.setConfirmInfo(new UtxoConfirmInfoImpl(confirmBlockHeight));
       }
     }
 
@@ -93,9 +97,10 @@ public class UtxoData {
       BipUtxo freshUtxo = freshUtxos.get(key);
       if (freshUtxo != null) {
         // set blockHeight when confirmed
-        if (whirlpoolUtxo.getConfirmedBlockHeight() == null
-            && freshUtxo.getConfirmedBlockHeight() != null) {
-          whirlpoolUtxo.setConfirmedBlockHeight(freshUtxo.getConfirmedBlockHeight());
+        Integer freshConfirmedBlockHeight = freshUtxo.getConfirmInfo().getConfirmedBlockHeight();
+        if (whirlpoolUtxo.getConfirmInfo().getConfirmedBlockHeight() == null
+            && freshConfirmedBlockHeight != null) {
+          whirlpoolUtxo.setConfirmInfo(new UtxoConfirmInfoImpl(freshConfirmedBlockHeight));
           utxoChanges.getUtxosConfirmed().add(whirlpoolUtxo);
         }
         // add
@@ -122,7 +127,7 @@ public class UtxoData {
           // auto-assign pool for mixable utxos
           String poolId = null;
           if (utxoSupplier.isMixableUtxo(utxo, bipWallet)) { //  exclude premix/postmix change
-            poolId = computeAutoAssignPoolId(whirlpoolAccount, utxo.getValue(), poolSupplier);
+            poolId = computeAutoAssignPoolId(whirlpoolAccount, utxo.getValueLong(), poolSupplier);
           }
 
           // add missing

@@ -25,6 +25,8 @@ public class Pool {
   private long elapsedTime;
   private int nbConfirmed;
   private Tx0Preview tx0PreviewMin;
+  private Tx0Preview tx0PreviewMax;
+  private Long tx0PreviewMaxSpendValueCascading;
 
   public Pool() {}
 
@@ -44,6 +46,22 @@ public class Pool {
       throw new RuntimeException("pool.tx0PreviewMin is NULL!");
     }
     return tx0PreviewMin.getSpendValue();
+  }
+
+  public long getTx0PreviewMaxSpendValue() {
+    if (tx0PreviewMax == null) {
+      // shouldn't happen
+      throw new RuntimeException("pool.tx0PreviewMax is NULL!");
+    }
+    return tx0PreviewMax.getSpendValue();
+  }
+
+  public long getTx0PreviewMaxSpendValueCascading() {
+    if (tx0PreviewMaxSpendValueCascading == null) {
+      // shouldn't happen
+      throw new RuntimeException("pool.tx0PreviewMaxSpendValueCascading is NULL!");
+    }
+    return tx0PreviewMaxSpendValueCascading;
   }
 
   public long computePremixBalanceMin(boolean liquidity) {
@@ -177,5 +195,18 @@ public class Pool {
 
   public void setTx0PreviewMin(Tx0Preview tx0Min) {
     this.tx0PreviewMin = tx0Min;
+  }
+
+  /** @return Tx0Preview for pool with maxOutputs (without taking SCODE into account) */
+  public Tx0Preview getTx0PreviewMax() {
+    return tx0PreviewMax;
+  }
+
+  public void setTx0PreviewMax(Tx0Preview tx0PreviewMax) {
+    this.tx0PreviewMax = tx0PreviewMax;
+  }
+
+  public void setTx0PreviewMaxSpendValueCascading(long tx0PreviewMaxSpendValueCascading) {
+    this.tx0PreviewMaxSpendValueCascading = tx0PreviewMaxSpendValueCascading;
   }
 }

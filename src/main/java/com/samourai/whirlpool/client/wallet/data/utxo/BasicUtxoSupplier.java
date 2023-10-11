@@ -22,6 +22,7 @@ import java.util.Collection;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.stream.Collectors;
+import org.bitcoinj.core.NetworkParameters;
 import org.bouncycastle.util.encoders.Hex;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -36,6 +37,7 @@ public abstract class BasicUtxoSupplier extends BasicSupplier<UtxoData>
   private final ChainSupplier chainSupplier;
   private final PoolSupplier poolSupplier;
   private final BipFormatSupplier bipFormatSupplier;
+  private NetworkParameters params;
 
   private Map<String, WhirlpoolUtxo> previousUtxos;
 
@@ -44,8 +46,8 @@ public abstract class BasicUtxoSupplier extends BasicSupplier<UtxoData>
       UtxoConfigSupplier utxoConfigSupplier,
       ChainSupplier chainSupplier,
       PoolSupplier poolSupplier,
-      BipFormatSupplier bipFormatSupplier)
-      throws Exception {
+      BipFormatSupplier bipFormatSupplier,
+      NetworkParameters params) {
     super(log);
     this.previousUtxos = null;
     this.walletSupplier = walletSupplier;
@@ -53,6 +55,7 @@ public abstract class BasicUtxoSupplier extends BasicSupplier<UtxoData>
     this.chainSupplier = chainSupplier;
     this.poolSupplier = poolSupplier;
     this.bipFormatSupplier = bipFormatSupplier;
+    this.params = params;
   }
 
   public abstract void refresh() throws Exception;
@@ -205,7 +208,6 @@ public abstract class BasicUtxoSupplier extends BasicSupplier<UtxoData>
     // group utxos by script = same address
     Map<String, UTXO> utxoByScript = new LinkedHashMap<String, UTXO>();
     for (WhirlpoolUtxo whirlpoolUtxo : whirlpoolUtxos) {
-      MyTransactionOutPoint outPoint = utxoUtil.computeOutpoint(whirlpoolUtxo);
       String script =
           whirlpoolUtxo.getScriptBytes() != null
               ? Hex.toHexString(whirlpoolUtxo.getScriptBytes())
@@ -218,6 +220,9 @@ public abstract class BasicUtxoSupplier extends BasicSupplier<UtxoData>
         utxo = new UTXO(path, xpub);
         utxoByScript.put(script, utxo);
       }
+      int confirms =
+          whirlpoolUtxo.getConfirmInfo().getConfirmations(chainSupplier.getLatestBlock().height);
+      MyTransactionOutPoint outPoint = new MyTransactionOutPoint(whirlpoolUtxo, params, confirms);
       utxo.getOutpoints().add(outPoint);
       if (utxo.getOutpoints().size() > 1) {
         if (log.isDebugEnabled()) {

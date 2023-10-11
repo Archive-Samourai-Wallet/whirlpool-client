@@ -29,6 +29,7 @@ import com.samourai.whirlpool.client.wallet.data.utxoConfig.UtxoConfigSupplier;
 import com.samourai.whirlpool.client.wallet.data.walletState.WalletStateSupplier;
 import java.util.Map;
 import org.apache.commons.lang3.math.NumberUtils;
+import org.bitcoinj.core.NetworkParameters;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -128,8 +129,14 @@ public abstract class WalletResponseDataSource implements DataSource {
       PoolSupplier poolSupplier,
       BipFormatSupplier bipFormatSupplier)
       throws Exception {
+    NetworkParameters params = whirlpoolWallet.getConfig().getNetworkParameters();
     return new BasicUtxoSupplier(
-        walletSupplier, utxoConfigSupplier, chainSupplier, poolSupplier, bipFormatSupplier) {
+        walletSupplier,
+        utxoConfigSupplier,
+        chainSupplier,
+        poolSupplier,
+        bipFormatSupplier,
+        params) {
       @Override
       public void refresh() throws Exception {
         WalletResponseDataSource.this.refresh();

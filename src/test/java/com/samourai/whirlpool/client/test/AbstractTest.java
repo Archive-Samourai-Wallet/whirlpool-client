@@ -16,9 +16,11 @@ import com.samourai.wallet.hd.HD_WalletFactoryGeneric;
 import com.samourai.wallet.segwit.bech32.Bech32UtilGeneric;
 import com.samourai.wallet.util.AsyncUtil;
 import com.samourai.wallet.util.RandomUtil;
+import com.samourai.wallet.util.TxUtil;
 import com.samourai.wallet.util.UtxoUtil;
 import com.samourai.wallet.utxo.BipUtxo;
 import com.samourai.wallet.utxo.BipUtxoImpl;
+import com.samourai.wallet.utxo.UtxoConfirmInfoImpl;
 import com.samourai.whirlpool.client.tx0.Tx0PreviewService;
 import com.samourai.whirlpool.client.tx0.Tx0Service;
 import com.samourai.whirlpool.client.utils.ClientUtils;
@@ -66,7 +68,8 @@ public class AbstractTest {
   protected static final String SEED_WORDS = "all all all all all all all all all all all all";
   protected static final String SEED_PASSPHRASE = "whirlpool";
   private static final String STATE_FILENAME = "/tmp/tmp-state";
-  private static final UtxoUtil utxoUtil = UtxoUtil.getInstance();
+  protected static final UtxoUtil utxoUtil = UtxoUtil.getInstance();
+  protected static final TxUtil txUtil = TxUtil.getInstance();
 
   protected IHttpClient httpClient;
 
@@ -105,7 +108,7 @@ public class AbstractTest {
   protected MockPushTx pushTx = new MockPushTx(params);
   protected Map<String, Tx0Data> mockTx0Datas = new LinkedHashMap<>();
   protected static final String MOCK_SAMOURAI_FEE_ADDRESS =
-      "tb1qfd0ukes4xw3xvxwhj9m53nt2huh75khrrdm5dv";
+      "tb1qw508d6qejxtdg4y5r3zarvary0c5xw7kxpjzsx";
 
   protected WhirlpoolWalletConfig whirlpoolWalletConfig;
   protected ExpirablePoolSupplier poolSupplier;
@@ -152,7 +155,7 @@ public class AbstractTest {
     pool001btc.setNbConfirmed(0);
 
     pool05btc = new Pool();
-    pool05btc.setPoolId("0.5btc");
+    pool05btc.setPoolId("0.05btc");
     pool05btc.setDenomination(5000000);
     pool05btc.setFeeValue(250000);
     pool05btc.setMustMixBalanceMin(5000170);
@@ -184,6 +187,9 @@ public class AbstractTest {
     tx0Service =
         new Tx0Service(params, tx0PreviewService, whirlpoolWalletConfig.getFeeOpReturnImpl());
 
+    List<Pool> pools = Arrays.asList(pool001btc, pool01btc, pool05btc);
+    tx0PreviewService.initPools(pools);
+
     mockTx0Datas();
   }
 
@@ -195,12 +201,11 @@ public class AbstractTest {
     MinerFeeSupplier minerFeeSupplier = mockMinerFeeSupplier();
     return new Tx0PreviewService(minerFeeSupplier, bipFormatSupplier, whirlpoolWalletConfig) {
       @Override
-      protected Map<String, Tx0Data> fetchTx0Data(String partnerId, boolean cascading)
-          throws Exception {
+      public Map<String, Tx0Data> fetchTx0Data(boolean cascading) throws Exception {
         if (mockTx0Datas != null) {
           return mockTx0Datas;
         }
-        return super.fetchTx0Data(partnerId, cascading);
+        return super.fetchTx0Data(cascading);
       }
     };
   }
@@ -238,13 +243,12 @@ public class AbstractTest {
             index,
             value,
             bech32Address,
-            1234,
-            params,
+            new UtxoConfirmInfoImpl(1234),
+            scriptBytes,
             XPUB_DEPOSIT_BIP84,
             false,
             0,
-            hdAddress.getAddressIndex(),
-            scriptBytes);
+            hdAddress.getAddressIndex());
     return spendFrom;
   }
 

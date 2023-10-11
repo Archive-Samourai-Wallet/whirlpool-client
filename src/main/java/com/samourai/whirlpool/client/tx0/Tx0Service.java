@@ -1,21 +1,24 @@
 package com.samourai.whirlpool.client.tx0;
 
-import com.samourai.wallet.bip69.BIP69InputComparatorBipUtxo;
-import com.samourai.wallet.bip69.BIP69OutputComparator;
+import com.samourai.wallet.bip69.BIP69InputComparatorUtxo;
 import com.samourai.wallet.bipFormat.BipFormatSupplier;
 import com.samourai.wallet.bipWallet.BipWallet;
 import com.samourai.wallet.bipWallet.KeyBag;
+import com.samourai.wallet.cahoots.CahootsUtxo;
 import com.samourai.wallet.hd.BipAddress;
 import com.samourai.wallet.segwit.bech32.Bech32UtilGeneric;
+import com.samourai.wallet.send.MyTransactionOutPoint;
 import com.samourai.wallet.send.SendFactoryGeneric;
 import com.samourai.wallet.send.provider.UtxoKeyProvider;
 import com.samourai.wallet.util.AsyncUtil;
+import com.samourai.wallet.util.Pair;
 import com.samourai.wallet.util.TxUtil;
 import com.samourai.wallet.util.UtxoUtil;
 import com.samourai.wallet.utxo.BipUtxo;
 import com.samourai.wallet.utxo.BipUtxoImpl;
+import com.samourai.wallet.utxo.UtxoOutPoint;
+import com.samourai.wallet.utxo.UtxoOutPointImpl;
 import com.samourai.whirlpool.client.event.Tx0Event;
-import com.samourai.whirlpool.client.exception.NotifiableException;
 import com.samourai.whirlpool.client.exception.PushTxErrorResponseException;
 import com.samourai.whirlpool.client.utils.ClientUtils;
 import com.samourai.whirlpool.client.wallet.WhirlpoolEventService;
@@ -48,6 +51,7 @@ public class Tx0Service {
   private FeeOpReturnImpl feeOpReturnImpl;
   private final Bech32UtilGeneric bech32Util = Bech32UtilGeneric.getInstance();
   private final UtxoUtil utxoUtil = UtxoUtil.getInstance();
+  private final TxUtil txUtil = TxUtil.getInstance();
 
   public Tx0Service(
       NetworkParameters params,
@@ -66,10 +70,9 @@ public class Tx0Service {
   }
 
   /** Generate maxOutputs premixes outputs max. */
-  public Optional<Tx0> buildTx0(Tx0Config tx0Config) throws Exception {
+  protected Optional<Tx0> buildTx0(Tx0Config tx0Config) throws Exception {
     // preview
-    Pool pool = tx0Config.getPool();
-    Tx0Preview tx0Preview = tx0PreviewService.tx0PreviewSingle(tx0Config, pool).orElse(null);
+    Tx0Preview tx0Preview = tx0PreviewService.tx0PreviewSingle(tx0Config).orElse(null);
     if (tx0Preview != null) {
       // compute Tx0
       return buildTx0(tx0Config, tx0Preview);
@@ -78,26 +81,46 @@ public class Tx0Service {
   }
 
   protected Optional<Tx0> buildTx0(Tx0Config tx0Config, Tx0Preview tx0Preview) throws Exception {
+    Tx0x2CahootsConfig tx0x2CahootsConfig = tx0Config.getTx0x2CahootsConfig();
+    String poolId = tx0Preview.getPool().getPoolId();
     if (log.isDebugEnabled()) {
-      String poolId = tx0Preview.getPool().getPoolId();
       log.debug(
-          " • Tx0["
-              + poolId
-              + "]: tx0Config={"
-              + tx0Config
-              + "}\n=> tx0Preview={"
-              + tx0Preview
-              + "}");
+          " • Tx0[" + poolId + "]: tx0Config={" + tx0Config + "}\n=> tx0Preview={" + tx0Preview);
+    }
+
+    long premixValue = tx0Preview.getPremixValue();
+    long feeValueOrFeeChange = tx0Preview.getTx0Data().computeFeeValueOrFeeChange();
+    int nbPremix =
+        tx0PreviewService.capNbPremix(tx0Preview.getNbPremix(), tx0Preview.getPool(), false);
+
+    // verify
+
+    if (tx0Config.getOwnSpendFromUtxos().size() <= 0) {
+      throw new IllegalArgumentException("spendFroms should be > 0");
+    }
+
+    if (feeValueOrFeeChange <= 0) {
+      throw new IllegalArgumentException("feeValueOrFeeChange should be > 0");
+    }
+
+    // at least 1 premix
+    if (nbPremix < 1) {
+      if (log.isDebugEnabled()) {
+        log.debug("Invalid nbPremix=" + nbPremix);
+      }
+      return Optional.empty(); // TX0 not possible
     }
 
     // save indexes state with Tx0Context
     BipWallet premixWallet = tx0Config.getPremixWallet();
     BipWallet changeWallet = tx0Config.getChangeWallet();
-    Tx0Context tx0Context = new Tx0Context(premixWallet, changeWallet);
+    Tx0Context tx0Context = new Tx0Context(premixWallet, changeWallet); // save index state
 
     Tx0Data tx0Data = tx0Preview.getTx0Data();
+    Tx0x2Preview tx0x2Preview =
+        tx0Preview.getTx0x2Preview(); // set when any tx0x2 (2-party or cahoots)
 
-    // compute opReturnValue for feePaymentCode and feePayload
+    // compute fee destination
     String feeOrBackAddressBech32;
     if (tx0Data.getFeeValue() > 0) {
       // pay to fee
@@ -112,69 +135,6 @@ public class Tx0Service {
       if (log.isDebugEnabled()) {
         log.debug("feeAddressDestination: back to deposit => " + feeOrBackAddressBech32);
       }
-    }
-
-    // sort inputs now, we need to know the first input for OP_RETURN encode
-    List<BipUtxo> sortedSpendFroms = new LinkedList<>();
-    sortedSpendFroms.addAll(tx0Config.getSpendFromUtxos());
-    sortedSpendFroms.sort(new BIP69InputComparatorBipUtxo());
-
-    // op_return
-    if (sortedSpendFroms.isEmpty()) {
-      throw new IllegalArgumentException("spendFroms should be > 0");
-    }
-    BipUtxo firstInput = sortedSpendFroms.get(0);
-    UtxoKeyProvider utxoKeyProvider = tx0Config.getUtxoKeyProvider();
-    byte[] firstInputKey = utxoKeyProvider._getPrivKey(firstInput);
-    byte[] opReturn = computeOpReturn(firstInput, firstInputKey, tx0Data);
-
-    //
-    // tx0
-    //
-
-    return buildTx0(
-        tx0Config,
-        sortedSpendFroms,
-        premixWallet,
-        tx0Preview,
-        opReturn,
-        feeOrBackAddressBech32,
-        changeWallet,
-        tx0Context);
-  }
-
-  protected Optional<Tx0> buildTx0(
-      Tx0Config tx0Config,
-      Collection<BipUtxo> sortedSpendFroms,
-      BipWallet premixWallet,
-      Tx0Preview tx0Preview,
-      byte[] opReturn,
-      String feeOrBackAddressBech32,
-      BipWallet changeWallet,
-      Tx0Context tx0Context)
-      throws Exception {
-
-    long premixValue = tx0Preview.getPremixValue();
-    long feeValueOrFeeChange = tx0Preview.getTx0Data().computeFeeValueOrFeeChange();
-    int nbPremix =
-        tx0PreviewService.capNbPremix(tx0Preview.getNbPremix(), tx0Preview.getPool(), false);
-
-    // verify
-
-    if (sortedSpendFroms.size() <= 0) {
-      throw new IllegalArgumentException("spendFroms should be > 0");
-    }
-
-    if (feeValueOrFeeChange <= 0) {
-      throw new IllegalArgumentException("feeValueOrFeeChange should be > 0");
-    }
-
-    // at least 1 premix
-    if (nbPremix < 1) {
-      if (log.isDebugEnabled()) {
-        log.debug("Invalid nbPremix=" + nbPremix);
-      }
-      return Optional.empty(); // TX0 not possible
     }
 
     //
@@ -194,55 +154,75 @@ public class Tx0Service {
     // premix outputs
     //
     List<TransactionOutput> premixOutputs = new ArrayList<>();
-    for (int j = 0; j < nbPremix; j++) {
-      // send to PREMIX
-      BipAddress toAddress = premixWallet.getNextAddressReceive();
-      String toAddressBech32 = toAddress.getAddressString();
-      if (log.isDebugEnabled()) {
-        log.debug(
-            "Tx0 out (premix): address="
-                + toAddressBech32
-                + ", path="
-                + toAddress.getPathAddress()
-                + " ("
-                + premixValue
-                + " sats)");
-      }
-
-      TransactionOutput txOutSpend =
-          bech32Util.getTransactionOutput(toAddressBech32, premixValue, params);
-      outputs.add(txOutSpend);
-      premixOutputs.add(txOutSpend);
+    int nbOwnPremixs =
+        tx0x2CahootsConfig != null ? tx0x2Preview.getNbPremixSender() : tx0Preview.getNbPremix();
+    // append sender or regular premixs
+    for (int i = 0; i < nbOwnPremixs; i++) {
+      TransactionOutput premixOutput = computeOwnPremixOutput(premixValue, premixWallet).getLeft();
+      premixOutputs.add(premixOutput);
+      outputs.add(premixOutput);
     }
 
     //
-    // 1 or 2 change output(s) [Tx0]
-    // 2 or 3 change outputs [Decoy Tx0x2]
+    // Own changes outputs (back to own change wallet)
+    // 1 change output(s) [Tx0 or Cahoots Tx0x2]
+    // 2 change outputs [decoy Tx0x2]
     //
-    List<TransactionOutput> changeOutputs = new LinkedList<>();
-    List<BipAddress> changeOutputsAddresses = new LinkedList<>();
+    List<Pair<TransactionOutput, BipAddress>> ownChanges = new LinkedList<>();
+    if (tx0x2Preview != null) {
+      if (tx0x2Preview.isTx0x2Cahoots()) {
+        // 2-party cahoots => 1 change controlled as sender
+        if (tx0x2Preview.getChangeAmountSender() > 0) {
+          ownChanges.add(
+              computeOwnChangeOutput(tx0x2Preview.getChangeAmountSender(), changeWallet));
+        }
+      } else {
+        // tx0x2 decoy => both changes controlled as single user
+        if (tx0x2Preview.getChangeAmountSender() > 0) {
+          ownChanges.add(
+              computeOwnChangeOutput(tx0x2Preview.getChangeAmountSender(), changeWallet));
+        }
+        if (tx0x2Preview.getChangeAmountCounterparty() > 0) {
+          ownChanges.add(
+              computeOwnChangeOutput(tx0x2Preview.getChangeAmountCounterparty(), changeWallet));
+        }
+      }
+    } else {
+      // regular tx : 1 change controlled as single user
+      if (tx0Preview.getChangeValue() > 0) {
+        ownChanges.add(computeOwnChangeOutput(tx0Preview.getChangeValue(), changeWallet));
+      }
+    }
+    List<TransactionOutput> allChangeOutputs = new LinkedList<>();
+    for (Pair<TransactionOutput, BipAddress> ownChange : ownChanges) {
+      TransactionOutput ownChangeOutput = ownChange.getLeft();
+      outputs.add(ownChangeOutput);
+      allChangeOutputs.add(ownChangeOutput);
+    }
 
-    Collection<Long> changeAmounts = tx0Preview.getChangeAmounts();
-    if (!changeAmounts.isEmpty()) {
-      // change outputs
-      for (long changeAmount : changeAmounts) {
-        BipAddress changeAddress = changeWallet.getNextAddressChange();
-        String changeAddressBech32 = changeAddress.getAddressString();
+    //
+    // Counterparty changes output [Cahoots Tx0x2]
+    //
+    Pair<TransactionOutput, String> tx0x2CounterpartyChange = null;
+    if (tx0x2CahootsConfig != null) {
+      long changeAmount = tx0x2Preview.getChangeAmountCounterparty();
+      if (changeAmount > 0) {
+        // add counterarty change output
+        String changeAddressBech32 =
+            tx0x2CahootsConfig.getCounterpartyChangeAddressPerPoolId().get(poolId);
         TransactionOutput changeOutput =
             bech32Util.getTransactionOutput(changeAddressBech32, changeAmount, params);
         outputs.add(changeOutput);
-        changeOutputs.add(changeOutput);
-        changeOutputsAddresses.add(changeAddress);
+        allChangeOutputs.add(changeOutput);
         if (log.isDebugEnabled()) {
           log.debug(
-              "Tx0 out (change): address="
+              "Tx0 out (change)(counterparty): address="
                   + changeAddressBech32
-                  + ", path="
-                  + changeAddress.getPathAddress()
-                  + " ("
+                  + ", ("
                   + changeAmount
                   + " sats)");
         }
+        tx0x2CounterpartyChange = Pair.of(changeOutput, changeAddressBech32);
       }
     }
 
@@ -259,63 +239,103 @@ public class Tx0Service {
               + " sats)");
     }
 
-    // add OP_RETURN output
-    Script op_returnOutputScript =
-        new ScriptBuilder().op(ScriptOpCodes.OP_RETURN).data(opReturn).build();
-    TransactionOutput opReturnOutput =
-        new TransactionOutput(params, null, Coin.valueOf(0L), op_returnOutputScript.getProgram());
-    outputs.add(opReturnOutput);
-    if (log.isDebugEnabled()) {
-      log.debug("Tx0 out (OP_RETURN): " + opReturn.length + " bytes");
+    // counterparty inputs (tx0x2 cahoots)
+    List<UtxoOutPoint> allInputs = new LinkedList<>();
+    if (tx0x2CahootsConfig != null) {
+      for (UtxoOutPoint input : tx0x2CahootsConfig.getCounterpartyInputs()) {
+        TransactionInput transactionInput = utxoUtil.computeSpendInput(input, params);
+        tx.addInput(transactionInput);
+        allInputs.add(input);
+        if (log.isDebugEnabled()) {
+          log.debug("Tx0 in (counterparty): " + transactionInput);
+        }
+      }
     }
-
-    // all outputs
-    outputs.sort(new BIP69OutputComparator());
-    for (TransactionOutput to : outputs) {
-      tx.addOutput(to);
-    }
-
-    // all inputs
-    for (BipUtxo spendFrom : sortedSpendFroms) {
-      TransactionInput input = utxoUtil.computeOutpoint(spendFrom).computeSpendInput();
+    // own inputs (regular tx0 or tx0x2 decoy)
+    for (BipUtxo spendFrom : tx0Config.getOwnSpendFromUtxos()) {
+      TransactionInput input = utxoUtil.computeSpendInput(spendFrom, params);
       tx.addInput(input);
+      allInputs.add(spendFrom);
       if (log.isDebugEnabled()) {
         log.debug("Tx0 in: utxo=" + spendFrom);
       }
     }
 
+    // sort inputs now, we need to encode OP_RETURN with the first input
+    Collections.sort(allInputs, new BIP69InputComparatorUtxo());
+
+    // add OP_RETURN output
+    UtxoOutPoint firstInput = allInputs.get(0);
+    TransactionOutput opReturnOutput = computeOpReturnOutput(firstInput, tx0Config, tx0Preview);
+    outputs.add(opReturnOutput);
+
+    // all outputs
+    for (TransactionOutput to : outputs) {
+      tx.addOutput(to);
+    }
+
+    // sort inputs & outputs
+    txUtil.sortBip69InputsAndOutputs(tx);
+
+    // prepare keybag to sign
     UtxoKeyProvider keyProvider = tx0Config.getUtxoKeyProvider();
     KeyBag keyBag = new KeyBag();
-    keyBag.addAll(sortedSpendFroms, keyProvider);
-    signTx0(tx, keyBag, keyProvider.getBipFormatSupplier());
+    keyBag.addAll((Collection<BipUtxo>) tx0Config.getOwnSpendFromUtxos(), keyProvider);
+
+    // sign unless tx0x2Cahoots
+    boolean signed = false;
+    if (!tx0Config.isTx0x2Cahoots()) {
+      signTx0(tx, keyBag, keyProvider.getBipFormatSupplier());
+      signed = true;
+    }
     tx.verify();
 
-    // build changeUtxos *after* tx is signed
-    List<? extends BipUtxo> changeUtxos =
-        computeChangeUtxos(changeOutputs, changeOutputsAddresses, changeWallet);
+    // build changeUtxos *after* transactionOutputs are added to TX
+    List<? extends BipUtxo> ownChangeUtxos = computeChangeUtxos(ownChanges, changeWallet);
+    UtxoOutPoint tx0x2CounterpartyChangeOutPoint = null;
+    if (tx0x2CounterpartyChange != null) {
+      tx0x2CounterpartyChangeOutPoint =
+          new UtxoOutPointImpl(
+              tx0x2CounterpartyChange.getLeft(), tx0x2CounterpartyChange.getRight());
+    }
 
+    Tx0x2CahootsResult tx0x2CahootsResult = null;
+    if (tx0x2CahootsConfig != null) {
+      CahootsUtxo senderChangeUtxo = null;
+      if (!ownChanges.isEmpty()) { // tx0x2 cahoots has 0 or 1 own change
+        BipUtxo bipUtxo = ownChangeUtxos.iterator().next();
+        BipAddress bipAddress = ownChanges.iterator().next().getRight();
+        byte[] key = bipAddress.getHdAddress().getECKey().getPrivKeyBytes();
+        senderChangeUtxo = new CahootsUtxo(bipUtxo, key);
+      }
+      tx0x2CahootsResult =
+          new Tx0x2CahootsResult(tx0x2Preview, senderChangeUtxo, tx0x2CounterpartyChangeOutPoint);
+    }
     Tx0 tx0 =
         new Tx0(
             tx0Preview,
-            sortedSpendFroms,
+            allInputs,
+            (Collection<BipUtxo>) tx0Config.getOwnSpendFromUtxos(),
             tx0Config,
             tx0Context,
             tx,
             premixOutputs,
-            changeOutputs,
-            changeUtxos,
+            allChangeOutputs,
+            ownChangeUtxos,
             opReturnOutput,
-            samouraiFeeOutput);
-    String poolId = tx0Config.getPool().getPoolId();
+            samouraiFeeOutput,
+            tx0x2CahootsResult,
+            keyBag,
+            signed);
     log.info(
         " • Tx0["
             + poolId
             + "]: txid="
             + tx0.getTx().getHashAsString()
-            + ", nbPremixs="
-            + tx0.getPremixOutputs().size()
-            + ", decoyTx0x2="
-            + tx0.isDecoyTx0x2());
+            + ", nbOwnPremixs="
+            + tx0.getOwnPremixOutputs().size()
+            + ", tx0x2="
+            + tx0Preview.isTx0x2Any());
     if (log.isDebugEnabled()) {
       log.debug(
           "Tx0["
@@ -326,7 +346,7 @@ public class Tx0Service {
               + tx0.getTx0MinerFeePrice()
               + "s/b"
               + "\nhex="
-              + TxUtil.getInstance().getTxHex(tx)
+              + txUtil.getTxHex(tx)
               + "\ntx0={"
               + tx0
               + "}");
@@ -334,25 +354,108 @@ public class Tx0Service {
     return Optional.of(tx0);
   }
 
-  protected byte[] computeOpReturn(BipUtxo firstInput, byte[] firstInputKey, Tx0Data tx0Data)
-      throws Exception {
+  protected TransactionOutput computeOpReturnOutput(
+      UtxoOutPoint firstInput, Tx0Config tx0Config, Tx0Preview tx0Preview) throws Exception {
+    BipUtxo ownFirstInput =
+        tx0Config.getOwnSpendFromUtxos().stream()
+            .filter(u -> utxoUtil.utxoToKey(u).equals(utxoUtil.utxoToKey(firstInput)))
+            .findFirst()
+            .orElse(null);
+    byte[] opReturn;
+    if (ownFirstInput != null) {
+      // encode opReturn with own first input
+      byte[] firstInputKey = tx0Config.getUtxoKeyProvider()._getPrivKey(ownFirstInput);
+      Tx0Data tx0Data = tx0Preview.getTx0Data();
+      opReturn =
+          computeOpReturn(
+              ownFirstInput, firstInputKey, tx0Data.getFeePaymentCode(), tx0Data.getFeePayload());
+      if (log.isDebugEnabled()) {
+        log.debug("Using own OP_RETURN");
+      }
+    } else {
+      if (!tx0Preview.isTx0x2Cahoots()) {
+        throw new Exception("ownFirstInput not found: " + firstInput);
+      }
+      if (log.isDebugEnabled()) {
+        log.debug("Using OP_RETURN from COUNTERPARTY");
+      }
+      // first input is counterparty's one
+      // temporarily use a blank opReturn of same size (to preserve tx0 minerFees)
+      // which will be replaced by counterparty later
+      opReturn = new byte[feeOpReturnImpl.getOpReturnLength()];
+    }
 
+    // build OP_RETURN output
+    return computeOpReturnOutput(opReturn);
+  }
+
+  public TransactionOutput computeOpReturnOutput(byte[] opReturn) {
+    // add OP_RETURN output
+    Script op_returnOutputScript =
+        new ScriptBuilder().op(ScriptOpCodes.OP_RETURN).data(opReturn).build();
+    TransactionOutput opReturnOutput =
+        new TransactionOutput(params, null, Coin.valueOf(0L), op_returnOutputScript.getProgram());
+    if (log.isDebugEnabled()) {
+      log.debug("Tx0 out (OP_RETURN): " + opReturn.length + " bytes");
+    }
+    return opReturnOutput;
+  }
+
+  public Pair<TransactionOutput, BipAddress> computeOwnPremixOutput(
+      long amount, BipWallet premixWallet) throws Exception {
+    BipAddress toAddress = premixWallet.getNextAddressReceive();
+    String toAddressBech32 = toAddress.getAddressString();
+    if (log.isDebugEnabled()) {
+      log.debug(
+          "Tx0 out (own premix): address="
+              + toAddressBech32
+              + ", path="
+              + toAddress.getPathAddress()
+              + " ("
+              + amount
+              + " sats)");
+    }
+    TransactionOutput txOut = bech32Util.getTransactionOutput(toAddressBech32, amount, params);
+    return Pair.of(txOut, toAddress);
+  }
+
+  public Pair<TransactionOutput, BipAddress> computeOwnChangeOutput(
+      long changeAmount, BipWallet changeWallet) throws Exception {
+    BipAddress changeAddress = changeWallet.getNextAddressChange();
+    String changeAddressBech32 = changeAddress.getAddressString();
+    TransactionOutput changeOutput =
+        bech32Util.getTransactionOutput(changeAddressBech32, changeAmount, params);
+    if (log.isDebugEnabled()) {
+      log.debug(
+          "Tx0 out (change)(counterparty): address="
+              + changeAddressBech32
+              + ", path="
+              + changeAddress.getPathAddress()
+              + " ("
+              + changeAmount
+              + " sats)");
+    }
+    return Pair.of(changeOutput, changeAddress);
+  }
+
+  public byte[] computeOpReturn(
+      UtxoOutPoint firstInputOutPoint,
+      byte[] firstInputKey,
+      String feePaymentCode,
+      byte[] feePayload)
+      throws Exception {
     // use input0 for masking
-    TransactionOutPoint maskingOutpoint = utxoUtil.computeOutpoint(firstInput);
-    String feePaymentCode = tx0Data.getFeePaymentCode();
-    byte[] feePayload = tx0Data.getFeePayload();
+    TransactionOutPoint maskingOutpoint = new MyTransactionOutPoint(firstInputOutPoint, params, 0);
     return feeOpReturnImpl.computeOpReturn(
         feePaymentCode, feePayload, maskingOutpoint, firstInputKey);
   }
 
   private List<? extends BipUtxo> computeChangeUtxos(
-      List<TransactionOutput> changeOutputs,
-      List<BipAddress> changeOutputsAddresses,
-      BipWallet changeWallet) {
+      List<Pair<TransactionOutput, BipAddress>> ownChanges, BipWallet changeWallet) {
     List<BipUtxo> changeUtxos = new LinkedList<>();
-    for (int i = 0; i < changeOutputs.size(); i++) {
-      TransactionOutput changeOutput = changeOutputs.get(i);
-      BipAddress bipAddress = changeOutputsAddresses.get(i);
+    for (Pair<TransactionOutput, BipAddress> ownChange : ownChanges) {
+      TransactionOutput changeOutput = ownChange.getLeft();
+      BipAddress bipAddress = ownChange.getRight();
       String changeAddressBech32 = bipAddress.getAddressString();
       BipUtxo changeUtxo =
           new BipUtxoImpl(
@@ -368,7 +471,7 @@ public class Tx0Service {
     return changeUtxos;
   }
 
-  public List<Tx0> tx0(Tx0Config tx0Config) throws Exception {
+  public Optional<Tx0Result> tx0(Tx0Config tx0Config) throws Exception {
     List<Tx0> tx0List = new ArrayList<>();
 
     // initial Tx0 on highest pool
@@ -380,14 +483,12 @@ public class Tx0Service {
         log.debug(" • Tx0: poolId=" + poolInitial.getPoolId());
       }
     }
-    Tx0 tx0 =
-        buildTx0(tx0Config)
-            .orElseThrow(
-                () ->
-                    new NotifiableException(
-                        "Tx0 is not possible for pool: " + poolInitial.getPoolId()));
+    Tx0 tx0 = buildTx0(tx0Config).orElse(null);
+    if (tx0 == null) {
+      return Optional.empty();
+    }
     tx0List.add(tx0);
-    Collection<? extends BipUtxo> changeUtxos = tx0.getChangeUtxos();
+    Tx0 higherPoolTx0 = tx0;
 
     // Tx0 cascading for remaining pools
     if (tx0Config.isCascade()) {
@@ -396,7 +497,7 @@ public class Tx0Service {
       Collections.sort(cascadingPools, new PoolComparatorByDenominationDesc());
 
       for (Pool pool : cascadingPools) {
-        if (changeUtxos.isEmpty()) {
+        if (higherPoolTx0.getOwnChangeUtxos().isEmpty()) {
           break; // stop when no tx0 change
         }
 
@@ -408,13 +509,27 @@ public class Tx0Service {
                   + pool.getPoolId());
         }
 
-        tx0Config = new Tx0Config(tx0Config, changeUtxos, pool);
+        tx0Config = new Tx0Config(tx0Config, higherPoolTx0.getOwnChangeUtxos(), pool);
         tx0Config._setCascading(true);
-        tx0Config.setDecoyTx0x2Forced(true); // skip to next lower pool when decoy is not possible
+        tx0Config.setTx0x2DecoyForced(true); // skip to next lower pool when decoy is not possible
+        Tx0x2CahootsConfig tx0x2CahootsConfig = tx0Config.getTx0x2CahootsConfig();
+        if (tx0x2CahootsConfig != null) {
+          List<UtxoOutPoint> counterpartyInputsLower = new LinkedList<>();
+          UtxoOutPoint counterpartyChangeOutPoint =
+              higherPoolTx0.getTx0x2CahootsResult().getCounterpartyChangeOutPoint();
+          if (counterpartyChangeOutPoint != null) {
+            counterpartyInputsLower.add(counterpartyChangeOutPoint);
+          }
+          Tx0x2CahootsConfig tx0x2CahootsConfigLower =
+              new Tx0x2CahootsConfig(
+                  counterpartyInputsLower,
+                  tx0x2CahootsConfig.getCounterpartyChangeAddressPerPoolId());
+          tx0Config.setTx0x2CahootsConfig(tx0x2CahootsConfigLower);
+        }
         tx0 = this.buildTx0(tx0Config).orElse(null);
         if (tx0 != null) {
           tx0List.add(tx0);
-          changeUtxos = tx0.getChangeUtxos();
+          higherPoolTx0 = tx0;
         } else {
           // Tx0 is not possible for this pool, skip to next lower pool
         }
@@ -431,7 +546,7 @@ public class Tx0Service {
             + (tx0List.size() > 1 ? "s" : "")
             + ": "
             + StringUtils.join(poolIds, "->"));
-    return tx0List;
+    return Optional.of(new Tx0Result(tx0List));
   }
 
   protected void signTx0(Transaction tx, KeyBag keyBag, BipFormatSupplier bipFormatSupplier)
@@ -442,17 +557,23 @@ public class Tx0Service {
   public Single<PushTxSuccessResponse> pushTx0(Tx0 tx0, WhirlpoolWallet whirlpoolWallet)
       throws Exception {
     // push to coordinator
-    String tx64 = WhirlpoolProtocol.encodeBytes(tx0.getTx().bitcoinSerialize());
+    Transaction tx = tx0.getTx();
     String poolId = tx0.getPool().getPoolId();
-    Tx0PushRequest request = new Tx0PushRequest(tx64, poolId);
     ServerApi serverApi = whirlpoolWallet.getConfig().getServerApi();
-    return serverApi
-        .pushTx0(request)
+    return pushTx0(tx, poolId, serverApi)
         .doOnSuccess(
             pushTxSuccessResponse -> {
               // notify
               WhirlpoolEventService.getInstance().post(new Tx0Event(whirlpoolWallet, tx0));
             });
+  }
+
+  public Single<PushTxSuccessResponse> pushTx0(Transaction tx, String poolId, ServerApi serverApi)
+      throws Exception {
+    // push to coordinator
+    String tx64 = WhirlpoolProtocol.encodeBytes(tx.bitcoinSerialize());
+    Tx0PushRequest request = new Tx0PushRequest(tx64, poolId);
+    return serverApi.pushTx0(request);
   }
 
   public PushTxSuccessResponse pushTx0WithRetryOnAddressReuse(
@@ -496,7 +617,7 @@ public class Tx0Service {
   private Optional<Tx0> tx0Retry(Tx0 tx0, PushTxErrorResponse pushTxErrorResponse)
       throws Exception {
     // manage premix address reuses
-    Collection<Integer> premixOutputIndexs = ClientUtils.getOutputIndexs(tx0.getPremixOutputs());
+    Collection<Integer> premixOutputIndexs = ClientUtils.getOutputIndexs(tx0.getOwnPremixOutputs());
     boolean isPremixReuse =
         pushTxErrorResponse.voutsAddressReuse != null
             && !ClientUtils.intersect(pushTxErrorResponse.voutsAddressReuse, premixOutputIndexs)
@@ -530,11 +651,7 @@ public class Tx0Service {
     return tx0PreviewService;
   }
 
-  public static Long getTx0ListAmount(List<Tx0> tx0List) {
-    long amount = 0L;
-    for (Tx0 tx0 : tx0List) {
-      amount += (tx0.getSpendValue() - tx0.getTx0MinerFee());
-    }
-    return amount;
+  public NetworkParameters getParams() {
+    return params;
   }
 }

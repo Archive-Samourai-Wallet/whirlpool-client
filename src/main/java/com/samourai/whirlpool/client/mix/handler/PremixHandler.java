@@ -27,7 +27,7 @@ public class PremixHandler implements IPremixHandler {
   public void signTransaction(Transaction tx, int inputIndex, NetworkParameters params)
       throws Exception {
     // TODO SendFactoryGeneric.getInstance().signInput(utxoKey, params, tx, inputIndex);
-    long spendAmount = utxo.getValue();
+    long spendAmount = utxo.getValueLong();
     signInputSegwit(tx, inputIndex, utxoKey, spendAmount, params);
   }
 

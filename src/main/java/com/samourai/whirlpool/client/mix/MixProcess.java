@@ -111,14 +111,14 @@ public class MixProcess {
               + ", client is expecting "
               + params.getPaymentProtocolId());
     }
-    this.liquidity = utxo.getValue() == poolDenomination;
+    this.liquidity = utxo.getValueLong() == poolDenomination;
 
     if (log.isDebugEnabled()) {
       log.debug("Registering input as " + (this.liquidity ? "LIQUIDITY" : "MUSTMIX"));
     }
 
     // verify fees acceptable
-    checkFees(utxo.getValue(), poolDenomination);
+    checkFees(utxo.getValueLong(), poolDenomination);
 
     // verify balance
     long mustMixBalanceMin = subscribePoolResponse.mustMixBalanceMin;
@@ -290,7 +290,7 @@ public class MixProcess {
     long premixBalanceMax =
         WhirlpoolProtocol.computePremixBalanceMax(poolDenomination, mustMixBalanceMax, liquidity);
 
-    long utxoBalance = premixHandler.getUtxo().getValue();
+    long utxoBalance = premixHandler.getUtxo().getValueLong();
     if (utxoBalance < premixBalanceMin) {
       throw new NotifiableException(
           "Too low utxo-balance="
@@ -329,8 +329,7 @@ public class MixProcess {
     }
     long outputValue = tx.getOutput(outputIndex).getValue().getValue();
     receiveUtxo =
-        new UtxoDetailImpl(
-            tx.getHashAsString(), outputIndex, outputValue, outputAddress, null, params);
+        new UtxoDetailImpl(tx.getHashAsString(), outputIndex, outputValue, outputAddress, null);
 
     // verify my input
     UtxoDetail utxo = premixHandler.getUtxo();
@@ -341,7 +340,7 @@ public class MixProcess {
     }
 
     // check fees again
-    long inputValue = utxo.getValue(); // tx.getInput(inputIndex).getValue().getValue(); is null
+    long inputValue = utxo.getValueLong(); // tx.getInput(inputIndex).getValue().getValue(); is null
     checkFees(inputValue, outputValue);
 
     // as many inputs as outputs

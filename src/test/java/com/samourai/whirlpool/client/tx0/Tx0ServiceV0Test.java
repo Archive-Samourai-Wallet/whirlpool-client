@@ -1,6 +1,5 @@
 package com.samourai.whirlpool.client.tx0;
 
-import com.samourai.wallet.util.TxUtil;
 import com.samourai.wallet.utxo.BipUtxo;
 import com.samourai.wallet.utxo.UtxoDetailImpl;
 import com.samourai.whirlpool.client.wallet.beans.Tx0FeeTarget;
@@ -33,8 +32,7 @@ public class Tx0ServiceV0Test extends AbstractTx0ServiceV0Test {
             1,
             500000000,
             "tb1qjara0278vrsr8gvaga7jpy2c9amtgvytr44xym",
-            null,
-            params);
+            null);
 
     int nbOutputsExpected = 70;
 
@@ -85,8 +83,7 @@ public class Tx0ServiceV0Test extends AbstractTx0ServiceV0Test {
             1,
             500000000,
             "tb1qjara0278vrsr8gvaga7jpy2c9amtgvytr44xym",
-            null,
-            params);
+            null);
 
     String feePaymentCode =
         "PM8TJXp19gCE6hQzqRi719FGJzF6AreRwvoQKLRnQ7dpgaakakFns22jHUqhtPQWmfevPQRCyfFbdDrKvrfw9oZv5PjaCerQMa3BKkPyUf9yN1CDR3w6";
@@ -143,8 +140,7 @@ public class Tx0ServiceV0Test extends AbstractTx0ServiceV0Test {
             1,
             500000000,
             "tb1qjara0278vrsr8gvaga7jpy2c9amtgvytr44xym",
-            null,
-            params);
+            null);
 
     String feePaymentCode =
         "PM8TJXp19gCE6hQzqRi719FGJzF6AreRwvoQKLRnQ7dpgaakakFns22jHUqhtPQWmfevPQRCyfFbdDrKvrfw9oZv5PjaCerQMa3BKkPyUf9yN1CDR3w6";
@@ -208,8 +204,7 @@ public class Tx0ServiceV0Test extends AbstractTx0ServiceV0Test {
             1,
             500000000,
             "tb1qjara0278vrsr8gvaga7jpy2c9amtgvytr44xym",
-            null,
-            params);
+            null);
 
     String feePaymentCode =
         "PM8TJXp19gCE6hQzqRi719FGJzF6AreRwvoQKLRnQ7dpgaakakFns22jHUqhtPQWmfevPQRCyfFbdDrKvrfw9oZv5PjaCerQMa3BKkPyUf9yN1CDR3w6";
@@ -324,8 +319,7 @@ public class Tx0ServiceV0Test extends AbstractTx0ServiceV0Test {
             premixValue,
             changeValue,
             nbOutputsExpected,
-            Arrays.asList(changeValue),
-            false);
+            null);
 
     Tx0 tx0 = tx0(tx0Config, tx0Preview);
 
@@ -345,7 +339,7 @@ public class Tx0ServiceV0Test extends AbstractTx0ServiceV0Test {
         nbOutputsExpected + 3, tx.getOutputs().size()); // opReturn + fee + change
 
     String tx0Hash = tx.getHashAsString();
-    String tx0Hex = TxUtil.getInstance().getTxHex(tx);
+    String tx0Hex = txUtil.getTxHex(tx);
     log.info(tx0.getTx().toString());
     Assertions.assertEquals(
         "02591d210a09103b1b5609d0d39c58d0168cede884390d7552ed2de85b79b3d2", tx0Hash);
@@ -409,8 +403,7 @@ public class Tx0ServiceV0Test extends AbstractTx0ServiceV0Test {
             premixValue,
             changeValue,
             nbOutputsExpected,
-            Arrays.asList(changeValue),
-            false);
+            null);
     Tx0 tx0 = tx0(tx0Config, tx0Preview);
 
     assertEquals(tx0Preview, tx0);
@@ -429,7 +422,7 @@ public class Tx0ServiceV0Test extends AbstractTx0ServiceV0Test {
         nbOutputsExpected + 3, tx.getOutputs().size()); // opReturn + fee (no change)
 
     String tx0Hash = tx.getHashAsString();
-    String tx0Hex = TxUtil.getInstance().getTxHex(tx);
+    String tx0Hex = txUtil.getTxHex(tx);
     log.info(tx0.getTx().toString());
     Assertions.assertEquals(
         "e08ee502f2a1da94653ea2de24cb281e3276cfa86680fb51e8e43397beed5c2a", tx0Hash);
@@ -493,8 +486,7 @@ public class Tx0ServiceV0Test extends AbstractTx0ServiceV0Test {
             premixValue,
             changeValue,
             nbOutputsExpected,
-            Arrays.asList(changeValue),
-            false);
+            null);
     Tx0 tx0 = tx0(tx0Config, tx0Preview);
 
     assertEquals(tx0Preview, tx0);
@@ -513,7 +505,7 @@ public class Tx0ServiceV0Test extends AbstractTx0ServiceV0Test {
         nbOutputsExpected + 3, tx.getOutputs().size()); // opReturn + fee (no change)
 
     String tx0Hash = tx.getHashAsString();
-    String tx0Hex = TxUtil.getInstance().getTxHex(tx);
+    String tx0Hex = txUtil.getTxHex(tx);
     log.info(tx0.getTx().toString());
     Assertions.assertEquals(
         "66eb521509216c983e3df088ea830e9e2f0ba0a890a61b25be1eb3e5e7633407", tx0Hash);
@@ -576,8 +568,7 @@ public class Tx0ServiceV0Test extends AbstractTx0ServiceV0Test {
             premixValue,
             changeValue,
             nbOutputsExpected,
-            Arrays.asList(changeValue),
-            false);
+            null);
     Tx0 tx0 = tx0(tx0Config, tx0Preview);
 
     assertEquals(tx0Preview, tx0);
@@ -596,7 +587,7 @@ public class Tx0ServiceV0Test extends AbstractTx0ServiceV0Test {
         nbOutputsExpected + 3, tx.getOutputs().size()); // opReturn + fee (no change)
 
     String tx0Hash = tx.getHashAsString();
-    String tx0Hex = TxUtil.getInstance().getTxHex(tx);
+    String tx0Hex = txUtil.getTxHex(tx);
     log.info(tx0.getTx().toString());
     Assertions.assertEquals(
         "8e3244072db5f4ab2fb9d3b48f4ab5978bcea182c8bc95f29963aafa698e299d", tx0Hash);
@@ -660,8 +651,7 @@ public class Tx0ServiceV0Test extends AbstractTx0ServiceV0Test {
             premixValue,
             changeValue,
             nbOutputsExpected,
-            Arrays.asList(changeValue),
-            false);
+            null);
     Tx0 tx0 = tx0(tx0Config, tx0Preview);
 
     assertEquals(tx0Preview, tx0);
@@ -680,7 +670,7 @@ public class Tx0ServiceV0Test extends AbstractTx0ServiceV0Test {
         nbOutputsExpected + 3, tx.getOutputs().size()); // opReturn + fee (no change)
 
     String tx0Hash = tx.getHashAsString();
-    String tx0Hex = TxUtil.getInstance().getTxHex(tx);
+    String tx0Hex = txUtil.getTxHex(tx);
     log.info(tx0.getTx().toString());
     Assertions.assertEquals(
         "3cc22bed8904c50a2f1907b5b0244ca390f73c9d2290fb0ee5f52ce8f6b62d51", tx0Hash);

@@ -1,5 +1,6 @@
 package com.samourai.whirlpool.client.tx0;
 
+import com.samourai.wallet.util.Util;
 import com.samourai.whirlpool.client.wallet.AbstractWhirlpoolWalletTest;
 import java.util.List;
 import org.junit.jupiter.api.Assertions;
@@ -55,7 +56,7 @@ public class AbstractTx0ServiceTest extends AbstractWhirlpoolWalletTest {
         "poolIds");
     Assertions.assertArrayEquals(
         tx0x2Decoys.toArray(),
-        tx0Previews.stream().map(t -> t.isDecoyTx0x2()).toArray(),
+        tx0Previews.stream().map(t -> t.isTx0x2Decoy()).toArray(),
         "tx0x2Decoys");
     Assertions.assertArrayEquals(
         nbPremixs.toArray(), tx0Previews.stream().map(t -> t.getNbPremix()).toArray(), "nbPremixs");
@@ -64,7 +65,7 @@ public class AbstractTx0ServiceTest extends AbstractWhirlpoolWalletTest {
   protected void assertTx0Preview(
       Tx0Preview tx0Preview, String poolId, boolean tx0Decoy, int nbPremix) {
     Assertions.assertEquals(tx0Preview.getPool().getPoolId(), poolId, "poolId");
-    Assertions.assertEquals(tx0Decoy, tx0Preview.isDecoyTx0x2(), "decoyTx0x2");
+    Assertions.assertEquals(tx0Decoy, tx0Preview.isTx0x2Decoy(), "decoyTx0x2");
     Assertions.assertEquals(nbPremix, tx0Preview.getNbPremix(), "nbPremix");
   }
 
@@ -74,12 +75,12 @@ public class AbstractTx0ServiceTest extends AbstractWhirlpoolWalletTest {
 
     // verify changes
     Assertions.assertArrayEquals(
-        changeAmounts.toArray(), tx0.getChangeAmounts().toArray(), "changeAmounts");
+        changeAmounts.toArray(), tx0.getChangeAmountsAll().toArray(), "changeAmounts");
     Assertions.assertArrayEquals(
         changeAmounts.toArray(),
         tx0.getChangeOutputs().stream().map(o -> o.getValue().getValue()).toArray(),
         "changeOutputs");
-    Assertions.assertEquals(tx0.getChangeValue(), changeAmounts.stream().mapToLong(v -> v).sum());
+    Assertions.assertEquals(tx0.getChangeValue(), Util.sumLong(changeAmounts));
 
     // verify tx outputs
     int expectedOutputs =

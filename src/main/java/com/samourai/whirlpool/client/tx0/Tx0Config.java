@@ -8,56 +8,64 @@ import com.samourai.whirlpool.client.whirlpool.beans.Pool;
 import java.util.Collection;
 
 public class Tx0Config extends Tx0PreviewConfig {
-  private Collection<? extends BipUtxo> spendFromUtxos; // not NULL
+  private Collection<? extends BipUtxo> ownSpendFromUtxos; // own inputs, not NULL
   private UtxoKeyProvider utxoKeyProvider;
   private BipWallet premixWallet;
   private BipWallet changeWallet;
   private BipWallet feeChangeWallet;
   private Pool pool;
+  private Tx0x2CahootsConfig tx0x2CahootsConfig; // set for tx0x2Cahoots (2-party)
 
   public Tx0Config(
       Tx0FeeTarget tx0FeeTarget,
       Tx0FeeTarget mixFeeTarget,
-      Collection<? extends BipUtxo> spendFromUtxos,
+      Collection<? extends BipUtxo> ownSpendFromUtxos,
       UtxoKeyProvider utxoKeyProvider,
       BipWallet premixWallet,
       BipWallet changeWallet,
       BipWallet feeChangeWallet,
       Pool pool) {
-    super(tx0FeeTarget, mixFeeTarget, spendFromUtxos);
-    this.spendFromUtxos = spendFromUtxos;
+    super(tx0FeeTarget, mixFeeTarget, ownSpendFromUtxos);
+    this.ownSpendFromUtxos = ownSpendFromUtxos;
     this.utxoKeyProvider = utxoKeyProvider;
     this.premixWallet = premixWallet;
     this.changeWallet = changeWallet;
     this.feeChangeWallet = feeChangeWallet;
     this.pool = pool;
+    this.tx0x2CahootsConfig = null;
     consistencyCheck();
   }
 
   public Tx0Config(Tx0Config tx0Config) {
     super(tx0Config);
-    this.spendFromUtxos = tx0Config.spendFromUtxos;
+    this.ownSpendFromUtxos = tx0Config.ownSpendFromUtxos;
     this.utxoKeyProvider = tx0Config.utxoKeyProvider;
     this.premixWallet = tx0Config.premixWallet;
     this.changeWallet = tx0Config.changeWallet;
     this.feeChangeWallet = tx0Config.feeChangeWallet;
     this.pool = tx0Config.pool;
+    this.tx0x2CahootsConfig = tx0Config.tx0x2CahootsConfig;
     consistencyCheck();
   }
 
-  public Tx0Config(Tx0Config tx0Config, Collection<? extends BipUtxo> spendFromUtxos, Pool pool) {
-    super(tx0Config, spendFromUtxos);
-    this.spendFromUtxos = spendFromUtxos;
+  public Tx0Config(
+      Tx0Config tx0Config, Collection<? extends BipUtxo> ownSpendFromUtxos, Pool pool) {
+    super(tx0Config, ownSpendFromUtxos);
+    this.ownSpendFromUtxos = ownSpendFromUtxos;
     this.utxoKeyProvider = tx0Config.utxoKeyProvider;
     this.premixWallet = tx0Config.premixWallet;
     this.changeWallet = tx0Config.changeWallet;
     this.feeChangeWallet = tx0Config.feeChangeWallet;
     this.pool = pool;
+    this.tx0x2CahootsConfig =
+        tx0Config.tx0x2CahootsConfig != null
+            ? new Tx0x2CahootsConfig(tx0Config.tx0x2CahootsConfig)
+            : null;
     consistencyCheck();
   }
 
   protected void consistencyCheck() {
-    if (spendFromUtxos == null) {
+    if (ownSpendFromUtxos == null) {
       throw new IllegalArgumentException("Tx0Config.spendFromUtxos cannot be NULL");
     }
   }
@@ -82,16 +90,29 @@ public class Tx0Config extends Tx0PreviewConfig {
     return feeChangeWallet;
   }
 
-  public Collection<? extends BipUtxo> getSpendFromUtxos() {
-    return spendFromUtxos;
+  public Collection<? extends BipUtxo> getOwnSpendFromUtxos() {
+    return ownSpendFromUtxos;
   }
 
   public Pool getPool() {
     return pool;
   }
 
+  public Tx0x2CahootsConfig getTx0x2CahootsConfig() {
+    return tx0x2CahootsConfig;
+  }
+
+  public void setTx0x2CahootsConfig(Tx0x2CahootsConfig tx0x2CahootsConfig) {
+    this.tx0x2CahootsConfig = tx0x2CahootsConfig;
+    setTx0x2SpendFromsCounterparty(tx0x2CahootsConfig.getCounterpartyInputs());
+  }
+
   @Override
   public String toString() {
-    return super.toString() + ", changeWallet=" + changeWallet;
+    return super.toString()
+        + ", tx0x2CahootsConfig="
+        + (tx0x2CahootsConfig != null ? "{" + tx0x2CahootsConfig + "}" : "null")
+        + ", poolId="
+        + pool.getPoolId();
   }
 }

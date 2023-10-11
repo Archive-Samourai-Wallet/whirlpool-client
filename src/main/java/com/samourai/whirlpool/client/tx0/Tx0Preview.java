@@ -4,6 +4,8 @@ import com.samourai.whirlpool.client.utils.ClientUtils;
 import com.samourai.whirlpool.client.whirlpool.beans.Pool;
 import com.samourai.whirlpool.client.whirlpool.beans.Tx0Data;
 import java.util.Collection;
+import java.util.LinkedList;
+import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -24,11 +26,10 @@ public class Tx0Preview {
   private int feeDiscountPercent;
   private long premixValue;
   private long changeValue;
-  private int nbPremix;
+  private int nbPremix; // nbPremix total
   private long spendValue; // all except change
   private long totalValue; // with change
-  private Collection<Long> changeAmounts;
-  private boolean decoyTx0x2;
+  private Tx0x2Preview tx0x2Preview; // only set when tx0x2 (2-party or decoy)
 
   public Tx0Preview(Tx0Preview tx0Preview) throws Exception {
     this(
@@ -44,8 +45,7 @@ public class Tx0Preview {
         tx0Preview.premixValue,
         tx0Preview.changeValue,
         tx0Preview.nbPremix,
-        tx0Preview.changeAmounts,
-        tx0Preview.decoyTx0x2);
+        tx0Preview.tx0x2Preview);
   }
 
   public Tx0Preview(
@@ -61,8 +61,7 @@ public class Tx0Preview {
       long premixValue,
       long changeValue,
       int nbPremix,
-      Collection<Long> changeAmounts,
-      boolean decoyTx0x2)
+      Tx0x2Preview tx0x2Preview)
       throws Exception {
     this.pool = pool;
     this.tx0Data = tx0Data;
@@ -84,24 +83,59 @@ public class Tx0Preview {
     this.spendValue =
         ClientUtils.computeTx0SpendValue(premixValue, nbPremix, feeValueOrFeeChange, tx0MinerFee);
     this.totalValue = spendValue + changeValue;
-    this.changeAmounts = changeAmounts;
-    this.decoyTx0x2 = decoyTx0x2;
-    this.consistencyCheck();
+    this.tx0x2Preview = tx0x2Preview;
+    try {
+      this.consistencyCheck();
+    } catch (Exception e) {
+      log.error("consistency check failed for tx0preview={" + this + "}", e);
+      throw e;
+    }
   }
 
   private void consistencyCheck() throws Exception {
+    if (spendFromValue <= 0) {
+      throw new Exception("Invalid spendFromValue: " + spendFromValue);
+    }
     if (changeValue < 0) {
       throw new Exception("Negative change detected, please report this bug.");
     }
-
-    if (changeAmounts.stream().mapToLong(v -> v).sum() != changeValue) {
-      throw new Exception(
-          "Invalid changeAmounts=" + changeAmounts + " vs changeValue=" + changeValue);
-    }
-
     if (totalValue != spendFromValue) {
       throw new Exception(
           "Invalid totalValue=" + totalValue + " vs spendFromValue=" + spendFromValue);
+    }
+    if (tx0x2Preview != null) {
+      if ((tx0x2Preview.getNbPremixSender() + tx0x2Preview.getNbPremixCounterparty()) != nbPremix) {
+        throw new Exception(
+            "Invalid nbPremixList="
+                + tx0x2Preview.getNbPremixSender()
+                + ";"
+                + tx0x2Preview.getNbPremixCounterparty()
+                + " vs nbPremix="
+                + nbPremix);
+      }
+      if ((tx0x2Preview.getChangeAmountSender() + tx0x2Preview.getChangeAmountCounterparty())
+          != changeValue) {
+        throw new Exception(
+            "Invalid changeAmountList="
+                + tx0x2Preview.getChangeAmountSender()
+                + ";"
+                + tx0x2Preview.getChangeAmountCounterparty()
+                + " vs changeValue="
+                + changeValue);
+      }
+      if (tx0x2Preview.getTx0MinerFeeSender() + tx0x2Preview.getTx0MinerFeeCounterparty()
+          != getTx0MinerFee()) {
+        throw new Exception(
+            "Invalid tx0MinerFeeSender="
+                + tx0x2Preview.getTx0MinerFeeSender()
+                + "+tx0MinerFeeCounterparty="
+                + tx0x2Preview.getTx0MinerFeeCounterparty()
+                + " vs tx0MinerFee="
+                + tx0MinerFee);
+      }
+      if (!tx0x2Preview.isTx0x2Cahoots() && !tx0x2Preview.isTx0x2Decoy()) {
+        throw new Exception("Invalid isTx0x2Any");
+      }
     }
   }
 
@@ -178,12 +212,40 @@ public class Tx0Preview {
     return totalValue;
   }
 
-  public Collection<Long> getChangeAmounts() {
-    return changeAmounts;
+  public boolean isTx0x2Any() {
+    return tx0x2Preview != null;
   }
 
-  public boolean isDecoyTx0x2() {
-    return decoyTx0x2;
+  public boolean isTx0x2Decoy() {
+    return tx0x2Preview != null && tx0x2Preview.isTx0x2Decoy();
+  }
+
+  public boolean isTx0x2Cahoots() {
+    return tx0x2Preview != null && tx0x2Preview.isTx0x2Cahoots();
+  }
+
+  public Tx0x2Preview getTx0x2Preview() {
+    return tx0x2Preview;
+  }
+
+  // all change outputs (including eventual counterparty)
+  public Collection<Long> getChangeAmountsAll() {
+    List<Long> changeAmountsAll = new LinkedList<>();
+    if (tx0x2Preview != null) {
+      // tx0x2 (cahoots or decoy)
+      if (tx0x2Preview.getChangeAmountSender() > 0) {
+        changeAmountsAll.add(tx0x2Preview.getChangeAmountSender());
+      }
+      if (tx0x2Preview.getChangeAmountCounterparty() > 0) {
+        changeAmountsAll.add(tx0x2Preview.getChangeAmountCounterparty());
+      }
+    } else {
+      // regular tx0
+      if (changeValue > 0) {
+        changeAmountsAll.add(changeValue);
+      }
+    }
+    return changeAmountsAll;
   }
 
   @Override
@@ -212,9 +274,8 @@ public class Tx0Preview {
         + totalValue
         + ", changeValue="
         + changeValue
-        + ", changeAmounts="
-        + changeAmounts
-        + ", decoyTx0x2="
-        + decoyTx0x2;
+        + ", \ntx0x2Preview={"
+        + tx0x2Preview
+        + "}";
   }
 }

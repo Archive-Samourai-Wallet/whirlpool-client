@@ -1,7 +1,6 @@
 package com.samourai.whirlpool.client.wallet.data.pool;
 
 import com.samourai.whirlpool.client.tx0.*;
-import com.samourai.whirlpool.client.wallet.beans.Tx0FeeTarget;
 import com.samourai.whirlpool.client.wallet.beans.WhirlpoolPoolByBalanceMinDescComparator;
 import com.samourai.whirlpool.client.whirlpool.beans.Pool;
 import com.samourai.whirlpool.protocol.rest.PoolsResponse;
@@ -15,13 +14,12 @@ public class PoolData {
 
   private final Map<String, Pool> poolsById;
 
-  public PoolData(PoolsResponse poolsResponse, Tx0PreviewService tx0PreviewService)
-      throws Exception {
+  public PoolData(PoolsResponse poolsResponse, Tx0PreviewService tx0PreviewService) {
     this.poolsById = computePools(poolsResponse, tx0PreviewService);
   }
 
   private static Map<String, Pool> computePools(
-      PoolsResponse poolsResponse, final Tx0PreviewService tx0PreviewService) throws Exception {
+      PoolsResponse poolsResponse, final Tx0PreviewService tx0PreviewService) {
 
     // biggest balanceMin first
     List<Pool> poolsOrdered =
@@ -49,17 +47,8 @@ public class PoolData {
             .sorted(new WhirlpoolPoolByBalanceMinDescComparator())
             .collect(Collectors.<Pool>toList());
 
-    // compute & set tx0PreviewMin
-    Tx0PreviewConfig tx0PreviewConfig =
-        new Tx0PreviewConfig(Tx0FeeTarget.MIN, Tx0FeeTarget.MIN, null);
-    final Tx0PreviewResult tx0PreviewsMin =
-        tx0PreviewService.tx0PreviewsMinimal(tx0PreviewConfig, poolsOrdered);
-    for (Pool pool : poolsOrdered) {
-      Tx0Preview tx0PreviewMin = tx0PreviewsMin.getByPoolId(pool.getPoolId()).orElse(null);
-      if (tx0PreviewMin != null) {
-        pool.setTx0PreviewMin(tx0PreviewMin);
-      }
-    }
+    // init tx0PreviewMin & tx0PreviewMax
+    tx0PreviewService.initPools(poolsOrdered);
 
     // map by id
     Map<String, Pool> poolsById = new LinkedHashMap<String, Pool>();
