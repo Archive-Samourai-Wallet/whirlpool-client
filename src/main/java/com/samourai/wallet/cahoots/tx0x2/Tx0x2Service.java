@@ -11,9 +11,11 @@ import com.samourai.wallet.hd.BipAddress;
 import com.samourai.wallet.util.Pair;
 import com.samourai.wallet.util.RandomUtil;
 import com.samourai.wallet.util.TxUtil;
+import com.samourai.wallet.utxo.BipUtxo;
 import com.samourai.wallet.utxo.UtxoOutPoint;
 import com.samourai.whirlpool.client.exception.NotifiableException;
 import com.samourai.whirlpool.client.tx0.*;
+import com.samourai.whirlpool.client.wallet.beans.SamouraiAccountIndex;
 import com.samourai.whirlpool.client.whirlpool.beans.Pool;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -119,17 +121,16 @@ public class Tx0x2Service extends AbstractCahootsService<Tx0x2, Tx0x2Context> {
     long spendTarget = payload0.getMaxSpendValueEach();
     Collection<CahootsUtxo> counterpartyInputs = selectInputs(utxos, spendMin, spendTarget);
 
-    // register counterparty inputs
+    // register counterparty inputs (to sign it later)
     cahootsContext.addInputs(counterpartyInputs);
 
     // generate change addresses
     List<BipAddress> counterpartyChangeAddresses = new LinkedList<>();
     Map<String, String> changeAddressByPool = new LinkedHashMap<>();
     for (String poolId : payload1.getPoolIds()) {
-      // TODO zl force changeAddress always from DEPOSIT?
       BipAddress changeAddress =
           cahootsWallet.fetchAddressChange(
-              cahootsContext.getAccount(), true, BIP_FORMAT.SEGWIT_NATIVE);
+              SamouraiAccountIndex.DEPOSIT, true, BIP_FORMAT.SEGWIT_NATIVE);
       counterpartyChangeAddresses.add(changeAddress);
       String changeAddressStr = changeAddress.getAddressString();
       changeAddressByPool.put(poolId, changeAddressStr);
@@ -137,6 +138,10 @@ public class Tx0x2Service extends AbstractCahootsService<Tx0x2, Tx0x2Context> {
       if (log.isDebugEnabled()) {
         log.debug("+changeAddress[" + poolId + "] = " + changeAddress);
       }
+
+      // register changes by address as we don't know change outpoint yet
+      byte[] privKey = changeAddress.getHdAddress().getECKey().getPrivKeyBytes();
+      cahootsContext.getKeyBag().add(changeAddressStr, privKey);
     }
 
     payload1.doStep1(
@@ -158,7 +163,7 @@ public class Tx0x2Service extends AbstractCahootsService<Tx0x2, Tx0x2Context> {
     }
 
     // select random utxo-set >= spendTarget, prefer only one utxo when possible
-    List<CahootsUtxo> selectedUTXOs = new ArrayList<CahootsUtxo>();
+    List<CahootsUtxo> selectedUTXOs = new ArrayList<>();
     long sumSelectedUTXOs = 0;
 
     RandomUtil.getInstance().shuffle(utxos);
@@ -182,7 +187,8 @@ public class Tx0x2Service extends AbstractCahootsService<Tx0x2, Tx0x2Context> {
     Tx0x2 payload2 = payload1.copy();
 
     // retrieve initiator inputs (with cascading txs if any)
-    Collection<CahootsUtxo> senderSpendFroms = computeSpendFromsInitiator(cahootsContext);
+    Collection<BipUtxo> senderSpendFroms =
+        cahootsContext.getTx0ConfigInitiator().getOwnSpendFromUtxos();
 
     // retrieve counterparty info
     Collection<UtxoOutPoint> counterpartyInputs = payload1.getCounterpartyInputs();
@@ -202,10 +208,24 @@ public class Tx0x2Service extends AbstractCahootsService<Tx0x2, Tx0x2Context> {
             .orElseThrow(
                 () -> new NotifiableException("TX0 is not possible for pool " + pool.getPoolId()));
 
-    // register inputs in CahootsContext (to sign it later)
+    // register inputs & outputs in CahootsContext (for later checkMaxSpendAmount & sign)
     for (Tx0 tx0 : tx0Result.getList()) {
+      // register inputs
       Collection<? extends UtxoOutPoint> ownSpendFroms = tx0.getOwnSpendFroms();
       cahootsContext.addInputs((Collection<UtxoOutPoint>) ownSpendFroms, tx0.getKeyBag());
+
+      // register outputs
+      BipUtxo senderChangeUtxo = tx0.getTx0x2CahootsResult().getSenderChangeUtxo();
+      if (senderChangeUtxo != null) {
+        cahootsContext.addOutputAddress(senderChangeUtxo.getAddress());
+      }
+      for (TransactionOutput premixOutput : tx0.getOwnPremixOutputs()) {
+        cahootsContext.addOutputAddress(getBipFormatSupplier().getToAddress(premixOutput));
+      }
+      if (tx0.getFeeChange() > 0) {
+        cahootsContext.addOutputAddress(
+            getBipFormatSupplier().getToAddress(tx0.getSamouraiFeeOutput()));
+      }
     }
 
     // register tx0Result in CahootsContext
@@ -213,24 +233,6 @@ public class Tx0x2Service extends AbstractCahootsService<Tx0x2, Tx0x2Context> {
 
     payload2.doStep2(tx0Result);
     return payload2;
-  }
-
-  protected Collection<CahootsUtxo> computeSpendFromsInitiator(Tx0x2Context cahootsContext) {
-    // convert tx0ConfigInitiator.spendFroms to CahootsUtxos
-    return cahootsContext.getTx0ConfigInitiator().getOwnSpendFromUtxos().stream()
-        .map(
-            bipUtxo -> {
-              try {
-                byte[] key =
-                    cahootsContext.getCahootsWallet().getUtxoKeyProvider()._getPrivKey(bipUtxo);
-                return new CahootsUtxo(bipUtxo, key);
-              } catch (Exception e) {
-                log.error("", e);
-                return null;
-              }
-            })
-        .filter(Objects::nonNull)
-        .collect(Collectors.toList());
   }
 
   //
@@ -261,7 +263,7 @@ public class Tx0x2Service extends AbstractCahootsService<Tx0x2, Tx0x2Context> {
       checkMaxSpendAmount(payload2, cahootsContext);
 
       // sign
-      transaction = signTx(cahootsContext, transaction);
+      signTx(cahootsContext, transaction);
 
       psbtByPoolId.put(poolId, new PSBT(transaction));
     }
@@ -280,13 +282,25 @@ public class Tx0x2Service extends AbstractCahootsService<Tx0x2, Tx0x2Context> {
       String poolId = entry.getKey();
       Transaction transaction = payload3.getTransaction(poolId);
 
+      // verify spendAmount
+      checkMaxSpendAmount(payload3, cahootsContext);
+
       // sign
-      transaction = signTx(cahootsContext, transaction);
+      signTx(cahootsContext, transaction);
 
       psbtByPoolId.put(poolId, new PSBT(transaction));
     }
     payload4.doStep4(psbtByPoolId);
     return payload4;
+  }
+
+  @Override
+  protected int signTx(Tx0x2Context cahootsContext, Transaction transaction) throws Exception {
+    int nbSigned = super.signTx(cahootsContext, transaction);
+    if (nbSigned <= 0) {
+      throw new Exception("Signing problem: nbSigned=" + nbSigned);
+    }
+    return nbSigned;
   }
 
   @Override
@@ -303,11 +317,26 @@ public class Tx0x2Service extends AbstractCahootsService<Tx0x2, Tx0x2Context> {
   private void checkMaxSpendAmount(Tx0x2 tx0x2, Tx0x2Context cahootsContext) throws Exception {
     long totalSpendAmount = 0;
     for (Map.Entry<String, Tx0x2Item> e : tx0x2.getTx0x2ItemByPoolId().entrySet()) {
+      if (log.isDebugEnabled()) {
+        String prefix =
+            "[" + cahootsContext.getCahootsType() + "/" + cahootsContext.getTypeUser() + "] ";
+        String poolId = e.getKey();
+        log.debug(prefix + "checkMaxSpendAmount for " + poolId + "...");
+      }
       String poolId = e.getKey();
       totalSpendAmount += computeSpendAmount(tx0x2.getTransaction(poolId), cahootsContext);
     }
     long maxSpendAmount = computeMaxSpendAmount(tx0x2, cahootsContext);
     super.checkMaxSpendAmount(cahootsContext, totalSpendAmount, maxSpendAmount);
+  }
+
+  @Override
+  protected long computeSpendAmount(Transaction tx, Tx0x2Context cahootsContext) throws Exception {
+    long spendAmount = super.computeSpendAmount(tx, cahootsContext);
+    if (spendAmount <= 0) {
+      throw new Exception("Invalid spendAmount=" + spendAmount); // security check
+    }
+    return spendAmount;
   }
 
   protected long computeMaxSpendAmount(Tx0x2 tx0x2, Tx0x2Context cahootsContext) throws Exception {
@@ -317,15 +346,19 @@ public class Tx0x2Service extends AbstractCahootsService<Tx0x2, Tx0x2Context> {
     switch (cahootsContext.getTypeUser()) {
       case SENDER:
         // spends sharedSamouraiFee + sharedMinerFee
+        List<Tx0> tx0s = cahootsContext.getTx0ResultInitiator().getList();
         long totalSamouraiFeeSender =
-            cahootsContext.getTx0ResultInitiator().getList().stream()
+            tx0s.stream()
                 .mapToLong(tx0 -> tx0.getTx0x2CahootsResult().getSamouraiFeeSender())
                 .sum();
         long totalMinerFeeSender =
-            cahootsContext.getTx0ResultInitiator().getList().stream()
+            tx0s.stream()
                 .mapToLong(tx0 -> tx0.getTx0x2CahootsResult().getTx0MinerFeeSender())
                 .sum();
-        maxSpendAmount = totalSamouraiFeeSender + totalMinerFeeSender;
+        Tx0 lastTx0 = tx0s.get(tx0s.size() - 1);
+        long splitChangeTolerance =
+            lastTx0.getTx0x2Preview().isSplitChange() ? CHANGE_SPLIT_THRESHOLD : 0;
+        maxSpendAmount = totalSamouraiFeeSender + totalMinerFeeSender + splitChangeTolerance;
         if (log.isDebugEnabled()) {
           log.debug(
               prefix
@@ -334,13 +367,16 @@ public class Tx0x2Service extends AbstractCahootsService<Tx0x2, Tx0x2Context> {
                   + ": totalSamouraiFeeSender="
                   + totalSamouraiFeeSender
                   + " + totalMinerFeeSender="
-                  + totalMinerFeeSender);
+                  + totalMinerFeeSender
+                  + " + splitChangeTolerance="
+                  + splitChangeTolerance);
         }
         break;
       case COUNTERPARTY:
         // spends sharedSamouraiFee + sharedMinerFee
         long totalSamouraiFeeCounterparty = tx0x2.getTotalSamouraiFeeCounterparty();
         long totalMinerFeeCounterparty = tx0x2.getTotalMinerFeeCounterparty();
+        splitChangeTolerance = CHANGE_SPLIT_THRESHOLD;
         maxSpendAmount = totalSamouraiFeeCounterparty + totalMinerFeeCounterparty;
         if (log.isDebugEnabled()) {
           log.debug(
@@ -350,11 +386,16 @@ public class Tx0x2Service extends AbstractCahootsService<Tx0x2, Tx0x2Context> {
                   + ": totalSamouraiFeeCounterparty="
                   + totalSamouraiFeeCounterparty
                   + " + totalMinerFeeCounterparty="
-                  + totalMinerFeeCounterparty);
+                  + totalMinerFeeCounterparty
+                  + "splitChangeTolerance="
+                  + splitChangeTolerance);
         }
         break;
       default:
         throw new Exception("Unknown typeUser");
+    }
+    if (maxSpendAmount <= 0) {
+      throw new Exception("Invalid maxSpendAmount=" + maxSpendAmount); // security check
     }
     return maxSpendAmount;
   }

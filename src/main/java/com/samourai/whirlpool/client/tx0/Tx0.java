@@ -24,12 +24,13 @@ public class Tx0 extends Tx0Preview {
       ownPremixOutputs; // own premix outputs (not including counterparty)
   private List<TransactionOutput>
       changeOutputs; // all change outputs (including counterparty if any)
-  private List<? extends BipUtxo> ownChangeUtxos;
   private TransactionOutput opReturnOutput;
   private TransactionOutput samouraiFeeOutput;
-  private Tx0x2CahootsResult tx0x2CahootsResult; // set for tx0x2 (2-party or decoy)
+  private Tx0x2CahootsResult tx0x2CahootsResult; // set for tx0x2 cahoots (2-party)
+  private Tx0x2DecoyResult tx0x2DecoyResult; // set for tx0x2 decoy
   private KeyBag keyBag;
   private boolean signed;
+  private Collection<BipUtxo> cascadingChangeUtxos; // change utxos for next lower pool TX0
 
   public Tx0(
       Tx0Preview tx0Preview,
@@ -40,10 +41,8 @@ public class Tx0 extends Tx0Preview {
       Transaction tx,
       List<TransactionOutput> ownPremixOutputs,
       List<TransactionOutput> changeOutputs,
-      List<? extends BipUtxo> ownChangeUtxos,
       TransactionOutput opReturnOutput,
       TransactionOutput samouraiFeeOutput,
-      Tx0x2CahootsResult tx0x2CahootsResult,
       KeyBag keyBag,
       boolean signed)
       throws Exception {
@@ -55,12 +54,13 @@ public class Tx0 extends Tx0Preview {
     this.tx = tx;
     this.ownPremixOutputs = ownPremixOutputs;
     this.changeOutputs = changeOutputs;
-    this.ownChangeUtxos = ownChangeUtxos;
     this.opReturnOutput = opReturnOutput;
     this.samouraiFeeOutput = samouraiFeeOutput;
-    this.tx0x2CahootsResult = tx0x2CahootsResult;
+    this.tx0x2CahootsResult = null;
+    this.tx0x2DecoyResult = null;
     this.keyBag = keyBag;
     this.signed = signed;
+    this.cascadingChangeUtxos = null;
     try {
       this.consistencyCheck();
     } catch (Exception e) {
@@ -132,10 +132,6 @@ public class Tx0 extends Tx0Preview {
     return changeOutputs;
   }
 
-  public List<? extends BipUtxo> getOwnChangeUtxos() {
-    return ownChangeUtxos;
-  }
-
   public TransactionOutput getOpReturnOutput() {
     return opReturnOutput;
   }
@@ -146,6 +142,26 @@ public class Tx0 extends Tx0Preview {
 
   public Tx0x2CahootsResult getTx0x2CahootsResult() {
     return tx0x2CahootsResult;
+  }
+
+  protected void _setTx0x2CahootsResult(Tx0x2CahootsResult tx0x2CahootsResult) {
+    this.tx0x2CahootsResult = tx0x2CahootsResult;
+  }
+
+  public Tx0x2DecoyResult getTx0x2DecoyResult() {
+    return tx0x2DecoyResult;
+  }
+
+  protected void _setTx0x2DecoyResult(Tx0x2DecoyResult tx0x2DecoyResult) {
+    this.tx0x2DecoyResult = tx0x2DecoyResult;
+  }
+
+  public Collection<BipUtxo> getCascadingChangeUtxos() {
+    return cascadingChangeUtxos;
+  }
+
+  protected void _setCascadingChangeUtxos(Collection<BipUtxo> cascadingChangeUtxos) {
+    this.cascadingChangeUtxos = cascadingChangeUtxos;
   }
 
   public KeyBag getKeyBag() {
@@ -164,8 +180,14 @@ public class Tx0 extends Tx0Preview {
             .map(u -> UtxoUtil.getInstance().utxoToKey(u))
             .collect(Collectors.toList())
         + ", \nkeyBag="
-        + keyBag.size()
+        + keyBag
         + ",\ntx0Config="
-        + tx0Config;
+        + tx0Config
+        + ",\ntx0x2CahootsResult="
+        + (tx0x2CahootsResult != null ? tx0x2CahootsResult : "null")
+        + ",\ntx0x2DecoyResult="
+        + (tx0x2DecoyResult != null ? tx0x2DecoyResult : "null")
+        + ",\nsigned="
+        + signed;
   }
 }

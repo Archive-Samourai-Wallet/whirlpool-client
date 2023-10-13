@@ -109,11 +109,27 @@ public class UtxoSupplierTest extends AbstractTest {
 
     mockException = false;
 
-    UTXO_DEPOSIT1 = newUnspentOutput("deposit1", 1, XPUB_DEPOSIT, 0);
-    UTXO_DEPOSIT1_UPDATED = newUnspentOutput("deposit1", 1, XPUB_DEPOSIT, 2);
-    UTXO_PREMIX1 = newUnspentOutput("premix1", 1, XPUB_PREMIX, 0);
-    UTXO_PREMIX2 = newUnspentOutput("premix2", 2, XPUB_PREMIX, 100);
-    UTXO_POSTMIX1 = newUnspentOutput("postmix1", 1, XPUB_POSTMIX, 50);
+    UTXO_DEPOSIT1 =
+        newUnspentOutput(
+            "3f5122c24bd7e7d570c602110c8f133a642433a476f64b5e06b8b2de2edaa2b4", 1, XPUB_DEPOSIT, 0);
+    UTXO_DEPOSIT1_UPDATED =
+        newUnspentOutput(
+            "3f5122c24bd7e7d570c602110c8f133a642433a476f64b5e06b8b2de2edaa2b4", 1, XPUB_DEPOSIT, 2);
+    UTXO_PREMIX1 =
+        newUnspentOutput(
+            "c667c31b0dd971c12ab461b8c76015536dd36a7f66dfded847238aad5c53e6ab", 1, XPUB_PREMIX, 0);
+    UTXO_PREMIX2 =
+        newUnspentOutput(
+            "c667c31b0dd971c12ab461b8c76015536dd36a7f66dfded847238aad5c53e6ab",
+            2,
+            XPUB_PREMIX,
+            100);
+    UTXO_POSTMIX1 =
+        newUnspentOutput(
+            "df81bbe761911938fd598a3e2dc10066951eab552c3c888fd293765cee65ca79",
+            1,
+            XPUB_POSTMIX,
+            50);
   }
 
   @Test

@@ -391,7 +391,7 @@ public class WhirlpoolWalletDecoyTx0x2Test extends AbstractTx0ServiceV1Test {
     Tx0 tx0x2_pool001 = decoyTx0x2s.get(1);
     log.info("tx0_pool001 = " + tx0x2_pool001);
     assertTx0(tx0x2_pool001, "0.001btc", true, 12, Arrays.asList(38623L, 38624L));
-    assertUtxosEquals(tx0x2_pool001.getSpendFroms(), tx0x2_pool01.getOwnChangeUtxos());
+    assertUtxosEquals(tx0x2_pool001.getSpendFroms(), tx0x2_pool01.getCascadingChangeUtxos());
   }
 
   /** Compare with tx0x2 test {@link WhirlpoolWalletTx0x2Test#tx0x2_pool001()} */
@@ -499,7 +499,7 @@ public class WhirlpoolWalletDecoyTx0x2Test extends AbstractTx0ServiceV1Test {
     Tx0 tx0x2_pool001 = decoyTx0x2s.get(1);
     log.info("tx0_pool001 = " + tx0x2_pool001);
     assertTx0(tx0x2_pool001, "0.001btc", true, 18, Arrays.asList(69338L, 69338L)); // split
-    assertUtxosEquals(tx0x2_pool001.getSpendFroms(), tx0x2_pool01.getOwnChangeUtxos());
+    assertUtxosEquals(tx0x2_pool001.getSpendFroms(), tx0x2_pool01.getCascadingChangeUtxos());
   }
 
   /**
@@ -547,13 +547,13 @@ public class WhirlpoolWalletDecoyTx0x2Test extends AbstractTx0ServiceV1Test {
     Tx0 tx0x2_pool01 = decoyTx0x2s.get(1);
     log.info("tx0_pool01 = " + tx0x2_pool01);
     assertTx0(tx0x2_pool01, "0.01btc", true, 8, Arrays.asList(902070L, 902580L));
-    assertUtxosEquals(tx0x2_pool01.getSpendFroms(), tx0x2_pool05.getOwnChangeUtxos());
+    assertUtxosEquals(tx0x2_pool01.getSpendFroms(), tx0x2_pool05.getCascadingChangeUtxos());
 
     // 0.001 pool
     Tx0 tx0x2_pool001 = decoyTx0x2s.get(2);
     log.info("tx0_pool001 = " + tx0x2_pool001);
     assertTx0(tx0x2_pool001, "0.001btc", true, 16, Arrays.asList(97370L, 97370L)); // split
-    assertUtxosEquals(tx0x2_pool001.getSpendFroms(), tx0x2_pool01.getOwnChangeUtxos());
+    assertUtxosEquals(tx0x2_pool001.getSpendFroms(), tx0x2_pool01.getCascadingChangeUtxos());
   }
 
   /**
@@ -589,10 +589,6 @@ public class WhirlpoolWalletDecoyTx0x2Test extends AbstractTx0ServiceV1Test {
     assertTx0(decoyTx0x2, "0.01btc", true, 3, Arrays.asList(977992L, 778247L));
     assertUtxosEquals(decoyTx0x2.getSpendFroms(), spendFroms);
   }
-
-  // TODO: This test below need to be reevaluated.
-  //       Currently only mixes in lower pool if both change outputs are large enough to mix.
-  //       Different behavior than actual Tx0x2.
 
   /**
    * Both change outputs must be large enough for lower pool level. If 1 change output is not large
@@ -646,16 +642,11 @@ public class WhirlpoolWalletDecoyTx0x2Test extends AbstractTx0ServiceV1Test {
     Tx0 tx0x2_pool001 = decoyTx0x2s.get(1);
     log.info("tx0_pool001 = " + tx0x2_pool001);
     assertTx0(tx0x2_pool001, "0.001btc", true, 21, Arrays.asList(3718579L, 19854L));
-    assertUtxosEquals(tx0x2_pool001.getSpendFroms(), tx0x2_pool05.getOwnChangeUtxos());
+    assertUtxosEquals(tx0x2_pool001.getSpendFroms(), tx0x2_pool05.getCascadingChangeUtxos());
   }
 
-  // TODO: This test also needs to be reevaluated.
-  //       Doesn't reach 0.001 pool so doesn't split change outputs.
-  //       Currently only splits change outputs after 0.001 pool.
-
   /**
-   * Doesn't reach 0.001 pool so doesn't split change outputs. Currently only splits change outputs
-   * after 0.001 pool.
+   * Doesn't reach 0.001 pool but split changes on 0.01.
    *
    * <p>Compare with tx0x2 test {@link WhirlpoolWalletTx0x2Test#tx0x2_cascade_pool05_no001()} Change
    * values differ slightly
@@ -700,8 +691,8 @@ public class WhirlpoolWalletDecoyTx0x2Test extends AbstractTx0ServiceV1Test {
     // 0.01 pool
     Tx0 tx0x2_pool01 = decoyTx0x2s.get(1);
     log.info("tx0_pool01 = " + tx0x2_pool01);
-    assertTx0(tx0x2_pool01, "0.01btc", true, 8, Arrays.asList(52325L, 52325L));
-    assertUtxosEquals(tx0x2_pool01.getSpendFroms(), tx0x2_pool05.getOwnChangeUtxos());
+    assertTx0(tx0x2_pool01, "0.01btc", true, 8, Arrays.asList(52325L, 52325L)); // split change
+    assertUtxosEquals(tx0x2_pool01.getSpendFroms(), tx0x2_pool05.getCascadingChangeUtxos());
 
     // 0.001 pool not reached
   }

@@ -4,7 +4,6 @@ import com.samourai.wallet.bip69.BIP69InputComparatorUtxo;
 import com.samourai.wallet.bipFormat.BipFormatSupplier;
 import com.samourai.wallet.bipWallet.BipWallet;
 import com.samourai.wallet.bipWallet.KeyBag;
-import com.samourai.wallet.cahoots.CahootsUtxo;
 import com.samourai.wallet.hd.BipAddress;
 import com.samourai.wallet.segwit.bech32.Bech32UtilGeneric;
 import com.samourai.wallet.send.MyTransactionOutPoint;
@@ -81,13 +80,239 @@ public class Tx0Service {
   }
 
   protected Optional<Tx0> buildTx0(Tx0Config tx0Config, Tx0Preview tx0Preview) throws Exception {
-    Tx0x2CahootsConfig tx0x2CahootsConfig = tx0Config.getTx0x2CahootsConfig();
-    String poolId = tx0Preview.getPool().getPoolId();
+    if (tx0Preview.isTx0x2Cahoots()) { // tx0x2 cahoots (2-party)
+      return buildTx0_tx0x2Cahoots(tx0Config, tx0Preview);
+    } else if (tx0Preview.isTx0x2Decoy()) { // tx0x2 decoy
+      return buildTx0_tx0x2Decoy(tx0Config, tx0Preview);
+    }
+    return buildTx0_regular(tx0Config, tx0Preview);
+  }
+
+  // regular tx0
+  protected Optional<Tx0> buildTx0_regular(Tx0Config tx0Config, Tx0Preview tx0Preview)
+      throws Exception {
     if (log.isDebugEnabled()) {
+      String poolId = tx0Config.getPool().getPoolId();
       log.debug(
-          " • Tx0[" + poolId + "]: tx0Config={" + tx0Config + "}\n=> tx0Preview={" + tx0Preview);
+          " • Tx0["
+              + poolId
+              + "][noDecoy]: tx0Config={"
+              + tx0Config
+              + "}\n=> tx0Preview={"
+              + tx0Preview);
     }
 
+    int nbPremixs = tx0Preview.getNbPremix();
+
+    // inputs
+    Collection<UtxoOutPoint> inputs =
+        (Collection<UtxoOutPoint>)
+            (Collection<? extends UtxoOutPoint>) tx0Config.getOwnSpendFromUtxos();
+
+    // change outputs
+    BipWallet changeWallet = tx0Config.getChangeWallet();
+    Pair<TransactionOutput, BipAddress> ownChange = null;
+    List<TransactionOutput> changeOutputs = new LinkedList<>();
+    if (tx0Preview.getChangeValue() > 0) {
+      ownChange = computeOwnChangeOutput(tx0Preview.getChangeValue(), changeWallet, "");
+      changeOutputs.add(ownChange.getLeft());
+    }
+
+    Optional<Tx0> tx0Opt = buildTx0(tx0Config, tx0Preview, nbPremixs, inputs, changeOutputs, true);
+    if (tx0Opt.isPresent()) {
+      Tx0 tx0 = tx0Opt.get();
+
+      if (tx0Config.isCascade()) {
+        // set cascading utxos
+        List<BipUtxo> cascadingChangeUtxos = new LinkedList<>();
+        if (ownChange != null) {
+          cascadingChangeUtxos.add(computeOwnChangeUtxo(ownChange, changeWallet));
+        }
+        tx0._setCascadingChangeUtxos(cascadingChangeUtxos);
+      }
+    }
+    return tx0Opt;
+  }
+
+  // tx0x2 decoy
+  protected Optional<Tx0> buildTx0_tx0x2Decoy(Tx0Config tx0Config, Tx0Preview tx0Preview)
+      throws Exception {
+    if (log.isDebugEnabled()) {
+      String poolId = tx0Config.getPool().getPoolId();
+      log.debug(
+          " • Tx0["
+              + poolId
+              + "][Tx0x2Decoy]: tx0Config={"
+              + tx0Config
+              + "}\n=> tx0Preview={"
+              + tx0Preview);
+    }
+    Tx0x2Preview tx0x2Preview = tx0Preview.getTx0x2Preview();
+
+    // INPUTS: sender inputs
+    Collection<UtxoOutPoint> inputs = new LinkedList<>(tx0Config.getOwnSpendFromUtxos());
+
+    // OUTPUTS
+
+    Collection<TransactionOutput> changeOutputs = new LinkedList<>();
+    BipWallet changeWallet = tx0Config.getChangeWallet();
+    // sender changes
+    Pair<TransactionOutput, BipAddress> ownChangeSender = null;
+    if (tx0x2Preview.getChangeAmountSender() > 0) {
+      ownChangeSender =
+          computeOwnChangeOutput(tx0x2Preview.getChangeAmountSender(), changeWallet, "(sender)");
+      changeOutputs.add(ownChangeSender.getLeft());
+    }
+    // counterparty changes
+    Pair<TransactionOutput, BipAddress> ownChangeCounterparty = null;
+    if (tx0x2Preview.isTx0x2Decoy()) {
+      if (tx0x2Preview.getChangeAmountCounterparty() > 0) {
+        ownChangeCounterparty =
+            computeOwnChangeOutput(
+                tx0x2Preview.getChangeAmountCounterparty(), changeWallet, "(counterparty)");
+        changeOutputs.add(ownChangeCounterparty.getLeft());
+      }
+    }
+
+    // premixs: sender + counterparty
+    int nbPremixs = tx0x2Preview.getNbPremixSender() + tx0x2Preview.getNbPremixCounterparty();
+
+    // build TX0 & sign
+    Optional<Tx0> tx0Opt = buildTx0(tx0Config, tx0Preview, nbPremixs, inputs, changeOutputs, true);
+
+    // build change utxos after tx is built
+    if (tx0Opt.isPresent()) {
+      Tx0 tx0 = tx0Opt.get();
+      List<BipUtxo> cascadingChangeUtxos = new LinkedList<>();
+
+      if (tx0.isTx0x2Decoy()) {
+        // sender change
+        BipUtxo senderChangeUtxo = null;
+        if (ownChangeSender != null) {
+          senderChangeUtxo = computeOwnChangeUtxo(ownChangeSender, changeWallet);
+          cascadingChangeUtxos.add(senderChangeUtxo);
+        }
+
+        // counterparty change
+        BipUtxo counterpartyChangeUtxo = null;
+        if (ownChangeCounterparty != null) {
+          counterpartyChangeUtxo = computeOwnChangeUtxo(ownChangeCounterparty, changeWallet);
+          cascadingChangeUtxos.add(counterpartyChangeUtxo);
+        }
+
+        // set Tx0x2DecoyResult
+        Tx0x2DecoyResult tx0x2DecoyResult =
+            new Tx0x2DecoyResult(tx0x2Preview, senderChangeUtxo, counterpartyChangeUtxo);
+        tx0._setTx0x2DecoyResult(tx0x2DecoyResult);
+      }
+      if (tx0Config.isCascade()) {
+        tx0._setCascadingChangeUtxos(cascadingChangeUtxos);
+      }
+    }
+    return tx0Opt;
+  }
+
+  // tx0x2 Cahoots (2-party)
+  protected Optional<Tx0> buildTx0_tx0x2Cahoots(Tx0Config tx0Config, Tx0Preview tx0Preview)
+      throws Exception {
+    if (log.isDebugEnabled()) {
+      String poolId = tx0Config.getPool().getPoolId();
+      log.debug(
+          " • Tx0["
+              + poolId
+              + "][Tx0x2Cahoots]: tx0Config={"
+              + tx0Config
+              + "}\n=> tx0Preview={"
+              + tx0Preview);
+    }
+    Tx0x2Preview tx0x2Preview = tx0Preview.getTx0x2Preview();
+    Tx0x2CahootsConfig tx0x2CahootsConfig = tx0Config.getTx0x2CahootsConfig();
+
+    // INPUTS: sender + counterparty
+    Collection<UtxoOutPoint> inputs = new LinkedList<>();
+    inputs.addAll(tx0Config.getOwnSpendFromUtxos());
+    inputs.addAll(tx0x2CahootsConfig.getCounterpartyInputs());
+
+    // OUTPUTS
+    Collection<TransactionOutput> changeOutputs = new LinkedList<>();
+    BipWallet changeWallet = tx0Config.getChangeWallet();
+    // sender changes
+    Pair<TransactionOutput, BipAddress> ownChangeSender = null;
+    if (tx0x2Preview.getChangeAmountSender() > 0) {
+      ownChangeSender =
+          computeOwnChangeOutput(tx0x2Preview.getChangeAmountSender(), changeWallet, "(sender)");
+      changeOutputs.add(ownChangeSender.getLeft());
+    }
+
+    // counterparty change
+    Pair<TransactionOutput, String> tx0x2CounterpartyChange = null;
+    long changeAmount = tx0x2Preview.getChangeAmountCounterparty();
+    if (changeAmount > 0) {
+      // add counterarty change output
+      String poolId = tx0Config.getPool().getPoolId();
+      String changeAddressBech32 =
+          tx0x2CahootsConfig.getCounterpartyChangeAddressPerPoolId().get(poolId);
+      TransactionOutput changeOutput =
+          bech32Util.getTransactionOutput(changeAddressBech32, changeAmount, params);
+      changeOutputs.add(changeOutput);
+      if (log.isDebugEnabled()) {
+        log.debug(
+            "Tx0 out (change)(counterparty): address="
+                + changeAddressBech32
+                + ", ("
+                + changeAmount
+                + " sats)");
+      }
+      tx0x2CounterpartyChange = Pair.of(changeOutput, changeAddressBech32);
+    }
+
+    // premixs: only sender (counterparty premixs will be added later on step3)
+    int nbPremixs = tx0x2Preview.getNbPremixSender();
+
+    // build TX0 without signing yet (will sign later once tx updated by counterparty)
+    Optional<Tx0> tx0Opt = buildTx0(tx0Config, tx0Preview, nbPremixs, inputs, changeOutputs, false);
+
+    // build change utxos after tx is built
+    if (tx0Opt.isPresent()) {
+      Tx0 tx0 = tx0Opt.get();
+      List<BipUtxo> cascadingChangeUtxos = new LinkedList<>();
+
+      // sender change
+      BipUtxo senderChangeUtxo = null;
+      if (ownChangeSender != null) {
+        senderChangeUtxo = computeOwnChangeUtxo(ownChangeSender, changeWallet);
+        cascadingChangeUtxos.add(senderChangeUtxo);
+      }
+
+      // counterparty change
+      UtxoOutPoint counterpartyChangeOutPoint = null;
+      if (tx0x2CounterpartyChange != null) {
+        counterpartyChangeOutPoint =
+            new UtxoOutPointImpl(
+                tx0x2CounterpartyChange.getLeft(), tx0x2CounterpartyChange.getRight());
+      }
+
+      // set Tx0x2CahootsResult
+      Tx0x2CahootsResult tx0x2CahootsResult =
+          new Tx0x2CahootsResult(tx0x2Preview, senderChangeUtxo, counterpartyChangeOutPoint);
+      tx0._setTx0x2CahootsResult(tx0x2CahootsResult);
+
+      if (tx0Config.isCascade()) {
+        tx0._setCascadingChangeUtxos(cascadingChangeUtxos);
+      }
+    }
+    return tx0Opt;
+  }
+
+  protected Optional<Tx0> buildTx0(
+      Tx0Config tx0Config,
+      Tx0Preview tx0Preview,
+      int nbPremixs,
+      Collection<UtxoOutPoint> inputs,
+      Collection<TransactionOutput> changeOutputs,
+      boolean sign)
+      throws Exception {
+    String poolId = tx0Preview.getPool().getPoolId();
     long premixValue = tx0Preview.getPremixValue();
     long feeValueOrFeeChange = tx0Preview.getTx0Data().computeFeeValueOrFeeChange();
     int nbPremix =
@@ -117,8 +342,6 @@ public class Tx0Service {
     Tx0Context tx0Context = new Tx0Context(premixWallet, changeWallet); // save index state
 
     Tx0Data tx0Data = tx0Preview.getTx0Data();
-    Tx0x2Preview tx0x2Preview =
-        tx0Preview.getTx0x2Preview(); // set when any tx0x2 (2-party or cahoots)
 
     // compute fee destination
     String feeOrBackAddressBech32;
@@ -131,9 +354,10 @@ public class Tx0Service {
     } else {
       // pay to deposit
       BipWallet feeChangeWallet = tx0Config.getFeeChangeWallet();
-      feeOrBackAddressBech32 = feeChangeWallet.getNextAddressChange().getAddressString();
+      BipAddress bipAddress = feeChangeWallet.getNextAddressChange();
+      feeOrBackAddressBech32 = bipAddress.getAddressString();
       if (log.isDebugEnabled()) {
-        log.debug("feeAddressDestination: back to deposit => " + feeOrBackAddressBech32);
+        log.debug("feeAddressDestination: back as change => " + bipAddress);
       }
     }
 
@@ -154,10 +378,7 @@ public class Tx0Service {
     // premix outputs
     //
     List<TransactionOutput> premixOutputs = new ArrayList<>();
-    int nbOwnPremixs =
-        tx0x2CahootsConfig != null ? tx0x2Preview.getNbPremixSender() : tx0Preview.getNbPremix();
-    // append sender or regular premixs
-    for (int i = 0; i < nbOwnPremixs; i++) {
+    for (int i = 0; i < nbPremixs; i++) {
       TransactionOutput premixOutput = computeOwnPremixOutput(premixValue, premixWallet).getLeft();
       premixOutputs.add(premixOutput);
       outputs.add(premixOutput);
@@ -168,62 +389,10 @@ public class Tx0Service {
     // 1 change output(s) [Tx0 or Cahoots Tx0x2]
     // 2 change outputs [decoy Tx0x2]
     //
-    List<Pair<TransactionOutput, BipAddress>> ownChanges = new LinkedList<>();
-    if (tx0x2Preview != null) {
-      if (tx0x2Preview.isTx0x2Cahoots()) {
-        // 2-party cahoots => 1 change controlled as sender
-        if (tx0x2Preview.getChangeAmountSender() > 0) {
-          ownChanges.add(
-              computeOwnChangeOutput(tx0x2Preview.getChangeAmountSender(), changeWallet));
-        }
-      } else {
-        // tx0x2 decoy => both changes controlled as single user
-        if (tx0x2Preview.getChangeAmountSender() > 0) {
-          ownChanges.add(
-              computeOwnChangeOutput(tx0x2Preview.getChangeAmountSender(), changeWallet));
-        }
-        if (tx0x2Preview.getChangeAmountCounterparty() > 0) {
-          ownChanges.add(
-              computeOwnChangeOutput(tx0x2Preview.getChangeAmountCounterparty(), changeWallet));
-        }
-      }
-    } else {
-      // regular tx : 1 change controlled as single user
-      if (tx0Preview.getChangeValue() > 0) {
-        ownChanges.add(computeOwnChangeOutput(tx0Preview.getChangeValue(), changeWallet));
-      }
-    }
     List<TransactionOutput> allChangeOutputs = new LinkedList<>();
-    for (Pair<TransactionOutput, BipAddress> ownChange : ownChanges) {
-      TransactionOutput ownChangeOutput = ownChange.getLeft();
-      outputs.add(ownChangeOutput);
-      allChangeOutputs.add(ownChangeOutput);
-    }
-
-    //
-    // Counterparty changes output [Cahoots Tx0x2]
-    //
-    Pair<TransactionOutput, String> tx0x2CounterpartyChange = null;
-    if (tx0x2CahootsConfig != null) {
-      long changeAmount = tx0x2Preview.getChangeAmountCounterparty();
-      if (changeAmount > 0) {
-        // add counterarty change output
-        String changeAddressBech32 =
-            tx0x2CahootsConfig.getCounterpartyChangeAddressPerPoolId().get(poolId);
-        TransactionOutput changeOutput =
-            bech32Util.getTransactionOutput(changeAddressBech32, changeAmount, params);
-        outputs.add(changeOutput);
-        allChangeOutputs.add(changeOutput);
-        if (log.isDebugEnabled()) {
-          log.debug(
-              "Tx0 out (change)(counterparty): address="
-                  + changeAddressBech32
-                  + ", ("
-                  + changeAmount
-                  + " sats)");
-        }
-        tx0x2CounterpartyChange = Pair.of(changeOutput, changeAddressBech32);
-      }
+    for (TransactionOutput changeOutput : changeOutputs) {
+      outputs.add(changeOutput);
+      allChangeOutputs.add(changeOutput);
     }
 
     // samourai fee (or back deposit)
@@ -239,33 +408,21 @@ public class Tx0Service {
               + " sats)");
     }
 
-    // counterparty inputs (tx0x2 cahoots)
-    List<UtxoOutPoint> allInputs = new LinkedList<>();
-    if (tx0x2CahootsConfig != null) {
-      for (UtxoOutPoint input : tx0x2CahootsConfig.getCounterpartyInputs()) {
-        TransactionInput transactionInput = utxoUtil.computeSpendInput(input, params);
-        tx.addInput(transactionInput);
-        allInputs.add(input);
-        if (log.isDebugEnabled()) {
-          log.debug("Tx0 in (counterparty): " + transactionInput);
-        }
-      }
-    }
-    // own inputs (regular tx0 or tx0x2 decoy)
-    for (BipUtxo spendFrom : tx0Config.getOwnSpendFromUtxos()) {
+    // add inputs
+    for (UtxoOutPoint spendFrom : inputs) {
       TransactionInput input = utxoUtil.computeSpendInput(spendFrom, params);
       tx.addInput(input);
-      allInputs.add(spendFrom);
       if (log.isDebugEnabled()) {
         log.debug("Tx0 in: utxo=" + spendFrom);
       }
     }
 
-    // sort inputs now, we need to encode OP_RETURN with the first input
-    Collections.sort(allInputs, new BIP69InputComparatorUtxo());
+    // sort inputs to find the first input
+    List<UtxoOutPoint> sortedInputs = new LinkedList<>(inputs);
+    Collections.sort(sortedInputs, new BIP69InputComparatorUtxo());
+    UtxoOutPoint firstInput = sortedInputs.get(0);
 
     // add OP_RETURN output
-    UtxoOutPoint firstInput = allInputs.get(0);
     TransactionOutput opReturnOutput = computeOpReturnOutput(firstInput, tx0Config, tx0Preview);
     outputs.add(opReturnOutput);
 
@@ -274,7 +431,7 @@ public class Tx0Service {
       tx.addOutput(to);
     }
 
-    // sort inputs & outputs
+    // normalize tx
     txUtil.sortBip69InputsAndOutputs(tx);
 
     // prepare keybag to sign
@@ -282,51 +439,26 @@ public class Tx0Service {
     KeyBag keyBag = new KeyBag();
     keyBag.addAll((Collection<BipUtxo>) tx0Config.getOwnSpendFromUtxos(), keyProvider);
 
-    // sign unless tx0x2Cahoots
-    boolean signed = false;
-    if (!tx0Config.isTx0x2Cahoots()) {
+    // sign
+    if (sign) {
       signTx0(tx, keyBag, keyProvider.getBipFormatSupplier());
-      signed = true;
     }
     tx.verify();
 
-    // build changeUtxos *after* transactionOutputs are added to TX
-    List<? extends BipUtxo> ownChangeUtxos = computeChangeUtxos(ownChanges, changeWallet);
-    UtxoOutPoint tx0x2CounterpartyChangeOutPoint = null;
-    if (tx0x2CounterpartyChange != null) {
-      tx0x2CounterpartyChangeOutPoint =
-          new UtxoOutPointImpl(
-              tx0x2CounterpartyChange.getLeft(), tx0x2CounterpartyChange.getRight());
-    }
-
-    Tx0x2CahootsResult tx0x2CahootsResult = null;
-    if (tx0x2CahootsConfig != null) {
-      CahootsUtxo senderChangeUtxo = null;
-      if (!ownChanges.isEmpty()) { // tx0x2 cahoots has 0 or 1 own change
-        BipUtxo bipUtxo = ownChangeUtxos.iterator().next();
-        BipAddress bipAddress = ownChanges.iterator().next().getRight();
-        byte[] key = bipAddress.getHdAddress().getECKey().getPrivKeyBytes();
-        senderChangeUtxo = new CahootsUtxo(bipUtxo, key);
-      }
-      tx0x2CahootsResult =
-          new Tx0x2CahootsResult(tx0x2Preview, senderChangeUtxo, tx0x2CounterpartyChangeOutPoint);
-    }
     Tx0 tx0 =
         new Tx0(
             tx0Preview,
-            allInputs,
-            (Collection<BipUtxo>) tx0Config.getOwnSpendFromUtxos(),
+            inputs,
+            tx0Config.getOwnSpendFromUtxos(),
             tx0Config,
             tx0Context,
             tx,
             premixOutputs,
             allChangeOutputs,
-            ownChangeUtxos,
             opReturnOutput,
             samouraiFeeOutput,
-            tx0x2CahootsResult,
             keyBag,
-            signed);
+            sign);
     log.info(
         " • Tx0["
             + poolId
@@ -420,14 +552,16 @@ public class Tx0Service {
   }
 
   public Pair<TransactionOutput, BipAddress> computeOwnChangeOutput(
-      long changeAmount, BipWallet changeWallet) throws Exception {
+      long changeAmount, BipWallet changeWallet, String debugInfo) throws Exception {
     BipAddress changeAddress = changeWallet.getNextAddressChange();
     String changeAddressBech32 = changeAddress.getAddressString();
     TransactionOutput changeOutput =
         bech32Util.getTransactionOutput(changeAddressBech32, changeAmount, params);
     if (log.isDebugEnabled()) {
       log.debug(
-          "Tx0 out (change)(counterparty): address="
+          "Tx0 out (change)"
+              + debugInfo
+              + ": address="
               + changeAddressBech32
               + ", path="
               + changeAddress.getPathAddress()
@@ -450,25 +584,18 @@ public class Tx0Service {
         feePaymentCode, feePayload, maskingOutpoint, firstInputKey);
   }
 
-  private List<? extends BipUtxo> computeChangeUtxos(
-      List<Pair<TransactionOutput, BipAddress>> ownChanges, BipWallet changeWallet) {
-    List<BipUtxo> changeUtxos = new LinkedList<>();
-    for (Pair<TransactionOutput, BipAddress> ownChange : ownChanges) {
-      TransactionOutput changeOutput = ownChange.getLeft();
-      BipAddress bipAddress = ownChange.getRight();
-      String changeAddressBech32 = bipAddress.getAddressString();
-      BipUtxo changeUtxo =
-          new BipUtxoImpl(
-              changeOutput,
-              changeAddressBech32,
-              null,
-              changeWallet.getXPub(),
-              false,
-              bipAddress.getHdAddress().getChainIndex(),
-              bipAddress.getHdAddress().getAddressIndex());
-      changeUtxos.add(changeUtxo);
-    }
-    return changeUtxos;
+  private BipUtxo computeOwnChangeUtxo(
+      Pair<TransactionOutput, BipAddress> ownChange, BipWallet changeWallet) {
+    TransactionOutput changeOutput = ownChange.getLeft();
+    BipAddress bipAddress = ownChange.getRight();
+    return new BipUtxoImpl(
+        changeOutput,
+        bipAddress.getAddressString(),
+        null,
+        changeWallet.getXPub(),
+        false,
+        bipAddress.getHdAddress().getChainIndex(),
+        bipAddress.getHdAddress().getAddressIndex());
   }
 
   public Optional<Tx0Result> tx0(Tx0Config tx0Config) throws Exception {
@@ -497,7 +624,8 @@ public class Tx0Service {
       Collections.sort(cascadingPools, new PoolComparatorByDenominationDesc());
 
       for (Pool pool : cascadingPools) {
-        if (higherPoolTx0.getOwnChangeUtxos().isEmpty()) {
+        Collection<BipUtxo> higherTx0CascadingChangeUtxos = higherPoolTx0.getCascadingChangeUtxos();
+        if (higherTx0CascadingChangeUtxos.isEmpty()) {
           break; // stop when no tx0 change
         }
 
@@ -509,7 +637,7 @@ public class Tx0Service {
                   + pool.getPoolId());
         }
 
-        tx0Config = new Tx0Config(tx0Config, higherPoolTx0.getOwnChangeUtxos(), pool);
+        tx0Config = new Tx0Config(tx0Config, higherTx0CascadingChangeUtxos, pool);
         tx0Config._setCascading(true);
         tx0Config.setTx0x2DecoyForced(true); // skip to next lower pool when decoy is not possible
         Tx0x2CahootsConfig tx0x2CahootsConfig = tx0Config.getTx0x2CahootsConfig();

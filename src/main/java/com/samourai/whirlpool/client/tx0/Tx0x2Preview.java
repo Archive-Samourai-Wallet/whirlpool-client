@@ -16,6 +16,7 @@ public class Tx0x2Preview {
   private long tx0MinerFeeCounterparty;
   private long samouraiFeeSender;
   private long samouraiFeeCounterparty;
+  private boolean splitChange;
 
   public Tx0x2Preview(Tx0x2Preview tx0Preview) {
     this(
@@ -28,7 +29,8 @@ public class Tx0x2Preview {
         tx0Preview.tx0MinerFeeSender,
         tx0Preview.tx0MinerFeeCounterparty,
         tx0Preview.samouraiFeeSender,
-        tx0Preview.samouraiFeeCounterparty);
+        tx0Preview.samouraiFeeCounterparty,
+        tx0Preview.splitChange);
   }
 
   public Tx0x2Preview(
@@ -41,7 +43,8 @@ public class Tx0x2Preview {
       long tx0MinerFeeSender,
       long tx0MinerFeeCounterparty,
       long samouraiFeeSender,
-      long samouraiFeeCounterparty) {
+      long samouraiFeeCounterparty,
+      boolean splitChange) {
     this.tx0x2Cahoots = tx0x2Cahoots;
     this.tx0x2Decoy = tx0x2Decoy;
     this.nbPremixSender = nbPremixSender;
@@ -52,6 +55,7 @@ public class Tx0x2Preview {
     this.tx0MinerFeeCounterparty = tx0MinerFeeCounterparty;
     this.samouraiFeeSender = samouraiFeeSender;
     this.samouraiFeeCounterparty = samouraiFeeCounterparty;
+    this.splitChange = splitChange;
   }
 
   public boolean isTx0x2Cahoots() {
@@ -94,27 +98,33 @@ public class Tx0x2Preview {
     return samouraiFeeCounterparty;
   }
 
+  public boolean isSplitChange() {
+    return splitChange;
+  }
+
   @Override
   public String toString() {
     return "tx0x2Cahoots="
         + tx0x2Cahoots
         + ", decoyTx0x2="
         + tx0x2Decoy
-        + ",nbPremixSender="
+        + ", nbPremixSender="
         + nbPremixSender
-        + ",nbPremixCounterparty="
+        + ", nbPremixCounterparty="
         + nbPremixCounterparty
-        + ",changeAmountSender="
+        + ", changeAmountSender="
         + changeAmountSender
-        + ",changeAmountCounterparty="
+        + ", changeAmountCounterparty="
         + changeAmountCounterparty
-        + ",tx0MinerFeeSender="
+        + ", tx0MinerFeeSender="
         + tx0MinerFeeSender
-        + ",tx0MinerFeeCounterparty="
+        + ", tx0MinerFeeCounterparty="
         + tx0MinerFeeCounterparty
-        + ",samouraiFeeSender="
+        + ", samouraiFeeSender="
         + samouraiFeeSender
-        + ",samouraiFeeCounterparty="
-        + samouraiFeeCounterparty;
+        + ", samouraiFeeCounterparty="
+        + samouraiFeeCounterparty
+        + ", splitChange="
+        + splitChange;
   }
 }

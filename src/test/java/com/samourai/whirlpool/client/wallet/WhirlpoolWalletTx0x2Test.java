@@ -11,7 +11,6 @@ import com.samourai.whirlpool.client.tx0.Tx0Config;
 import com.samourai.whirlpool.client.wallet.beans.Tx0FeeTarget;
 import com.samourai.whirlpool.client.whirlpool.beans.Pool;
 import java.util.Collection;
-import org.bitcoinj.core.Transaction;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -188,7 +187,9 @@ public class WhirlpoolWalletTx0x2Test extends AbstractCahootsTest {
         (Tx0x2Result) doCahoots(tx0x2Service, cahootsContextSender, cahootsContextCp, null);
     Tx0x2 cahoots = cahootsResult.getCahoots();
 
-    // verify TX
+    // verify TXs
+    Assertions.assertEquals(1, cahoots.getTransactions().values().size());
+
     String poolId = "0.01btc";
     int senderChangeIndex = 0;
     int counterpartyChangeIndex = 0;
@@ -256,8 +257,7 @@ public class WhirlpoolWalletTx0x2Test extends AbstractCahootsTest {
     Tx0x2 cahoots = cahootsResult.getCahoots();
 
     // verify TXs
-    Collection<Transaction> txs = cahoots.getTransactions().values();
-    Assertions.assertEquals(1, txs.size());
+    Assertions.assertEquals(1, cahoots.getTransactions().values().size());
 
     int senderChangeIndex = 0;
     int counterpartyChangeIndex = 0;
@@ -331,8 +331,7 @@ public class WhirlpoolWalletTx0x2Test extends AbstractCahootsTest {
     Tx0x2 cahoots = cahootsResult.getCahoots();
 
     // verify TXs
-    Collection<Transaction> txs = cahoots.getTransactions().values();
-    Assertions.assertEquals(2, txs.size());
+    Assertions.assertEquals(2, cahoots.getTransactions().values().size());
 
     int senderChangeIndex = 0;
     int counterpartyChangeIndex = 0;
@@ -437,8 +436,7 @@ public class WhirlpoolWalletTx0x2Test extends AbstractCahootsTest {
     Tx0x2 cahoots = cahootsResult.getCahoots();
 
     // verify TXs
-    Collection<Transaction> txs = cahoots.getTransactions().values();
-    Assertions.assertEquals(3, txs.size());
+    Assertions.assertEquals(3, cahoots.getTransactions().values().size());
 
     int senderChangeIndex = 0;
     int counterpartyChangeIndex = 0;
@@ -580,8 +578,7 @@ public class WhirlpoolWalletTx0x2Test extends AbstractCahootsTest {
     Tx0x2 cahoots = cahootsResult.getCahoots();
 
     // verify TXs
-    Collection<Transaction> txs = cahoots.getTransactions().values();
-    Assertions.assertEquals(2, txs.size());
+    Assertions.assertEquals(2, cahoots.getTransactions().values().size());
 
     int senderChangeIndex = 0;
     int counterpartyChangeIndex = 0;
@@ -657,7 +654,6 @@ public class WhirlpoolWalletTx0x2Test extends AbstractCahootsTest {
         senderChangeIndex, counterpartyChangeIndex, senderPremixIndex, counterpartyPremixIndex);
   }
 
-  // TODO
   /**
    * Sender's change is large enough to mix in 0.01btc pool. Counterparty's change is not large
    * enough to mix in 0.01btc pool. 0.01btc pool is skipped to 0.001btc.
@@ -694,8 +690,7 @@ public class WhirlpoolWalletTx0x2Test extends AbstractCahootsTest {
     Tx0x2 cahoots = cahootsResult.getCahoots();
 
     // verify TXs
-    Collection<Transaction> txs = cahoots.getTransactions().values();
-    Assertions.assertEquals(2, txs.size());
+    Assertions.assertEquals(2, cahoots.getTransactions().values().size());
 
     int senderChangeIndex = 0;
     int counterpartyChangeIndex = 0;
@@ -805,8 +800,7 @@ public class WhirlpoolWalletTx0x2Test extends AbstractCahootsTest {
     Tx0x2 cahoots = cahootsResult.getCahoots();
 
     // verify TXs
-    Collection<Transaction> txs = cahoots.getTransactions().values();
-    Assertions.assertEquals(2, txs.size());
+    Assertions.assertEquals(2, cahoots.getTransactions().values().size());
 
     int senderChangeIndex = 0;
     int counterpartyChangeIndex = 0;

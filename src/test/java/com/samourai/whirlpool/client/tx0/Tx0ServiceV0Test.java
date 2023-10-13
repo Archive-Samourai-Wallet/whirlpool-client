@@ -282,6 +282,7 @@ public class Tx0ServiceV0Test extends AbstractTx0ServiceV0Test {
             Arrays.asList(new BipUtxo[] {spendFromUtxo}),
             Tx0FeeTarget.BLOCKS_24,
             Tx0FeeTarget.BLOCKS_24);
+    tx0Config.setTx0x2Decoy(false);
     int nbOutputsExpected = 10;
     long premixValue = 1000150;
     String feePaymentCode =
@@ -364,6 +365,7 @@ public class Tx0ServiceV0Test extends AbstractTx0ServiceV0Test {
             Arrays.asList(new BipUtxo[] {spendFromUtxo}),
             Tx0FeeTarget.BLOCKS_24,
             Tx0FeeTarget.BLOCKS_24);
+    tx0Config.setTx0x2Decoy(false);
     int nbOutputsExpected = 1;
     long premixValue = 1000150;
     String feePaymentCode =
@@ -425,9 +427,9 @@ public class Tx0ServiceV0Test extends AbstractTx0ServiceV0Test {
     String tx0Hex = txUtil.getTxHex(tx);
     log.info(tx0.getTx().toString());
     Assertions.assertEquals(
-        "e08ee502f2a1da94653ea2de24cb281e3276cfa86680fb51e8e43397beed5c2a", tx0Hash);
+        "70bd58e4ed64af067240278d00c265da68a6f4e8f6fb37196d19972d5aac43a7", tx0Hash);
     Assertions.assertEquals(
-        "01000000000101ae24e3f5dbcee7971ae0e5b83fcb1eb67057901f2d371ca494f868b3dc8c58cc0100000000ffffffff040000000000000000426a405fb6a585292276a7a386ec113f301b78e911a34e3bc4993ca098720eebae961afd4a0739fbd1f995190921fffe6c1c5ac395ab0ba979acb7f29d97ab86fd776f1027000000000000160014f6a884f18f4d7e78a4167c3e56773c3ae58e0164ee2b0000000000001600141bd05eb7c9cb516fddd8187cecb2e0cb4e21ac87d6420f00000000001600141dffe6e395c95927e4a16e8e6bd6d05604447e4d02483045022100c56e7b3a7071fbd4cc02deb33cc26abeae8638c4c9674343fac4aa4494b6e32e022076359e6f37e13dcd9f557e65d7a979364909ffc2cae5bd83996f26ffc23f53b90121032e56be09a66e8ef8bddcd5c79d3958a77ef10c964fd4808907debf285093466100000000",
+        "01000000000101ae24e3f5dbcee7971ae0e5b83fcb1eb67057901f2d371ca494f868b3dc8c58cc0100000000ffffffff040000000000000000426a405fb6a585292276a7a386ec113f301b78e911a34e3bc4993ca098720eebae961afd4a0739fbd1f995190921fffe6c1c5ac395ab0ba979acb7f29d97ab86fd776f10270000000000001600141bd05eb7c9cb516fddd8187cecb2e0cb4e21ac87ee2b000000000000160014f6a884f18f4d7e78a4167c3e56773c3ae58e0164d6420f00000000001600141dffe6e395c95927e4a16e8e6bd6d05604447e4d02473044022072eeafd2e6ea296d74c0d80557e4256101c3fccf985ad2ff7f7ecd8830bfbf240220067315a60a0271df296c94772e63994871b598f5cd35cf631bb661ebf38569510121032e56be09a66e8ef8bddcd5c79d3958a77ef10c964fd4808907debf285093466100000000",
         tx0Hex);
   }
 
@@ -447,6 +449,7 @@ public class Tx0ServiceV0Test extends AbstractTx0ServiceV0Test {
             Arrays.asList(new BipUtxo[] {spendFromUtxo}),
             Tx0FeeTarget.BLOCKS_24,
             Tx0FeeTarget.BLOCKS_24);
+    tx0Config.setTx0x2Decoy(false);
     int nbOutputsExpected = 1;
     long premixValue = 1000150;
     String feePaymentCode =
@@ -530,6 +533,7 @@ public class Tx0ServiceV0Test extends AbstractTx0ServiceV0Test {
             Arrays.asList(new BipUtxo[] {spendFromUtxo}),
             Tx0FeeTarget.BLOCKS_24,
             Tx0FeeTarget.BLOCKS_24);
+    tx0Config.setTx0x2Decoy(false);
     int nbOutputsExpected = 1;
     long premixValue = 1000150;
     String feePaymentCode =
@@ -613,6 +617,7 @@ public class Tx0ServiceV0Test extends AbstractTx0ServiceV0Test {
             Tx0FeeTarget.BLOCKS_24,
             Tx0FeeTarget.BLOCKS_24);
     tx0Config.setChangeWallet(whirlpoolWallet.getWalletPostmix());
+    tx0Config.setTx0x2Decoy(false);
     int nbOutputsExpected = 1;
     long premixValue = 1000150;
     String feePaymentCode =

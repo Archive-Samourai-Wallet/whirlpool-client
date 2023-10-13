@@ -8,7 +8,7 @@ import com.samourai.whirlpool.client.whirlpool.beans.Pool;
 import java.util.Collection;
 
 public class Tx0Config extends Tx0PreviewConfig {
-  private Collection<? extends BipUtxo> ownSpendFromUtxos; // own inputs, not NULL
+  private Collection<BipUtxo> ownSpendFromUtxos; // own inputs, not NULL
   private UtxoKeyProvider utxoKeyProvider;
   private BipWallet premixWallet;
   private BipWallet changeWallet;
@@ -19,7 +19,7 @@ public class Tx0Config extends Tx0PreviewConfig {
   public Tx0Config(
       Tx0FeeTarget tx0FeeTarget,
       Tx0FeeTarget mixFeeTarget,
-      Collection<? extends BipUtxo> ownSpendFromUtxos,
+      Collection<BipUtxo> ownSpendFromUtxos,
       UtxoKeyProvider utxoKeyProvider,
       BipWallet premixWallet,
       BipWallet changeWallet,
@@ -48,8 +48,7 @@ public class Tx0Config extends Tx0PreviewConfig {
     consistencyCheck();
   }
 
-  public Tx0Config(
-      Tx0Config tx0Config, Collection<? extends BipUtxo> ownSpendFromUtxos, Pool pool) {
+  public Tx0Config(Tx0Config tx0Config, Collection<BipUtxo> ownSpendFromUtxos, Pool pool) {
     super(tx0Config, ownSpendFromUtxos);
     this.ownSpendFromUtxos = ownSpendFromUtxos;
     this.utxoKeyProvider = tx0Config.utxoKeyProvider;
@@ -90,7 +89,7 @@ public class Tx0Config extends Tx0PreviewConfig {
     return feeChangeWallet;
   }
 
-  public Collection<? extends BipUtxo> getOwnSpendFromUtxos() {
+  public Collection<BipUtxo> getOwnSpendFromUtxos() {
     return ownSpendFromUtxos;
   }
 

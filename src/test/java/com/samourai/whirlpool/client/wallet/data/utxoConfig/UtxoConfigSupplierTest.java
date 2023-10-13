@@ -1,6 +1,7 @@
 package com.samourai.whirlpool.client.wallet.data.utxoConfig;
 
 import com.samourai.wallet.api.backend.beans.UnspentOutput;
+import com.samourai.whirlpool.client.wallet.beans.WhirlpoolAccount;
 import com.samourai.whirlpool.client.wallet.beans.WhirlpoolUtxo;
 import com.samourai.whirlpool.client.wallet.data.utxo.UtxoSupplierTest;
 import org.junit.jupiter.api.Assertions;
@@ -23,7 +24,11 @@ public class UtxoConfigSupplierTest extends UtxoSupplierTest {
     doTest(utxos1);
     assertUtxoChanges(utxos1, new UnspentOutput[] {}, new UnspentOutput[] {});
 
-    // TODO Assertions.assertEquals(utxos1.length, utxoSupplier.getUtxos().size());
+    Assertions.assertEquals(1, utxoSupplier.getUtxos(WhirlpoolAccount.DEPOSIT).size());
+    Assertions.assertEquals(1, utxoSupplier.getUtxos(WhirlpoolAccount.PREMIX).size());
+    Assertions.assertEquals(1, utxoSupplier.getUtxos(WhirlpoolAccount.POSTMIX).size());
+    Assertions.assertEquals(0, utxoSupplier.getUtxos(WhirlpoolAccount.BADBANK).size());
+    Assertions.assertEquals(0, utxoSupplier.getUtxos(WhirlpoolAccount.RICOCHET).size());
 
     // verify mixsDone
     Assertions.assertEquals(

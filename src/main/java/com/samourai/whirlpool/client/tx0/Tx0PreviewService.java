@@ -621,11 +621,13 @@ public class Tx0PreviewService {
               + changeValueTotal);
     }
 
+    boolean splitChange = false;
     if (changeValueA < Tx0x2Service.CHANGE_SPLIT_THRESHOLD
         && changeValueB < Tx0x2Service.CHANGE_SPLIT_THRESHOLD) {
       // split changes evenly when both changes < treshold
       changeValueA = changeValueTotal / 2L;
       changeValueB = changeValueTotal - changeValueA;
+      splitChange = true;
       if (log.isDebugEnabled()) {
         log.debug(
             "computeTx0x2DecoyChanges: changeValueSplit = " + changeValueA + " + " + changeValueB);
@@ -643,7 +645,8 @@ public class Tx0PreviewService {
         minerFeeA,
         minerFeeB,
         feeValueA,
-        feeValueB);
+        feeValueB,
+        splitChange);
   }
 
   private Pair<Collection<UtxoDetail>, Collection<UtxoDetail>> computeSpendFromsStonewall(

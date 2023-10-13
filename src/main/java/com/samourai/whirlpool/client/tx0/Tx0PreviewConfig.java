@@ -122,8 +122,8 @@ public class Tx0PreviewConfig {
         + tx0FeeTarget
         + ", mixFeeTarget="
         + mixFeeTarget
-        + ", _cascading="
-        + _cascading
+        + ", cascade="
+        + cascade
         + ", decoyTx0x2="
         + tx0x2Decoy
         + ", spendFroms="

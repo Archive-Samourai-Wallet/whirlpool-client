@@ -295,7 +295,7 @@ public class WhirlpoolWallet {
         new Tx0Config(
             tx0FeeTarget,
             mixFeeTarget,
-            spendFroms,
+            (Collection<BipUtxo>) spendFroms,
             getUtxoSupplier(),
             premixWallet,
             changeWallet,

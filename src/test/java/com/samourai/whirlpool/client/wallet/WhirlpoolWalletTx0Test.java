@@ -276,7 +276,7 @@ public class WhirlpoolWalletTx0Test extends AbstractTx0ServiceV1Test {
 
     Tx0 tx0_pool001 = tx0s.get(1);
     assertTx0(tx0_pool001, "0.001btc", false, 2, Arrays.asList(77925L));
-    assertUtxosEquals(tx0_pool001.getSpendFroms(), tx0_pool05.getOwnChangeUtxos());
+    assertUtxosEquals(tx0_pool001.getSpendFroms(), tx0_pool05.getCascadingChangeUtxos());
   }
 
   @Test
@@ -311,11 +311,11 @@ public class WhirlpoolWalletTx0Test extends AbstractTx0ServiceV1Test {
 
     log.info("tx0_pool01 = " + tx0_pool01);
     assertTx0(tx0_pool01, "0.01btc", false, 1, Arrays.asList(240711L));
-    assertUtxosEquals(tx0_pool01.getSpendFroms(), tx0_pool05.getOwnChangeUtxos());
+    assertUtxosEquals(tx0_pool01.getSpendFroms(), tx0_pool05.getCascadingChangeUtxos());
 
     log.info("tx0_pool001 = " + tx0_pool001);
     assertTx0(tx0_pool001, "0.001btc", false, 2, Arrays.asList(34906L));
-    assertUtxosEquals(tx0_pool001.getSpendFroms(), tx0_pool01.getOwnChangeUtxos());
+    assertUtxosEquals(tx0_pool001.getSpendFroms(), tx0_pool01.getCascadingChangeUtxos());
   }
 
   @Test
@@ -351,15 +351,15 @@ public class WhirlpoolWalletTx0Test extends AbstractTx0ServiceV1Test {
 
     log.info("tx0_pool05 = " + tx0_pool05);
     assertTx0(tx0_pool05, "0.05btc", false, 4, Arrays.asList(2691845L));
-    assertUtxosEquals(tx0_pool05.getSpendFroms(), tx0_pool5.getOwnChangeUtxos());
+    assertUtxosEquals(tx0_pool05.getSpendFroms(), tx0_pool5.getCascadingChangeUtxos());
 
     log.info("tx0_pool01 = " + tx0_pool01);
     assertTx0(tx0_pool01, "0.01btc", false, 2, Arrays.asList(648540L));
-    assertUtxosEquals(tx0_pool01.getSpendFroms(), tx0_pool05.getOwnChangeUtxos());
+    assertUtxosEquals(tx0_pool01.getSpendFroms(), tx0_pool05.getCascadingChangeUtxos());
 
     log.info("tx0_pool001 = " + tx0_pool001);
     assertTx0(tx0_pool001, "0.001btc", false, 6, Arrays.asList(41591L));
-    assertUtxosEquals(tx0_pool001.getSpendFroms(), tx0_pool01.getOwnChangeUtxos());
+    assertUtxosEquals(tx0_pool001.getSpendFroms(), tx0_pool01.getCascadingChangeUtxos());
   }
 
   @Test
@@ -393,7 +393,7 @@ public class WhirlpoolWalletTx0Test extends AbstractTx0ServiceV1Test {
 
     log.info("tx0_pool001 = " + tx0_pool001);
     assertTx0(tx0_pool001, "0.001btc", false, 8, Arrays.asList(34451L));
-    assertUtxosEquals(tx0_pool001.getSpendFroms(), tx0_pool5.getOwnChangeUtxos());
+    assertUtxosEquals(tx0_pool001.getSpendFroms(), tx0_pool5.getCascadingChangeUtxos());
   }
 
   @Test
@@ -427,7 +427,7 @@ public class WhirlpoolWalletTx0Test extends AbstractTx0ServiceV1Test {
 
     log.info("tx0_pool001 = " + tx0_pool001);
     assertTx0(tx0_pool001, "0.001btc", false, 2, Arrays.asList(80881L));
-    assertUtxosEquals(tx0_pool001.getSpendFroms(), tx0_pool01.getOwnChangeUtxos());
+    assertUtxosEquals(tx0_pool001.getSpendFroms(), tx0_pool01.getCascadingChangeUtxos());
   }
 
   @Disabled // uncomment to manually broadcast a new tx0Cascade

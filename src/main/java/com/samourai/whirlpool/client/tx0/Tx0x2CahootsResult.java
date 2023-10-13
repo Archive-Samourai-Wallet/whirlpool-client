@@ -1,22 +1,22 @@
 package com.samourai.whirlpool.client.tx0;
 
-import com.samourai.wallet.cahoots.CahootsUtxo;
+import com.samourai.wallet.utxo.BipUtxo;
 import com.samourai.wallet.utxo.UtxoOutPoint;
 
 public class Tx0x2CahootsResult extends Tx0x2Preview {
-  private CahootsUtxo senderChangeUtxo;
+  private BipUtxo senderChangeUtxo;
   private UtxoOutPoint counterpartyChangeOutPoint;
 
   public Tx0x2CahootsResult(
       Tx0x2Preview tx0x2Preview,
-      CahootsUtxo senderChangeUtxo,
+      BipUtxo senderChangeUtxo,
       UtxoOutPoint counterpartyChangeOutPoint) {
     super(tx0x2Preview);
     this.senderChangeUtxo = senderChangeUtxo;
     this.counterpartyChangeOutPoint = counterpartyChangeOutPoint;
   }
 
-  public CahootsUtxo getSenderChangeUtxo() {
+  public BipUtxo getSenderChangeUtxo() {
     return senderChangeUtxo;
   }
 
