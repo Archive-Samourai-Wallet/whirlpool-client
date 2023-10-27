@@ -2,6 +2,7 @@ package com.samourai.whirlpool.client.wallet.data.utxo;
 
 import com.samourai.wallet.api.backend.beans.UnspentOutput;
 import com.samourai.wallet.api.backend.beans.WalletResponse;
+import com.samourai.wallet.bipFormat.BipFormat;
 import com.samourai.wallet.bipWallet.BipWallet;
 import com.samourai.wallet.bipWallet.WalletSupplier;
 import com.samourai.whirlpool.client.utils.ClientUtils;
@@ -14,6 +15,7 @@ import com.samourai.whirlpool.client.whirlpool.beans.Pool;
 import java.util.*;
 import java.util.stream.Collectors;
 import org.apache.commons.lang3.ArrayUtils;
+import org.bitcoinj.core.NetworkParameters;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -104,7 +106,7 @@ public class UtxoData {
         try {
           // find account
           String pub = utxo.xpub.m;
-          BipWallet bipWallet = walletSupplier.getWalletByPub(pub);
+          BipWallet bipWallet = walletSupplier.getWalletByXPub(pub);
           if (bipWallet == null) {
             throw new Exception("Unknown wallet for: " + pub);
           }
@@ -117,8 +119,12 @@ public class UtxoData {
           }
 
           // add missing
+          NetworkParameters params = bipWallet.getParams();
+          BipFormat bipFormat =
+              utxoSupplier.getBipFormatSupplier().findByAddress(utxo.addr, params);
           WhirlpoolUtxo whirlpoolUtxo =
-              new WhirlpoolUtxo(utxo, bipWallet, poolId, utxoConfigSupplier, latestBlockHeight);
+              new WhirlpoolUtxo(
+                  utxo, bipWallet, bipFormat, poolId, utxoConfigSupplier, latestBlockHeight);
           if (!isFirstFetch) {
             // set lastActivity when utxo is detected but ignore on first fetch
             whirlpoolUtxo.getUtxoState().setLastActivity();
@@ -200,7 +206,7 @@ public class UtxoData {
     // verify inputs
     for (WalletResponse.TxInput input : tx.inputs) {
       if (input.prev_out != null) {
-        BipWallet bipWallet = walletSupplier.getWalletByPub(input.prev_out.xpub.m);
+        BipWallet bipWallet = walletSupplier.getWalletByXPub(input.prev_out.xpub.m);
         if (bipWallet != null) {
           accounts.add(bipWallet.getAccount());
         }
@@ -208,7 +214,7 @@ public class UtxoData {
     }
     // verify outputs
     for (WalletResponse.TxOutput output : tx.out) {
-      BipWallet bipWallet = walletSupplier.getWalletByPub(output.xpub.m);
+      BipWallet bipWallet = walletSupplier.getWalletByXPub(output.xpub.m);
       if (bipWallet != null) {
         accounts.add(bipWallet.getAccount());
       }

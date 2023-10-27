@@ -2,9 +2,9 @@ package com.samourai.whirlpool.client.mix.dialog;
 
 import com.samourai.wallet.api.backend.beans.HttpException;
 import com.samourai.wallet.util.AsyncUtil;
+import com.samourai.wallet.util.JSONUtils;
 import com.samourai.whirlpool.client.exception.NotifiableException;
 import com.samourai.whirlpool.client.utils.ClientUtils;
-import com.samourai.whirlpool.client.whirlpool.WhirlpoolClientConfig;
 import com.samourai.whirlpool.protocol.WhirlpoolEndpoint;
 import com.samourai.whirlpool.protocol.soroban.InviteMixSorobanMessage;
 import com.samourai.whirlpool.protocol.websocket.MixMessage;
@@ -18,15 +18,12 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class MixDialog {
+  private static final Logger log = LoggerFactory.getLogger(MixDialog.class);
   private static final int REGISTER_OUTPUT_ATTEMPTS = 10;
   private static final AsyncUtil asyncUtil = AsyncUtil.getInstance();
 
-  // non-static logger to prefix it with stomp sessionId
-  private Logger log;
-
   private MixDialogListener listener;
   private MixSession mixSession;
-  private WhirlpoolClientConfig config;
   private InviteMixSorobanMessage inviteMixSorobanMessage;
   private String mixId;
 
@@ -41,12 +38,8 @@ public class MixDialog {
   public MixDialog(
       MixDialogListener listener,
       MixSession mixSession,
-      WhirlpoolClientConfig config,
-      String logPrefix,
       InviteMixSorobanMessage inviteMixSorobanMessage) {
-    this.log = LoggerFactory.getLogger(MixDialog.class + "[" + logPrefix + "]");
     this.listener = listener;
-    this.config = config;
     this.mixSession = mixSession;
     this.inviteMixSorobanMessage = inviteMixSorobanMessage;
     this.mixId = inviteMixSorobanMessage.mixId;
@@ -58,7 +51,13 @@ public class MixDialog {
       return;
     }
     if (log.isTraceEnabled()) {
-      log.trace("onPrivateReceived: " + mixMessage);
+      String mixMessageStr = "";
+      try {
+        mixMessageStr = JSONUtils.getInstance().getObjectMapper().writeValueAsString(mixMessage);
+      } catch (Exception e) {
+        log.error("", e);
+      }
+      log.trace("onPrivateReceived: " + mixMessageStr);
     }
     try {
       Class payloadClass = mixMessage.getClass();
@@ -236,7 +235,7 @@ public class MixDialog {
         }
         asyncUtil.blockingAwait(
             listener.postRegisterOutput(
-                registerOutputMixStatusNotification, config.getServerApi()));
+                registerOutputMixStatusNotification, mixSession.getServerApi()));
         return; // success
       } catch (Exception e) {
         if (attempt >= REGISTER_OUTPUT_ATTEMPTS) {

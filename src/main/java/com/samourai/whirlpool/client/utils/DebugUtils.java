@@ -10,8 +10,10 @@ import com.samourai.wallet.hd.BipAddress;
 import com.samourai.wallet.hd.Chain;
 import com.samourai.whirlpool.client.wallet.WhirlpoolWallet;
 import com.samourai.whirlpool.client.wallet.beans.*;
+import com.samourai.whirlpool.client.wallet.data.coordinator.CoordinatorSupplier;
 import com.samourai.whirlpool.client.wallet.data.paynym.PaynymSupplier;
 import com.samourai.whirlpool.client.wallet.data.pool.PoolSupplier;
+import com.samourai.whirlpool.client.whirlpool.beans.Coordinator;
 import com.samourai.whirlpool.client.whirlpool.beans.Pool;
 import java.util.Collection;
 import java.util.Comparator;
@@ -32,6 +34,7 @@ public class DebugUtils {
       sb.append(getDebugWallet(whirlpoolWallet));
       sb.append(getDebugUtxos(whirlpoolWallet));
       sb.append(getDebugMixingThreads(whirlpoolWallet));
+      sb.append(getDebugCoordinators(whirlpoolWallet.getCoordinatorSupplier()));
       sb.append(getDebugPools(whirlpoolWallet.getPoolSupplier()));
       sb.append(getDebugPaynym(whirlpoolWallet.getPaynymSupplier()));
     } else {
@@ -45,7 +48,7 @@ public class DebugUtils {
     StringBuilder sb = new StringBuilder().append("\n");
 
     // receive address
-    BipAddress depositAddress = whirlpoolWallet.getWalletDeposit().getNextAddress(false);
+    BipAddress depositAddress = whirlpoolWallet.getWalletDeposit().getNextAddressReceive(false);
 
     sb.append("⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿" + "\n");
     sb.append("⣿ RECEIVE ADDRESS" + "\n");
@@ -68,21 +71,21 @@ public class DebugUtils {
 
       for (BipWallet wallet : whirlpoolWallet.getWalletSupplier().getWallets(account)) {
         NetworkParameters params = wallet.getParams();
-        utxos = whirlpoolWallet.getUtxoSupplier().findUtxos(wallet.getBipFormat(), account);
-        String nextAddressReceive = wallet.getNextAddress(false).getAddressString();
-        String nextAddressChange = wallet.getNextChangeAddress(false).getAddressString();
+        String nextAddressReceive = wallet.getNextAddressReceive(false).getAddressString();
+        String nextAddressChange = wallet.getNextAddressChange(false).getAddressString();
         sb.append(
             "     + "
                 + wallet.getId()
                 + ": path="
                 + wallet.getDerivation().getPathAccount(params)
-                + ", bipFormat="
-                + wallet.getBipFormat().getId()
-                + ", "
-                + utxos.size()
-                + " utxos"
-                + ", pub="
-                + ClientUtils.maskString(wallet.getPub())
+                + ", bipFormats="
+                + wallet.getBipFormats()
+                + ", bipFormatDefault="
+                + wallet.getBipFormatDefault().getId()
+                + ", xpub="
+                + ClientUtils.maskString(wallet.getXPub())
+                + ", bipPub="
+                + ClientUtils.maskString(wallet.getBipPub())
                 + ", nextAddressReceive="
                 + nextAddressReceive
                 + ", nextAddressChange="
@@ -180,7 +183,6 @@ public class DebugUtils {
       WhirlpoolUtxo whirlpoolUtxo = (WhirlpoolUtxo) var3.next();
       WhirlpoolUtxoState utxoState = whirlpoolUtxo.getUtxoState();
       UnspentOutput o = whirlpoolUtxo.getUtxo();
-      String utxo = o.tx_hash + ":" + o.tx_output_n;
       String mixableStatusName =
           utxoState.getMixableStatus() != null ? utxoState.getMixableStatus().name() : "-";
       Long lastActivity = whirlpoolUtxo.getUtxoState().getLastActivity();
@@ -200,9 +202,9 @@ public class DebugUtils {
               lineFormat,
               ClientUtils.satToBtc(o.value),
               whirlpoolUtxo.computeConfirmations(latestBlockHeight),
-              utxo,
+              o.getUtxoName(),
               o.addr,
-              whirlpoolUtxo.getBipWallet().getBipFormat().getId(),
+              whirlpoolUtxo.getBipFormat().getId(),
               whirlpoolUtxo.getPathAddress(),
               utxoState.getStatus().name(),
               mixableStatusName,
@@ -283,7 +285,6 @@ public class DebugUtils {
         String progress = mixProgress != null ? mixProgress.toString() : "";
         String since = mixProgress != null ? ((now - mixProgress.getSince()) / 1000) + "s" : "";
         UnspentOutput o = whirlpoolUtxo.getUtxo();
-        String utxo = o.tx_hash + ":" + o.tx_output_n;
         Long lastActivity = whirlpoolUtxo.getUtxoState().getLastActivity();
         String activity =
             (lastActivity != null ? ClientUtils.dateToString(lastActivity) + " " : "")
@@ -304,7 +305,7 @@ public class DebugUtils {
                 whirlpoolUtxo.getAccount().name(),
                 ClientUtils.satToBtc(o.value),
                 whirlpoolUtxo.computeConfirmations(latestBlockHeight),
-                utxo,
+                o.getUtxoName(),
                 o.getPath(),
                 mixProgress.getPoolId() != null ? mixProgress.getPoolId() : "-",
                 whirlpoolUtxo.getMixsDone(),
@@ -333,22 +334,45 @@ public class DebugUtils {
     return sb.toString();
   }
 
+  public static String getDebugCoordinators(CoordinatorSupplier coordinatorSupplier) {
+    StringBuilder sb = new StringBuilder().append("\n");
+    try {
+      sb.append("⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿" + "\n");
+      sb.append("⣿ COORDINATORS:" + "\n");
+
+      String lineFormat = "| %15s | %45s | %45s |\n";
+      sb.append(String.format(lineFormat, "ID", "URL", "POOLS"));
+
+      for (Coordinator coordinator : coordinatorSupplier.getCoordinators()) {
+        sb.append(
+            String.format(
+                lineFormat,
+                coordinator.getCoordinatorId(),
+                coordinator.getUrlClear(),
+                coordinator.getPoolIds()));
+      }
+    } catch (Exception e) {
+      log.error("", e);
+    }
+    return sb.toString();
+  }
+
   public static String getDebugPools(PoolSupplier poolSupplier) {
     StringBuilder sb = new StringBuilder().append("\n");
     try {
       sb.append("⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿" + "\n");
       sb.append("⣿ POOLS:" + "\n");
 
-      String lineFormat = "| %15s | %15s | %15s | %18s | %20s | %15s |\n";
+      String lineFormat = "| %15s | %15s | %15s | %10s | %12s | %10s |\n";
       sb.append(
           String.format(
               lineFormat,
               "NAME",
               "DENOMINATION",
               "MIN. DEPOSIT",
-              "ANON. SET PER MIX",
-              "MAX. PREMIXS PER TX0",
-              "FLAT ENTRY FEE"));
+              "ANON. SET",
+              "MAX. PREMIXS",
+              "ENTRY FEE"));
 
       for (Pool pool : poolSupplier.getPools()) {
         sb.append(

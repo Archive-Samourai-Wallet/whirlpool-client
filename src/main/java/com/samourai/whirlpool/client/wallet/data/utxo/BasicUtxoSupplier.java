@@ -99,7 +99,7 @@ public abstract class BasicUtxoSupplier extends BasicSupplier<UtxoData>
   public Collection<WhirlpoolUtxo> findUtxos(
       final BipFormat bipFormat, final WhirlpoolAccount... whirlpoolAccounts) {
     return findUtxos(whirlpoolAccounts).stream()
-        .filter(whirlpoolUtxo -> whirlpoolUtxo.getBipWallet().getBipFormat() == bipFormat)
+        .filter(whirlpoolUtxo -> whirlpoolUtxo.getBipFormat() == bipFormat)
         .collect(Collectors.<WhirlpoolUtxo>toList());
   }
 
@@ -137,10 +137,10 @@ public abstract class BasicUtxoSupplier extends BasicSupplier<UtxoData>
   // UtxoSupplier
 
   @Override
-  public String getNextChangeAddress(
+  public String getNextAddressChange(
       WhirlpoolAccount account, BipFormat bipFormat, boolean increment) {
     BipWallet bipWallet = walletSupplier.getWallet(account, bipFormat);
-    return bipWallet.getNextChangeAddress().getAddressString();
+    return bipWallet.getNextAddressChange().getAddressString();
   }
 
   @Override
@@ -215,8 +215,7 @@ public abstract class BasicUtxoSupplier extends BasicSupplier<UtxoData>
 
       UTXO utxo = utxoByScript.get(script);
       if (utxo == null) {
-        utxo = new UTXO();
-        utxo.setPath(whirlpoolUtxo.getUtxo().getPath());
+        utxo = new UTXO(whirlpoolUtxo.getUtxo().getPath(), whirlpoolUtxo.getUtxo().xpub.m);
         utxoByScript.put(script, utxo);
       }
       utxo.getOutpoints().add(outPoint);

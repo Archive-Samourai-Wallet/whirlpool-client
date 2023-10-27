@@ -6,7 +6,6 @@ import com.samourai.wallet.client.indexHandler.MemoryIndexHandlerSupplier;
 import com.samourai.wallet.hd.BIP_WALLET;
 import com.samourai.wallet.hd.HD_Wallet;
 import com.samourai.wallet.hd.HD_WalletFactoryGeneric;
-import com.samourai.wallet.segwit.bech32.Bech32UtilGeneric;
 import com.samourai.whirlpool.client.exception.PostmixIndexAlreadyUsedException;
 import com.samourai.whirlpool.client.test.AbstractTest;
 import com.samourai.whirlpool.client.utils.ClientUtils;
@@ -26,7 +25,6 @@ import org.junit.jupiter.api.Test;
 public class PostmixIndexServiceTest extends AbstractTest {
   private PostmixIndexService postmixIndexService;
   private BipWallet walletPostmix;
-  private Bech32UtilGeneric bech32Util = Bech32UtilGeneric.getInstance();
 
   public PostmixIndexServiceTest() throws Exception {}
 
@@ -36,7 +34,11 @@ public class PostmixIndexServiceTest extends AbstractTest {
     HD_Wallet bip44w =
         HD_WalletFactoryGeneric.getInstance().getBIP44(seed, SEED_PASSPHRASE, params);
     walletPostmix =
-        new BipWallet(bip44w, new MemoryIndexHandlerSupplier(), BIP_WALLET.POSTMIX_BIP84);
+        new BipWallet(
+            bipFormatSupplier, bip44w, new MemoryIndexHandlerSupplier(), BIP_WALLET.POSTMIX_BIP84);
+
+    WhirlpoolWalletConfig config = computeWhirlpoolWalletConfig();
+    postmixIndexService = new PostmixIndexService(config);
   }
 
   @Test
@@ -50,38 +52,30 @@ public class PostmixIndexServiceTest extends AbstractTest {
 
   @Test
   public void checkPostmixIndex_alreadyUsed() throws Exception {
-    WhirlpoolWalletConfig config = computeWhirlpoolWalletConfig();
-    postmixIndexService = new PostmixIndexService(config, bech32Util);
-
     PostmixIndexAlreadyUsedException e =
         Assertions.assertThrows(
             PostmixIndexAlreadyUsedException.class,
-            () -> postmixIndexService.checkPostmixIndex(walletPostmix));
+            () -> postmixIndexService.checkPostmixIndex(walletPostmix, serverApi));
     Assertions.assertEquals(0, e.getPostmixIndex());
   }
 
   @Test
   public void checkPostmixIndex_failure() throws Exception {
     ServerApi serverApi = new ServerApi("http://foo", computeHttpClientService());
-    WhirlpoolWalletConfig config = computeWhirlpoolWalletConfig(serverApi);
-    postmixIndexService = new PostmixIndexService(config, bech32Util);
 
     // ignore other errors such as http timeout
-    postmixIndexService.checkPostmixIndex(walletPostmix); // no exception thrown
+    postmixIndexService.checkPostmixIndex(walletPostmix, serverApi); // no exception thrown
   }
 
   private void doCheckPostmixIndexMock(int validPostmixIndex) throws Exception {
     // mock serverApi
     ServerApi serverApi = mockServerApi(validPostmixIndex, walletPostmix);
-    WhirlpoolWalletConfig config = computeWhirlpoolWalletConfig(serverApi);
-    postmixIndexService = new PostmixIndexService(config, bech32Util);
-
     try {
       // check
-      postmixIndexService.checkPostmixIndex(walletPostmix);
+      postmixIndexService.checkPostmixIndex(walletPostmix, serverApi);
     } catch (PostmixIndexAlreadyUsedException e) {
       // postmix index is desynchronized
-      postmixIndexService.fixPostmixIndex(walletPostmix);
+      postmixIndexService.fixPostmixIndex(walletPostmix, serverApi);
     }
 
     // verify

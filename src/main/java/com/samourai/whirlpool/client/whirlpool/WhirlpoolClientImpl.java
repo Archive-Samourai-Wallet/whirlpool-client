@@ -10,25 +10,18 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class WhirlpoolClientImpl implements WhirlpoolClient {
-  private Logger log;
+  private static final Logger log = LoggerFactory.getLogger(WhirlpoolClientImpl.class);
 
   private WhirlpoolClientConfig config;
 
   private boolean done;
-  private String logPrefix;
 
   private MixClient mixClient;
   private Thread mixThread;
   private WhirlpoolClientListener listener;
 
   public WhirlpoolClientImpl(WhirlpoolClientConfig config) {
-    this(config, Long.toString(System.currentTimeMillis()));
-  }
-
-  public WhirlpoolClientImpl(WhirlpoolClientConfig config, String logPrefix) {
-    this.log = LoggerFactory.getLogger(WhirlpoolClientImpl.class + "[" + logPrefix + "]");
     this.config = config;
-    this.logPrefix = logPrefix;
     if (log.isDebugEnabled()) {
       log.debug("+whirlpoolClient");
     }
@@ -54,7 +47,7 @@ public class WhirlpoolClientImpl implements WhirlpoolClient {
                 }
               }
             },
-            "whirlpoolClient-" + logPrefix);
+            "whirlpoolClient-" + System.currentTimeMillis());
     this.mixThread.setDaemon(true);
     this.mixThread.start();
   }
@@ -62,7 +55,7 @@ public class WhirlpoolClientImpl implements WhirlpoolClient {
   private void runClient(MixParams mixParams) {
     WhirlpoolClientListener mixListener = computeMixListener();
 
-    mixClient = new MixClient(config, logPrefix, mixParams, mixListener);
+    mixClient = new MixClient(config, mixParams, mixListener);
     mixClient.whirlpool();
   }
 

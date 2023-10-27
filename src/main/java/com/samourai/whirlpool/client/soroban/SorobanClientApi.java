@@ -1,55 +1,68 @@
 package com.samourai.whirlpool.client.soroban;
 
+import com.samourai.soroban.client.AbstractSorobanPayload;
+import com.samourai.soroban.client.RpcWallet;
 import com.samourai.soroban.client.rpc.RpcClient;
 import com.samourai.soroban.client.rpc.RpcClientEncrypted;
+import com.samourai.soroban.client.rpc.RpcMode;
+import com.samourai.wallet.bip47.BIP47UtilGeneric;
 import com.samourai.wallet.bip47.rpc.PaymentCode;
 import com.samourai.wallet.util.JSONUtils;
+import com.samourai.whirlpool.client.wallet.beans.WhirlpoolNetwork;
 import com.samourai.whirlpool.protocol.WhirlpoolProtocol;
-import com.samourai.whirlpool.protocol.soroban.PoolInfoSorobanMessage;
+import com.samourai.whirlpool.protocol.soroban.ErrorSorobanMessage;
+import com.samourai.whirlpool.protocol.soroban.InviteMixSorobanMessage;
+import com.samourai.whirlpool.protocol.soroban.RegisterCoordinatorSorobanMessage;
 import com.samourai.whirlpool.protocol.soroban.RegisterInputSorobanMessage;
 import com.samourai.whirlpool.protocol.websocket.messages.RegisterInputRequest;
-import io.reactivex.Completable;
 import io.reactivex.Single;
 import java.lang.invoke.MethodHandles;
 import java.util.Collection;
-import java.util.LinkedList;
+import java.util.LinkedHashMap;
+import java.util.Map;
+import org.bitcoinj.core.NetworkParameters;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class SorobanClientApi {
   private static final Logger log = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
   private static final JSONUtils jsonUtil = JSONUtils.getInstance();
+  private WhirlpoolNetwork whirlpoolNetwork;
 
-  public SorobanClientApi() {}
+  public SorobanClientApi(WhirlpoolNetwork whirlpoolNetwork) {
+    this.whirlpoolNetwork = whirlpoolNetwork;
+  }
 
-  public Single<Collection<PoolInfoSorobanMessage>> fetchPools(RpcClient rpcClient)
-      throws Exception {
-    String directory = WhirlpoolProtocol.getSorobanDirPools();
+  public Single<Collection<RegisterCoordinatorSorobanMessage>> fetchCoordinators(
+      RpcClient rpcClient) throws Exception {
+    String directory = WhirlpoolProtocol.getSorobanDirCoordinators(whirlpoolNetwork);
     return rpcClient
         .directoryValues(directory)
         .map(
             payloads -> {
-              Collection<PoolInfoSorobanMessage> poolInfoSorobanMessages = new LinkedList<>();
+              Map<String, RegisterCoordinatorSorobanMessage> registerCoordinatorById =
+                  new LinkedHashMap<>();
               for (String payload : payloads) {
                 try {
-                  PoolInfoSorobanMessage poolInfoSorobanMessage =
-                      jsonUtil.getObjectMapper().readValue(payload, PoolInfoSorobanMessage.class);
-                  poolInfoSorobanMessages.add(poolInfoSorobanMessage);
+                  RegisterCoordinatorSorobanMessage message =
+                      jsonUtil
+                          .getObjectMapper()
+                          .readValue(payload, RegisterCoordinatorSorobanMessage.class);
+
+                  // keep latest message distinct by coordinatorId
+                  registerCoordinatorById.put(message.coordinator.coordinatorId, message);
                 } catch (Exception e) {
-                  log.error("cannot parse PoolInfoSoroban: " + payload, e);
+                  log.error("cannot parse RegisterCoordinatorSorobanMessage: " + payload, e);
                 }
               }
-              return poolInfoSorobanMessages;
+              return registerCoordinatorById.values();
             });
   }
 
-  public Completable registerInput(
-      RpcClientEncrypted rpcClientEncrypted,
-      PaymentCode paymentCodeCoordinator,
-      RegisterInputRequest request)
-      throws Exception {
-    String info = "[REGISTER_INPUT] ";
-    String directory = WhirlpoolProtocol.getSorobanDirRegisterInput(request.poolId);
+  public Single<String> registerInput(
+      RpcClientEncrypted rpcClientEncrypted, RegisterInputRequest request) throws Exception {
+    String directory =
+        WhirlpoolProtocol.getSorobanDirRegisterInput(whirlpoolNetwork, request.poolId);
 
     RegisterInputSorobanMessage message =
         new RegisterInputSorobanMessage(
@@ -61,8 +74,7 @@ public class SorobanClientApi {
             request.blockHeight);
     if (log.isDebugEnabled()) {
       log.debug(
-          info
-              + "=> registerInput: "
+          "=> registerInput: "
               + request.utxoHash
               + ":"
               + request.utxoIndex
@@ -73,6 +85,41 @@ public class SorobanClientApi {
               + ", blockHeight="
               + request.blockHeight);
     }
-    return rpcClientEncrypted.sendEncryptedWithSender(directory, message, paymentCodeCoordinator);
+    return rpcClientEncrypted.sendEncryptedWithSender(
+        directory, message, whirlpoolNetwork.getSigningPaymentCode(), RpcMode.SHORT);
+  }
+
+  public Single<AbstractSorobanPayload> waitInviteMix(
+      RpcClientEncrypted rpcClientEncrypted,
+      RegisterInputRequest request,
+      RpcWallet rpcWalletClient,
+      BIP47UtilGeneric bip47Util,
+      long timeoutMs)
+      throws Exception {
+    NetworkParameters params = rpcWalletClient.getBip47Wallet().getParams();
+    PaymentCode paymentCodeCoordinator = whirlpoolNetwork.getSigningPaymentCode();
+    String directory =
+        WhirlpoolProtocol.getSorobanDirRegisterInputResponse(
+            rpcWalletClient,
+            whirlpoolNetwork,
+            request.utxoHash,
+            request.utxoIndex,
+            bip47Util,
+            params);
+    return rpcClientEncrypted
+        .receiveEncrypted(directory, timeoutMs, paymentCodeCoordinator, 10000)
+        .map(
+            payload -> {
+              try {
+                return JSONUtils.getInstance()
+                    .getObjectMapper()
+                    .readValue(payload, InviteMixSorobanMessage.class);
+              } catch (Exception e) {
+                // may be an error response
+                return JSONUtils.getInstance()
+                    .getObjectMapper()
+                    .readValue(payload, ErrorSorobanMessage.class);
+              }
+            });
   }
 }

@@ -343,17 +343,12 @@ public class Tx0x2Service extends AbstractCahoots2xService<Tx0x2, Tx0x2Context> 
         cahootsWallet.getUtxosWpkhByAccount(cahootsContext.getAccount());
 
     Set<String> inputIds =
-        inputs.stream()
-            .map(utxo -> utxo.tx_hash + ":" + utxo.tx_output_n)
-            .collect(Collectors.toSet());
+        inputs.stream().map(utxo -> utxo.getUtxoName()).collect(Collectors.toSet());
     List<CahootsUtxo> cahootsUtxos =
         allCahootsUtxos.stream()
             .filter(
                 cahootsUtxo -> {
-                  String key =
-                      cahootsUtxo.getOutpoint().getTxHash().toString()
-                          + ":"
-                          + cahootsUtxo.getOutpoint().getTxOutputN();
+                  String key = cahootsUtxo.getOutpoint().getUtxoName();
                   return inputIds.contains(key);
                 })
             .collect(Collectors.toList());

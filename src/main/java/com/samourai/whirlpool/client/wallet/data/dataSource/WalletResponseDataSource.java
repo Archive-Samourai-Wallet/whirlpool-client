@@ -11,15 +11,16 @@ import com.samourai.wallet.chain.ChainSupplier;
 import com.samourai.wallet.hd.HD_Wallet;
 import com.samourai.wallet.util.AbstractOrchestrator;
 import com.samourai.whirlpool.client.tx0.Tx0PreviewService;
+import com.samourai.whirlpool.client.utils.ClientUtils;
 import com.samourai.whirlpool.client.wallet.WhirlpoolWallet;
 import com.samourai.whirlpool.client.wallet.WhirlpoolWalletConfig;
 import com.samourai.whirlpool.client.wallet.data.chain.BasicChainSupplier;
 import com.samourai.whirlpool.client.wallet.data.chain.ChainData;
+import com.samourai.whirlpool.client.wallet.data.coordinator.ExpirableCoordinatorSupplier;
 import com.samourai.whirlpool.client.wallet.data.minerFee.BasicMinerFeeSupplier;
 import com.samourai.whirlpool.client.wallet.data.minerFee.MinerFeeSupplier;
 import com.samourai.whirlpool.client.wallet.data.paynym.ExpirablePaynymSupplier;
 import com.samourai.whirlpool.client.wallet.data.paynym.PaynymSupplier;
-import com.samourai.whirlpool.client.wallet.data.pool.ExpirablePoolSupplier;
 import com.samourai.whirlpool.client.wallet.data.pool.PoolSupplier;
 import com.samourai.whirlpool.client.wallet.data.utxo.BasicUtxoSupplier;
 import com.samourai.whirlpool.client.wallet.data.utxo.UtxoData;
@@ -44,7 +45,7 @@ public abstract class WalletResponseDataSource implements DataSource {
   private final WalletSupplier walletSupplier;
   private final BasicMinerFeeSupplier minerFeeSupplier;
   protected final Tx0PreviewService tx0PreviewService;
-  protected final ExpirablePoolSupplier poolSupplier;
+  protected final ExpirableCoordinatorSupplier coordinatorSupplier;
   private final BasicChainSupplier chainSupplier;
   private final BasicUtxoSupplier utxoSupplier;
   private final BipFormatSupplier bipFormatSupplier;
@@ -58,21 +59,21 @@ public abstract class WalletResponseDataSource implements DataSource {
       throws Exception {
     this.whirlpoolWallet = whirlpoolWallet;
     this.walletStateSupplier = walletStateSupplier;
+    this.bipFormatSupplier = computeBipFormatSupplier();
     this.walletResponseSupplier = new WalletResponseSupplier(whirlpoolWallet, this);
 
     this.walletSupplier = computeWalletSupplier(whirlpoolWallet, bip44w, walletStateSupplier);
     this.minerFeeSupplier = computeMinerFeeSupplier(whirlpoolWallet);
     this.tx0PreviewService = new Tx0PreviewService(minerFeeSupplier, whirlpoolWallet.getConfig());
-    this.poolSupplier = computePoolSupplier(whirlpoolWallet, tx0PreviewService);
+    this.coordinatorSupplier = computeCoordinatorSupplier(whirlpoolWallet, tx0PreviewService);
     this.chainSupplier = computeChainSupplier();
-    this.bipFormatSupplier = computeBipFormatSupplier();
     this.utxoSupplier =
         computeUtxoSupplier(
             whirlpoolWallet,
             walletSupplier,
             utxoConfigSupplier,
             chainSupplier,
-            poolSupplier,
+            coordinatorSupplier,
             bipFormatSupplier);
     this.paynymSupplier = computePaynymSupplier(whirlpoolWallet, walletStateSupplier);
   }
@@ -80,7 +81,7 @@ public abstract class WalletResponseDataSource implements DataSource {
   protected WalletSupplierImpl computeWalletSupplier(
       WhirlpoolWallet whirlpoolWallet, HD_Wallet bip44w, WalletStateSupplier walletStateSupplier)
       throws Exception {
-    return new WalletSupplierImpl(walletStateSupplier, bip44w);
+    return new WalletSupplierImpl(bipFormatSupplier, walletStateSupplier, bip44w);
   }
 
   protected BasicMinerFeeSupplier computeMinerFeeSupplier(WhirlpoolWallet whirlpoolWallet)
@@ -91,13 +92,13 @@ public abstract class WalletResponseDataSource implements DataSource {
     return minerFeeSupplier;
   }
 
-  protected ExpirablePoolSupplier computePoolSupplier(
+  protected ExpirableCoordinatorSupplier computeCoordinatorSupplier(
       WhirlpoolWallet whirlpoolWallet, Tx0PreviewService tx0PreviewService) throws Exception {
     WhirlpoolWalletConfig config = whirlpoolWallet.getConfig();
-    return new ExpirablePoolSupplier(
+    return new ExpirableCoordinatorSupplier(
         config.getRefreshPoolsDelay(),
         config.getSorobanClientApi(),
-        config.getRpcClient(),
+        config.getRpcSession(),
         tx0PreviewService);
   }
 
@@ -183,19 +184,19 @@ public abstract class WalletResponseDataSource implements DataSource {
     // update indexs from wallet backend
     for (String pub : addressesMap.keySet()) {
       WalletResponse.Address address = addressesMap.get(pub);
-      BipWallet bipWallet = walletSupplier.getWalletByPub(pub);
+      BipWallet bipWallet = walletSupplier.getWalletByXPub(pub);
       if (bipWallet != null) {
         bipWallet.getIndexHandlerReceive().set(address.account_index, false);
         bipWallet.getIndexHandlerChange().set(address.change_index, false);
       } else {
-        log.error("No wallet found for: " + pub);
+        log.error("No BipWallet found for: " + ClientUtils.maskString(pub));
       }
     }
   }
 
   protected void load(boolean initial) throws Exception {
-    // load pools
-    poolSupplier.load();
+    // load coordinators
+    coordinatorSupplier.load();
 
     // load paynym
     paynymSupplier.load();
@@ -263,8 +264,8 @@ public abstract class WalletResponseDataSource implements DataSource {
   }
 
   @Override
-  public PoolSupplier getPoolSupplier() {
-    return poolSupplier;
+  public ExpirableCoordinatorSupplier getCoordinatorSupplier() {
+    return coordinatorSupplier;
   }
 
   @Override

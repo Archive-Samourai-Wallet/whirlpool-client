@@ -6,6 +6,7 @@ import com.samourai.soroban.client.rpc.RpcClientService;
 import com.samourai.wallet.api.backend.BackendServer;
 import com.samourai.wallet.api.backend.beans.UnspentOutput;
 import com.samourai.wallet.api.backend.beans.WalletResponse;
+import com.samourai.wallet.bip47.rpc.java.Bip47UtilJava;
 import com.samourai.wallet.bip47.rpc.java.SecretPointFactoryJava;
 import com.samourai.wallet.bip47.rpc.secretPoint.ISecretPointFactory;
 import com.samourai.wallet.bipFormat.BIP_FORMAT;
@@ -16,20 +17,20 @@ import com.samourai.wallet.hd.HD_Address;
 import com.samourai.wallet.hd.HD_WalletFactoryGeneric;
 import com.samourai.wallet.segwit.bech32.Bech32UtilGeneric;
 import com.samourai.wallet.util.AsyncUtil;
-import com.samourai.whirlpool.client.soroban.SorobanClientApi;
 import com.samourai.whirlpool.client.tx0.ITx0PreviewServiceConfig;
 import com.samourai.whirlpool.client.tx0.Tx0PreviewService;
 import com.samourai.whirlpool.client.utils.ClientUtils;
 import com.samourai.whirlpool.client.wallet.WhirlpoolWalletConfig;
+import com.samourai.whirlpool.client.wallet.beans.WhirlpoolNetwork;
 import com.samourai.whirlpool.client.wallet.beans.WhirlpoolServer;
 import com.samourai.whirlpool.client.wallet.beans.WhirlpoolUtxo;
+import com.samourai.whirlpool.client.wallet.data.coordinator.ExpirableCoordinatorSupplier;
 import com.samourai.whirlpool.client.wallet.data.dataPersister.MemoryDataPersisterFactory;
 import com.samourai.whirlpool.client.wallet.data.dataSource.DataSourceFactory;
 import com.samourai.whirlpool.client.wallet.data.dataSource.DojoDataSourceFactory;
 import com.samourai.whirlpool.client.wallet.data.minerFee.BasicMinerFeeSupplier;
 import com.samourai.whirlpool.client.wallet.data.minerFee.MinerFeeSupplier;
-import com.samourai.whirlpool.client.wallet.data.pool.ExpirablePoolSupplier;
-import com.samourai.whirlpool.client.wallet.data.pool.MockPoolSupplier;
+import com.samourai.whirlpool.client.wallet.data.pool.MockCoordinatorSupplier;
 import com.samourai.whirlpool.client.wallet.data.walletState.WalletStatePersistableSupplier;
 import com.samourai.whirlpool.client.wallet.data.walletState.WalletStatePersisterFile;
 import com.samourai.whirlpool.client.wallet.data.walletState.WalletStateSupplier;
@@ -39,7 +40,7 @@ import com.samourai.whirlpool.client.whirlpool.beans.Tx0Data;
 import com.samourai.whirlpool.protocol.WhirlpoolProtocol;
 import com.samourai.whirlpool.protocol.rest.PushTxSuccessResponse;
 import com.samourai.whirlpool.protocol.rest.Tx0PushRequest;
-import com.samourai.whirlpool.protocol.soroban.PoolInfoSorobanMessage;
+import com.samourai.whirlpool.protocol.soroban.RegisterCoordinatorSorobanMessage;
 import io.reactivex.Single;
 import java.io.File;
 import java.util.Arrays;
@@ -63,6 +64,13 @@ public class AbstractTest {
   protected static final String SEED_PASSPHRASE = "whirlpool";
   private static final String STATE_FILENAME = "/tmp/tmp-state";
 
+  protected static final String XPUB_DEPOSIT_BIP84 =
+      "tpubDCGZwoNuBCYuS9LbHLzdbfzjYe2fn7dKAHVSUPTkb1vuSfi7hUuiG3eT7tE1DzdcjhBF5SZk3vuu8EkcFUnbsaBpCyB2uDP7v3n774RGre9";
+  protected static final String XPUB_PREMIX =
+      "tpubDCGZwoP3Ws5sUQb1uwYxqQfmEjiPfSGrBcomWLyYgYw7YP5LenJexEzxwHvJoYUQSCWZupgzcx91fr4wVdJCb21LTr6fcv4GvBio4bzAhvr";
+  protected static final String XPUB_POSTMIX =
+      "tpubDCGZwoP3Ws5sZLQpXGpDhtbErQPyFdf59k8JmUpnL5fM6qAj8bbPXNwLLtfiS5s8ivZ1W1PQnaET7obFeiDSooTFBKcTweS29BkgHwhhsQD";
+
   protected IHttpClient httpClient;
 
   protected ChainSupplier mockChainSupplier =
@@ -72,17 +80,33 @@ public class AbstractTest {
         return infoBlock;
       };
 
+  protected WhirlpoolServer whirlpoolServer = WhirlpoolServer.TESTNET;
+  protected WhirlpoolNetwork whirlpoolNetwork = whirlpoolServer.getWhirlpoolNetwork();
+
+  protected ServerApi serverApi =
+      new ServerApi(whirlpoolServer.getServerUrlClear(), computeHttpClientService()) {
+        @Override
+        public Single<PushTxSuccessResponse> pushTx0(Tx0PushRequest request) throws Exception {
+          // mock pushtx0
+          byte[] txBytes = WhirlpoolProtocol.decodeBytes(request.tx64);
+          Transaction tx = new Transaction(params, txBytes);
+          onPushTx0(request, tx);
+          return Single.just(new PushTxSuccessResponse(tx.getHashAsString()));
+        }
+      };
+
+  protected Bip47UtilJava bip47Util = Bip47UtilJava.getInstance();
   protected BipFormatSupplier bipFormatSupplier = BIP_FORMAT.PROVIDER;
   protected NetworkParameters params = TestNet3Params.get();
   protected HD_WalletFactoryGeneric hdWalletFactory = HD_WalletFactoryGeneric.getInstance();
   protected Bech32UtilGeneric bech32Util = Bech32UtilGeneric.getInstance();
   protected AsyncUtil asyncUtil = AsyncUtil.getInstance();
-  protected SorobanClientApi sorobanClientApi = new SorobanClientApi();
+  protected CryptoUtil cryptoUtil = CryptoUtil.getInstanceJava();
   protected Pool pool01btc;
   protected Pool pool05btc;
   protected Pool pool001btc;
-  private static final String SOROBAN_POOLS =
-      "{\"poolInfo\":[{\"poolId\":\"0.01btc\",\"denomination\":1000000,\"feeValue\":50000,\"premixValue\":1000875,\"premixValueMin\":1000170,\"premixValueMax\":1019125,\"tx0MaxOutputs\":70,\"anonymitySet\":5},{\"poolId\":\"0.001btc\",\"denomination\":100000,\"feeValue\":5000,\"premixValue\":100200,\"premixValueMin\":100170,\"premixValueMax\":119125,\"tx0MaxOutputs\":25,\"anonymitySet\":5},{\"poolId\":\"0.05btc\",\"denomination\":5000000,\"feeValue\":175000,\"premixValue\":5000200,\"premixValueMin\":5000170,\"premixValueMax\":5019125,\"anonymitySet\":5,\"tx0MaxOutputs\":70,\"anonymitySet\":5},{\"poolId\":\"0.5btc\",\"denomination\":50000000,\"feeValue\":1487500,\"premixValue\":5000200,\"premixValueMin\":5000170,\"premixValueMax\":5019125,\"tx0MaxOutputs\":70,\"anonymitySet\":5}]}";
+  private static final String SOROBAN_COORDINATORS =
+      "[\"{\\\"coordinator\\\":{\\\"coordinatorId\\\":\\\"pool.whirl.mx\\\",\\\"urlClear\\\":\\\"https://pool.whirl.mx:8082\\\",\\\"urlOnion\\\":\\\"http://TOR_NOT_AVAILABLE.onion\\\"},\\\"pools\\\":[{\\\"poolId\\\":\\\"0.01btc\\\",\\\"denomination\\\":1000000,\\\"feeValue\\\":42500,\\\"premixValue\\\":1000262,\\\"premixValueMin\\\":1000170,\\\"premixValueMax\\\":1003333,\\\"tx0MaxOutputs\\\":70,\\\"anonymitySet\\\":5},{\\\"poolId\\\":\\\"0.001btc\\\",\\\"denomination\\\":100000,\\\"feeValue\\\":5000,\\\"premixValue\\\":100262,\\\"premixValueMin\\\":100170,\\\"premixValueMax\\\":103333,\\\"tx0MaxOutputs\\\":25,\\\"anonymitySet\\\":5},{\\\"poolId\\\":\\\"0.05btc\\\",\\\"denomination\\\":5000000,\\\"feeValue\\\":148750,\\\"premixValue\\\":5000262,\\\"premixValueMin\\\":5000170,\\\"premixValueMax\\\":5003333,\\\"tx0MaxOutputs\\\":70,\\\"anonymitySet\\\":5},{\\\"poolId\\\":\\\"0.5btc\\\",\\\"denomination\\\":50000000,\\\"feeValue\\\":1487500,\\\"premixValue\\\":50000262,\\\"premixValueMin\\\":50000170,\\\"premixValueMax\\\":50003333,\\\"tx0MaxOutputs\\\":70,\\\"anonymitySet\\\":5}]}\"]";
   private static final String WALLET_RESPONSE =
       "{\"wallet\": {\"final_balance\": 116640227},\"info\": {\"fees\": {\"2\": 1,\"4\": 1,\"6\": 1,\"12\": 1,\"24\": 1},\"latest_block\": {\"height\": 2064015,\"hash\": \"00000000000000409297f8e0c0e73475cdd215ef675ad82802a08507b1c1d0e1\",\"time\": 1628498860}},\"addresses\": [{\"address\": \"vpub5YEhBtZy85KxLBxQB4MiHZvjjhz5DcYT9DV2gLshFykuWXjqSzLxpLd4TwS8nFxJmXAX8RrxRxpanndBh5a9AJPbrJEtqCcTKAnRYcP4Aed\",\"final_balance\": 116640227,\"account_index\": 511,\"change_index\": 183,\"n_tx\": 137}],\"txs\": [],\"unspent_outputs\": []}";
 
@@ -92,7 +116,7 @@ public class AbstractTest {
       "tb1qfd0ukes4xw3xvxwhj9m53nt2huh75khrrdm5dv";
 
   public AbstractTest() throws Exception {
-    ClientUtils.setLogLevel(Level.DEBUG, Level.DEBUG);
+    ClientUtils.setLogLevel(Level.DEBUG);
 
     httpClient = new JettyHttpClient(5000, Optional.<HttpProxy>empty(), "test");
 
@@ -139,8 +163,8 @@ public class AbstractTest {
         minerFeeSupplier,
         new ITx0PreviewServiceConfig() {
           @Override
-          public NetworkParameters getNetworkParameters() {
-            return params;
+          public WhirlpoolNetwork getWhirlpoolNetwork() {
+            return whirlpoolNetwork;
           }
 
           @Override
@@ -164,11 +188,6 @@ public class AbstractTest {
           }
 
           @Override
-          public ServerApi getServerApi() {
-            return null;
-          }
-
-          @Override
           public String getPartner() {
             return null;
           }
@@ -184,22 +203,22 @@ public class AbstractTest {
           }
         }) {
       @Override
-      protected Collection<Tx0Data> fetchTx0Data(String partnerId, boolean cascading)
-          throws Exception {
+      protected Collection<Tx0Data> fetchTx0Data(
+          String partnerId, boolean cascading, ServerApi serverApi) throws Exception {
         if (mockTx0Datas != null) {
           return mockTx0Datas;
         }
-        return super.fetchTx0Data(partnerId, cascading);
+        return super.fetchTx0Data(partnerId, cascading, serverApi);
       }
     };
   }
 
-  protected ExpirablePoolSupplier mockPoolSupplier() {
+  protected ExpirableCoordinatorSupplier mockCoordinatorSupplier() {
     try {
-      PoolInfoSorobanMessage poolInfoSorobanMessage =
-          ClientUtils.fromJson(SOROBAN_POOLS, PoolInfoSorobanMessage.class);
-      return new MockPoolSupplier(
-          mockTx0PreviewService(false), sorobanClientApi, poolInfoSorobanMessage);
+      RegisterCoordinatorSorobanMessage registerCoordinatorSorobanMessage =
+          ClientUtils.fromJson(SOROBAN_COORDINATORS, RegisterCoordinatorSorobanMessage.class);
+      return new MockCoordinatorSupplier(
+          mockTx0PreviewService(false), registerCoordinatorSorobanMessage);
     } catch (Exception e) {
       throw new RuntimeException(e);
     }
@@ -210,8 +229,8 @@ public class AbstractTest {
     return minerFeeSupplier;
   }
 
-  protected IWhirlpoolHttpClientService mockHttpClientService() {
-    return new IWhirlpoolHttpClientService() {
+  protected IHttpClientService mockHttpClientService() {
+    return new IHttpClientService() {
       @Override
       public IHttpClient getHttpClient(HttpUsage httpUsage) {
         return null;
@@ -236,13 +255,12 @@ public class AbstractTest {
     spendFrom.confirmations = 1234;
     spendFrom.xpub = new UnspentOutput.Xpub();
     spendFrom.xpub.path = "m/0/" + hdAddress.getAddressIndex();
-    spendFrom.xpub.m =
-        "vpub5YEQpEDPAZWVTkmWASSHyaUMsae7uV9FnRrhZ3cqV6RFbBQx7wjVsUfLqSE3hgNY8WQixurkbWNkfV2sRE7LPfNKQh2t3s5une4QZthwdCu";
+    spendFrom.xpub.m = XPUB_DEPOSIT_BIP84;
     return spendFrom;
   }
 
-  protected IWhirlpoolHttpClientService computeHttpClientService() {
-    return new IWhirlpoolHttpClientService() {
+  protected IHttpClientService computeHttpClientService() {
+    return new IHttpClientService() {
       @Override
       public IHttpClient getHttpClient(HttpUsage httpUsage) {
         return httpClient;
@@ -258,41 +276,26 @@ public class AbstractTest {
   }
 
   protected WhirlpoolWalletConfig computeWhirlpoolWalletConfig() {
-    ServerApi serverApi =
-        new ServerApi(WhirlpoolServer.TESTNET.getServerUrlClear(), computeHttpClientService()) {
-          @Override
-          public Single<PushTxSuccessResponse> pushTx0(Tx0PushRequest request) throws Exception {
-            // mock pushtx0
-            byte[] txBytes = WhirlpoolProtocol.decodeBytes(request.tx64);
-            Transaction tx = new Transaction(params, txBytes);
-            onPushTx0(request, tx);
-            return Single.just(new PushTxSuccessResponse(tx.getHashAsString()));
-          }
-        };
-    return computeWhirlpoolWalletConfig(serverApi);
-  }
-
-  protected WhirlpoolWalletConfig computeWhirlpoolWalletConfig(ServerApi serverApi) {
     DataSourceFactory dataSourceFactory =
         new DojoDataSourceFactory(BackendServer.TESTNET, false, null);
     ISecretPointFactory secretPointFactory = SecretPointFactoryJava.getInstance();
-    IWhirlpoolHttpClientService httpClientService = computeHttpClientService();
+    IHttpClientService httpClientService = computeHttpClientService();
     CryptoUtil cryptoUtil = CryptoUtil.getInstanceJava();
-    RpcClientService rpcClientService = new RpcClientService(httpClient, cryptoUtil, false, params);
+    RpcClientService rpcClientService = new RpcClientService(httpClientService, false, params);
     WhirlpoolWalletConfig config =
         new WhirlpoolWalletConfig(
             dataSourceFactory,
             secretPointFactory,
+            cryptoUtil,
             null,
             httpClientService,
             rpcClientService,
             null,
             null,
-            serverApi,
-            sorobanClientApi,
-            TestNet3Params.get(),
+            bip47Util,
+            whirlpoolNetwork,
             false,
-            WhirlpoolServer.TESTNET.getSigningPaymentCode());
+            false);
     config.setDataPersisterFactory(new MemoryDataPersisterFactory());
     return config;
   }

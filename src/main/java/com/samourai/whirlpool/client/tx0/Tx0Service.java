@@ -71,11 +71,12 @@ public class Tx0Service {
       WalletSupplier walletSupplier,
       Pool pool,
       Tx0Config tx0Config,
-      UtxoKeyProvider utxoKeyProvider)
+      UtxoKeyProvider utxoKeyProvider,
+      ServerApi serverApi)
       throws Exception {
 
     // compute & preview
-    Tx0Previews tx0Previews = tx0PreviewService.tx0Previews(tx0Config, spendFroms);
+    Tx0Previews tx0Previews = tx0PreviewService.tx0Previews(tx0Config, spendFroms, serverApi);
     Tx0Preview tx0Preview = tx0Previews.getTx0Preview(pool.getPoolId());
     if (tx0Preview == null) {
       throw new NotifiableException("Tx0 not possible for pool: " + pool.getPoolId());
@@ -129,7 +130,7 @@ public class Tx0Service {
     } else {
       // pay to deposit
       BipWallet depositWallet = walletSupplier.getWallet(BIP_WALLET.DEPOSIT_BIP84);
-      feeOrBackAddressBech32 = depositWallet.getNextChangeAddress().getAddressString();
+      feeOrBackAddressBech32 = depositWallet.getNextAddressChange().getAddressString();
       if (log.isDebugEnabled()) {
         log.debug("feeAddressDestination: back to deposit => " + feeOrBackAddressBech32);
       }
@@ -251,7 +252,7 @@ public class Tx0Service {
     List<TransactionOutput> premixOutputs = new ArrayList<>();
     for (int j = 0; j < nbPremix; j++) {
       // send to PREMIX
-      BipAddress toAddress = premixWallet.getNextAddress();
+      BipAddress toAddress = premixWallet.getNextAddressReceive();
       String toAddressBech32 = toAddress.getAddressString();
       if (log.isDebugEnabled()) {
         log.debug(
@@ -276,7 +277,7 @@ public class Tx0Service {
     List<TransactionOutput> changeOutputs = new LinkedList<>();
     List<BipAddress> changeOutputsAddresses = new LinkedList<>();
     if (changeValueTotal > 0) {
-      BipAddress changeAddress = changeWallet.getNextChangeAddress();
+      BipAddress changeAddress = changeWallet.getNextAddressChange();
       String changeAddressBech32 = changeAddress.getAddressString();
       TransactionOutput changeOutput =
           bech32Util.getTransactionOutput(changeAddressBech32, changeValueTotal, params);
@@ -378,9 +379,8 @@ public class Tx0Service {
       UnspentOutput changeUtxo =
           new UnspentOutput(
               new MyTransactionOutPoint(changeOutput, changeAddressBech32, 0),
-              null,
               path,
-              changeWallet.getPub());
+              changeWallet.getXPub());
       changeUtxos.add(changeUtxo);
     }
     return changeUtxos;
@@ -391,7 +391,8 @@ public class Tx0Service {
       WalletSupplier walletSupplier,
       Collection<Pool> poolsChoice,
       Tx0Config tx0Config,
-      UtxoKeyProvider utxoKeyProvider)
+      UtxoKeyProvider utxoKeyProvider,
+      ServerApi serverApi)
       throws Exception {
     List<Tx0> tx0List = new ArrayList<>();
 
@@ -405,7 +406,7 @@ public class Tx0Service {
     if (log.isDebugEnabled()) {
       log.debug(" +Tx0 cascading for poolId=" + poolInitial.getPoolId() + "... (1/x)");
     }
-    Tx0 tx0 = tx0(spendFroms, walletSupplier, poolInitial, tx0Config, utxoKeyProvider);
+    Tx0 tx0 = tx0(spendFroms, walletSupplier, poolInitial, tx0Config, utxoKeyProvider, serverApi);
     tx0List.add(tx0);
     tx0Config.setCascadingParent(tx0);
     UnspentOutput unspentOutputChange = findTx0Change(tx0);
@@ -432,7 +433,8 @@ public class Tx0Service {
                 walletSupplier,
                 pool,
                 tx0Config,
-                utxoKeyProvider);
+                utxoKeyProvider,
+                serverApi);
         tx0List.add(tx0);
         tx0Config.setCascadingParent(tx0);
         unspentOutputChange = findTx0Change(tx0);
@@ -460,13 +462,12 @@ public class Tx0Service {
     SendFactoryGeneric.getInstance().signTransaction(tx, keyBag, bipFormatSupplier);
   }
 
-  public Single<PushTxSuccessResponse> pushTx0(Tx0 tx0, WhirlpoolWallet whirlpoolWallet)
-      throws Exception {
+  public Single<PushTxSuccessResponse> pushTx0(
+      Tx0 tx0, WhirlpoolWallet whirlpoolWallet, ServerApi serverApi) throws Exception {
     // push to coordinator
     String tx64 = WhirlpoolProtocol.encodeBytes(tx0.getTx().bitcoinSerialize());
     String poolId = tx0.getPool().getPoolId();
     Tx0PushRequest request = new Tx0PushRequest(tx64, poolId);
-    ServerApi serverApi = whirlpoolWallet.getConfig().getServerApi();
     return serverApi
         .pushTx0(request)
         .doOnSuccess(
@@ -477,7 +478,7 @@ public class Tx0Service {
   }
 
   public PushTxSuccessResponse pushTx0WithRetryOnAddressReuse(
-      Tx0 tx0, WhirlpoolWallet whirlpoolWallet) throws Exception {
+      Tx0 tx0, WhirlpoolWallet whirlpoolWallet, ServerApi serverApi) throws Exception {
     int tx0MaxRetry = whirlpoolWallet.getConfig().getTx0MaxRetry();
 
     // pushTx0 with multiple attempts on address-reuse
@@ -488,7 +489,7 @@ public class Tx0Service {
         log.debug(tx0.getTx().toString());
       }
       try {
-        return AsyncUtil.getInstance().blockingGet(pushTx0(tx0, whirlpoolWallet));
+        return AsyncUtil.getInstance().blockingGet(pushTx0(tx0, whirlpoolWallet, serverApi));
       } catch (PushTxErrorResponseException e) {
         PushTxErrorResponse pushTxErrorResponse = e.getPushTxErrorResponse();
         log.warn(

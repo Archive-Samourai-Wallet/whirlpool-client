@@ -11,8 +11,7 @@ import org.slf4j.LoggerFactory;
 
 /** STOMP communication. */
 public class StompTransport {
-  // non-static logger to prefix it with stomp sessionId
-  private Logger log;
+  private static final Logger log = LoggerFactory.getLogger(StompTransport.class);
   public static final String HEADER_DESTINATION = "destination";
 
   private IStompClient stompClient;
@@ -20,9 +19,7 @@ public class StompTransport {
 
   private boolean done;
 
-  public StompTransport(
-      IStompClient stompClient, IStompTransportListener listener, String logPrefix) {
-    this.log = LoggerFactory.getLogger(StompTransport.class + "[" + logPrefix + "]");
+  public StompTransport(IStompClient stompClient, IStompTransportListener listener) {
     this.stompClient = stompClient;
     this.listener = listener;
     this.done = false;

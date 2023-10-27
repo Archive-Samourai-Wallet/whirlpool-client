@@ -3,15 +3,13 @@ package com.samourai.whirlpool.client.mix.dialog;
 import com.samourai.stomp.client.IStompClient;
 import com.samourai.stomp.client.IStompTransportListener;
 import com.samourai.stomp.client.StompTransport;
-import com.samourai.wallet.util.AsyncUtil;
 import com.samourai.wallet.util.MessageErrorListener;
-import com.samourai.wallet.util.RandomUtil;
 import com.samourai.whirlpool.client.utils.ClientUtils;
+import com.samourai.whirlpool.client.whirlpool.ServerApi;
 import com.samourai.whirlpool.client.whirlpool.WhirlpoolClientConfig;
 import com.samourai.whirlpool.protocol.WhirlpoolProtocol;
 import com.samourai.whirlpool.protocol.soroban.InviteMixSorobanMessage;
 import com.samourai.whirlpool.protocol.websocket.MixMessage;
-import io.reactivex.Completable;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -19,16 +17,13 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class MixSession {
-  // non-static logger to prefix it with stomp sessionId
-  private Logger log;
+  private static final Logger log = LoggerFactory.getLogger(MixSession.class);
 
   private MixDialogListener listener;
   private WhirlpoolProtocol whirlpoolProtocol;
   private WhirlpoolClientConfig config;
-  private String poolId;
   private StompTransport transport;
-  private String logPrefix;
-  private InviteMixSorobanMessage inviteMixSorobanMessage;
+  private ServerApi serverApi;
   private boolean done;
 
   // connect data
@@ -41,18 +36,14 @@ public class MixSession {
       MixDialogListener listener,
       WhirlpoolProtocol whirlpoolProtocol,
       WhirlpoolClientConfig config,
-      String poolId,
-      String logPrefix,
-      InviteMixSorobanMessage inviteMixSorobanMessage) {
-    this.log = LoggerFactory.getLogger(MixSession.class + "[" + logPrefix + "]");
+      InviteMixSorobanMessage inviteMixSorobanMessage,
+      ServerApi serverApi) {
     this.listener = listener;
     this.whirlpoolProtocol = whirlpoolProtocol;
     this.config = config;
-    this.poolId = poolId;
     this.transport = null;
-    this.logPrefix = logPrefix;
-    this.inviteMixSorobanMessage = inviteMixSorobanMessage;
-    this.dialog = new MixDialog(listener, this, config, logPrefix, inviteMixSorobanMessage);
+    this.serverApi = serverApi;
+    this.dialog = new MixDialog(listener, this, inviteMixSorobanMessage);
   }
 
   public synchronized void connect() {
@@ -66,7 +57,7 @@ public class MixSession {
       connectBeginTime = System.currentTimeMillis();
     }
 
-    String wsUrl = config.getServerApi().getWsUrlConnect();
+    String wsUrl = serverApi.getWsUrlConnect();
     if (log.isDebugEnabled()) {
       log.debug("connecting to server: " + wsUrl);
     }
@@ -74,11 +65,11 @@ public class MixSession {
     // connect with a new transport
     Map<String, String> connectHeaders = new LinkedHashMap<>();
     IStompClient stompClient = config.getStompClientService().newStompClient();
-    transport = new StompTransport(stompClient, computeTransportListener(), logPrefix);
+    transport = new StompTransport(stompClient, computeTransportListener());
     transport.connect(wsUrl, connectHeaders);
   }
 
-  private void subscribeAndStart() {
+  private void subscribe() {
     // subscribe to private queue
     final String privateQueue =
         whirlpoolProtocol.WS_PREFIX_USER_PRIVATE + whirlpoolProtocol.WS_PREFIX_USER_REPLY;
@@ -120,13 +111,6 @@ public class MixSession {
     // will automatically receive mixStatus in response of subscription
     if (log.isDebugEnabled()) {
       log.debug("subscribed to server");
-    }
-
-    // confirm input
-    try {
-      dialog.confirmInput();
-    } catch (Exception e) {
-      listener.exitOnProtocolError(e.getMessage());
     }
   }
 
@@ -182,11 +166,18 @@ public class MixSession {
       public synchronized void onTransportConnected() {
         if (log.isDebugEnabled()) {
           long elapsedTime = (System.currentTimeMillis() - connectBeginTime) / 1000;
-          log.debug("Connected in " + elapsedTime + "s");
+          log.debug("Connected in " + elapsedTime + "s, subscribing...");
         }
         connectBeginTime = null;
-        subscribeAndStart();
-        listener.onConnected();
+        subscribe();
+
+        // confirm input
+        try {
+          dialog.confirmInput();
+        } catch (Exception e) {
+          log.error("confirmInput failed", e);
+          listener.exitOnProtocolError(e.getMessage());
+        }
       }
 
       @Override
@@ -201,67 +192,20 @@ public class MixSession {
           return;
         }
 
-        if (log.isDebugEnabled()) {
-          log.debug("onTransportDisconnected", exception);
-        }
-        int reconnectDelay = 0;
-        if (connectBeginTime != null) {
-          // we were trying connect
-          long elapsedTime = (System.currentTimeMillis() - connectBeginTime) / 1000;
-
-          // change Tor circuit
-          config.getTorClientService().changeIdentity();
-
-          // wait delay before retrying
-          int randomDelaySeconds = RandomUtil.getInstance().random(5, 120);
-          reconnectDelay = randomDelaySeconds * 1000;
-          log.info(
-              " ! connexion failed since "
-                  + elapsedTime
-                  + "s, retrying in "
-                  + reconnectDelay
-                  + "s");
-          listener.onConnectionFailWillRetry(reconnectDelay);
-        } else {
-          // we just got disconnected
-          log.error(" ! connexion lost, aborting");
-          done = true;
-          return;
-        }
-
-        if (done) {
-          if (log.isDebugEnabled()) {
-            log.debug("onTransportDisconnected: done");
-          }
-          return;
-        }
-
-        if (reconnectDelay > 0) {
-          waitAndReconnectAsync(reconnectDelay).subscribe();
-        } else {
-          // reconnect now
-          connect();
-        }
+        // we just got disconnected
+        log.error(" ! connexion lost, aborting");
+        done = true;
+        listener.exitOnDisconnected(exception.getMessage());
       }
     };
   }
 
-  protected Completable waitAndReconnectAsync(final int reconnectDelay) {
-    // reconnect after delay
-    return AsyncUtil.getInstance()
-        .runIOAsyncCompletable(
-            () -> {
-              synchronized (this) {
-                try {
-                  wait(reconnectDelay);
-                } catch (InterruptedException e) {
-                }
-              }
-              connect();
-            });
+  //
+
+  public ServerApi getServerApi() {
+    return serverApi;
   }
 
-  //
   protected StompTransport __getTransport() {
     return transport;
   }

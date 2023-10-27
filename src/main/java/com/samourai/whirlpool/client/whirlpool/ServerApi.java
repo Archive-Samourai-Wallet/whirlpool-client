@@ -2,7 +2,7 @@ package com.samourai.whirlpool.client.whirlpool;
 
 import com.samourai.http.client.HttpUsage;
 import com.samourai.http.client.IHttpClient;
-import com.samourai.http.client.IWhirlpoolHttpClientService;
+import com.samourai.http.client.IHttpClientService;
 import com.samourai.wallet.api.backend.beans.HttpException;
 import com.samourai.whirlpool.client.exception.PushTxErrorResponseException;
 import com.samourai.whirlpool.client.utils.ClientUtils;
@@ -22,7 +22,7 @@ public class ServerApi {
   private IHttpClient httpClientRest;
   private IHttpClient httpClientRegOutput;
 
-  public ServerApi(String urlServer, IWhirlpoolHttpClientService httpClientService) {
+  public ServerApi(String urlServer, IHttpClientService httpClientService) {
     this(
         urlServer,
         httpClientService.getHttpClient(HttpUsage.COORDINATOR_REST),
@@ -33,15 +33,6 @@ public class ServerApi {
     this.urlServer = urlServer;
     this.httpClientRest = httpClientRest;
     this.httpClientRegOutput = httpClientRegOutput;
-  }
-
-  public PoolsResponse fetchPools() throws Exception {
-    String url = WhirlpoolProtocol.getUrlFetchPools(urlServer);
-    if (log.isDebugEnabled()) {
-      log.debug("fetchPools: " + url);
-    }
-    httpClientRest.connect();
-    return httpClientRest.getJson(url, PoolsResponse.class, null);
   }
 
   public Single<Optional<Tx0DataResponseV2>> fetchTx0Data(

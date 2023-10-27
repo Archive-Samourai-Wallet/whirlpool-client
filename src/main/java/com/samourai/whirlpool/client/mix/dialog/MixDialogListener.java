@@ -10,8 +10,6 @@ import io.reactivex.Completable;
 
 public interface MixDialogListener {
 
-  void onConnected();
-
   void onConnectionFailWillRetry(int retryDelay);
 
   RegisterInputRequest registerInput() throws Exception;

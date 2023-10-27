@@ -8,6 +8,7 @@ import com.samourai.whirlpool.client.exception.NotifiableException;
 import com.samourai.whirlpool.client.utils.ClientUtils;
 import com.samourai.whirlpool.client.wallet.beans.Tx0FeeTarget;
 import com.samourai.whirlpool.client.wallet.data.minerFee.MinerFeeSupplier;
+import com.samourai.whirlpool.client.whirlpool.ServerApi;
 import com.samourai.whirlpool.client.whirlpool.beans.Pool;
 import com.samourai.whirlpool.client.whirlpool.beans.Tx0Data;
 import com.samourai.whirlpool.protocol.rest.Tx0DataRequestV2;
@@ -59,7 +60,7 @@ public class Tx0PreviewService {
     int feeTx0 = tx0Param.getTx0MinerFeePrice();
     Pool pool = tx0Param.getPool();
 
-    NetworkParameters params = config.getNetworkParameters();
+    NetworkParameters params = config.getWhirlpoolNetwork().getParams();
     long spendFromBalance = UnspentOutput.sumValue(spendFrom);
 
     // compute nbPremix ignoring TX0 fee
@@ -120,10 +121,11 @@ public class Tx0PreviewService {
   }
 
   public Tx0Previews tx0Previews(
-      Tx0PreviewConfig tx0PreviewConfig, Collection<UnspentOutput> spendFroms) throws Exception {
+      Tx0PreviewConfig tx0PreviewConfig, Collection<UnspentOutput> spendFroms, ServerApi serverApi)
+      throws Exception {
     // fetch fresh Tx0Data
     boolean useCascading = tx0PreviewConfig.getCascadingParent() != null;
-    Collection<Tx0Data> tx0Datas = fetchTx0Data(config.getPartner(), useCascading);
+    Collection<Tx0Data> tx0Datas = fetchTx0Data(config.getPartner(), useCascading, serverApi);
 
     Map<String, Tx0Preview> tx0PreviewsByPoolId = new LinkedHashMap<String, Tx0Preview>();
     for (Tx0Data tx0Data : tx0Datas) {
@@ -174,7 +176,7 @@ public class Tx0PreviewService {
       throw new NotifiableException("Invalid premixValue for Tx0: " + premixValue);
     }
 
-    NetworkParameters params = config.getNetworkParameters();
+    NetworkParameters params = config.getWhirlpoolNetwork().getParams();
 
     Pool pool = tx0Param.getPool();
     long feeValueOrFeeChange =
@@ -219,15 +221,15 @@ public class Tx0PreviewService {
     return tx0Preview;
   }
 
-  protected Collection<Tx0Data> fetchTx0Data(String partnerId, boolean cascading) throws Exception {
+  protected Collection<Tx0Data> fetchTx0Data(
+      String partnerId, boolean cascading, ServerApi serverApi) throws Exception {
     Collection<Tx0Data> tx0Datas = new LinkedList<Tx0Data>();
     try {
       Tx0DataRequestV2 tx0DataRequest =
           new Tx0DataRequestV2(config.getScode(), partnerId, cascading);
       Tx0DataResponseV2 tx0DatasResponse =
           AsyncUtil.getInstance()
-              .blockingGet(
-                  config.getServerApi().fetchTx0Data(tx0DataRequest, config.isOpReturnV0()))
+              .blockingGet(serverApi.fetchTx0Data(tx0DataRequest, config.isOpReturnV0()))
               .get();
       for (Tx0DataResponseV2.Tx0Data tx0DataItem : tx0DatasResponse.tx0Datas) {
         Tx0Data tx0Data = new Tx0Data(tx0DataItem);

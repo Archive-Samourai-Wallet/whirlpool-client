@@ -25,9 +25,7 @@ public class MixsDoneResyncManager {
       if (mixsDone != whirlpoolUtxo.getMixsDone()) {
         log.info(
             "Fixed "
-                + whirlpoolUtxo.getUtxo().tx_hash
-                + ":"
-                + whirlpoolUtxo.getUtxo().tx_output_n
+                + whirlpoolUtxo.getUtxo().getUtxoName()
                 + ": "
                 + whirlpoolUtxo.getMixsDone()
                 + " => "

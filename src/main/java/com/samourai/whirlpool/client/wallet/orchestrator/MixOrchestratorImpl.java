@@ -118,10 +118,11 @@ public class MixOrchestratorImpl extends MixOrchestrator {
   protected WhirlpoolClient runWhirlpoolClient(WhirlpoolUtxo whirlpoolUtxo)
       throws NotifiableException {
     String poolId = whirlpoolUtxo.getUtxoState().getPoolId();
+    String utxoName = whirlpoolUtxo.getUtxo().getUtxoName();
     if (log.isDebugEnabled()) {
-      log.info(" • Connecting client to pool: " + poolId + ", utxo=" + whirlpoolUtxo);
+      log.info(" • Registering " + utxoName + " (" + poolId + "): " + whirlpoolUtxo);
     } else {
-      log.info(" • Connecting client to pool: " + poolId);
+      log.info(" • Registering " + utxoName + " (" + poolId + ")");
     }
 
     // find pool
@@ -133,11 +134,7 @@ public class MixOrchestratorImpl extends MixOrchestrator {
     // prepare mixing
     MixParams mixParams = computeMixParams(whirlpoolUtxo, pool);
     WhirlpoolClientListener mixListener = computeMixListener(mixParams);
-
-    // update utxo
-    whirlpoolUtxo
-        .getUtxoState()
-        .setStatusMixing(WhirlpoolUtxoStatus.MIX_STARTED, true, mixParams, MixStep.CONNECTING);
+    mixListener.progress(MixStep.REGISTERING_INPUT);
 
     // start mixing (whirlpoolClient will start a new thread)
     WhirlpoolClient whirlpoolClient = new WhirlpoolClientImpl(config);
@@ -218,7 +215,7 @@ public class MixOrchestratorImpl extends MixOrchestrator {
           }
           return new XPubPostmixHandler(
               whirlpoolWallet.getWalletStateSupplier().getIndexHandlerExternal(),
-              config.getNetworkParameters(),
+              config.getWhirlpoolNetwork().getParams(),
               externalDestination.getXpub(),
               externalDestination.getChain(),
               externalDestination.getStartIndex());
@@ -237,7 +234,7 @@ public class MixOrchestratorImpl extends MixOrchestrator {
       }
     }
     return new Bip84PostmixHandler(
-        config.getNetworkParameters(),
+        config.getWhirlpoolNetwork().getParams(),
         whirlpoolWallet.getWalletPostmix(),
         config.getIndexRangePostmix());
   }

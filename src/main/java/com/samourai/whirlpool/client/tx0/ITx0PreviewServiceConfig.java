@@ -1,10 +1,9 @@
 package com.samourai.whirlpool.client.tx0;
 
-import com.samourai.whirlpool.client.whirlpool.ServerApi;
-import org.bitcoinj.core.NetworkParameters;
+import com.samourai.whirlpool.client.wallet.beans.WhirlpoolNetwork;
 
 public interface ITx0PreviewServiceConfig {
-  NetworkParameters getNetworkParameters();
+  WhirlpoolNetwork getWhirlpoolNetwork();
 
   Long getOverspend(String poolId);
 
@@ -15,8 +14,6 @@ public interface ITx0PreviewServiceConfig {
   int getTx0MaxOutputs();
 
   String getScode();
-
-  ServerApi getServerApi();
 
   String getPartner();
 

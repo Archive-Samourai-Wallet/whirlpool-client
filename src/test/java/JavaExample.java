@@ -1,5 +1,5 @@
 import com.google.common.eventbus.Subscribe;
-import com.samourai.http.client.IWhirlpoolHttpClientService;
+import com.samourai.http.client.IHttpClientService;
 import com.samourai.soroban.client.rpc.RpcClientService;
 import com.samourai.soroban.client.wallet.SorobanWalletService;
 import com.samourai.stomp.client.IStompClientService;
@@ -9,17 +9,19 @@ import com.samourai.wallet.api.backend.IPushTx;
 import com.samourai.wallet.api.backend.beans.UnspentOutput;
 import com.samourai.wallet.api.backend.beans.WalletResponse;
 import com.samourai.wallet.api.paynym.beans.PaynymState;
+import com.samourai.wallet.bip47.rpc.java.Bip47UtilJava;
 import com.samourai.wallet.bip47.rpc.java.SecretPointFactoryJava;
 import com.samourai.wallet.bip47.rpc.secretPoint.ISecretPointFactory;
 import com.samourai.wallet.bipFormat.BIP_FORMAT;
 import com.samourai.wallet.bipFormat.BipFormat;
+import com.samourai.wallet.bipFormat.BipFormatSupplier;
 import com.samourai.wallet.bipWallet.BipDerivation;
 import com.samourai.wallet.bipWallet.BipWallet;
 import com.samourai.wallet.bipWallet.WalletSupplierImpl;
+import com.samourai.wallet.crypto.CryptoUtil;
 import com.samourai.wallet.hd.HD_Wallet;
 import com.samourai.websocket.client.IWebsocketClient;
 import com.samourai.whirlpool.client.event.*;
-import com.samourai.whirlpool.client.soroban.SorobanClientApi;
 import com.samourai.whirlpool.client.tx0.Tx0;
 import com.samourai.whirlpool.client.tx0.Tx0Config;
 import com.samourai.whirlpool.client.tx0.Tx0Preview;
@@ -40,11 +42,9 @@ import com.samourai.whirlpool.client.wallet.data.pool.PoolSupplier;
 import com.samourai.whirlpool.client.wallet.data.utxo.UtxoSupplier;
 import com.samourai.whirlpool.client.wallet.data.utxoConfig.UtxoConfigSupplier;
 import com.samourai.whirlpool.client.wallet.data.walletState.WalletStateSupplier;
-import com.samourai.whirlpool.client.whirlpool.ServerApi;
 import com.samourai.whirlpool.client.whirlpool.beans.Pool;
 import java.util.Arrays;
 import java.util.Collection;
-import org.bitcoinj.core.NetworkParameters;
 
 public class JavaExample {
   // configure these values as you wish
@@ -69,36 +69,34 @@ public class JavaExample {
         null; // provide impl here, ie: AndroidStompClientService or
     // https://code.samourai.io/whirlpool/whirlpool-client-cli/-/blob/develop/src/main/java/com/samourai/stomp/client/JavaStompClient.java
 
-    WhirlpoolServer whirlpoolServer = WhirlpoolServer.TESTNET;
+    WhirlpoolNetwork whirlpoolNetwork = WhirlpoolNetwork.TESTNET;
 
     // coordinator configuration
-    String serverUrl = whirlpoolServer.getServerUrl(onion);
-    IWhirlpoolHttpClientService httpClientService =
-        null; // provide impl here, ie: new AndroidHttpClient();
-    ServerApi serverApi = new ServerApi(serverUrl, httpClientService);
-    SorobanClientApi sorobanClientApi = new SorobanClientApi();
+    IHttpClientService httpClientService = null; // provide impl here, ie: new AndroidHttpClient();
+    Bip47UtilJava bip47Util = Bip47UtilJava.getInstance();
 
     // for Android, use AndroidSecretPointFactory from 'samourai-wallet-android'
     ISecretPointFactory secretPointFactory = SecretPointFactoryJava.getInstance();
+    CryptoUtil cryptoUtil = CryptoUtil.getInstanceJava();
     TorClientService torClientService = null; // provide impl here
     RpcClientService rpcClientService = null; // provide impl here
     SorobanWalletService sorobanWalletService = null; // provide impl or null if not using Soroban
-    NetworkParameters params = whirlpoolServer.getParams();
     boolean mobile = false; // true for mobile configuration, false for desktop/CLI
+    boolean torOnionCoordinator = false;
     WhirlpoolWalletConfig whirlpoolWalletConfig =
         new WhirlpoolWalletConfig(
             dataSourceFactory,
             secretPointFactory,
+            cryptoUtil,
             sorobanWalletService,
             httpClientService,
             rpcClientService,
             stompClientService,
             torClientService,
-            serverApi,
-            sorobanClientApi,
-            params,
+            bip47Util,
+            whirlpoolNetwork,
             mobile,
-            whirlpoolServer.getSigningPaymentCode());
+            torOnionCoordinator);
 
     // optional - SCODE
     // whirlpoolWalletConfig.setScode("foo");
@@ -157,13 +155,16 @@ public class JavaExample {
             int acountIndex = 4;
             BipDerivation derivation = new BipDerivation(purpose, acountIndex);
             BipFormat bipFormat = BIP_FORMAT.SEGWIT_NATIVE; // or define your own BipFormat
+            BipFormatSupplier bipFormatSupplier = computeBipFormatSupplier();
             walletSupplier.register(
                 new BipWallet(
+                    bipFormatSupplier,
                     "DEPOSIT_ACCOUNT_4_SEGWIT_NATIVE",
                     bip44w,
                     walletStateSupplier,
                     WhirlpoolAccount.DEPOSIT,
                     derivation,
+                    Arrays.asList(bipFormat),
                     bipFormat));
             return walletSupplier;
           }

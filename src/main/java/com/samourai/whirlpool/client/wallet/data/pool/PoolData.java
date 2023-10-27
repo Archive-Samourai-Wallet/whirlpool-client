@@ -1,11 +1,17 @@
 package com.samourai.whirlpool.client.wallet.data.pool;
 
-import com.samourai.whirlpool.client.tx0.*;
+import com.samourai.whirlpool.client.tx0.Tx0Preview;
+import com.samourai.whirlpool.client.tx0.Tx0PreviewConfig;
+import com.samourai.whirlpool.client.tx0.Tx0PreviewService;
+import com.samourai.whirlpool.client.tx0.Tx0Previews;
 import com.samourai.whirlpool.client.wallet.beans.Tx0FeeTarget;
 import com.samourai.whirlpool.client.wallet.beans.WhirlpoolPoolByBalanceMinDescComparator;
 import com.samourai.whirlpool.client.whirlpool.beans.Pool;
-import com.samourai.whirlpool.protocol.soroban.PoolInfoSorobanMessage;
-import java.util.*;
+import com.samourai.whirlpool.protocol.rest.PoolInfoSoroban;
+import java.util.Collection;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -16,38 +22,31 @@ public class PoolData {
   private final Map<String, Pool> poolsById;
 
   public PoolData(
-      Collection<PoolInfoSorobanMessage> poolInfoSorobanMessages,
-      Tx0PreviewService tx0PreviewService)
-      throws Exception {
-    this.poolsById = computePools(poolInfoSorobanMessages, tx0PreviewService);
+      Collection<PoolInfoSoroban> poolInfoSorobans, Tx0PreviewService tx0PreviewService) {
+    this.poolsById = computePools(poolInfoSorobans, tx0PreviewService);
   }
 
   private static Map<String, Pool> computePools(
-      Collection<PoolInfoSorobanMessage> poolInfoSorobanMessages,
-      final Tx0PreviewService tx0PreviewService)
-      throws Exception {
+      Collection<PoolInfoSoroban> poolInfoSorobans, final Tx0PreviewService tx0PreviewService) {
 
     // biggest balanceMin first
     List<Pool> poolsOrdered =
-        poolInfoSorobanMessages.stream()
-            .flatMap(
-                poolInfoSorobanMessage ->
-                    poolInfoSorobanMessage.poolInfo.stream()
-                        .map(
-                            poolInfo -> {
-                              Pool pool = new Pool();
-                              pool.setPoolId(poolInfo.poolId);
-                              pool.setDenomination(poolInfo.denomination);
-                              pool.setFeeValue(poolInfo.feeValue);
-                              pool.setPremixValue(poolInfo.premixValue);
-                              pool.setPremixValueMin(poolInfo.premixValueMin);
-                              pool.setPremixValueMax(poolInfo.premixValueMax);
-                              pool.setTx0MaxOutputs(poolInfo.tx0MaxOutputs);
-                              pool.setAnonymitySet(poolInfo.anonymitySet);
-                              return pool;
-                            }))
+        poolInfoSorobans.stream()
+            .map(
+                poolInfo -> {
+                  Pool pool = new Pool();
+                  pool.setPoolId(poolInfo.poolId);
+                  pool.setDenomination(poolInfo.denomination);
+                  pool.setFeeValue(poolInfo.feeValue);
+                  pool.setPremixValue(poolInfo.premixValue);
+                  pool.setPremixValueMin(poolInfo.premixValueMin);
+                  pool.setPremixValueMax(poolInfo.premixValueMax);
+                  pool.setTx0MaxOutputs(poolInfo.tx0MaxOutputs);
+                  pool.setAnonymitySet(poolInfo.anonymitySet);
+                  return pool;
+                })
             .sorted(new WhirlpoolPoolByBalanceMinDescComparator())
-            .collect(Collectors.<Pool>toList());
+            .collect(Collectors.toList());
 
     // compute & set tx0PreviewMin
     Tx0PreviewConfig tx0PreviewConfig =

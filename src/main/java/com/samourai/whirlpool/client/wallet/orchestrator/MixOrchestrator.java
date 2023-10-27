@@ -339,9 +339,9 @@ public abstract class MixOrchestrator extends AbstractOrchestrator {
         MixableStatus.MIXABLE.equals(whirlpoolUtxo.getUtxoState().getMixableStatus());
     if (isMixable
         && WhirlpoolUtxoStatus.MIX_QUEUE.equals(whirlpoolUtxo.getUtxoState().getStatus())) {
-      if (log.isTraceEnabled()) {
+      /*if (log.isTraceEnabled()) {
         log.trace("new MIXABLE in mixQueue: " + whirlpoolUtxo);
-      }
+      }*/
       return true;
     }
     return false;

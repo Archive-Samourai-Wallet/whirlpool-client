@@ -198,40 +198,30 @@ public class ClientUtils {
   }
 
   public static String maskString(String value) {
-    return maskString(value, 3);
+    return Util.maskString(value);
   }
 
-  private static String maskString(String value, int startEnd) {
-    if (value == null) {
-      return "null";
-    }
-    if (value.length() <= startEnd) {
-      return value;
-    }
-    return value.substring(0, Math.min(startEnd, value.length()))
-        + "..."
-        + value.substring(Math.max(0, value.length() - startEnd), value.length());
-  }
+  public static void setLogLevel(Level logLevel) {
+    LogbackUtils.setLogLevel("com.samourai", logLevel.toString());
 
-  public static void setLogLevel(Level mainLevel, Level subLevel) {
-    LogbackUtils.setLogLevel("com.samourai", mainLevel.toString());
+    LogbackUtils.setLogLevel("com.samourai.whirlpool.client", logLevel.toString());
+    LogbackUtils.setLogLevel("com.samourai.whirlpool.client.mix.dialog", logLevel.toString());
+    LogbackUtils.setLogLevel("com.samourai.stomp.client", logLevel.toString());
+    LogbackUtils.setLogLevel("com.samourai.wallet.util.FeeUtil", logLevel.toString());
 
-    LogbackUtils.setLogLevel("com.samourai.whirlpool.client", subLevel.toString());
-    LogbackUtils.setLogLevel("com.samourai.stomp.client", subLevel.toString());
-    LogbackUtils.setLogLevel("com.samourai.wallet.util.FeeUtil", subLevel.toString());
+    LogbackUtils.setLogLevel("com.samourai.whirlpool.client.utils", logLevel.toString());
+    LogbackUtils.setLogLevel("com.samourai.whirlpool.client.wallet", logLevel.toString());
 
-    LogbackUtils.setLogLevel("com.samourai.whirlpool.client.utils", mainLevel.toString());
-    LogbackUtils.setLogLevel("com.samourai.whirlpool.client.wallet", mainLevel.toString());
-
-    LogbackUtils.setLogLevel("com.samourai.wallet.cahoots", mainLevel.toString());
-    LogbackUtils.setLogLevel("com.samourai.wallet.cahoots.stowaway", mainLevel.toString());
-    LogbackUtils.setLogLevel("com.samourai.wallet.cahoots.stonewallx2", mainLevel.toString());
-    LogbackUtils.setLogLevel("com.samourai.soroban.client", mainLevel.toString());
-    LogbackUtils.setLogLevel("com.samourai.soroban.client.dialog", subLevel.toString());
-    LogbackUtils.setLogLevel("com.samourai.soroban.client.meeting", mainLevel.toString());
+    LogbackUtils.setLogLevel("com.samourai.wallet.cahoots", logLevel.toString());
+    LogbackUtils.setLogLevel("com.samourai.wallet.cahoots.stowaway", logLevel.toString());
+    LogbackUtils.setLogLevel("com.samourai.wallet.cahoots.stonewallx2", logLevel.toString());
+    LogbackUtils.setLogLevel("com.samourai.soroban.client", logLevel.toString());
+    LogbackUtils.setLogLevel("com.samourai.soroban.client.rpc", logLevel.toString());
+    LogbackUtils.setLogLevel("com.samourai.soroban.client.dialog", logLevel.toString());
+    LogbackUtils.setLogLevel("com.samourai.soroban.client.meeting", logLevel.toString());
 
     LogbackUtils.setLogLevel(
-        "com.samourai.whirlpool.client.wallet.orchestrator", mainLevel.toString());
+        "com.samourai.whirlpool.client.wallet.orchestrator", logLevel.toString());
 
     // skip noisy logs
     LogbackUtils.setLogLevel("org.bitcoinj", org.slf4j.event.Level.ERROR.toString());

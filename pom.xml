@@ -58,7 +58,7 @@
         <dependency>
             <groupId>io.samourai.code.wallet</groupId>
             <artifactId>java-http-client</artifactId>
-            <version>1.0.6</version>
+            <version>1.0.7-SNAPSHOT</version>
             <scope>test</scope>
             <exclusions>
                 <exclusion>

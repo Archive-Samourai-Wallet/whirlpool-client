@@ -98,7 +98,7 @@ public class WalletAggregateService {
       if (!subsetUtxos.isEmpty()) {
         String toAddress = destinationAddress;
         if (toAddress == null) {
-          toAddress = destinationWallet.getNextAddress().getAddressString();
+          toAddress = destinationWallet.getNextAddressReceive().getAddressString();
         }
 
         log.info(" -> aggregating " + subsetUtxos.size() + " utxos (pass #" + round + ")");

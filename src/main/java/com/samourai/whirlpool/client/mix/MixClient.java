@@ -1,7 +1,6 @@
 package com.samourai.whirlpool.client.mix;
 
 import com.samourai.soroban.client.RpcWallet;
-import com.samourai.soroban.client.rpc.RpcClientEncrypted;
 import com.samourai.whirlpool.client.exception.NotifiableException;
 import com.samourai.whirlpool.client.mix.dialog.MixDialogListener;
 import com.samourai.whirlpool.client.mix.dialog.MixSession;
@@ -28,9 +27,7 @@ import org.slf4j.LoggerFactory;
 public class MixClient {
   // server health-check response
   private static final String HEALTH_CHECK_SUCCESS = "HEALTH_CHECK_SUCCESS";
-
-  // non-static logger to prefix it with stomp sessionId
-  private Logger log;
+  private static final Logger log = LoggerFactory.getLogger(MixClient.class);
 
   // server settings
   private WhirlpoolClientConfig config;
@@ -41,48 +38,38 @@ public class MixClient {
 
   private ClientCryptoService clientCryptoService;
   private WhirlpoolProtocol whirlpoolProtocol;
-  private String logPrefix;
   private MixDialogListener mixDialogListener;
   private MixSession mixSession;
   private MixClientSoroban mixClientSoroban;
 
   public MixClient(
-      WhirlpoolClientConfig config,
-      String logPrefix,
-      MixParams mixParams,
-      WhirlpoolClientListener listener) {
+      WhirlpoolClientConfig config, MixParams mixParams, WhirlpoolClientListener listener) {
     this(
         config,
-        logPrefix,
         mixParams,
         listener,
         new ClientCryptoService(),
         new WhirlpoolProtocol(),
-        new SorobanClientApi());
+        config.getSorobanClientApi());
   }
 
   public MixClient(
       WhirlpoolClientConfig config,
-      String logPrefix,
       MixParams mixParams,
       WhirlpoolClientListener listener,
       ClientCryptoService clientCryptoService,
       WhirlpoolProtocol whirlpoolProtocol,
       SorobanClientApi sorobanClientApi) {
-    this.log = LoggerFactory.getLogger(MixClient.class + "[" + logPrefix + "]");
     this.config = config;
-    this.logPrefix = logPrefix;
     this.mixParams = mixParams;
     this.listener = listener;
     this.clientCryptoService = clientCryptoService;
     this.whirlpoolProtocol = whirlpoolProtocol;
 
     RpcWallet rpcWallet = mixParams.getRpcWallet();
-    RpcClientEncrypted rpcClientEncrypted =
-        config.getRpcClient().createRpcClientEncrypted(rpcWallet);
     this.mixClientSoroban =
         new MixClientSoroban(
-            sorobanClientApi, rpcClientEncrypted, config.getPaymentCodeCoordinator());
+            sorobanClientApi, config.getBip47Util(), config.getRpcSession(), rpcWallet);
   }
 
   public void whirlpool() {
@@ -90,9 +77,17 @@ public class MixClient {
     try {
       // REGISTER_INPUT & wait for mix
       RegisterInputRequest registerInputRequest = mixDialogListener.registerInput();
-      InviteMixSorobanMessage inviteMixSorobanMessage =
+      InviteMixSorobanMessage mixInvite =
           mixClientSoroban.registerInputAndWaitInviteMix(registerInputRequest);
-      mixWithCoordinator(inviteMixSorobanMessage);
+
+      // connect to coordinator & mix
+      try {
+        mixWithCoordinator(mixInvite);
+      } catch (Exception e) {
+        log.error("Unable to connect with coordinator for mixing", e);
+        Exception notifiableException = NotifiableException.computeNotifiableException(e);
+        mixDialogListener.exitOnProtocolError(notifiableException.getMessage());
+      }
     } catch (Exception e) {
       log.error("Unable to register input", e);
       Exception notifiableException = NotifiableException.computeNotifiableException(e);
@@ -104,22 +99,28 @@ public class MixClient {
     this.listener.progress(mixStep);
   }
 
-  private void mixWithCoordinator(InviteMixSorobanMessage inviteMixSorobanMessage) {
+  private void mixWithCoordinator(InviteMixSorobanMessage mixInvite) {
     if (this.mixSession != null) {
-      log.warn("mixWithCoordinator() : already connected");
+      log.error("mixWithCoordinator() : already connected");
       return;
     }
 
+    String coordinatorUrl =
+        config.isTorOnionCoordinator()
+            ? mixInvite.coordinatorUrlOnion
+            : mixInvite.coordinatorUrlClear;
+    log.info(
+        " • Mixing "
+            + mixParams.getWhirlpoolUtxo().getUtxo().getUtxoName()
+            + " @ "
+            + coordinatorUrl
+            + " #"
+            + mixInvite.mixId);
     try {
-      listenerProgress(MixStep.CONNECTING);
+      listenerProgress(MixStep.COORDINATOR_CONNECTING);
+      ServerApi serverApi = new ServerApi(coordinatorUrl, config.getHttpClientService());
       mixSession =
-          new MixSession(
-              mixDialogListener,
-              whirlpoolProtocol,
-              config,
-              mixParams.getPoolId(),
-              logPrefix,
-              inviteMixSorobanMessage);
+          new MixSession(mixDialogListener, whirlpoolProtocol, config, mixInvite, serverApi);
       mixSession.connect();
     } catch (Exception e) {
       // httpClientRegisterOutput failed
@@ -149,7 +150,7 @@ public class MixClient {
 
   private MixProcess computeMixProcess() {
     return new MixProcess(
-        config.getNetworkParameters(),
+        config.getWhirlpoolNetwork().getParams(),
         mixParams.getPoolId(),
         mixParams.getDenomination(),
         mixParams.getMustMixBalanceMin(),
@@ -165,13 +166,8 @@ public class MixClient {
       MixProcess mixProcess = computeMixProcess();
 
       @Override
-      public void onConnected() {
-        listenerProgress(MixStep.CONNECTED);
-      }
-
-      @Override
       public void onConnectionFailWillRetry(int retryDelay) {
-        listenerProgress(MixStep.CONNECTING);
+        listenerProgress(MixStep.COORDINATOR_CONNECTING);
       }
 
       @Override

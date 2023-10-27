@@ -3,7 +3,6 @@ package com.samourai.whirlpool.client.tx0;
 import com.samourai.wallet.api.backend.beans.UnspentOutput;
 import com.samourai.whirlpool.client.wallet.AbstractWhirlpoolWalletTest;
 import com.samourai.whirlpool.client.wallet.WhirlpoolWalletConfig;
-import com.samourai.whirlpool.client.whirlpool.ServerApi;
 import java.util.Arrays;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
@@ -31,8 +30,8 @@ public class AbstractTx0ServiceTest extends AbstractWhirlpoolWalletTest {
   }
 
   @Override
-  protected WhirlpoolWalletConfig computeWhirlpoolWalletConfig(ServerApi serverApi) {
-    WhirlpoolWalletConfig config = super.computeWhirlpoolWalletConfig(serverApi);
+  protected WhirlpoolWalletConfig computeWhirlpoolWalletConfig() {
+    WhirlpoolWalletConfig config = super.computeWhirlpoolWalletConfig();
     config.setTx0MaxOutputs(10);
     config.getFeeOpReturnImpl().setTestMode(true);
     return config;
