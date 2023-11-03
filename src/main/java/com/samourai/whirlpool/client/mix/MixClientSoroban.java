@@ -5,9 +5,9 @@ import com.samourai.soroban.client.RpcWallet;
 import com.samourai.soroban.client.rpc.RpcSession;
 import com.samourai.wallet.bip47.BIP47UtilGeneric;
 import com.samourai.wallet.util.AsyncUtil;
-import com.samourai.whirlpool.client.exception.NotifiableException;
+import com.samourai.whirlpool.client.exception.RejectedInputException;
 import com.samourai.whirlpool.client.soroban.SorobanClientApi;
-import com.samourai.whirlpool.protocol.WhirlpoolProtocol;
+import com.samourai.whirlpool.protocol.WhirlpoolProtocolSoroban;
 import com.samourai.whirlpool.protocol.soroban.ErrorSorobanMessage;
 import com.samourai.whirlpool.protocol.soroban.InviteMixSorobanMessage;
 import com.samourai.whirlpool.protocol.websocket.messages.RegisterInputRequest;
@@ -61,17 +61,16 @@ public class MixClientSoroban {
                     rce ->
                         sorobanClientApi.waitInviteMix(
                             rce,
-                            request,
                             rpcWallet,
                             bip47Util,
-                            WhirlpoolProtocol.getSorobanRegisterInputFrequencyMs())));
+                            getWhirlpoolProtocolSoroban().getRegisterInputFrequencyMs())));
         if (response instanceof InviteMixSorobanMessage) {
           // it's a mix invite
           return (InviteMixSorobanMessage) response;
         }
-        // otherwise it's an error response
+        // otherwise it's an error response => input rejected
         ErrorSorobanMessage errorResponse = (ErrorSorobanMessage) response;
-        throw new NotifiableException(errorResponse.message);
+        throw new RejectedInputException(errorResponse.message);
       } catch (TimeoutException e) {
         // no mix invite received yet
       }
@@ -80,5 +79,9 @@ public class MixClientSoroban {
 
   public void exit() {
     rpcSession.close();
+  }
+
+  public WhirlpoolProtocolSoroban getWhirlpoolProtocolSoroban() {
+    return sorobanClientApi.getWhirlpoolProtocolSoroban();
   }
 }

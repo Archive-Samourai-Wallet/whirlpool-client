@@ -1,6 +1,5 @@
 package com.samourai.whirlpool.client.wallet.orchestrator;
 
-import com.samourai.soroban.client.RpcWallet;
 import com.samourai.wallet.api.backend.beans.UnspentOutput;
 import com.samourai.wallet.chain.ChainSupplier;
 import com.samourai.whirlpool.client.WhirlpoolClient;
@@ -146,9 +145,7 @@ public class MixOrchestratorImpl extends MixOrchestrator {
     IPremixHandler premixHandler = computePremixHandler(whirlpoolUtxo);
     IPostmixHandler postmixHandler = computePostmixHandler(whirlpoolUtxo);
     ChainSupplier chainSupplier = whirlpoolWallet.getChainSupplier();
-    RpcWallet rpcWallet = whirlpoolWallet.getCahootsWallet().getRpcWallet();
-    return new MixParams(
-        pool, whirlpoolUtxo, premixHandler, postmixHandler, chainSupplier, rpcWallet);
+    return new MixParams(pool, whirlpoolUtxo, premixHandler, postmixHandler, chainSupplier);
   }
 
   @Override

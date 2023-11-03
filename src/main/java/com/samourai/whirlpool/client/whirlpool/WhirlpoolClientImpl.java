@@ -36,7 +36,11 @@ public class WhirlpoolClientImpl implements WhirlpoolClient {
             new Runnable() {
               @Override
               public synchronized void run() {
-                runClient(mixParams);
+                try {
+                  runClient(mixParams);
+                } catch (Exception e) {
+                  return;
+                }
                 while (!done) {
                   try {
                     synchronized (mixThread) {
@@ -52,7 +56,7 @@ public class WhirlpoolClientImpl implements WhirlpoolClient {
     this.mixThread.start();
   }
 
-  private void runClient(MixParams mixParams) {
+  private void runClient(MixParams mixParams) throws Exception {
     WhirlpoolClientListener mixListener = computeMixListener();
 
     mixClient = new MixClient(config, mixParams, mixListener);

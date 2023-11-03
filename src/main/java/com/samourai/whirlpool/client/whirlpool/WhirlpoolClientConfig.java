@@ -8,6 +8,7 @@ import com.samourai.soroban.client.rpc.RpcSession;
 import com.samourai.stomp.client.IStompClientService;
 import com.samourai.tor.client.TorClientService;
 import com.samourai.wallet.bip47.BIP47UtilGeneric;
+import com.samourai.wallet.crypto.CryptoUtil;
 import com.samourai.whirlpool.client.soroban.SorobanClientApi;
 import com.samourai.whirlpool.client.wallet.beans.ExternalDestination;
 import com.samourai.whirlpool.client.wallet.beans.IndexRange;
@@ -20,6 +21,7 @@ public class WhirlpoolClientConfig {
   private RpcClientService rpcClientService;
   private SorobanClientApi sorobanClientApi;
   private BIP47UtilGeneric bip47Util;
+  private CryptoUtil cryptoUtil;
   private ExternalDestination externalDestination;
   private WhirlpoolNetwork whirlpoolNetwork;
   private IndexRange indexRangePostmix;
@@ -32,6 +34,7 @@ public class WhirlpoolClientConfig {
       RpcClientService rpcClientService,
       SorobanClientApi sorobanClientApi,
       BIP47UtilGeneric bip47Util,
+      CryptoUtil cryptoUtil,
       ExternalDestination externalDestination,
       WhirlpoolNetwork whirlpoolNetwork,
       IndexRange indexRangePostmix,
@@ -42,6 +45,7 @@ public class WhirlpoolClientConfig {
     this.rpcClientService = rpcClientService;
     this.sorobanClientApi = sorobanClientApi;
     this.bip47Util = bip47Util;
+    this.cryptoUtil = cryptoUtil;
     this.externalDestination = externalDestination;
     this.whirlpoolNetwork = whirlpoolNetwork;
     this.indexRangePostmix = indexRangePostmix;
@@ -82,6 +86,14 @@ public class WhirlpoolClientConfig {
 
   public void setBip47Util(BIP47UtilGeneric bip47Util) {
     this.bip47Util = bip47Util;
+  }
+
+  public CryptoUtil getCryptoUtil() {
+    return cryptoUtil;
+  }
+
+  public void setCryptoUtil(CryptoUtil cryptoUtil) {
+    this.cryptoUtil = cryptoUtil;
   }
 
   public ExternalDestination getExternalDestination() {

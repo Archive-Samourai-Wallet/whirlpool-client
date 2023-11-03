@@ -23,6 +23,7 @@ import com.samourai.whirlpool.client.wallet.data.dataPersister.FileDataPersister
 import com.samourai.whirlpool.client.wallet.data.dataSource.DataSourceFactory;
 import com.samourai.whirlpool.client.whirlpool.WhirlpoolClientConfig;
 import com.samourai.whirlpool.protocol.WhirlpoolProtocol;
+import com.samourai.whirlpool.protocol.WhirlpoolProtocolSoroban;
 import com.samourai.whirlpool.protocol.feeOpReturn.FeeOpReturnImpl;
 import com.samourai.whirlpool.protocol.feeOpReturn.FeeOpReturnImplV0;
 import com.samourai.whirlpool.protocol.feeOpReturn.FeeOpReturnImplV1;
@@ -72,7 +73,6 @@ public class WhirlpoolWalletConfig extends WhirlpoolClientConfig
   private String partner;
 
   private ISecretPointFactory secretPointFactory;
-  private CryptoUtil cryptoUtil;
   private SorobanWalletService sorobanWalletService; // may be null
   private BIP47UtilGeneric bip47Util;
   private FeeOpReturnImpl feeOpReturnImpl;
@@ -97,8 +97,9 @@ public class WhirlpoolWalletConfig extends WhirlpoolClientConfig
         stompClientService,
         torClientService,
         rpcClientService,
-        new SorobanClientApi(whirlpoolNetwork),
+        new SorobanClientApi(whirlpoolNetwork, new WhirlpoolProtocolSoroban()),
         bip47Util,
+        cryptoUtil,
         null,
         whirlpoolNetwork,
         mobile ? IndexRange.ODD : IndexRange.EVEN,
@@ -106,7 +107,6 @@ public class WhirlpoolWalletConfig extends WhirlpoolClientConfig
 
     this.dataSourceFactory = dataSourceFactory;
     this.secretPointFactory = secretPointFactory;
-    this.cryptoUtil = cryptoUtil;
     this.sorobanWalletService = sorobanWalletService;
     this.dataPersisterFactory = new FileDataPersisterFactory();
     this.mobile = mobile;
@@ -409,14 +409,6 @@ public class WhirlpoolWalletConfig extends WhirlpoolClientConfig
     this.secretPointFactory = secretPointFactory;
   }
 
-  public CryptoUtil getCryptoUtil() {
-    return cryptoUtil;
-  }
-
-  public void setCryptoUtil(CryptoUtil cryptoUtil) {
-    this.cryptoUtil = cryptoUtil;
-  }
-
   public SorobanWalletService getSorobanWalletService() {
     return sorobanWalletService;
   }
@@ -500,7 +492,7 @@ public class WhirlpoolWalletConfig extends WhirlpoolClientConfig
     configInfo.put("postmixIndexAutoFix", Boolean.toString(postmixIndexAutoFix));
     configInfo.put("persistDelaySeconds", Integer.toString(persistDelaySeconds));
     configInfo.put("secretPointFactory", secretPointFactory.getClass().getName());
-    configInfo.put("cryptoUtil", cryptoUtil.getClass().getName());
+    configInfo.put("cryptoUtil", getCryptoUtil().getClass().getName());
     configInfo.put(
         "sorobanWalletService",
         sorobanWalletService != null ? sorobanWalletService.getClass().getName() : "null");

@@ -1,7 +1,9 @@
 package com.samourai.whirlpool.client.mix;
 
 import com.samourai.soroban.client.RpcWallet;
+import com.samourai.soroban.client.RpcWalletImpl;
 import com.samourai.whirlpool.client.exception.NotifiableException;
+import com.samourai.whirlpool.client.exception.RejectedInputException;
 import com.samourai.whirlpool.client.mix.dialog.MixDialogListener;
 import com.samourai.whirlpool.client.mix.dialog.MixSession;
 import com.samourai.whirlpool.client.mix.listener.MixFailReason;
@@ -21,6 +23,7 @@ import com.samourai.whirlpool.protocol.websocket.notifications.SigningMixStatusN
 import io.reactivex.Completable;
 import io.reactivex.Single;
 import java.util.Optional;
+import org.bitcoinj.core.NetworkParameters;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -43,7 +46,8 @@ public class MixClient {
   private MixClientSoroban mixClientSoroban;
 
   public MixClient(
-      WhirlpoolClientConfig config, MixParams mixParams, WhirlpoolClientListener listener) {
+      WhirlpoolClientConfig config, MixParams mixParams, WhirlpoolClientListener listener)
+      throws Exception {
     this(
         config,
         mixParams,
@@ -59,14 +63,20 @@ public class MixClient {
       WhirlpoolClientListener listener,
       ClientCryptoService clientCryptoService,
       WhirlpoolProtocol whirlpoolProtocol,
-      SorobanClientApi sorobanClientApi) {
+      SorobanClientApi sorobanClientApi)
+      throws Exception {
     this.config = config;
     this.mixParams = mixParams;
     this.listener = listener;
     this.clientCryptoService = clientCryptoService;
     this.whirlpoolProtocol = whirlpoolProtocol;
 
-    RpcWallet rpcWallet = mixParams.getRpcWallet();
+    // generate temporary Soroban identity
+    NetworkParameters params = config.getWhirlpoolNetwork().getParams();
+    RpcWallet rpcWallet = RpcWalletImpl.generate(config.getCryptoUtil(), params);
+    if (log.isDebugEnabled()) {
+      log.debug("+MixClient: temporaryIdentity=" + rpcWallet.getPaymentCode().toString());
+    }
     this.mixClientSoroban =
         new MixClientSoroban(
             sorobanClientApi, config.getBip47Util(), config.getRpcSession(), rpcWallet);
@@ -86,10 +96,13 @@ public class MixClient {
       } catch (Exception e) {
         log.error("Unable to connect with coordinator for mixing", e);
         Exception notifiableException = NotifiableException.computeNotifiableException(e);
-        mixDialogListener.exitOnProtocolError(notifiableException.getMessage());
+        mixDialogListener.exitOnDisconnected(notifiableException.getMessage());
       }
+    } catch (RejectedInputException e) {
+      log.error("Unable to register input: input rejected", e);
+      mixDialogListener.exitOnInputRejected(e.getMessage());
     } catch (Exception e) {
-      log.error("Unable to register input", e);
+      log.error("Unable to register input: unknown error", e);
       Exception notifiableException = NotifiableException.computeNotifiableException(e);
       mixDialogListener.exitOnProtocolError(notifiableException.getMessage());
     }
@@ -116,17 +129,11 @@ public class MixClient {
             + coordinatorUrl
             + " #"
             + mixInvite.mixId);
-    try {
-      listenerProgress(MixStep.COORDINATOR_CONNECTING);
-      ServerApi serverApi = new ServerApi(coordinatorUrl, config.getHttpClientService());
-      mixSession =
-          new MixSession(mixDialogListener, whirlpoolProtocol, config, mixInvite, serverApi);
-      mixSession.connect();
-    } catch (Exception e) {
-      // httpClientRegisterOutput failed
-      String error = NotifiableException.computeNotifiableException(e).getMessage();
-      failAndExit(MixFailReason.INTERNAL_ERROR, error);
-    }
+
+    listenerProgress(MixStep.COORDINATOR_CONNECTING);
+    ServerApi serverApi = new ServerApi(coordinatorUrl, config.getHttpClientService());
+    mixSession = new MixSession(mixDialogListener, whirlpoolProtocol, config, mixInvite, serverApi);
+    mixSession.connect();
   }
 
   public void disconnect() {

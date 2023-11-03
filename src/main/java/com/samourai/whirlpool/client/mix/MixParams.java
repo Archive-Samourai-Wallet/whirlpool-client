@@ -1,6 +1,5 @@
 package com.samourai.whirlpool.client.mix;
 
-import com.samourai.soroban.client.RpcWallet;
 import com.samourai.wallet.chain.ChainSupplier;
 import com.samourai.whirlpool.client.mix.handler.IPostmixHandler;
 import com.samourai.whirlpool.client.mix.handler.IPremixHandler;
@@ -16,7 +15,6 @@ public class MixParams {
   private IPremixHandler premixHandler;
   private IPostmixHandler postmixHandler;
   private ChainSupplier chainSupplier;
-  private RpcWallet rpcWallet;
 
   public MixParams(
       String poolId,
@@ -26,8 +24,7 @@ public class MixParams {
       WhirlpoolUtxo whirlpoolUtxo,
       IPremixHandler premixHandler,
       IPostmixHandler postmixHandler,
-      ChainSupplier chainSupplier,
-      RpcWallet rpcWallet) {
+      ChainSupplier chainSupplier) {
     this.poolId = poolId;
     this.denomination = denomination;
     this.mustMixBalanceMin = mustMixBalanceMin;
@@ -36,7 +33,6 @@ public class MixParams {
     this.premixHandler = premixHandler;
     this.postmixHandler = postmixHandler;
     this.chainSupplier = chainSupplier;
-    this.rpcWallet = rpcWallet;
   }
 
   public MixParams(
@@ -44,8 +40,7 @@ public class MixParams {
       WhirlpoolUtxo whirlpoolUtxo,
       IPremixHandler premixHandler,
       IPostmixHandler postmixHandler,
-      ChainSupplier chainSupplier,
-      RpcWallet rpcWallet) {
+      ChainSupplier chainSupplier) {
     this(
         pool.getPoolId(),
         pool.getDenomination(),
@@ -54,8 +49,7 @@ public class MixParams {
         whirlpoolUtxo,
         premixHandler,
         postmixHandler,
-        chainSupplier,
-        rpcWallet);
+        chainSupplier);
   }
 
   public MixParams(MixParams mixParams, IPremixHandler premixHandler) {
@@ -67,8 +61,7 @@ public class MixParams {
         mixParams.getWhirlpoolUtxo(),
         premixHandler,
         mixParams.getPostmixHandler(),
-        mixParams.getChainSupplier(),
-        mixParams.getRpcWallet());
+        mixParams.getChainSupplier());
   }
 
   public String getPoolId() {
@@ -101,9 +94,5 @@ public class MixParams {
 
   public ChainSupplier getChainSupplier() {
     return chainSupplier;
-  }
-
-  public RpcWallet getRpcWallet() {
-    return rpcWallet;
   }
 }
