@@ -3,7 +3,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>io.samourai.code.whirlpool</groupId>
     <artifactId>whirlpool-client</artifactId>
-    <version>1.0.0-dexwp1-SNAPSHOT</version>
+    <version>1.0.0-dexwp1</version>
     <name>whirlpool-client</name>
     <properties>
         <maven.compiler.source>1.8</maven.compiler.source>
@@ -118,6 +118,6 @@
     </repositories>
     <scm>
         <connection>scm:git:git@code.samourai.io:whirlpool/whirlpool-client.git</connection>
-        <tag>0.24.2</tag>
+        <tag>1.0.0-dexwp1</tag>
     </scm>
 </project>
