@@ -18,10 +18,6 @@ public class MixProgress {
     this.since = System.currentTimeMillis();
   }
 
-  public String getPoolId() {
-    return mixParams.getPoolId();
-  }
-
   public long getDenomination() {
     return mixParams.getDenomination();
   }

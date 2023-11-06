@@ -443,6 +443,7 @@ public abstract class MixOrchestrator extends AbstractOrchestrator {
     }
 
     // run mix
+    whirlpoolUtxo.getUtxoState().setStatus(WhirlpoolUtxoStatus.MIX_STARTED, true, true);
     WhirlpoolClient whirlpoolClient = runWhirlpoolClient(whirlpoolUtxo);
     Mixing mixing = new Mixing(whirlpoolUtxo, whirlpoolClient);
     data.addMixing(mixing);

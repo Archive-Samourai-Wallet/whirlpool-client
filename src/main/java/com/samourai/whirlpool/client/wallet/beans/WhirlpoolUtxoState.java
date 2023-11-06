@@ -1,11 +1,13 @@
 package com.samourai.whirlpool.client.wallet.beans;
 
+import com.samourai.wallet.util.Util;
 import com.samourai.whirlpool.client.mix.MixParams;
 import com.samourai.whirlpool.client.mix.listener.MixStep;
 import com.samourai.whirlpool.client.utils.ClientUtils;
 import io.reactivex.Observable;
 import io.reactivex.subjects.BehaviorSubject;
 import io.reactivex.subjects.Subject;
+import org.apache.commons.lang3.StringUtils;
 
 public class WhirlpoolUtxoState {
   private String poolId;
@@ -135,12 +137,32 @@ public class WhirlpoolUtxoState {
     return lastError;
   }
 
+  public String getActivityOrErrorStr() {
+    String activityOrError;
+    if (lastError != null) {
+      activityOrError =
+          "Error: "
+              + Util.formatDurationFromNow(lastError)
+              + " "
+              + StringUtils.defaultIfEmpty(error, "");
+    } else {
+      activityOrError =
+          (lastActivity != null ? Util.formatDurationFromNow(lastActivity) + " " : "")
+              + StringUtils.defaultIfEmpty(message, "");
+    }
+    return activityOrError;
+  }
+
   public void setLastError(Long lastError) {
     this.lastError = lastError;
   }
 
   public Observable<WhirlpoolUtxoState> getObservable() {
     return observable;
+  }
+
+  public String getStatusToString() {
+    return mixProgress != null ? mixProgress.toString() : status.name();
   }
 
   @Override

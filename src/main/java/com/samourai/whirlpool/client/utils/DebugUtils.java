@@ -8,6 +8,7 @@ import com.samourai.wallet.api.paynym.beans.PaynymState;
 import com.samourai.wallet.bipWallet.BipWallet;
 import com.samourai.wallet.hd.BipAddress;
 import com.samourai.wallet.hd.Chain;
+import com.samourai.wallet.util.Util;
 import com.samourai.whirlpool.client.wallet.WhirlpoolWallet;
 import com.samourai.whirlpool.client.wallet.beans.*;
 import com.samourai.whirlpool.client.wallet.data.coordinator.CoordinatorSupplier;
@@ -159,7 +160,7 @@ public class DebugUtils {
 
   public static String getDebugUtxos(Collection<WhirlpoolUtxo> utxos, int latestBlockHeight) {
     String lineFormat =
-        "| %10s | %7s | %68s | %45s | %13s | %27s | %14s | %8s | %8s | %4s | %19s | %19s |\n";
+        "| %10s | %7s | %68s | %45s | %13s | %27s | %22s | %8s | %8s | %4s | %10s |\n";
     StringBuilder sb = new StringBuilder().append("\n");
     sb.append(
         String.format(
@@ -174,9 +175,8 @@ public class DebugUtils {
             "MIXABLE",
             "POOL",
             "MIXS",
-            "ACTIVITY",
-            "ERROR"));
-    sb.append(String.format(lineFormat, "(btc)", "", "", "", "", "", "", "", "", "", "", ""));
+            "ACTIVITY"));
+    sb.append(String.format(lineFormat, "(btc)", "", "", "", "", "", "", "", "", "", ""));
     Iterator var3 = utxos.iterator();
 
     while (var3.hasNext()) {
@@ -185,18 +185,6 @@ public class DebugUtils {
       UnspentOutput o = whirlpoolUtxo.getUtxo();
       String mixableStatusName =
           utxoState.getMixableStatus() != null ? utxoState.getMixableStatus().name() : "-";
-      Long lastActivity = whirlpoolUtxo.getUtxoState().getLastActivity();
-      String activity =
-          (lastActivity != null ? ClientUtils.dateToString(lastActivity) + " " : "")
-              + (whirlpoolUtxo.getUtxoState().getMessage() != null
-                  ? whirlpoolUtxo.getUtxoState().getMessage()
-                  : "");
-      Long lastError = whirlpoolUtxo.getUtxoState().getLastError();
-      String error =
-          (lastError != null ? ClientUtils.dateToString(lastError) + " " : "")
-              + (whirlpoolUtxo.getUtxoState().getError() != null
-                  ? whirlpoolUtxo.getUtxoState().getError()
-                  : "");
       sb.append(
           String.format(
               lineFormat,
@@ -206,14 +194,11 @@ public class DebugUtils {
               o.addr,
               whirlpoolUtxo.getBipFormat().getId(),
               whirlpoolUtxo.getPathAddress(),
-              utxoState.getStatus().name(),
+              utxoState.getStatusToString(),
               mixableStatusName,
-              whirlpoolUtxo.getUtxoState().getPoolId() != null
-                  ? whirlpoolUtxo.getUtxoState().getPoolId()
-                  : "-",
+              StringUtils.defaultIfEmpty(whirlpoolUtxo.getUtxoState().getPoolId(), "-"),
               whirlpoolUtxo.getMixsDone(),
-              activity,
-              error));
+              whirlpoolUtxo.getUtxoState().getActivityOrErrorStr()));
     }
     return sb.toString();
   }
@@ -262,8 +247,7 @@ public class DebugUtils {
       sb.append("⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿" + "\n");
       sb.append("⣿ MIXING THREADS:" + "\n");
 
-      String lineFormat =
-          "| %25s | %8s | %10s | %10s | %8s | %68s | %14s | %8s | %6s | %20s | %19s |\n";
+      String lineFormat = "| %25s | %8s | %10s | %10s | %8s | %68s | %14s | %8s | %6s | %10s |\n";
       sb.append(
           String.format(
               lineFormat,
@@ -276,41 +260,28 @@ public class DebugUtils {
               "PATH",
               "POOL",
               "MIXS",
-              "ACTIVITY",
-              "ERROR"));
+              "ACTIVITY"));
 
-      long now = System.currentTimeMillis();
       for (WhirlpoolUtxo whirlpoolUtxo : mixingState.getUtxosMixing()) {
-        MixProgress mixProgress = whirlpoolUtxo.getUtxoState().getMixProgress();
-        String progress = mixProgress != null ? mixProgress.toString() : "";
-        String since = mixProgress != null ? ((now - mixProgress.getSince()) / 1000) + "s" : "";
         UnspentOutput o = whirlpoolUtxo.getUtxo();
-        Long lastActivity = whirlpoolUtxo.getUtxoState().getLastActivity();
-        String activity =
-            (lastActivity != null ? ClientUtils.dateToString(lastActivity) + " " : "")
-                + (whirlpoolUtxo.getUtxoState().getMessage() != null
-                    ? whirlpoolUtxo.getUtxoState().getMessage()
-                    : "");
-        Long lastError = whirlpoolUtxo.getUtxoState().getLastError();
-        String error =
-            (lastError != null ? ClientUtils.dateToString(lastError) + " " : "")
-                + (whirlpoolUtxo.getUtxoState().getError() != null
-                    ? whirlpoolUtxo.getUtxoState().getError()
-                    : "");
+        WhirlpoolUtxoState utxoState = whirlpoolUtxo.getUtxoState();
+        String since =
+            utxoState.getMixProgress() != null
+                ? Util.formatDurationFromNow(utxoState.getMixProgress().getSince())
+                : "";
         sb.append(
             String.format(
                 lineFormat,
-                progress,
+                utxoState.getStatusToString(),
                 since,
                 whirlpoolUtxo.getAccount().name(),
                 ClientUtils.satToBtc(o.value),
                 whirlpoolUtxo.computeConfirmations(latestBlockHeight),
                 o.getUtxoName(),
                 o.getPath(),
-                mixProgress.getPoolId() != null ? mixProgress.getPoolId() : "-",
+                StringUtils.defaultIfEmpty(utxoState.getPoolId(), "-"),
                 whirlpoolUtxo.getMixsDone(),
-                activity,
-                error));
+                whirlpoolUtxo.getUtxoState().getActivityOrErrorStr()));
       }
     } catch (Exception e) {
       log.error("", e);

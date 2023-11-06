@@ -130,7 +130,7 @@ public class MixClient {
             + " #"
             + mixInvite.mixId);
 
-    listenerProgress(MixStep.COORDINATOR_CONNECTING);
+    listenerProgress(MixStep.CONNECTING_INPUT);
     ServerApi serverApi = new ServerApi(coordinatorUrl, config.getHttpClientService());
     mixSession = new MixSession(mixDialogListener, whirlpoolProtocol, config, mixInvite, serverApi);
     mixSession.connect();
@@ -174,7 +174,7 @@ public class MixClient {
 
       @Override
       public void onConnectionFailWillRetry(int retryDelay) {
-        listenerProgress(MixStep.COORDINATOR_CONNECTING);
+        listenerProgress(MixStep.CONNECTING_INPUT);
       }
 
       @Override

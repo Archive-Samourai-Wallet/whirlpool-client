@@ -4,10 +4,9 @@ public enum MixStep {
   REGISTERING_INPUT("registering input...", 10, true),
   REGISTERED_INPUT("waiting for a mix...", 20, true),
 
-  COORDINATOR_CONNECTING("joining a mix...", 30, true),
-
+  CONNECTING_INPUT("connecting input...", 30, true),
   CONFIRMING_INPUT("confirming input...", 40, true),
-  CONFIRMED_INPUT("confirmed input, joined a mix!", 50, true),
+  CONFIRMED_INPUT("joined a mix!", 50, true),
 
   REGISTERING_OUTPUT("registering output", 60, false),
   REGISTERED_OUTPUT("registered output", 70, false),
