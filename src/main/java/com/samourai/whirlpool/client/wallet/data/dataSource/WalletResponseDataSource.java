@@ -1,5 +1,6 @@
 package com.samourai.whirlpool.client.wallet.data.dataSource;
 
+import com.samourai.soroban.client.rpc.RpcSession;
 import com.samourai.wallet.api.backend.MinerFee;
 import com.samourai.wallet.api.backend.beans.WalletResponse;
 import com.samourai.wallet.bipFormat.BipFormatSupplier;
@@ -65,7 +66,8 @@ public abstract class WalletResponseDataSource implements DataSource {
     this.walletSupplier = computeWalletSupplier(whirlpoolWallet, bip44w, walletStateSupplier);
     this.minerFeeSupplier = computeMinerFeeSupplier(whirlpoolWallet);
     this.tx0PreviewService = new Tx0PreviewService(minerFeeSupplier, whirlpoolWallet.getConfig());
-    this.coordinatorSupplier = computeCoordinatorSupplier(whirlpoolWallet, tx0PreviewService);
+    this.coordinatorSupplier =
+        computeCoordinatorSupplier(whirlpoolWallet.getConfig(), tx0PreviewService);
     this.chainSupplier = computeChainSupplier();
     this.utxoSupplier =
         computeUtxoSupplier(
@@ -93,13 +95,10 @@ public abstract class WalletResponseDataSource implements DataSource {
   }
 
   protected ExpirableCoordinatorSupplier computeCoordinatorSupplier(
-      WhirlpoolWallet whirlpoolWallet, Tx0PreviewService tx0PreviewService) throws Exception {
-    WhirlpoolWalletConfig config = whirlpoolWallet.getConfig();
+      WhirlpoolWalletConfig config, Tx0PreviewService tx0PreviewService) throws Exception {
+    RpcSession rpcSession = config.getRpcClientService().generateRpcSession();
     return new ExpirableCoordinatorSupplier(
-        config.getRefreshPoolsDelay(),
-        config.getSorobanClientApi(),
-        config.getRpcSession(),
-        tx0PreviewService);
+        config.getRefreshPoolsDelay(), config.getSorobanClientApi(), rpcSession, tx0PreviewService);
   }
 
   protected BasicChainSupplier computeChainSupplier() throws Exception {

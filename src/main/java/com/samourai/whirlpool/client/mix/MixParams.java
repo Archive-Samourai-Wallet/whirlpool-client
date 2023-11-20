@@ -1,9 +1,11 @@
 package com.samourai.whirlpool.client.mix;
 
+import com.samourai.soroban.client.rpc.RpcSession;
 import com.samourai.wallet.chain.ChainSupplier;
 import com.samourai.whirlpool.client.mix.handler.IPostmixHandler;
 import com.samourai.whirlpool.client.mix.handler.IPremixHandler;
 import com.samourai.whirlpool.client.wallet.beans.WhirlpoolUtxo;
+import com.samourai.whirlpool.client.wallet.data.coordinator.CoordinatorSupplier;
 import com.samourai.whirlpool.client.whirlpool.beans.Pool;
 
 public class MixParams {
@@ -15,6 +17,8 @@ public class MixParams {
   private IPremixHandler premixHandler;
   private IPostmixHandler postmixHandler;
   private ChainSupplier chainSupplier;
+  private CoordinatorSupplier coordinatorSupplier;
+  private RpcSession rpcSession; // temporary identity for Soroban
 
   public MixParams(
       String poolId,
@@ -24,7 +28,9 @@ public class MixParams {
       WhirlpoolUtxo whirlpoolUtxo,
       IPremixHandler premixHandler,
       IPostmixHandler postmixHandler,
-      ChainSupplier chainSupplier) {
+      ChainSupplier chainSupplier,
+      CoordinatorSupplier coordinatorSupplier,
+      RpcSession rpcSession) {
     this.poolId = poolId;
     this.denomination = denomination;
     this.mustMixBalanceMin = mustMixBalanceMin;
@@ -33,6 +39,8 @@ public class MixParams {
     this.premixHandler = premixHandler;
     this.postmixHandler = postmixHandler;
     this.chainSupplier = chainSupplier;
+    this.coordinatorSupplier = coordinatorSupplier;
+    this.rpcSession = rpcSession;
   }
 
   public MixParams(
@@ -40,7 +48,9 @@ public class MixParams {
       WhirlpoolUtxo whirlpoolUtxo,
       IPremixHandler premixHandler,
       IPostmixHandler postmixHandler,
-      ChainSupplier chainSupplier) {
+      ChainSupplier chainSupplier,
+      CoordinatorSupplier coordinatorSupplier,
+      RpcSession rpcSession) {
     this(
         pool.getPoolId(),
         pool.getDenomination(),
@@ -49,19 +59,9 @@ public class MixParams {
         whirlpoolUtxo,
         premixHandler,
         postmixHandler,
-        chainSupplier);
-  }
-
-  public MixParams(MixParams mixParams, IPremixHandler premixHandler) {
-    this(
-        mixParams.getPoolId(),
-        mixParams.getDenomination(),
-        mixParams.getMustMixBalanceMin(),
-        mixParams.getMustMixBalanceMax(),
-        mixParams.getWhirlpoolUtxo(),
-        premixHandler,
-        mixParams.getPostmixHandler(),
-        mixParams.getChainSupplier());
+        chainSupplier,
+        coordinatorSupplier,
+        rpcSession);
   }
 
   public String getPoolId() {
@@ -94,5 +94,13 @@ public class MixParams {
 
   public ChainSupplier getChainSupplier() {
     return chainSupplier;
+  }
+
+  public CoordinatorSupplier getCoordinatorSupplier() {
+    return coordinatorSupplier;
+  }
+
+  public RpcSession getRpcSession() {
+    return rpcSession;
   }
 }

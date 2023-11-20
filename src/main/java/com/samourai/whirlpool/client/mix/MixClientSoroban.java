@@ -1,14 +1,15 @@
 package com.samourai.whirlpool.client.mix;
 
-import com.samourai.soroban.client.AbstractSorobanPayload;
-import com.samourai.soroban.client.RpcWallet;
+import com.samourai.soroban.client.dialog.SorobanErrorMessageException;
 import com.samourai.soroban.client.rpc.RpcSession;
-import com.samourai.wallet.bip47.BIP47UtilGeneric;
+import com.samourai.wallet.bip47.rpc.PaymentCode;
 import com.samourai.wallet.util.AsyncUtil;
+import com.samourai.whirlpool.client.exception.NotifiableException;
 import com.samourai.whirlpool.client.exception.RejectedInputException;
 import com.samourai.whirlpool.client.soroban.SorobanClientApi;
+import com.samourai.whirlpool.client.whirlpool.WhirlpoolClientConfig;
+import com.samourai.whirlpool.client.whirlpool.beans.Coordinator;
 import com.samourai.whirlpool.protocol.WhirlpoolProtocolSoroban;
-import com.samourai.whirlpool.protocol.soroban.ErrorSorobanMessage;
 import com.samourai.whirlpool.protocol.soroban.InviteMixSorobanMessage;
 import com.samourai.whirlpool.protocol.websocket.messages.RegisterInputRequest;
 import java.util.concurrent.TimeoutException;
@@ -19,66 +20,76 @@ public class MixClientSoroban {
   private static final Logger log = LoggerFactory.getLogger(MixClientSoroban.class);
   private static final AsyncUtil asyncUtil = AsyncUtil.getInstance();
 
+  private WhirlpoolClientConfig config;
+  private MixParams mixParams;
   private SorobanClientApi sorobanClientApi;
-  private BIP47UtilGeneric bip47Util;
-  private RpcSession rpcSession;
-  private RpcWallet rpcWallet;
+  private boolean done;
 
   public MixClientSoroban(
-      SorobanClientApi sorobanClientApi,
-      BIP47UtilGeneric bip47Util,
-      RpcSession rpcSession,
-      RpcWallet rpcWallet) {
+      WhirlpoolClientConfig config, MixParams mixParams, SorobanClientApi sorobanClientApi) {
+    this.config = config;
+    this.mixParams = mixParams;
     this.sorobanClientApi = sorobanClientApi;
-    this.bip47Util = bip47Util;
-    this.rpcSession = rpcSession;
-    this.rpcWallet = rpcWallet;
+    this.done = false;
   }
 
   public InviteMixSorobanMessage registerInputAndWaitInviteMix(RegisterInputRequest request)
       throws Exception {
+    RpcSession rpcSession = mixParams.getRpcSession();
     while (true) {
+      if (done) {
+        throw new NotifiableException("Terminating");
+      }
+
+      // find coordinator
+      Coordinator coordinator =
+          mixParams.getCoordinatorSupplier().findCoordinatorByPoolId(request.poolId);
+      if (coordinator == null) {
+        throw new NotifiableException(
+            "No coordinator available for pool " + request.poolId + ", please retry later");
+      }
+      PaymentCode paymentCodeCoordinator = coordinator.getPaymentCode();
+
       // REGISTER_INPUT
-      asyncUtil.blockingGet(
-          rpcSession.withRpcClientEncrypted(
-              rpcWallet.getEncrypter(),
-              rce -> {
+      asyncUtil.blockingAwait(
+          rpcSession.withSorobanClient(
+              sorobanClient -> {
                 if (log.isDebugEnabled()) {
                   log.debug("=> withRpcClientEncrypted.call registerInput ");
                 }
-                return sorobanClientApi.registerInput(rce, request);
+                return sorobanClientApi.registerInput(
+                    sorobanClient, request, paymentCodeCoordinator);
               }));
 
       if (log.isDebugEnabled()) {
         log.debug("=> registerInput success, waitInviteMix...");
       }
+
+      // wait for mix invite or input rejection
       try {
-        // wait for mix invite or input rejection
-        AbstractSorobanPayload response =
-            asyncUtil.blockingGet(
-                rpcSession.withRpcClientEncrypted(
-                    rpcWallet.getEncrypter(),
-                    rce ->
-                        sorobanClientApi.waitInviteMix(
-                            rce,
-                            rpcWallet,
-                            bip47Util,
-                            getWhirlpoolProtocolSoroban().getRegisterInputFrequencyMs())));
-        if (response instanceof InviteMixSorobanMessage) {
-          // it's a mix invite
-          return (InviteMixSorobanMessage) response;
-        }
+        asyncUtil.blockingAwait(
+            rpcSession.withSorobanClient(
+                sorobanClient -> {
+                  return asyncUtil.blockingGet(
+                      sorobanClientApi.waitInviteMix(
+                          sorobanClient,
+                          rpcSession.getRpcWallet(),
+                          config.getBip47Util(),
+                          paymentCodeCoordinator,
+                          getWhirlpoolProtocolSoroban().getRegisterInputFrequencyMs()));
+                }));
+      } catch (SorobanErrorMessageException e) {
         // otherwise it's an error response => input rejected
-        ErrorSorobanMessage errorResponse = (ErrorSorobanMessage) response;
-        throw new RejectedInputException(errorResponse.message);
+        throw new RejectedInputException(e.getSorobanErrorMessage().message);
       } catch (TimeoutException e) {
         // no mix invite received yet
+        return null;
       }
     }
   }
 
   public void exit() {
-    rpcSession.close();
+    done = true;
   }
 
   public WhirlpoolProtocolSoroban getWhirlpoolProtocolSoroban() {

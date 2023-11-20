@@ -1,5 +1,6 @@
 package com.samourai.whirlpool.client.wallet.orchestrator;
 
+import com.samourai.soroban.client.rpc.RpcSession;
 import com.samourai.wallet.api.backend.beans.UnspentOutput;
 import com.samourai.wallet.chain.ChainSupplier;
 import com.samourai.whirlpool.client.WhirlpoolClient;
@@ -12,6 +13,7 @@ import com.samourai.whirlpool.client.utils.ClientUtils;
 import com.samourai.whirlpool.client.wallet.WhirlpoolWallet;
 import com.samourai.whirlpool.client.wallet.WhirlpoolWalletConfig;
 import com.samourai.whirlpool.client.wallet.beans.*;
+import com.samourai.whirlpool.client.wallet.data.coordinator.CoordinatorSupplier;
 import com.samourai.whirlpool.client.wallet.data.pool.PoolSupplier;
 import com.samourai.whirlpool.client.whirlpool.WhirlpoolClientConfig;
 import com.samourai.whirlpool.client.whirlpool.WhirlpoolClientImpl;
@@ -145,7 +147,18 @@ public class MixOrchestratorImpl extends MixOrchestrator {
     IPremixHandler premixHandler = computePremixHandler(whirlpoolUtxo);
     IPostmixHandler postmixHandler = computePostmixHandler(whirlpoolUtxo);
     ChainSupplier chainSupplier = whirlpoolWallet.getChainSupplier();
-    return new MixParams(pool, whirlpoolUtxo, premixHandler, postmixHandler, chainSupplier);
+    CoordinatorSupplier coordinatorSupplier = whirlpoolWallet.getCoordinatorSupplier();
+
+    // generate temporary Soroban identity
+    RpcSession rpcSession = config.getRpcClientService().generateRpcSession();
+    return new MixParams(
+        pool,
+        whirlpoolUtxo,
+        premixHandler,
+        postmixHandler,
+        chainSupplier,
+        coordinatorSupplier,
+        rpcSession);
   }
 
   @Override

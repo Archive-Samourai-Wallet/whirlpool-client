@@ -1,7 +1,5 @@
 package com.samourai.whirlpool.client.mix;
 
-import com.samourai.soroban.client.RpcWallet;
-import com.samourai.soroban.client.RpcWalletImpl;
 import com.samourai.whirlpool.client.exception.NotifiableException;
 import com.samourai.whirlpool.client.exception.RejectedInputException;
 import com.samourai.whirlpool.client.mix.dialog.MixDialogListener;
@@ -23,7 +21,6 @@ import com.samourai.whirlpool.protocol.websocket.notifications.SigningMixStatusN
 import io.reactivex.Completable;
 import io.reactivex.Single;
 import java.util.Optional;
-import org.bitcoinj.core.NetworkParameters;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -46,8 +43,7 @@ public class MixClient {
   private MixClientSoroban mixClientSoroban;
 
   public MixClient(
-      WhirlpoolClientConfig config, MixParams mixParams, WhirlpoolClientListener listener)
-      throws Exception {
+      WhirlpoolClientConfig config, MixParams mixParams, WhirlpoolClientListener listener) {
     this(
         config,
         mixParams,
@@ -63,23 +59,14 @@ public class MixClient {
       WhirlpoolClientListener listener,
       ClientCryptoService clientCryptoService,
       WhirlpoolProtocol whirlpoolProtocol,
-      SorobanClientApi sorobanClientApi)
-      throws Exception {
+      SorobanClientApi sorobanClientApi) {
     this.config = config;
     this.mixParams = mixParams;
     this.listener = listener;
     this.clientCryptoService = clientCryptoService;
     this.whirlpoolProtocol = whirlpoolProtocol;
 
-    // generate temporary Soroban identity
-    NetworkParameters params = config.getWhirlpoolNetwork().getParams();
-    RpcWallet rpcWallet = RpcWalletImpl.generate(config.getCryptoUtil(), params);
-    if (log.isDebugEnabled()) {
-      log.debug("+MixClient: temporaryIdentity=" + rpcWallet.getPaymentCode().toString());
-    }
-    this.mixClientSoroban =
-        new MixClientSoroban(
-            sorobanClientApi, config.getBip47Util(), config.getRpcSession(), rpcWallet);
+    this.mixClientSoroban = new MixClientSoroban(config, mixParams, sorobanClientApi);
   }
 
   public void whirlpool() {

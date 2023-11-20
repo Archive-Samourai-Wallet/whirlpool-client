@@ -4,7 +4,6 @@ import com.samourai.http.client.HttpUsage;
 import com.samourai.http.client.IHttpClient;
 import com.samourai.http.client.IHttpClientService;
 import com.samourai.soroban.client.rpc.RpcClientService;
-import com.samourai.soroban.client.rpc.RpcSession;
 import com.samourai.stomp.client.IStompClientService;
 import com.samourai.tor.client.TorClientService;
 import com.samourai.wallet.bip47.BIP47UtilGeneric;
@@ -68,8 +67,8 @@ public class WhirlpoolClientConfig {
     return torClientService;
   }
 
-  public RpcSession getRpcSession() {
-    return rpcClientService.getRpcSession("whirlpoolClient");
+  public RpcClientService getRpcClientService() {
+    return rpcClientService;
   }
 
   public SorobanClientApi getSorobanClientApi() {

@@ -1,5 +1,6 @@
 package com.samourai.whirlpool.client.wallet.data.coordinator;
 
+import com.samourai.wallet.bip47.rpc.PaymentCode;
 import com.samourai.whirlpool.client.tx0.Tx0PreviewService;
 import com.samourai.whirlpool.client.wallet.data.pool.PoolData;
 import com.samourai.whirlpool.client.whirlpool.beans.Coordinator;
@@ -53,6 +54,9 @@ public class CoordinatorData {
               + poolIds.size()
               + " pools "
               + poolIds.toString());
+      for (Coordinator coordinator : coordinatorsById.values()) {
+        log.debug(" * " + coordinator.toString());
+      }
     }
   }
 
@@ -65,6 +69,7 @@ public class CoordinatorData {
                   message.pools.stream().map(pool -> pool.poolId).collect(Collectors.toList());
               return new Coordinator(
                   message.coordinator.coordinatorId,
+                  new PaymentCode(message.coordinator.paymentCode),
                   message.coordinator.urlClear,
                   message.coordinator.urlOnion,
                   poolIds);

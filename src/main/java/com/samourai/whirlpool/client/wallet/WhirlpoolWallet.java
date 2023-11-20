@@ -1,6 +1,7 @@
 package com.samourai.whirlpool.client.wallet;
 
 import com.google.common.primitives.Bytes;
+import com.samourai.soroban.client.RpcWallet;
 import com.samourai.soroban.client.wallet.SorobanWalletService;
 import com.samourai.soroban.client.wallet.counterparty.SorobanWalletCounterparty;
 import com.samourai.soroban.client.wallet.sender.SorobanWalletInitiator;
@@ -89,6 +90,7 @@ public class WhirlpoolWallet {
   private MixingStateEditable mixingState;
 
   private XManagerClient xManagerClient;
+  private RpcWallet rpcWallet;
 
   protected WhirlpoolWallet(WhirlpoolWallet whirlpoolWallet) throws Exception {
     this(whirlpoolWallet.config, whirlpoolWallet.bip44w, whirlpoolWallet.walletIdentifier);
@@ -157,6 +159,7 @@ public class WhirlpoolWallet {
     this.mixOrchestrator = null;
     this.autoTx0Orchestrator = Optional.empty();
     this.mixingState = new MixingStateEditable(this, false);
+    this.rpcWallet = null; // will be set with getter
   }
 
   protected static String computeWalletIdentifier(
@@ -385,7 +388,8 @@ public class WhirlpoolWallet {
             getChainSupplier(),
             BIP_FORMAT.PROVIDER,
             new SimpleCahootsUtxoProvider(getUtxoSupplier()),
-            config.getCryptoUtil());
+            config.getCryptoUtil(),
+                config.getBip47Util());
 
     // start orchestrators
     int loopDelay = config.getRefreshUtxoDelay() * 1000;

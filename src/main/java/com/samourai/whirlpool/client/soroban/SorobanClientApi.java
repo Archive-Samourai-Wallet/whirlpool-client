@@ -1,25 +1,25 @@
 package com.samourai.whirlpool.client.soroban;
 
-import com.samourai.soroban.client.AbstractSorobanPayload;
 import com.samourai.soroban.client.RpcWallet;
-import com.samourai.soroban.client.rpc.RpcClient;
-import com.samourai.soroban.client.rpc.RpcClientEncrypted;
+import com.samourai.soroban.client.SorobanClient;
 import com.samourai.soroban.client.rpc.RpcMode;
 import com.samourai.wallet.bip47.BIP47UtilGeneric;
 import com.samourai.wallet.bip47.rpc.PaymentCode;
 import com.samourai.wallet.util.JSONUtils;
+import com.samourai.wallet.util.MessageSignUtilGeneric;
 import com.samourai.wallet.util.Util;
 import com.samourai.whirlpool.client.wallet.beans.WhirlpoolNetwork;
 import com.samourai.whirlpool.protocol.WhirlpoolProtocolSoroban;
-import com.samourai.whirlpool.protocol.soroban.ErrorSorobanMessage;
 import com.samourai.whirlpool.protocol.soroban.InviteMixSorobanMessage;
 import com.samourai.whirlpool.protocol.soroban.RegisterCoordinatorSorobanMessage;
 import com.samourai.whirlpool.protocol.soroban.RegisterInputSorobanMessage;
 import com.samourai.whirlpool.protocol.websocket.messages.RegisterInputRequest;
+import io.reactivex.Completable;
 import io.reactivex.Single;
 import java.lang.invoke.MethodHandles;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Objects;
 import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -27,6 +27,8 @@ import org.slf4j.LoggerFactory;
 public class SorobanClientApi {
   private static final Logger log = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
   private static final JSONUtils jsonUtil = JSONUtils.getInstance();
+  private static final MessageSignUtilGeneric messageSignUtil =
+      MessageSignUtilGeneric.getInstance();
   private WhirlpoolNetwork whirlpoolNetwork;
   private WhirlpoolProtocolSoroban whirlpoolProtocolSoroban;
 
@@ -37,9 +39,10 @@ public class SorobanClientApi {
   }
 
   public Single<Collection<RegisterCoordinatorSorobanMessage>> fetchCoordinators(
-      RpcClient rpcClient) throws Exception {
+      SorobanClient sorobanClient) throws Exception {
     String directory = whirlpoolProtocolSoroban.getDirCoordinators(whirlpoolNetwork);
-    return rpcClient
+    return sorobanClient
+        .getRpcClient()
         .directoryValues(directory)
         .map(
             payloads ->
@@ -48,22 +51,41 @@ public class SorobanClientApi {
                     .map(
                         payload -> {
                           try {
-                            return jsonUtil
-                                .getObjectMapper()
-                                .readValue(payload, RegisterCoordinatorSorobanMessage.class);
+                            return sorobanClient.readSignedWithSender(
+                                payload, RegisterCoordinatorSorobanMessage.class);
                           } catch (Exception e) {
-                            log.error(
-                                "cannot parse RegisterCoordinatorSorobanMessage: " + payload, e);
+                            log.error("Invalid RegisterCoordinatorSorobanMessage: " + payload, e);
                             return null;
                           }
                         })
+                    .filter(Objects::nonNull)
+                    .filter(m -> validateCoordinator(m.getRight(), m.getLeft()))
+                    .map(m -> m.getRight())
                     // only 1 message per coordinator
                     .filter(Util.distinctBy(m -> m.coordinator.coordinatorId))
                     .collect(Collectors.toList()));
   }
 
-  public Single<String> registerInput(
-      RpcClientEncrypted rpcClientEncrypted, RegisterInputRequest request) throws Exception {
+  protected boolean validateCoordinator(
+      RegisterCoordinatorSorobanMessage payload, PaymentCode sender) {
+    // check coordinator.paymentCode against sender
+    if (!sender.toString().equals(payload.coordinator.paymentCode)) {
+      log.error(
+          "Invalid RegisterCoordinatorSorobanMessage: sender doesn't match coordinator.paymentCode");
+      return false;
+    }
+
+    // check coordinator.paymentCodeSignature against samourai signature
+    return messageSignUtil.verifySignedMessage(
+        whirlpoolNetwork.getSigningAddress(),
+        payload.coordinator.paymentCode,
+        payload.coordinator.paymentCodeSignature,
+        whirlpoolNetwork.getParams());
+  }
+
+  public Completable registerInput(
+      SorobanClient sorobanClient, RegisterInputRequest request, PaymentCode paymentCodeCoordinator)
+      throws Exception {
     String directory =
         whirlpoolProtocolSoroban.getDirRegisterInput(whirlpoolNetwork, request.poolId);
 
@@ -88,31 +110,28 @@ public class SorobanClientApi {
               + ", blockHeight="
               + request.blockHeight);
     }
-    return rpcClientEncrypted.sendEncryptedWithSender(
-        directory, message, whirlpoolNetwork.getSigningPaymentCode(), RpcMode.SHORT);
+    String encryptedPayload =
+        sorobanClient.encryptWithSender(message.toPayload(), paymentCodeCoordinator);
+    return sorobanClient.getRpcClient().directoryAdd(directory, encryptedPayload, RpcMode.SHORT);
   }
 
-  public Single<AbstractSorobanPayload> waitInviteMix(
-      RpcClientEncrypted rpcClientEncrypted,
+  public Single<InviteMixSorobanMessage> waitInviteMix(
+      SorobanClient sorobanClient,
       RpcWallet rpcWalletClient,
       BIP47UtilGeneric bip47Util,
+      PaymentCode paymentCodeCoordinator,
       long timeoutMs)
       throws Exception {
-    PaymentCode paymentCodeCoordinator = whirlpoolNetwork.getSigningPaymentCode();
     String directory =
         whirlpoolProtocolSoroban.getDirRegisterInputResponse(
             rpcWalletClient, whirlpoolNetwork, bip47Util);
-    return rpcClientEncrypted
-        .receiveEncrypted(directory, timeoutMs, paymentCodeCoordinator, 10000)
+    return sorobanClient
+        .getRpcClient()
+        .directoryValueWaitAndRemove(directory, timeoutMs)
         .map(
-            payload -> {
-              if (ErrorSorobanMessage.isAssignableFrom(payload)) {
-                // error response
-                return jsonUtil.getObjectMapper().readValue(payload, ErrorSorobanMessage.class);
-              } else {
-                return jsonUtil.getObjectMapper().readValue(payload, InviteMixSorobanMessage.class);
-              }
-            });
+            payload ->
+                sorobanClient.readEncrypted(
+                    payload, paymentCodeCoordinator, InviteMixSorobanMessage.class));
   }
 
   public WhirlpoolProtocolSoroban getWhirlpoolProtocolSoroban() {

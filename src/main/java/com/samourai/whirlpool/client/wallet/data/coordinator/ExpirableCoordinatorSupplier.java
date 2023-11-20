@@ -24,6 +24,7 @@ import org.slf4j.LoggerFactory;
 public class ExpirableCoordinatorSupplier extends ExpirableSupplier<CoordinatorData>
     implements CoordinatorSupplier {
   private static final Logger log = LoggerFactory.getLogger(ExpirableCoordinatorSupplier.class);
+  private static final AsyncUtil asyncUtil = AsyncUtil.getInstance();
   private static final int COORDINATOR_ATTEMPTS = 5;
 
   private final WhirlpoolEventService eventService = WhirlpoolEventService.getInstance();
@@ -48,10 +49,10 @@ public class ExpirableCoordinatorSupplier extends ExpirableSupplier<CoordinatorD
       log.debug("fetching coordinators...");
     }
     try {
-      return rpcSession.withRpcClient(
-          rpcClient -> {
+      return rpcSession.withSorobanClient(
+          sorobanClient -> {
             Collection<RegisterCoordinatorSorobanMessage> registerCoordinatorSorobanMessages =
-                AsyncUtil.getInstance().blockingGet(sorobanClientApi.fetchCoordinators(rpcClient));
+                asyncUtil.blockingGet(sorobanClientApi.fetchCoordinators(sorobanClient));
             CoordinatorData coordinatorData =
                 new CoordinatorData(registerCoordinatorSorobanMessages, tx0PreviewService);
 
@@ -59,9 +60,6 @@ public class ExpirableCoordinatorSupplier extends ExpirableSupplier<CoordinatorD
               // immediately retry on another SorobanServer as current one it may be out-of-sync
               throw new HttpException("No Whirlpool coordinator found, retrying...");
             }
-
-            // close RpcSession after each cycle to use multiple SorobanServers randomly
-            rpcSession.close();
             return coordinatorData;
           });
     } catch (HttpException e) {
