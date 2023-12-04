@@ -1,5 +1,7 @@
 package com.samourai.whirlpool.client.exception;
 
+import java.nio.channels.AsynchronousCloseException;
+import java.util.concurrent.TimeoutException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -31,10 +33,27 @@ public class NotifiableException extends Exception {
   }
 
   public static NotifiableException computeNotifiableException(Exception e) {
+    NotifiableException notifiableException = findNotifiableException(e);
+    if (notifiableException == null && e.getCause() != null) {
+      notifiableException = findNotifiableException(e.getCause());
+    }
+    if (notifiableException == null) {
+      log.warn("Exception obfuscated to user", e);
+      notifiableException = new NotifiableException("Technical error, check logs for details");
+    }
+    return notifiableException;
+  }
+
+  protected static NotifiableException findNotifiableException(Throwable e) {
     if (NotifiableException.class.isAssignableFrom(e.getClass())) {
       return (NotifiableException) e;
     }
-    log.warn("Exception obfuscated to user", e);
-    return new NotifiableException("Technical error, check logs for details");
+    if (TimeoutException.class.isAssignableFrom(e.getClass())) {
+      return new NotifiableException("Request timed out");
+    }
+    if (AsynchronousCloseException.class.isAssignableFrom(e.getClass())) {
+      return new NotifiableException("Network error");
+    }
+    return null;
   }
 }
