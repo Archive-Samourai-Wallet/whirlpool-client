@@ -584,7 +584,7 @@ public class WhirlpoolWallet {
 
     // log
     String poolId = whirlpoolUtxo.getUtxoState().getPoolId();
-    String logPrefix = " - [MIX] " + (poolId != null ? poolId + " " : "");
+    String logPrefix = "[MIX] " + (poolId != null ? poolId + " " : "");
     MixDestination destination = whirlpoolUtxo.getUtxoState().getMixProgress().getDestination();
     log.info(
         logPrefix
@@ -627,7 +627,7 @@ public class WhirlpoolWallet {
 
     // log
     String poolId = whirlpoolUtxo.getUtxoState().getPoolId();
-    String logPrefix = " - [MIX] " + (poolId != null ? poolId + " " : "");
+    String logPrefix = "[MIX] " + (poolId != null ? poolId + " " : "");
 
     String message = failReason.getMessage();
     if (notifiableError != null) {
@@ -699,7 +699,7 @@ public class WhirlpoolWallet {
 
     // log
     String poolId = whirlpoolUtxo.getUtxoState().getPoolId();
-    String logPrefix = " - [MIX] " + (poolId != null ? poolId + " " : "");
+    String logPrefix = "[MIX] " + (poolId != null ? poolId + " " : "");
 
     MixStep step = whirlpoolUtxo.getUtxoState().getMixProgress().getMixStep();
     String asciiProgress = renderProgress(step.getProgressPercent());

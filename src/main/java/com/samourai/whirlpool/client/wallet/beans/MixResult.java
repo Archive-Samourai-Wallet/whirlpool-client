@@ -47,43 +47,25 @@ public class MixResult {
 
   // success
   public MixResult(
+      long time,
       String poolId,
       long amount,
       boolean liquidity,
       Utxo destinationUtxo,
       MixDestination mixDestination) {
-    this(
-        System.currentTimeMillis(),
-        true,
-        poolId,
-        amount,
-        liquidity,
-        destinationUtxo,
-        mixDestination,
-        null,
-        null,
-        null);
+    this(time, true, poolId, amount, liquidity, destinationUtxo, mixDestination, null, null, null);
   }
 
   // fail
   public MixResult(
+      long time,
       String poolId,
       long amount,
       boolean liquidity,
       UtxoWithBalance failUtxo,
       MixFailReason failReason,
       String failError) {
-    this(
-        System.currentTimeMillis(),
-        false,
-        poolId,
-        amount,
-        liquidity,
-        null,
-        null,
-        failUtxo,
-        failReason,
-        failError);
+    this(time, false, poolId, amount, liquidity, null, null, failUtxo, failReason, failError);
   }
 
   public long getTime() {
