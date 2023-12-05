@@ -19,6 +19,7 @@ import org.slf4j.LoggerFactory;
 public class AutoTx0Orchestrator extends AbstractOrchestrator {
   private static final Logger log = LoggerFactory.getLogger(AutoTx0Orchestrator.class);
   private static final int START_DELAY = 10000;
+  private static final int MAX_INPUTS_PER_TX0 = 100;
 
   private WhirlpoolWallet whirlpoolWallet;
   private WhirlpoolWalletConfig config;
@@ -91,6 +92,9 @@ public class AutoTx0Orchestrator extends AbstractOrchestrator {
             && utxoStatus != WhirlpoolUtxoStatus.MIX_SUCCESS) {
           // spend from ready utxos
           readyUtxos.add(whirlpoolUtxo);
+          if (readyUtxos.size() >= MAX_INPUTS_PER_TX0) {
+            break;
+          }
         }
       }
     }
