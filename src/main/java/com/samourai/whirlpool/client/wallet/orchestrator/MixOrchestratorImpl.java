@@ -233,7 +233,7 @@ public class MixOrchestratorImpl extends MixOrchestrator {
                   + nextMixsDone
                   + "/"
                   + externalDestination.getMixs()
-                  + " ("
+                  + " before external destination ("
                   + whirlpoolUtxo
                   + ")");
         }

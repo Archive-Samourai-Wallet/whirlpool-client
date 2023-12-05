@@ -16,6 +16,7 @@ import com.samourai.whirlpool.client.whirlpool.beans.Pool;
 import java.util.Collection;
 import java.util.Comparator;
 import java.util.Iterator;
+import java.util.List;
 import java.util.stream.Collectors;
 import org.apache.commons.lang3.StringUtils;
 import org.bitcoinj.core.NetworkParameters;
@@ -32,6 +33,7 @@ public class DebugUtils {
       sb.append(getDebugWallet(whirlpoolWallet));
       sb.append(getDebugUtxos(whirlpoolWallet));
       sb.append(getDebugMixingThreads(whirlpoolWallet));
+      sb.append(getDebugMixHistory(whirlpoolWallet.getMixHistory()));
       sb.append(getDebugPools(whirlpoolWallet.getPoolSupplier()));
       sb.append(getDebugPaynym(whirlpoolWallet.getPaynymSupplier()));
     } else {
@@ -156,7 +158,7 @@ public class DebugUtils {
 
   public static String getDebugUtxos(Collection<WhirlpoolUtxo> utxos, int latestBlockHeight) {
     String lineFormat =
-        "| %10s | %7s | %68s | %45s | %13s | %27s | %14s | %8s | %8s | %4s | %19s | %19s |\n";
+        "| %10s | %7s | %68s | %45s | %13s | %28s | %14s | %8s | %8s | %4s | %19s | %19s |\n";
     StringBuilder sb = new StringBuilder().append("\n");
     sb.append(
         String.format(
@@ -261,7 +263,7 @@ public class DebugUtils {
       sb.append("⣿ MIXING THREADS:" + "\n");
 
       String lineFormat =
-          "| %25s | %8s | %10s | %10s | %8s | %68s | %14s | %8s | %6s | %20s | %19s |\n";
+          "| %25s | %8s | %10s | %10s | %8s | %68s | %28s | %8s | %6s | %20s | %19s |\n";
       sb.append(
           String.format(
               lineFormat,
@@ -333,18 +335,73 @@ public class DebugUtils {
     return sb.toString();
   }
 
+  public static String getDebugMixHistory(MixHistory mixHistory) {
+    StringBuilder sb = new StringBuilder().append("\n");
+    try {
+      sb.append("⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿" + "\n");
+      sb.append("⣿ MIX HISTORY :" + "\n");
+
+      sb.append(ClientUtils.satToBtc(mixHistory.getMixedVolume()) + " BTC mixed\n");
+      sb.append(mixHistory.getNbMixed() + " mixed\n");
+      sb.append(mixHistory.getNbFailed() + " failed\n");
+      sb.append("since startup on " + ClientUtils.dateToString(mixHistory.getStartupTime()) + "\n");
+
+      List<MixResult> mixResults = mixHistory.getMixResultsDesc(50);
+      if (mixResults.size() > 0) {
+        String lineFormat = "| %20s | %7s | %5s | %9s | %10s | %68s | %45s | %28s | %15s |\n";
+        sb.append(
+            String.format(
+                lineFormat,
+                "DATE",
+                "RESULT",
+                "TYPE",
+                "AMOUNT",
+                "TO",
+                "UTXO",
+                "ADDRESS",
+                "PATH",
+                "ERROR"));
+        for (MixResult mixResult : mixResults) {
+          sb.append(
+              String.format(
+                  lineFormat,
+                  ClientUtils.dateToString(mixResult.getTime()),
+                  mixResult.isSuccess() ? "SUCCESS" : "FAILED",
+                  mixResult.isLiquidity() ? "REMIX" : "MIX",
+                  ClientUtils.satToBtc(mixResult.getAmount()),
+                  mixResult.isSuccess() ? mixResult.getDestinationType().name() : "-",
+                  mixResult.isSuccess()
+                      ? ClientUtils.utxoToKey(mixResult.getDestinationUtxo())
+                      : "-",
+                  mixResult.isSuccess() ? mixResult.getDestinationAddress() : "-",
+                  mixResult.isSuccess() ? mixResult.getDestinationPath() : "-",
+                  mixResult.isSuccess()
+                      ? "-"
+                      : mixResult.getFailReason().getMessage()
+                          + " "
+                          + ClientUtils.utxoToKey(mixResult.getFailUtxo())
+                          + " "
+                          + StringUtils.defaultIfEmpty(mixResult.getFailError(), "")));
+        }
+      }
+    } catch (Exception e) {
+      log.error("", e);
+    }
+    return sb.toString();
+  }
+
   public static String getDebugPools(PoolSupplier poolSupplier) {
     StringBuilder sb = new StringBuilder().append("\n");
     try {
       sb.append("⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿" + "\n");
       sb.append("⣿ POOLS:" + "\n");
 
-      String lineFormat = "| %15s | %15s | %15s | %18s | %20s | %15s |\n";
+      String lineFormat = "| %15s | %9s | %15s | %18s | %20s | %15s |\n";
       sb.append(
           String.format(
               lineFormat,
               "NAME",
-              "DENOMINATION",
+              "AMOUNT",
               "MIN. DEPOSIT",
               "ANON. SET PER MIX",
               "MAX. PREMIXS PER TX0",

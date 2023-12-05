@@ -75,6 +75,7 @@ public class WhirlpoolWallet {
   protected MixOrchestratorImpl mixOrchestrator;
   private Optional<AutoTx0Orchestrator> autoTx0Orchestrator;
   private MixingStateEditable mixingState;
+  private MixHistory mixHistory;
 
   protected WhirlpoolWallet(WhirlpoolWallet whirlpoolWallet) throws Exception {
     this(whirlpoolWallet.config, whirlpoolWallet.bip44w, whirlpoolWallet.walletIdentifier);
@@ -136,6 +137,7 @@ public class WhirlpoolWallet {
     this.mixOrchestrator = null;
     this.autoTx0Orchestrator = Optional.empty();
     this.mixingState = new MixingStateEditable(this, false);
+    this.mixHistory = new MixHistory();
   }
 
   protected static String computeWalletIdentifier(
@@ -600,6 +602,9 @@ public class WhirlpoolWallet {
     getUtxoConfigSupplier()
         .setMixsDone(receiveUtxo.getHash(), (int) receiveUtxo.getIndex(), newMixsDone);
 
+    // stats
+    mixHistory.onMixSuccess(mixParams, receiveUtxo);
+
     // persist
     try {
       dataPersister.persist(true);
@@ -628,7 +633,7 @@ public class WhirlpoolWallet {
     if (notifiableError != null) {
       message += " ; " + notifiableError;
     }
-    if (MixFailReason.CANCEL.equals(failReason)) {
+    if (failReason.isSilent()) {
       log.info(logPrefix + message);
     } else {
       MixDestination destination = whirlpoolUtxo.getUtxoState().getMixProgress().getDestination();
@@ -642,6 +647,11 @@ public class WhirlpoolWallet {
                   + destination.getType()
               : "");
       log.error(logPrefix + "⣿ WHIRLPOOL FAILED ⣿ " + message + destinationStr);
+    }
+
+    // mix history
+    if (!failReason.isSilent()) {
+      mixHistory.onMixFail(mixParams, failReason, notifiableError);
     }
 
     // notify
@@ -827,6 +837,10 @@ public class WhirlpoolWallet {
 
   public WhirlpoolWalletConfig getConfig() {
     return config;
+  }
+
+  public MixHistory getMixHistory() {
+    return mixHistory;
   }
 
   protected DataPersister getDataPersister() {
