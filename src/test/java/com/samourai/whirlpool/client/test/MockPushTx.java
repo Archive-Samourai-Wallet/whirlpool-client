@@ -2,6 +2,7 @@ package com.samourai.whirlpool.client.test;
 
 import com.samourai.wallet.api.backend.IPushTx;
 import com.samourai.wallet.util.TxUtil;
+import java.util.Collection;
 import java.util.LinkedHashSet;
 import java.util.Set;
 import org.bitcoinj.core.NetworkParameters;
@@ -27,6 +28,11 @@ public class MockPushTx implements IPushTx {
     txids.add(txid);
     txRaws.add(hexTx);
     return txid;
+  }
+
+  @Override
+  public String pushTx(String txHex, Collection<Integer> strictModeVouts) throws Exception {
+    return pushTx(txHex);
   }
 
   public void assertTx(String txid, String raw) {

@@ -1,21 +1,19 @@
 package com.samourai.whirlpool.client.wallet.data.coordinator;
 
-import com.samourai.soroban.client.rpc.RpcSession;
+import com.samourai.soroban.client.PayloadWithSender;
 import com.samourai.wallet.api.backend.beans.HttpException;
-import com.samourai.wallet.util.AsyncUtil;
-import com.samourai.wallet.util.CallbackWithArg;
-import com.samourai.wallet.util.RandomUtil;
-import com.samourai.wallet.util.Util;
+import com.samourai.wallet.util.*;
 import com.samourai.whirlpool.client.event.PoolsChangeEvent;
-import com.samourai.whirlpool.client.soroban.SorobanClientApi;
 import com.samourai.whirlpool.client.tx0.Tx0PreviewService;
 import com.samourai.whirlpool.client.utils.ClientUtils;
 import com.samourai.whirlpool.client.wallet.WhirlpoolEventService;
+import com.samourai.whirlpool.client.wallet.beans.WhirlpoolNetwork;
 import com.samourai.whirlpool.client.wallet.data.pool.PoolData;
 import com.samourai.whirlpool.client.wallet.data.supplier.ExpirableSupplier;
 import com.samourai.whirlpool.client.whirlpool.beans.Coordinator;
 import com.samourai.whirlpool.client.whirlpool.beans.Pool;
-import com.samourai.whirlpool.protocol.soroban.RegisterCoordinatorSorobanMessage;
+import com.samourai.whirlpool.protocol.soroban.RegisterCoordinatorMessage;
+import com.samourai.whirlpool.protocol.soroban.api.WhirlpoolApiClient;
 import java.util.Collection;
 import java.util.stream.Collectors;
 import org.slf4j.Logger;
@@ -25,22 +23,47 @@ public class ExpirableCoordinatorSupplier extends ExpirableSupplier<CoordinatorD
     implements CoordinatorSupplier {
   private static final Logger log = LoggerFactory.getLogger(ExpirableCoordinatorSupplier.class);
   private static final AsyncUtil asyncUtil = AsyncUtil.getInstance();
+  private static final MessageSignUtilGeneric messageSignUtil =
+      MessageSignUtilGeneric.getInstance();
   private static final int COORDINATOR_ATTEMPTS = 5;
 
   private final WhirlpoolEventService eventService = WhirlpoolEventService.getInstance();
-  private final SorobanClientApi sorobanClientApi;
-  private RpcSession rpcSession;
+  private final WhirlpoolApiClient whirlpoolApiClient;
+  private WhirlpoolNetwork whirlpoolNetwork;
   protected final Tx0PreviewService tx0PreviewService;
 
   public ExpirableCoordinatorSupplier(
       int refreshPoolsDelay,
-      SorobanClientApi sorobanClientApi,
-      RpcSession rpcSession,
+      WhirlpoolApiClient whirlpoolApiClient,
+      WhirlpoolNetwork whirlpoolNetwork,
       Tx0PreviewService tx0PreviewService) {
     super(refreshPoolsDelay, log);
-    this.sorobanClientApi = sorobanClientApi;
-    this.rpcSession = rpcSession;
+    this.whirlpoolApiClient = whirlpoolApiClient;
+    this.whirlpoolNetwork = whirlpoolNetwork;
     this.tx0PreviewService = tx0PreviewService;
+  }
+
+  protected boolean validateCoordinator(PayloadWithSender<RegisterCoordinatorMessage> m) {
+    RegisterCoordinatorMessage payload = m.getPayload();
+    // check coordinator.paymentCode against sender
+    if (!m.getSender().toString().equals(payload.coordinator.paymentCode)) {
+      if (log.isDebugEnabled()) {
+        log.warn("Could not trust coordinator: invalid sender vs coordinator.paymentCode");
+      }
+      return false;
+    }
+
+    // check coordinator.paymentCodeSignature against samourai signature
+    if (!messageSignUtil.verifySignedMessage(
+        whirlpoolNetwork.getSigningAddress(),
+        payload.coordinator.paymentCode,
+        payload.coordinator.paymentCodeSignature,
+        whirlpoolNetwork.getParams())) {
+      if (log.isDebugEnabled()) {
+        log.warn("Could not trust coordinator: invalid coordinator.paymentCodeSignature");
+      }
+    }
+    return true;
   }
 
   @Override
@@ -49,20 +72,17 @@ public class ExpirableCoordinatorSupplier extends ExpirableSupplier<CoordinatorD
       log.debug("fetching coordinators...");
     }
     try {
-      return rpcSession.withSorobanClient(
-          sorobanClient -> {
-            Collection<RegisterCoordinatorSorobanMessage> registerCoordinatorSorobanMessages =
-                asyncUtil.blockingGet(sorobanClientApi.fetchCoordinators(sorobanClient));
-            CoordinatorData coordinatorData =
-                new CoordinatorData(registerCoordinatorSorobanMessages, tx0PreviewService);
+      Collection<RegisterCoordinatorMessage> registerCoordinatorMessages =
+          asyncUtil.blockingGet(whirlpoolApiClient.fetchCoordinators(m -> validateCoordinator(m)));
+      CoordinatorData coordinatorData =
+          new CoordinatorData(registerCoordinatorMessages, tx0PreviewService);
 
-            if (coordinatorData.getCoordinators().isEmpty()) {
-              // immediately retry on another SorobanServer as current one it may be out-of-sync
-              throw new HttpException("No Whirlpool coordinator found, retrying...");
-            }
-            return coordinatorData;
-          });
-    } catch (HttpException e) {
+      if (coordinatorData.getCoordinators().isEmpty()) {
+        // immediately retry on another SorobanServer as current one it may be out-of-sync
+        throw new HttpException("No Whirlpool coordinator found, retrying...");
+      }
+      return coordinatorData;
+    } catch (HttpException e) { // TODO ?
       throw ClientUtils.wrapRestError(e);
     }
   }
@@ -116,7 +136,7 @@ public class ExpirableCoordinatorSupplier extends ExpirableSupplier<CoordinatorD
   }
 
   @Override
-  public <R> R withCoordinator(CallbackWithArg<Coordinator, R> callable) throws Exception {
+  public <R> R withCoordinatorRandom(CallbackWithArg<Coordinator, R> callable) throws Exception {
     return Util.retryOnHttpException(() -> getCoordinatorRandom(), callable, COORDINATOR_ATTEMPTS);
   }
 
@@ -125,16 +145,12 @@ public class ExpirableCoordinatorSupplier extends ExpirableSupplier<CoordinatorD
   @Override
   public Coordinator getCoordinatorRandom() {
     if (getCoordinators().isEmpty()) {
-      throw new RuntimeException("No Whirlpool coordinator found, please retry later");
+      throw new RuntimeException(
+          "No Whirlpool coordinator found, please retry later or check for upgrade");
     }
     Coordinator coordinator = RandomUtil.getInstance().next(getCoordinators());
     if (log.isDebugEnabled()) {
-      System.err.println(
-          "NEXT "
-              + getCoordinators().size()
-              + " = "
-              + (coordinator != null ? "coordinator" : "null"));
-      log.debug("Using coordinator: " + coordinator.getUrlClear());
+      log.debug("Using coordinator: " + coordinator.getCoordinatorId());
     }
     return coordinator;
   }
@@ -149,11 +165,6 @@ public class ExpirableCoordinatorSupplier extends ExpirableSupplier<CoordinatorD
       }
     }
     return getValue().getCoordinators();
-  }
-
-  @Override
-  public Coordinator findCoordinatorById(String coordinatorId) {
-    return getValue().findCoordinatorById(coordinatorId);
   }
 
   @Override

@@ -4,7 +4,6 @@ import com.samourai.http.client.HttpUsage;
 import com.samourai.http.client.IHttpClientService;
 import com.samourai.soroban.client.rpc.RpcClientService;
 import com.samourai.soroban.client.wallet.SorobanWalletService;
-import com.samourai.stomp.client.IStompClientService;
 import com.samourai.tor.client.TorClientService;
 import com.samourai.wallet.bip47.BIP47UtilGeneric;
 import com.samourai.wallet.bip47.rpc.java.Bip47UtilJava;
@@ -12,7 +11,6 @@ import com.samourai.wallet.bip47.rpc.secretPoint.ISecretPointFactory;
 import com.samourai.wallet.crypto.CryptoUtil;
 import com.samourai.wallet.util.FormatsUtilGeneric;
 import com.samourai.whirlpool.client.exception.NotifiableException;
-import com.samourai.whirlpool.client.soroban.SorobanClientApi;
 import com.samourai.whirlpool.client.tx0.ITx0PreviewServiceConfig;
 import com.samourai.whirlpool.client.utils.ClientUtils;
 import com.samourai.whirlpool.client.wallet.beans.IndexRange;
@@ -23,9 +21,7 @@ import com.samourai.whirlpool.client.wallet.data.dataPersister.FileDataPersister
 import com.samourai.whirlpool.client.wallet.data.dataSource.DataSourceFactory;
 import com.samourai.whirlpool.client.whirlpool.WhirlpoolClientConfig;
 import com.samourai.whirlpool.protocol.WhirlpoolProtocol;
-import com.samourai.whirlpool.protocol.WhirlpoolProtocolSoroban;
 import com.samourai.whirlpool.protocol.feeOpReturn.FeeOpReturnImpl;
-import com.samourai.whirlpool.protocol.feeOpReturn.FeeOpReturnImplV0;
 import com.samourai.whirlpool.protocol.feeOpReturn.FeeOpReturnImplV1;
 import com.samourai.whirlpool.protocol.util.XorMask;
 import com.samourai.xmanager.client.XManagerClient;
@@ -76,7 +72,6 @@ public class WhirlpoolWalletConfig extends WhirlpoolClientConfig
   private SorobanWalletService sorobanWalletService; // may be null
   private BIP47UtilGeneric bip47Util;
   private FeeOpReturnImpl feeOpReturnImpl;
-  private boolean opReturnV0;
 
   public WhirlpoolWalletConfig(
       DataSourceFactory dataSourceFactory,
@@ -85,7 +80,6 @@ public class WhirlpoolWalletConfig extends WhirlpoolClientConfig
       SorobanWalletService sorobanWalletService,
       IHttpClientService httpClientService,
       RpcClientService rpcClientService,
-      IStompClientService stompClientService,
       TorClientService torClientService,
       BIP47UtilGeneric bip47Util,
       WhirlpoolNetwork whirlpoolNetwork,
@@ -94,10 +88,8 @@ public class WhirlpoolWalletConfig extends WhirlpoolClientConfig
     // Android => odd indexs, CLI => even indexs
     super(
         httpClientService,
-        stompClientService,
         torClientService,
         rpcClientService,
-        new SorobanClientApi(whirlpoolNetwork, new WhirlpoolProtocolSoroban()),
         bip47Util,
         cryptoUtil,
         null,
@@ -146,7 +138,6 @@ public class WhirlpoolWalletConfig extends WhirlpoolClientConfig
     // use OpReturnImplV1
     XorMask xorMask = XorMask.getInstance(secretPointFactory);
     feeOpReturnImpl = new FeeOpReturnImplV1(xorMask);
-    opReturnV0 = false;
   }
 
   public void verify() throws Exception {
@@ -425,21 +416,10 @@ public class WhirlpoolWalletConfig extends WhirlpoolClientConfig
     return feeOpReturnImpl;
   }
 
-  public boolean isOpReturnV0() {
-    return opReturnV0;
-  }
-
-  public void setFeeOpReturnImplV0() {
-    XorMask xorMask = XorMask.getInstance(secretPointFactory);
-    this.feeOpReturnImpl = new FeeOpReturnImplV0(xorMask);
-    opReturnV0 = true;
-  }
-
   public Map<String, String> getConfigInfo() {
     Map<String, String> configInfo = new LinkedHashMap<String, String>();
     configInfo.put("dataSourceFactory", dataSourceFactory.getClass().getSimpleName());
     configInfo.put("dataPersisterFactory", dataPersisterFactory.getClass().getSimpleName());
-    configInfo.put("protocolVersion", WhirlpoolProtocol.PROTOCOL_VERSION);
     configInfo.put(
         "server",
         "network="

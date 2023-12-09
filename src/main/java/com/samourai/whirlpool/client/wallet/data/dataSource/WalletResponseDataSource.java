@@ -28,6 +28,7 @@ import com.samourai.whirlpool.client.wallet.data.utxo.UtxoData;
 import com.samourai.whirlpool.client.wallet.data.utxo.UtxoSupplier;
 import com.samourai.whirlpool.client.wallet.data.utxoConfig.UtxoConfigSupplier;
 import com.samourai.whirlpool.client.wallet.data.walletState.WalletStateSupplier;
+import com.samourai.whirlpool.protocol.soroban.api.WhirlpoolApiClient;
 import java.util.Map;
 import org.apache.commons.lang3.math.NumberUtils;
 import org.slf4j.Logger;
@@ -96,9 +97,14 @@ public abstract class WalletResponseDataSource implements DataSource {
 
   protected ExpirableCoordinatorSupplier computeCoordinatorSupplier(
       WhirlpoolWalletConfig config, Tx0PreviewService tx0PreviewService) throws Exception {
-    RpcSession rpcSession = config.getRpcClientService().generateRpcSession();
+    RpcSession rpcSession = config.getRpcClientService().generateRpcWallet().createRpcSession();
+    WhirlpoolApiClient whirlpoolApiClient =
+        new WhirlpoolApiClient(rpcSession, config.getSorobanProtocolWhirlpool());
     return new ExpirableCoordinatorSupplier(
-        config.getRefreshPoolsDelay(), config.getSorobanClientApi(), rpcSession, tx0PreviewService);
+        config.getRefreshPoolsDelay(),
+        whirlpoolApiClient,
+        config.getWhirlpoolNetwork(),
+        tx0PreviewService);
   }
 
   protected BasicChainSupplier computeChainSupplier() throws Exception {

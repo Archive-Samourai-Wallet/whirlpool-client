@@ -16,6 +16,4 @@ public interface ITx0PreviewServiceConfig {
   String getScode();
 
   String getPartner();
-
-  boolean isOpReturnV0();
 }

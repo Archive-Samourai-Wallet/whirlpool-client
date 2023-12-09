@@ -1,25 +1,13 @@
 package com.samourai.whirlpool.client.whirlpool;
 
-import com.samourai.whirlpool.client.exception.PushTxErrorResponseException;
 import com.samourai.whirlpool.client.test.AbstractTest;
-import com.samourai.whirlpool.client.wallet.beans.WhirlpoolServer;
-import com.samourai.whirlpool.protocol.WhirlpoolProtocol;
-import com.samourai.whirlpool.protocol.rest.Tx0DataRequestV2;
-import com.samourai.whirlpool.protocol.rest.Tx0DataResponseV2;
-import com.samourai.whirlpool.protocol.rest.Tx0PushRequest;
-import java.util.Arrays;
-import org.bitcoinj.core.Utils;
-import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.Test;
 
 public class ServerApiTest extends AbstractTest {
-  private ServerApi serverApi;
-
+  // TODO
   public ServerApiTest() throws Exception {
     super();
-    String urlServer = WhirlpoolServer.TESTNET.getServerUrlClear();
-    serverApi = new ServerApi(urlServer, httpClient, httpClient);
   }
+  /*
 
   @Test
   public void pushTx_fail_invalid() throws Exception {
@@ -88,5 +76,5 @@ public class ServerApiTest extends AbstractTest {
       Assertions.assertEquals(46, WhirlpoolProtocol.decodeBytes(tx0Data.feePayload64).length);
     }
     Assertions.assertNull(response.tx0Datas[0].message);
-  }
+  }*/
 }

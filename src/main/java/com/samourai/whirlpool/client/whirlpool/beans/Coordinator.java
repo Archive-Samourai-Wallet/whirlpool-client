@@ -10,20 +10,11 @@ public class Coordinator {
 
   private String coordinatorId;
   private PaymentCode paymentCode;
-  private String urlClear;
-  private String urlOnion;
   private Collection<String> poolIds;
 
-  public Coordinator(
-      String coordinatorId,
-      PaymentCode paymentCode,
-      String urlClear,
-      String urlOnion,
-      Collection<String> poolIds) {
+  public Coordinator(String coordinatorId, PaymentCode paymentCode, Collection<String> poolIds) {
     this.coordinatorId = coordinatorId;
     this.paymentCode = paymentCode;
-    this.urlClear = urlClear;
-    this.urlOnion = urlOnion;
     this.poolIds = poolIds;
   }
 
@@ -35,29 +26,12 @@ public class Coordinator {
     return paymentCode;
   }
 
-  public String getUrlClear() {
-    return urlClear;
-  }
-
-  public String getUrlOnion() {
-    return urlOnion;
-  }
-
   public Collection<String> getPoolIds() {
     return poolIds;
   }
 
   @Override
   public String toString() {
-    return "coordinatorId='"
-        + coordinatorId
-        + '\''
-        + ", paymentCode="
-        + paymentCode
-        + ", urlClear='"
-        + urlClear
-        + '\''
-        + ", urlOnion='"
-        + urlOnion;
+    return "coordinatorId='" + coordinatorId + '\'' + ", paymentCode=" + paymentCode;
   }
 }

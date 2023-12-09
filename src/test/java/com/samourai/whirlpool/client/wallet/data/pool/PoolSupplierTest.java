@@ -18,7 +18,7 @@ public class PoolSupplierTest extends AbstractTest {
 
   @BeforeEach
   public void setUp() throws Exception {
-    this.supplier = mockCoordinatorSupplier();
+    this.supplier = (ExpirableCoordinatorSupplier) coordinatorSupplier;
   }
 
   @Test

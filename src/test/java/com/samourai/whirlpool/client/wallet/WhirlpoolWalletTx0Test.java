@@ -7,12 +7,10 @@ import com.samourai.whirlpool.client.tx0.Tx0;
 import com.samourai.whirlpool.client.tx0.Tx0Config;
 import com.samourai.whirlpool.client.wallet.beans.Tx0FeeTarget;
 import com.samourai.whirlpool.client.wallet.beans.WhirlpoolAccount;
-import com.samourai.whirlpool.client.wallet.beans.WhirlpoolServer;
 import com.samourai.whirlpool.client.wallet.beans.WhirlpoolUtxo;
 import com.samourai.whirlpool.client.wallet.data.pool.PoolSupplier;
-import com.samourai.whirlpool.client.whirlpool.ServerApi;
 import com.samourai.whirlpool.client.whirlpool.beans.Pool;
-import com.samourai.whirlpool.protocol.rest.Tx0PushRequest;
+import com.samourai.whirlpool.protocol.soroban.tx0.Tx0PushRequest;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.LinkedList;
@@ -58,7 +56,8 @@ public class WhirlpoolWalletTx0Test extends AbstractTx0ServiceTest {
         whirlpoolWallet.getTx0Config(Tx0FeeTarget.BLOCKS_12, Tx0FeeTarget.BLOCKS_12);
 
     // run
-    Tx0 tx0 = whirlpoolWallet.tx0(Arrays.asList(spendFromUtxo), tx0Config, pool);
+    Tx0 tx0 =
+        asyncUtil.blockingGet(whirlpoolWallet.tx0(Arrays.asList(spendFromUtxo), tx0Config, pool));
 
     // verify
     Assertions.assertEquals(1, tx0.getNbPremix());
@@ -422,8 +421,6 @@ public class WhirlpoolWalletTx0Test extends AbstractTx0ServiceTest {
 
     // init whirlpoolWallet
     WhirlpoolWalletService whirlpoolWalletService = new WhirlpoolWalletService();
-    ServerApi serverApi =
-        new ServerApi(WhirlpoolServer.TESTNET.getServerUrlClear(), computeHttpClientService());
     WhirlpoolWalletConfig whirlpoolWalletConfig = computeWhirlpoolWalletConfig();
     byte[] seed = hdWalletFactory.computeSeedFromWords(seedWords);
     WhirlpoolWallet whirlpoolWallet = new WhirlpoolWallet(whirlpoolWalletConfig, seed, passphrase);
@@ -452,8 +449,6 @@ public class WhirlpoolWalletTx0Test extends AbstractTx0ServiceTest {
 
     // init whirlpoolWallet
     WhirlpoolWalletService whirlpoolWalletService = new WhirlpoolWalletService();
-    ServerApi serverApi =
-        new ServerApi(WhirlpoolServer.TESTNET.getServerUrlClear(), computeHttpClientService());
     WhirlpoolWalletConfig whirlpoolWalletConfig = computeWhirlpoolWalletConfig();
     byte[] seed = hdWalletFactory.computeSeedFromWords(seedWords);
     WhirlpoolWallet whirlpoolWallet = new WhirlpoolWallet(whirlpoolWalletConfig, seed, passphrase);

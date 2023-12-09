@@ -1,6 +1,9 @@
 package com.samourai.whirlpool.client.wallet;
 
-import com.samourai.wallet.api.backend.beans.HttpException;
+import com.samourai.wallet.api.backend.BackendApi;
+import com.samourai.wallet.api.backend.IBackendClient;
+import com.samourai.wallet.api.backend.seenBackend.ISeenBackend;
+import com.samourai.wallet.api.backend.seenBackend.SeenResponse;
 import com.samourai.wallet.bipWallet.BipWallet;
 import com.samourai.wallet.client.indexHandler.MemoryIndexHandlerSupplier;
 import com.samourai.wallet.hd.BIP_WALLET;
@@ -8,10 +11,6 @@ import com.samourai.wallet.hd.HD_Wallet;
 import com.samourai.wallet.hd.HD_WalletFactoryGeneric;
 import com.samourai.whirlpool.client.exception.PostmixIndexAlreadyUsedException;
 import com.samourai.whirlpool.client.test.AbstractTest;
-import com.samourai.whirlpool.client.utils.ClientUtils;
-import com.samourai.whirlpool.client.whirlpool.ServerApi;
-import com.samourai.whirlpool.protocol.rest.CheckOutputRequest;
-import com.samourai.whirlpool.protocol.rest.RestErrorResponse;
 import io.reactivex.Single;
 import io.reactivex.schedulers.Schedulers;
 import java.util.LinkedList;
@@ -55,27 +54,27 @@ public class PostmixIndexServiceTest extends AbstractTest {
     PostmixIndexAlreadyUsedException e =
         Assertions.assertThrows(
             PostmixIndexAlreadyUsedException.class,
-            () -> postmixIndexService.checkPostmixIndex(walletPostmix, serverApi));
+            () -> postmixIndexService.checkPostmixIndex(walletPostmix, oxtApi));
     Assertions.assertEquals(0, e.getPostmixIndex());
   }
 
   @Test
   public void checkPostmixIndex_failure() throws Exception {
-    ServerApi serverApi = new ServerApi("http://foo", computeHttpClientService());
+    ISeenBackend seenBackend = BackendApi.newBackendApiDojo(httpClient, "http://foo", "foo");
 
     // ignore other errors such as http timeout
-    postmixIndexService.checkPostmixIndex(walletPostmix, serverApi); // no exception thrown
+    postmixIndexService.checkPostmixIndex(walletPostmix, seenBackend); // no exception thrown
   }
 
   private void doCheckPostmixIndexMock(int validPostmixIndex) throws Exception {
     // mock serverApi
-    ServerApi serverApi = mockServerApi(validPostmixIndex, walletPostmix);
+    ISeenBackend seenBackend = mockSeenBackend(validPostmixIndex, walletPostmix);
     try {
       // check
-      postmixIndexService.checkPostmixIndex(walletPostmix, serverApi);
+      postmixIndexService.checkPostmixIndex(walletPostmix, seenBackend);
     } catch (PostmixIndexAlreadyUsedException e) {
       // postmix index is desynchronized
-      postmixIndexService.fixPostmixIndex(walletPostmix, serverApi);
+      postmixIndexService.fixPostmixIndex(walletPostmix, seenBackend);
     }
 
     // verify
@@ -85,33 +84,31 @@ public class PostmixIndexServiceTest extends AbstractTest {
     Assertions.assertTrue(postmixIndex >= minAcceptable && postmixIndex <= maxAcceptable);
   }
 
-  private ServerApi mockServerApi(int validPostmixIndex, BipWallet walletPostmix) {
+  private ISeenBackend mockSeenBackend(int validPostmixIndex, BipWallet walletPostmix) {
     final List<String> alreadyUsedAddresses = new LinkedList<String>();
     for (int i = 0; i < validPostmixIndex; i++) {
       String address = walletPostmix.getAddressAt(0, i).getAddressString();
       alreadyUsedAddresses.add(address);
     }
 
-    ServerApi serverApi =
-        new ServerApi(null, mockHttpClientService()) {
+    ISeenBackend seenBackend =
+        new ISeenBackend() {
           @Override
-          public Single<Optional<String>> checkOutput(final CheckOutputRequest checkOutputRequest) {
-            return httpObservable(
-                () -> {
-                  if (alreadyUsedAddresses.contains(checkOutputRequest.receiveAddress)) {
-                    // already used
-                    String responseBody =
-                        ClientUtils.toJsonString(
-                            new RestErrorResponse(
-                                611,
-                                PostmixIndexService.CHECKOUTPUT_ERROR_OUTPUT_ALREADY_REGISTERED));
-                    throw new HttpException((Exception) null, responseBody);
-                  }
-                  return "OK";
-                });
+          public SeenResponse seen(String... addresses) throws Exception {
+            return new SeenResponse(null) {
+              @Override
+              public boolean isSeen(String address) {
+                return alreadyUsedAddresses.contains(address);
+              }
+            };
+          }
+
+          @Override
+          public IBackendClient getHttpClient() {
+            return null;
           }
         };
-    return serverApi;
+    return seenBackend;
   }
 
   private <T> Single<Optional<T>> httpObservable(final Callable<T> supplier) {

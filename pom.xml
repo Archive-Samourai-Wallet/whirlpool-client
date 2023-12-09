@@ -20,6 +20,10 @@
                     <groupId>io.samourai.code.wallet</groupId>
                     <artifactId>extlibj</artifactId>
                 </exclusion>
+                <exclusion>
+                    <groupId>io.samourai.code.wallet</groupId>
+                    <artifactId>soroban-client-java</artifactId>
+                </exclusion>
             </exclusions>
         </dependency>
         <dependency>

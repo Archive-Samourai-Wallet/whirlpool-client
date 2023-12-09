@@ -4,21 +4,19 @@ import com.samourai.http.client.HttpUsage;
 import com.samourai.http.client.IHttpClient;
 import com.samourai.http.client.IHttpClientService;
 import com.samourai.soroban.client.rpc.RpcClientService;
-import com.samourai.stomp.client.IStompClientService;
 import com.samourai.tor.client.TorClientService;
 import com.samourai.wallet.bip47.BIP47UtilGeneric;
 import com.samourai.wallet.crypto.CryptoUtil;
-import com.samourai.whirlpool.client.soroban.SorobanClientApi;
+import com.samourai.whirlpool.client.utils.ClientCryptoService;
 import com.samourai.whirlpool.client.wallet.beans.ExternalDestination;
 import com.samourai.whirlpool.client.wallet.beans.IndexRange;
 import com.samourai.whirlpool.client.wallet.beans.WhirlpoolNetwork;
+import com.samourai.whirlpool.protocol.SorobanProtocolWhirlpool;
 
 public class WhirlpoolClientConfig {
   private IHttpClientService httpClientService;
-  private IStompClientService stompClientService;
   private TorClientService torClientService;
   private RpcClientService rpcClientService;
-  private SorobanClientApi sorobanClientApi;
   private BIP47UtilGeneric bip47Util;
   private CryptoUtil cryptoUtil;
   private ExternalDestination externalDestination;
@@ -26,12 +24,13 @@ public class WhirlpoolClientConfig {
   private IndexRange indexRangePostmix;
   private boolean torOnionCoordinator;
 
+  private SorobanProtocolWhirlpool sorobanProtocolWhirlpool;
+  private ClientCryptoService clientCryptoService;
+
   public WhirlpoolClientConfig(
       IHttpClientService httpClientService,
-      IStompClientService stompClientService,
       TorClientService torClientService,
       RpcClientService rpcClientService,
-      SorobanClientApi sorobanClientApi,
       BIP47UtilGeneric bip47Util,
       CryptoUtil cryptoUtil,
       ExternalDestination externalDestination,
@@ -39,16 +38,17 @@ public class WhirlpoolClientConfig {
       IndexRange indexRangePostmix,
       boolean torOnionCoordinator) {
     this.httpClientService = httpClientService;
-    this.stompClientService = stompClientService;
     this.torClientService = torClientService;
     this.rpcClientService = rpcClientService;
-    this.sorobanClientApi = sorobanClientApi;
     this.bip47Util = bip47Util;
     this.cryptoUtil = cryptoUtil;
     this.externalDestination = externalDestination;
     this.whirlpoolNetwork = whirlpoolNetwork;
     this.indexRangePostmix = indexRangePostmix;
     this.torOnionCoordinator = torOnionCoordinator;
+
+    this.sorobanProtocolWhirlpool = new SorobanProtocolWhirlpool(whirlpoolNetwork);
+    this.clientCryptoService = new ClientCryptoService();
   }
 
   public IHttpClientService getHttpClientService() {
@@ -59,24 +59,12 @@ public class WhirlpoolClientConfig {
     return httpClientService.getHttpClient(httpUsage);
   }
 
-  public IStompClientService getStompClientService() {
-    return stompClientService;
-  }
-
   public TorClientService getTorClientService() {
     return torClientService;
   }
 
   public RpcClientService getRpcClientService() {
     return rpcClientService;
-  }
-
-  public SorobanClientApi getSorobanClientApi() {
-    return sorobanClientApi;
-  }
-
-  public void setSorobanClientApi(SorobanClientApi sorobanClientApi) {
-    this.sorobanClientApi = sorobanClientApi;
   }
 
   public BIP47UtilGeneric getBip47Util() {
@@ -125,5 +113,13 @@ public class WhirlpoolClientConfig {
 
   public void setTorClientService(TorClientService torClientService) {
     this.torClientService = torClientService;
+  }
+
+  public SorobanProtocolWhirlpool getSorobanProtocolWhirlpool() {
+    return sorobanProtocolWhirlpool;
+  }
+
+  public ClientCryptoService getClientCryptoService() {
+    return clientCryptoService;
   }
 }

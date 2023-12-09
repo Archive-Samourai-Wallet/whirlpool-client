@@ -2,12 +2,13 @@ import com.google.common.eventbus.Subscribe;
 import com.samourai.http.client.IHttpClientService;
 import com.samourai.soroban.client.rpc.RpcClientService;
 import com.samourai.soroban.client.wallet.SorobanWalletService;
-import com.samourai.stomp.client.IStompClientService;
 import com.samourai.tor.client.TorClientService;
 import com.samourai.wallet.api.backend.BackendServer;
 import com.samourai.wallet.api.backend.IPushTx;
+import com.samourai.wallet.api.backend.ISweepBackend;
 import com.samourai.wallet.api.backend.beans.UnspentOutput;
 import com.samourai.wallet.api.backend.beans.WalletResponse;
+import com.samourai.wallet.api.backend.seenBackend.ISeenBackend;
 import com.samourai.wallet.api.paynym.beans.PaynymState;
 import com.samourai.wallet.bip47.rpc.java.Bip47UtilJava;
 import com.samourai.wallet.bip47.rpc.java.SecretPointFactoryJava;
@@ -20,6 +21,7 @@ import com.samourai.wallet.bipWallet.BipWallet;
 import com.samourai.wallet.bipWallet.WalletSupplierImpl;
 import com.samourai.wallet.crypto.CryptoUtil;
 import com.samourai.wallet.hd.HD_Wallet;
+import com.samourai.wallet.util.AsyncUtil;
 import com.samourai.websocket.client.IWebsocketClient;
 import com.samourai.whirlpool.client.event.*;
 import com.samourai.whirlpool.client.tx0.Tx0;
@@ -47,6 +49,8 @@ import java.util.Arrays;
 import java.util.Collection;
 
 public class JavaExample {
+  private static final AsyncUtil asyncUtil = AsyncUtil.getInstance();
+
   // configure these values as you wish
   private WhirlpoolWalletConfig computeWhirlpoolWalletConfig() {
     // option 1 - use Samourai backend
@@ -64,10 +68,6 @@ public class JavaExample {
     // option 3 - use external backend
     dataSourceFactory =
         computeDataSourceFactoryExternal(); // example of external backend integration
-
-    IStompClientService stompClientService =
-        null; // provide impl here, ie: AndroidStompClientService or
-    // https://code.samourai.io/whirlpool/whirlpool-client-cli/-/blob/develop/src/main/java/com/samourai/stomp/client/JavaStompClient.java
 
     WhirlpoolNetwork whirlpoolNetwork = WhirlpoolNetwork.TESTNET;
 
@@ -91,7 +91,6 @@ public class JavaExample {
             sorobanWalletService,
             httpClientService,
             rpcClientService,
-            stompClientService,
             torClientService,
             bip47Util,
             whirlpoolNetwork,
@@ -171,7 +170,17 @@ public class JavaExample {
 
           @Override
           public IPushTx getPushTx() {
-            return null; // provide pushTx service here
+            return null; // provide impl here
+          }
+
+          @Override
+          public ISweepBackend getSweepBackend() {
+            return null; // provide impl here
+          }
+
+          @Override
+          public ISeenBackend getSeenBackend() {
+            return null; // provide impl here
           }
         };
       };
@@ -309,7 +318,8 @@ public class JavaExample {
       // preview tx0
       try {
         // preview all pools
-        Tx0Previews tx0Previews = whirlpoolWallet.tx0Previews(utxos, tx0Config);
+        Tx0Previews tx0Previews =
+            asyncUtil.blockingGet(whirlpoolWallet.tx0Previews(utxos, tx0Config));
 
         // pool preview
         Tx0Preview tx0Preview = tx0Previews.getTx0Preview("0.5btc");
@@ -346,7 +356,8 @@ public class JavaExample {
       // preview tx0
       try {
         // preview all pools
-        Tx0Previews tx0Previews = whirlpoolWallet.tx0Previews(tx0Config, utxos);
+        Tx0Previews tx0Previews =
+            asyncUtil.blockingGet(whirlpoolWallet.tx0Previews(tx0Config, utxos));
 
         // pool preview
         Tx0Preview tx0Preview = tx0Previews.getTx0Preview("0.5btc");
@@ -360,7 +371,7 @@ public class JavaExample {
 
       // execute tx0
       try {
-        Tx0 tx0 = whirlpoolWallet.tx0(utxos, tx0Config, pool05btc);
+        Tx0 tx0 = asyncUtil.blockingGet(whirlpoolWallet.tx0(utxos, tx0Config, pool05btc));
         String txid = tx0.getTx().getHashAsString(); // get txid
         // mixing will start automatically when tx0 gets confirmed
       } catch (Exception e) {

@@ -1,6 +1,8 @@
 package com.samourai.whirlpool.client.wallet.data.dataSource;
 
 import com.samourai.wallet.api.backend.IPushTx;
+import com.samourai.wallet.api.backend.ISweepBackend;
+import com.samourai.wallet.api.backend.seenBackend.ISeenBackend;
 import com.samourai.wallet.bipWallet.WalletSupplier;
 import com.samourai.wallet.chain.ChainSupplier;
 import com.samourai.whirlpool.client.tx0.Tx0PreviewService;
@@ -16,6 +18,10 @@ public interface DataSource {
   void close() throws Exception;
 
   IPushTx getPushTx();
+
+  ISweepBackend getSweepBackend();
+
+  ISeenBackend getSeenBackend();
 
   WalletSupplier getWalletSupplier();
 

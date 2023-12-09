@@ -12,12 +12,7 @@ import com.samourai.whirlpool.client.utils.ClientCryptoService;
 import com.samourai.whirlpool.client.utils.ClientUtils;
 import com.samourai.whirlpool.protocol.WhirlpoolProtocol;
 import com.samourai.whirlpool.protocol.beans.Utxo;
-import com.samourai.whirlpool.protocol.rest.RegisterOutputRequest;
-import com.samourai.whirlpool.protocol.soroban.InviteMixSorobanMessage;
-import com.samourai.whirlpool.protocol.websocket.messages.*;
-import com.samourai.whirlpool.protocol.websocket.notifications.RegisterOutputMixStatusNotification;
-import com.samourai.whirlpool.protocol.websocket.notifications.RevealOutputMixStatusNotification;
-import com.samourai.whirlpool.protocol.websocket.notifications.SigningMixStatusNotification;
+import com.samourai.whirlpool.protocol.soroban.*;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -125,7 +120,7 @@ public class MixProcess {
     return registerInputRequest;
   }
 
-  protected ConfirmInputRequest confirmInput(InviteMixSorobanMessage inviteMixSorobanMessage)
+  protected ConfirmInputRequest confirmInput(RegisterInputResponse registerInputResponse)
       throws Exception {
     // we may confirmInput several times before getting confirmedInputResponse
     if (!registeredInput
@@ -141,17 +136,14 @@ public class MixProcess {
     // identity
     this.bordereau = ClientUtils.generateBordereau();
     RSAKeyParameters serverPublicKey =
-        ClientUtils.publicKeyUnserialize(inviteMixSorobanMessage.mixPublicKey);
+        ClientUtils.publicKeyUnserialize(registerInputResponse.mixPublicKey);
     this.blindingParams = clientCryptoService.computeBlindingParams(serverPublicKey);
 
-    String mixId = inviteMixSorobanMessage.mixId;
+    String mixId = registerInputResponse.mixId;
     String blindedBordereau64 =
         WhirlpoolProtocol.encodeBytes(clientCryptoService.blind(bordereau, blindingParams));
     String userHash = premixHandler.computeUserHash(mixId);
-    UtxoWithBalance utxo = premixHandler.getUtxo();
-    ConfirmInputRequest confirmInputRequest =
-        new ConfirmInputRequest(
-            mixId, blindedBordereau64, userHash, utxo.getHash(), utxo.getIndex());
+    ConfirmInputRequest confirmInputRequest = new ConfirmInputRequest(blindedBordereau64, userHash);
 
     confirmedInput = true;
     return confirmInputRequest;
@@ -174,7 +166,7 @@ public class MixProcess {
   }
 
   protected RegisterOutputRequest registerOutput(
-      RegisterOutputMixStatusNotification registerOutputMixStatusNotification) throws Exception {
+      RegisterOutputNotification registerOutputNotification) throws Exception {
     if (!registeredInput
         || !confirmedInput
         || !confirmedInputResponse
@@ -184,7 +176,7 @@ public class MixProcess {
       throwProtocolException();
     }
 
-    this.inputsHash = registerOutputMixStatusNotification.getInputsHash();
+    this.inputsHash = registerOutputNotification.getInputsHash();
     this.receiveDestination = postmixHandler.computeDestination();
 
     String unblindedSignedBordereau64 =
@@ -202,8 +194,7 @@ public class MixProcess {
     return registerOutputRequest;
   }
 
-  protected RevealOutputRequest revealOutput(
-      RevealOutputMixStatusNotification revealOutputMixStatusNotification) throws Exception {
+  protected RevealOutputRequest revealOutput() throws Exception {
     if (!registeredInput
         || !confirmedInput
         || !confirmedInputResponse
@@ -214,15 +205,13 @@ public class MixProcess {
     }
 
     RevealOutputRequest revealOutputRequest =
-        new RevealOutputRequest(
-            revealOutputMixStatusNotification.mixId, this.receiveDestination.getAddress());
+        new RevealOutputRequest(this.receiveDestination.getAddress());
 
     revealedOutput = true;
     return revealOutputRequest;
   }
 
-  protected SigningRequest signing(SigningMixStatusNotification signingMixStatusNotification)
-      throws Exception {
+  protected SigningRequest signing(SigningNotification signingNotification) throws Exception {
     if (!registeredInput
         || !confirmedInput
         || !confirmedInputResponse
@@ -232,7 +221,7 @@ public class MixProcess {
       throwProtocolException();
     }
 
-    byte[] rawTx = WhirlpoolProtocol.decodeBytes(signingMixStatusNotification.transaction64);
+    byte[] rawTx = WhirlpoolProtocol.decodeBytes(signingNotification.transaction64);
     Transaction tx = new Transaction(params, rawTx);
 
     // verify tx
@@ -245,8 +234,7 @@ public class MixProcess {
 
     // transmit
     String[] witnesses64 = ClientUtils.witnessSerialize64(tx.getWitness(inputIndex));
-    SigningRequest signingRequest =
-        new SigningRequest(signingMixStatusNotification.mixId, witnesses64);
+    SigningRequest signingRequest = new SigningRequest(witnesses64);
 
     signed = true;
     return signingRequest;

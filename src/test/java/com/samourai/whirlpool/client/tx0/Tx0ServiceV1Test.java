@@ -259,7 +259,7 @@ public class Tx0ServiceV1Test extends AbstractTx0ServiceTest {
     Tx0Config tx0Config =
         new Tx0Config(
             tx0PreviewService,
-            mockCoordinatorSupplier().getPools(),
+            coordinatorSupplier.getPools(),
             Tx0FeeTarget.BLOCKS_24,
             Tx0FeeTarget.BLOCKS_24,
             WhirlpoolAccount.DEPOSIT);
@@ -494,7 +494,7 @@ public class Tx0ServiceV1Test extends AbstractTx0ServiceTest {
     Tx0Config tx0Config =
         new Tx0Config(
             tx0PreviewService,
-            mockCoordinatorSupplier().getPools(),
+            coordinatorSupplier.getPools(),
             Tx0FeeTarget.BLOCKS_24,
             Tx0FeeTarget.BLOCKS_24,
             WhirlpoolAccount.DEPOSIT);
@@ -578,7 +578,7 @@ public class Tx0ServiceV1Test extends AbstractTx0ServiceTest {
     Tx0Config tx0Config =
         new Tx0Config(
             tx0PreviewService,
-            mockCoordinatorSupplier().getPools(),
+            coordinatorSupplier.getPools(),
             Tx0FeeTarget.BLOCKS_24,
             Tx0FeeTarget.BLOCKS_24,
             WhirlpoolAccount.DEPOSIT);
@@ -662,7 +662,7 @@ public class Tx0ServiceV1Test extends AbstractTx0ServiceTest {
     Tx0Config tx0Config =
         new Tx0Config(
             tx0PreviewService,
-            mockCoordinatorSupplier().getPools(),
+            coordinatorSupplier.getPools(),
             Tx0FeeTarget.BLOCKS_24,
             Tx0FeeTarget.BLOCKS_24,
             WhirlpoolAccount.DEPOSIT);
@@ -745,7 +745,7 @@ public class Tx0ServiceV1Test extends AbstractTx0ServiceTest {
     Tx0Config tx0Config =
         new Tx0Config(
             tx0PreviewService,
-            mockCoordinatorSupplier().getPools(),
+            coordinatorSupplier.getPools(),
             Tx0FeeTarget.BLOCKS_24,
             Tx0FeeTarget.BLOCKS_24,
             WhirlpoolAccount.POSTMIX);

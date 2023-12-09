@@ -10,11 +10,9 @@ public interface CoordinatorSupplier extends PoolSupplier {
 
   Coordinator getCoordinatorRandom();
 
-  Coordinator findCoordinatorById(String coordinatorId);
-
   Coordinator findCoordinatorByPoolId(String poolId);
 
-  <R> R withCoordinator(CallbackWithArg<Coordinator, R> callable) throws Exception;
+  <R> R withCoordinatorRandom(CallbackWithArg<Coordinator, R> callable) throws Exception;
 
   void refresh() throws Exception;
 }

@@ -1,7 +1,7 @@
 package com.samourai.whirlpool.client.whirlpool.beans;
 
 import com.samourai.whirlpool.protocol.WhirlpoolProtocol;
-import com.samourai.whirlpool.protocol.rest.Tx0DataResponseV2;
+import com.samourai.whirlpool.protocol.soroban.tx0.Tx0DataResponse;
 
 public class Tx0Data {
   private String poolId;
@@ -13,7 +13,7 @@ public class Tx0Data {
   private byte[] feePayload;
   private String feeAddress;
 
-  public Tx0Data(Tx0DataResponseV2.Tx0Data tx0DataItem) throws Exception {
+  public Tx0Data(Tx0DataResponse.Tx0Data tx0DataItem) throws Exception {
     this(
         tx0DataItem.poolId,
         tx0DataItem.feePaymentCode,

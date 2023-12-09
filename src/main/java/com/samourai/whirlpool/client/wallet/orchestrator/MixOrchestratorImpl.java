@@ -150,7 +150,7 @@ public class MixOrchestratorImpl extends MixOrchestrator {
     CoordinatorSupplier coordinatorSupplier = whirlpoolWallet.getCoordinatorSupplier();
 
     // generate temporary Soroban identity
-    RpcSession rpcSession = config.getRpcClientService().generateRpcSession();
+    RpcSession rpcSession = config.getRpcClientService().generateRpcWallet().createRpcSession();
     return new MixParams(
         pool,
         whirlpoolUtxo,

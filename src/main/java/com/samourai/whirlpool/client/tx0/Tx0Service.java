@@ -18,20 +18,20 @@ import com.samourai.wallet.util.AsyncUtil;
 import com.samourai.wallet.util.TxUtil;
 import com.samourai.whirlpool.client.event.Tx0Event;
 import com.samourai.whirlpool.client.exception.NotifiableException;
-import com.samourai.whirlpool.client.exception.PushTxErrorResponseException;
 import com.samourai.whirlpool.client.utils.BIP69InputComparatorUnspentOutput;
 import com.samourai.whirlpool.client.utils.ClientUtils;
 import com.samourai.whirlpool.client.wallet.WhirlpoolEventService;
 import com.samourai.whirlpool.client.wallet.WhirlpoolWallet;
-import com.samourai.whirlpool.client.whirlpool.ServerApi;
 import com.samourai.whirlpool.client.whirlpool.beans.Pool;
 import com.samourai.whirlpool.client.whirlpool.beans.PoolComparatorByDenominationDesc;
 import com.samourai.whirlpool.client.whirlpool.beans.Tx0Data;
 import com.samourai.whirlpool.protocol.WhirlpoolProtocol;
 import com.samourai.whirlpool.protocol.feeOpReturn.FeeOpReturnImpl;
-import com.samourai.whirlpool.protocol.rest.PushTxErrorResponse;
-import com.samourai.whirlpool.protocol.rest.PushTxSuccessResponse;
-import com.samourai.whirlpool.protocol.rest.Tx0PushRequest;
+import com.samourai.whirlpool.protocol.soroban.PushTxErrorResponse;
+import com.samourai.whirlpool.protocol.soroban.PushTxSuccessResponse;
+import com.samourai.whirlpool.protocol.soroban.api.WhirlpoolPartnerApiClient;
+import com.samourai.whirlpool.protocol.soroban.exception.PushTxErrorException;
+import com.samourai.whirlpool.protocol.soroban.tx0.Tx0PushRequest;
 import io.reactivex.Single;
 import java.util.*;
 import org.bitcoinj.core.*;
@@ -43,11 +43,12 @@ import org.slf4j.LoggerFactory;
 
 public class Tx0Service {
   private Logger log = LoggerFactory.getLogger(Tx0Service.class);
+  private static final Bech32UtilGeneric bech32Util = Bech32UtilGeneric.getInstance();
+  private static final AsyncUtil asyncUtil = AsyncUtil.getInstance();
 
   private Tx0PreviewService tx0PreviewService;
   private NetworkParameters params;
   private FeeOpReturnImpl feeOpReturnImpl;
-  private final Bech32UtilGeneric bech32Util = Bech32UtilGeneric.getInstance();
 
   public Tx0Service(
       NetworkParameters params,
@@ -66,41 +67,44 @@ public class Tx0Service {
   }
 
   /** Generate maxOutputs premixes outputs max. */
-  public Tx0 tx0(
+  public Single<Tx0> tx0(
       Collection<UnspentOutput> spendFroms,
       WalletSupplier walletSupplier,
       Pool pool,
       Tx0Config tx0Config,
       UtxoKeyProvider utxoKeyProvider,
-      ServerApi serverApi)
-      throws Exception {
+      WhirlpoolPartnerApiClient whirlpoolPartnerApiClient) {
 
     // compute & preview
-    Tx0Previews tx0Previews = tx0PreviewService.tx0Previews(tx0Config, spendFroms, serverApi);
-    Tx0Preview tx0Preview = tx0Previews.getTx0Preview(pool.getPoolId());
-    if (tx0Preview == null) {
-      throw new NotifiableException("Tx0 not possible for pool: " + pool.getPoolId());
-    }
+    return tx0PreviewService
+        .tx0Previews(tx0Config, spendFroms, whirlpoolPartnerApiClient)
+        .map(
+            tx0Previews -> {
+              Tx0Preview tx0Preview = tx0Previews.getTx0Preview(pool.getPoolId());
+              if (tx0Preview == null) {
+                throw new NotifiableException("Tx0 not possible for pool: " + pool.getPoolId());
+              }
 
-    log.info(
-        " • Tx0: spendFrom="
-            + spendFroms
-            + ", changeWallet="
-            + tx0Config.getChangeWallet().name()
-            + ", tx0Preview={"
-            + tx0Preview
-            + "}");
+              log.info(
+                  " • Tx0: spendFrom="
+                      + spendFroms
+                      + ", changeWallet="
+                      + tx0Config.getChangeWallet().name()
+                      + ", tx0Preview={"
+                      + tx0Preview
+                      + "}");
 
-    Tx0 tx0 = tx0(spendFroms, walletSupplier, tx0Config, tx0Preview, utxoKeyProvider);
-    log.info(
-        " • Tx0 result: txid="
-            + tx0.getTx().getHashAsString()
-            + ", nbPremixs="
-            + tx0.getPremixOutputs().size());
-    if (log.isDebugEnabled()) {
-      log.debug(tx0.getTx().toString());
-    }
-    return tx0;
+              Tx0 tx0 = tx0(spendFroms, walletSupplier, tx0Config, tx0Preview, utxoKeyProvider);
+              log.info(
+                  " • Tx0 result: txid="
+                      + tx0.getTx().getHashAsString()
+                      + ", nbPremixs="
+                      + tx0.getPremixOutputs().size());
+              if (log.isDebugEnabled()) {
+                log.debug(tx0.getTx().toString());
+              }
+              return tx0;
+            });
   }
 
   public Tx0 tx0(
@@ -392,7 +396,7 @@ public class Tx0Service {
       Collection<Pool> poolsChoice,
       Tx0Config tx0Config,
       UtxoKeyProvider utxoKeyProvider,
-      ServerApi serverApi)
+      WhirlpoolPartnerApiClient whirlpoolPartnerApiClient)
       throws Exception {
     List<Tx0> tx0List = new ArrayList<>();
 
@@ -406,7 +410,15 @@ public class Tx0Service {
     if (log.isDebugEnabled()) {
       log.debug(" +Tx0 cascading for poolId=" + poolInitial.getPoolId() + "... (1/x)");
     }
-    Tx0 tx0 = tx0(spendFroms, walletSupplier, poolInitial, tx0Config, utxoKeyProvider, serverApi);
+    Tx0 tx0 =
+        asyncUtil.blockingGet(
+            tx0(
+                spendFroms,
+                walletSupplier,
+                poolInitial,
+                tx0Config,
+                utxoKeyProvider,
+                whirlpoolPartnerApiClient));
     tx0List.add(tx0);
     tx0Config.setCascadingParent(tx0);
     UnspentOutput unspentOutputChange = findTx0Change(tx0);
@@ -428,13 +440,14 @@ public class Tx0Service {
                   + "/x)");
         }
         tx0 =
-            tx0(
-                Collections.singletonList(unspentOutputChange),
-                walletSupplier,
-                pool,
-                tx0Config,
-                utxoKeyProvider,
-                serverApi);
+            asyncUtil.blockingGet(
+                tx0(
+                    Collections.singletonList(unspentOutputChange),
+                    walletSupplier,
+                    pool,
+                    tx0Config,
+                    utxoKeyProvider,
+                    whirlpoolPartnerApiClient));
         tx0List.add(tx0);
         tx0Config.setCascadingParent(tx0);
         unspentOutputChange = findTx0Change(tx0);
@@ -462,23 +475,22 @@ public class Tx0Service {
     SendFactoryGeneric.getInstance().signTransaction(tx, keyBag, bipFormatSupplier);
   }
 
-  public Single<PushTxSuccessResponse> pushTx0(
-      Tx0 tx0, WhirlpoolWallet whirlpoolWallet, ServerApi serverApi) throws Exception {
-    // push to coordinator
+  public PushTxSuccessResponse pushTx0(
+      Tx0 tx0, WhirlpoolWallet whirlpoolWallet, WhirlpoolPartnerApiClient whirlpoolPartnerApiClient)
+      throws Exception {
     String tx64 = WhirlpoolProtocol.encodeBytes(tx0.getTx().bitcoinSerialize());
     String poolId = tx0.getPool().getPoolId();
     Tx0PushRequest request = new Tx0PushRequest(tx64, poolId);
-    return serverApi
-        .pushTx0(request)
-        .doOnSuccess(
-            pushTxSuccessResponse -> {
-              // notify
-              WhirlpoolEventService.getInstance().post(new Tx0Event(whirlpoolWallet, tx0));
-            });
+    PushTxSuccessResponse response =
+        whirlpoolPartnerApiClient.pushTx0(request); // throws PushTxErrorException
+    // notify
+    WhirlpoolEventService.getInstance().post(new Tx0Event(whirlpoolWallet, tx0));
+    return response;
   }
 
   public PushTxSuccessResponse pushTx0WithRetryOnAddressReuse(
-      Tx0 tx0, WhirlpoolWallet whirlpoolWallet, ServerApi serverApi) throws Exception {
+      Tx0 tx0, WhirlpoolWallet whirlpoolWallet, WhirlpoolPartnerApiClient whirlpoolPartnerApiClient)
+      throws Exception {
     int tx0MaxRetry = whirlpoolWallet.getConfig().getTx0MaxRetry();
 
     // pushTx0 with multiple attempts on address-reuse
@@ -489,8 +501,8 @@ public class Tx0Service {
         log.debug(tx0.getTx().toString());
       }
       try {
-        return AsyncUtil.getInstance().blockingGet(pushTx0(tx0, whirlpoolWallet, serverApi));
-      } catch (PushTxErrorResponseException e) {
+        return pushTx0(tx0, whirlpoolWallet, whirlpoolPartnerApiClient);
+      } catch (PushTxErrorException e) {
         PushTxErrorResponse pushTxErrorResponse = e.getPushTxErrorResponse();
         log.warn(
             "tx0 failed: "

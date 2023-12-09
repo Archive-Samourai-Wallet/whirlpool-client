@@ -2,8 +2,10 @@ package com.samourai.whirlpool.client.wallet.data.utxo;
 
 import com.google.common.eventbus.Subscribe;
 import com.samourai.wallet.api.backend.IPushTx;
+import com.samourai.wallet.api.backend.ISweepBackend;
 import com.samourai.wallet.api.backend.beans.UnspentOutput;
 import com.samourai.wallet.api.backend.beans.WalletResponse;
+import com.samourai.wallet.api.backend.seenBackend.ISeenBackend;
 import com.samourai.wallet.hd.HD_Wallet;
 import com.samourai.wallet.util.MessageListener;
 import com.samourai.whirlpool.client.event.UtxoChangesEvent;
@@ -19,6 +21,7 @@ import com.samourai.whirlpool.client.wallet.data.dataPersister.DataPersister;
 import com.samourai.whirlpool.client.wallet.data.dataPersister.FileDataPersisterFactory;
 import com.samourai.whirlpool.client.wallet.data.dataSource.WalletResponseDataSource;
 import com.samourai.whirlpool.client.wallet.data.utxoConfig.UtxoConfigSupplier;
+import java.util.Collection;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -80,9 +83,8 @@ public class UtxoSupplierTest extends AbstractTest {
 
           @Override
           protected ExpirableCoordinatorSupplier computeCoordinatorSupplier(
-              WhirlpoolWallet whirlpoolWallet, Tx0PreviewService tx0PreviewService)
-              throws Exception {
-            return mockCoordinatorSupplier();
+              WhirlpoolWalletConfig config, Tx0PreviewService tx0PreviewService) throws Exception {
+            return (ExpirableCoordinatorSupplier) UtxoSupplierTest.this.coordinatorSupplier;
           }
 
           @Override
@@ -93,7 +95,23 @@ public class UtxoSupplierTest extends AbstractTest {
                 // do nothing
                 return "txid-test";
               }
+
+              @Override
+              public String pushTx(String txHex, Collection<Integer> strictModeVouts)
+                  throws Exception {
+                return pushTx(txHex);
+              }
             };
+          }
+
+          @Override
+          public ISweepBackend getSweepBackend() {
+            return null;
+          }
+
+          @Override
+          public ISeenBackend getSeenBackend() {
+            return null;
           }
         };
 

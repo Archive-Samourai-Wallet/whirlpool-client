@@ -2,6 +2,7 @@ package com.samourai.whirlpool.client.wallet;
 
 import com.google.common.primitives.Bytes;
 import com.samourai.soroban.client.RpcWallet;
+import com.samourai.soroban.client.rpc.RpcSession;
 import com.samourai.soroban.client.wallet.SorobanWalletService;
 import com.samourai.soroban.client.wallet.counterparty.SorobanWalletCounterparty;
 import com.samourai.soroban.client.wallet.sender.SorobanWalletInitiator;
@@ -9,6 +10,7 @@ import com.samourai.wallet.api.backend.IPushTx;
 import com.samourai.wallet.api.backend.ISweepBackend;
 import com.samourai.wallet.api.backend.MinerFeeTarget;
 import com.samourai.wallet.api.backend.beans.UnspentOutput;
+import com.samourai.wallet.api.backend.seenBackend.ISeenBackend;
 import com.samourai.wallet.bip47.rpc.BIP47Wallet;
 import com.samourai.wallet.bip47.rpc.PaymentCode;
 import com.samourai.wallet.bipFormat.BIP_FORMAT;
@@ -41,7 +43,6 @@ import com.samourai.whirlpool.client.wallet.beans.*;
 import com.samourai.whirlpool.client.wallet.data.coordinator.CoordinatorSupplier;
 import com.samourai.whirlpool.client.wallet.data.dataPersister.DataPersister;
 import com.samourai.whirlpool.client.wallet.data.dataSource.DataSource;
-import com.samourai.whirlpool.client.wallet.data.dataSource.DataSourceWithSweep;
 import com.samourai.whirlpool.client.wallet.data.minerFee.MinerFeeSupplier;
 import com.samourai.whirlpool.client.wallet.data.paynym.PaynymSupplier;
 import com.samourai.whirlpool.client.wallet.data.pool.PoolSupplier;
@@ -51,9 +52,9 @@ import com.samourai.whirlpool.client.wallet.data.utxoConfig.UtxoConfigSupplier;
 import com.samourai.whirlpool.client.wallet.data.walletState.WalletStateSupplier;
 import com.samourai.whirlpool.client.wallet.orchestrator.AutoTx0Orchestrator;
 import com.samourai.whirlpool.client.wallet.orchestrator.MixOrchestratorImpl;
-import com.samourai.whirlpool.client.whirlpool.ServerApi;
 import com.samourai.whirlpool.client.whirlpool.beans.Pool;
 import com.samourai.whirlpool.protocol.beans.Utxo;
+import com.samourai.whirlpool.protocol.soroban.api.WhirlpoolPartnerApiClient;
 import com.samourai.xmanager.client.XManagerClient;
 import com.samourai.xmanager.protocol.XManagerService;
 import io.reactivex.Completable;
@@ -195,15 +196,17 @@ public class WhirlpoolWallet {
       throws Exception {
     // build initial TX0
     Tx0 tx0Initial =
-        withServerApi(
-            serverApi ->
-                tx0Service.tx0(
-                    spendFroms,
-                    getWalletSupplier(),
-                    pool,
-                    tx0Config,
-                    getUtxoSupplier(),
-                    serverApi));
+        asyncUtil.blockingGet(
+            withWhirlpoolPartnerApiClient(
+                whirlpoolPartnerApiClient ->
+                    tx0Service.tx0(
+                        spendFroms,
+                        getWalletSupplier(),
+                        pool,
+                        tx0Config,
+                        getUtxoSupplier(),
+                        whirlpoolPartnerApiClient),
+                pool.getPoolId()));
 
     // start Cahoots
     long minerFee = getMinerFeeSupplier().getFee(MinerFeeTarget.BLOCKS_4); // never used
@@ -213,16 +216,21 @@ public class WhirlpoolWallet {
     return getSorobanWalletInitiator().meetAndInitiate(tx0x2Context, paymentCodeCounterparty);
   }
 
-  public Tx0Previews tx0Previews(Collection<WhirlpoolUtxo> whirlpoolUtxos, Tx0Config tx0Config)
-      throws Exception {
+  public Single<Tx0Previews> tx0Previews(
+      Collection<WhirlpoolUtxo> whirlpoolUtxos, Tx0Config tx0Config) throws Exception {
     return tx0Previews(tx0Config, WhirlpoolUtxo.toUnspentOutputs(whirlpoolUtxos));
   }
 
-  public Tx0Previews tx0Previews(Tx0Config tx0Config, Collection<UnspentOutput> whirlpoolUtxos)
-      throws Exception {
-    return withServerApi(
-        serverApi ->
-            dataSource.getTx0PreviewService().tx0Previews(tx0Config, whirlpoolUtxos, serverApi));
+  public Single<Tx0Previews> tx0Previews(
+      Tx0Config tx0Config, Collection<UnspentOutput> whirlpoolUtxos) throws Exception {
+    String poolId =
+        tx0Config.getPools().iterator().next().getPoolId(); // TODO adapt for multi-coordinators
+    return withWhirlpoolPartnerApiClient(
+        whirlpoolPartnerApiClient ->
+            dataSource
+                .getTx0PreviewService()
+                .tx0Previews(tx0Config, whirlpoolUtxos, whirlpoolPartnerApiClient),
+        poolId);
   }
 
   private <T> T handleUtxoStatusForTx0(Collection<WhirlpoolUtxo> whirlpoolUtxos, Callable<T> runTx0)
@@ -282,16 +290,18 @@ public class WhirlpoolWallet {
       throws Exception {
 
     // create TX0s
+    String poolId = pools.iterator().next().getPoolId(); // TODO adapt for multi-coordinators
     List<Tx0> tx0List =
-        withServerApi(
-            serverApi ->
+        withWhirlpoolPartnerApiClient(
+            whirlpoolPartnerApiClient ->
                 tx0Service.tx0Cascade(
                     spendFroms,
                     getWalletSupplier(),
                     pools,
                     tx0Config,
                     getUtxoSupplier(),
-                    serverApi));
+                    whirlpoolPartnerApiClient),
+            poolId);
 
     // broadcast each TX0
     int num = 1;
@@ -300,7 +310,10 @@ public class WhirlpoolWallet {
         log.debug("Pushing Tx0 " + (num) + "/" + tx0List.size() + ": " + tx0);
       }
       // broadcast
-      withServerApi(serverApi -> tx0Service.pushTx0WithRetryOnAddressReuse(tx0, this, serverApi));
+      withWhirlpoolPartnerApiClient(
+          whirlpoolPartnerApiClient ->
+              tx0Service.pushTx0WithRetryOnAddressReuse(tx0, this, whirlpoolPartnerApiClient),
+          tx0.getPool().getPoolId());
       num++;
     }
     // refresh new utxos in background
@@ -312,33 +325,38 @@ public class WhirlpoolWallet {
       throws Exception {
     // adapt tx0() for WhirlpoolUtxo
     Callable<Tx0> runTx0 =
-        () -> tx0(WhirlpoolUtxo.toUnspentOutputs(whirlpoolUtxos), tx0Config, pool);
+        () ->
+            asyncUtil.blockingGet(
+                tx0(WhirlpoolUtxo.toUnspentOutputs(whirlpoolUtxos), tx0Config, pool));
     return handleUtxoStatusForTx0(whirlpoolUtxos, runTx0);
   }
 
-  public Tx0 tx0(Collection<UnspentOutput> spendFroms, Tx0Config tx0Config, Pool pool)
+  public Single<Tx0> tx0(Collection<UnspentOutput> spendFroms, Tx0Config tx0Config, Pool pool)
       throws Exception {
     int initialPremixIndex = getWalletPremix().getIndexHandlerReceive().get();
     int initialChangeIndex = getWalletDeposit().getIndexHandlerChange().get();
     try {
       // create tx0
-      Tx0 tx0 =
-          withServerApi(
-              serverApi ->
-                  tx0Service.tx0(
+      return withWhirlpoolPartnerApiClient(
+          whirlpoolPartnerApiClient ->
+              tx0Service
+                  .tx0(
                       spendFroms,
                       getWalletSupplier(),
                       pool,
                       tx0Config,
                       getUtxoSupplier(),
-                      serverApi));
-
-      // broadcast (or retry on address-reuse)
-      withServerApi(serverApi -> tx0Service.pushTx0WithRetryOnAddressReuse(tx0, this, serverApi));
-
-      // refresh new utxos in background
-      refreshUtxosDelayAsync().subscribe();
-      return tx0;
+                      whirlpoolPartnerApiClient)
+                  .map(
+                      tx0 -> {
+                        // broadcast (or retry on address-reuse)
+                        tx0Service.pushTx0WithRetryOnAddressReuse(
+                            tx0, this, whirlpoolPartnerApiClient);
+                        // refresh new utxos in background
+                        refreshUtxosDelayAsync().subscribe();
+                        return tx0;
+                      }),
+          pool.getPoolId());
     } catch (Exception e) {
       // revert index
       getWalletPremix().getIndexHandlerReceive().set(initialPremixIndex, true);
@@ -391,7 +409,7 @@ public class WhirlpoolWallet {
             BIP_FORMAT.PROVIDER,
             new SimpleCahootsUtxoProvider(getUtxoSupplier()),
             config.getCryptoUtil(),
-                config.getBip47Util());
+            config.getBip47Util());
 
     // start orchestrators
     int loopDelay = config.getRefreshUtxoDelay() * 1000;
@@ -413,7 +431,6 @@ public class WhirlpoolWallet {
     // open data
     dataPersister.open();
     dataSource.open();
-    System.err.println("%%%%%%%%%%%LOAD");
 
     // log wallets
     for (BipWallet bipWallet : getWalletSupplier().getWallets()) {
@@ -610,17 +627,14 @@ public class WhirlpoolWallet {
     return dataSource.getChainSupplier();
   }
 
-  public <R> R withServerApi(CallbackWithArg<ServerApi, R> callable) throws Exception {
-    return getCoordinatorSupplier()
-        .withCoordinator(
-            coordinator -> {
-              String url =
-                  config.isTorOnionCoordinator()
-                      ? coordinator.getUrlOnion()
-                      : coordinator.getUrlClear();
-              ServerApi serverApi = new ServerApi(url, config.getHttpClientService());
-              return callable.apply(serverApi);
-            });
+  public <R> R withWhirlpoolPartnerApiClient(
+      CallbackWithArg<WhirlpoolPartnerApiClient, R> callable, String poolId) throws Exception {
+    RpcSession rpcSession = config.getRpcClientService().generateRpcWallet().createRpcSession();
+    WhirlpoolPartnerApiClient whirlpoolPartnerApiClient =
+        ClientUtils.getWhirlpoolPartnerApiClient(
+            rpcSession, getCoordinatorSupplier(), poolId, config.getSorobanProtocolWhirlpool());
+
+    return callable.apply(whirlpoolPartnerApiClient);
   }
 
   public PoolSupplier getPoolSupplier() {
@@ -810,18 +824,15 @@ public class WhirlpoolWallet {
             log.warn("postmixIndexCheck is disabled");
             return;
           }
-          withServerApi(
-              serverApi -> {
-                checkAndFixPostmixIndex(serverApi);
-                return null;
-              });
+          checkAndFixPostmixIndex();
         });
   }
 
-  protected void checkAndFixPostmixIndex(ServerApi serverApi) throws NotifiableException {
+  protected void checkAndFixPostmixIndex() throws NotifiableException {
+    ISeenBackend seenBackend = dataSource.getSeenBackend();
     try {
       // check
-      postmixIndexService.checkPostmixIndex(getWalletPostmix(), serverApi);
+      postmixIndexService.checkPostmixIndex(getWalletPostmix(), seenBackend);
     } catch (PostmixIndexAlreadyUsedException e) {
       // postmix index is desynchronized
       log.error(
@@ -831,7 +842,7 @@ public class WhirlpoolWallet {
         // autofix
         try {
           WhirlpoolEventService.getInstance().post(new PostmixIndexFixProgressEvent(this));
-          postmixIndexService.fixPostmixIndex(getWalletPostmix(), serverApi);
+          postmixIndexService.fixPostmixIndex(getWalletPostmix(), seenBackend);
           WhirlpoolEventService.getInstance().post(new PostmixIndexFixSuccessEvent(this));
         } catch (PostmixIndexAlreadyUsedException ee) {
           // could not autofix
@@ -929,10 +940,7 @@ public class WhirlpoolWallet {
   }
 
   public ISweepBackend getSweepBackend() throws Exception {
-    if (!(dataSource instanceof DataSourceWithSweep)) {
-      throw new NotifiableException("Sweep not supported by current datasource");
-    }
-    return ((DataSourceWithSweep) dataSource).getSweepBackend();
+    return dataSource.getSweepBackend();
   }
 
   public XManagerClient getXManagerClient() {

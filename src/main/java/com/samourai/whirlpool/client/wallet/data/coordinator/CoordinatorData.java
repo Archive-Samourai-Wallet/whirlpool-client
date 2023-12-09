@@ -4,9 +4,12 @@ import com.samourai.wallet.bip47.rpc.PaymentCode;
 import com.samourai.whirlpool.client.tx0.Tx0PreviewService;
 import com.samourai.whirlpool.client.wallet.data.pool.PoolData;
 import com.samourai.whirlpool.client.whirlpool.beans.Coordinator;
-import com.samourai.whirlpool.protocol.rest.PoolInfoSoroban;
-import com.samourai.whirlpool.protocol.soroban.RegisterCoordinatorSorobanMessage;
-import java.util.*;
+import com.samourai.whirlpool.protocol.soroban.RegisterCoordinatorMessage;
+import com.samourai.whirlpool.protocol.soroban.beans.PoolInfo;
+import java.util.Collection;
+import java.util.LinkedHashMap;
+import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -19,9 +22,9 @@ public class CoordinatorData {
   private PoolData poolData;
 
   public CoordinatorData(
-      Collection<RegisterCoordinatorSorobanMessage> registerCoordinatorSorobanMessages,
+      Collection<RegisterCoordinatorMessage> registerCoordinatorMessages,
       Tx0PreviewService tx0PreviewService) {
-    this.coordinatorsById = computeCoordinators(registerCoordinatorSorobanMessages);
+    this.coordinatorsById = computeCoordinators(registerCoordinatorMessages);
     this.coordinatorsByPoolId = new LinkedHashMap<>();
     for (Coordinator coordinator : coordinatorsById.values()) {
       for (String poolId : coordinator.getPoolIds()) {
@@ -36,11 +39,11 @@ public class CoordinatorData {
         }
       }
     }
-    Collection<PoolInfoSoroban> poolInfoSorobans =
-        registerCoordinatorSorobanMessages.stream()
+    Collection<PoolInfo> poolInfos =
+        registerCoordinatorMessages.stream()
             .flatMap(message -> message.pools.stream())
             .collect(Collectors.toList());
-    this.poolData = new PoolData(poolInfoSorobans, tx0PreviewService);
+    this.poolData = new PoolData(poolInfos, tx0PreviewService);
     if (log.isDebugEnabled()) {
       Set<String> coordinatorIds = coordinatorsById.keySet();
       Set<String> poolIds =
@@ -61,8 +64,8 @@ public class CoordinatorData {
   }
 
   private static Map<String, Coordinator> computeCoordinators(
-      Collection<RegisterCoordinatorSorobanMessage> registerCoordinatorSorobanMessages) {
-    return registerCoordinatorSorobanMessages.stream()
+      Collection<RegisterCoordinatorMessage> registerCoordinatorMessages) {
+    return registerCoordinatorMessages.stream()
         .map(
             message -> {
               Collection<String> poolIds =
@@ -70,8 +73,6 @@ public class CoordinatorData {
               return new Coordinator(
                   message.coordinator.coordinatorId,
                   new PaymentCode(message.coordinator.paymentCode),
-                  message.coordinator.urlClear,
-                  message.coordinator.urlOnion,
                   poolIds);
             })
         .collect(

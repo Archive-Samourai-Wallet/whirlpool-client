@@ -7,7 +7,7 @@ import com.samourai.whirlpool.client.tx0.Tx0Previews;
 import com.samourai.whirlpool.client.wallet.beans.Tx0FeeTarget;
 import com.samourai.whirlpool.client.wallet.beans.WhirlpoolPoolByBalanceMinDescComparator;
 import com.samourai.whirlpool.client.whirlpool.beans.Pool;
-import com.samourai.whirlpool.protocol.rest.PoolInfoSoroban;
+import com.samourai.whirlpool.protocol.soroban.beans.PoolInfo;
 import java.util.Collection;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -21,17 +21,16 @@ public class PoolData {
 
   private final Map<String, Pool> poolsById;
 
-  public PoolData(
-      Collection<PoolInfoSoroban> poolInfoSorobans, Tx0PreviewService tx0PreviewService) {
-    this.poolsById = computePools(poolInfoSorobans, tx0PreviewService);
+  public PoolData(Collection<PoolInfo> poolInfos, Tx0PreviewService tx0PreviewService) {
+    this.poolsById = computePools(poolInfos, tx0PreviewService);
   }
 
   private static Map<String, Pool> computePools(
-      Collection<PoolInfoSoroban> poolInfoSorobans, final Tx0PreviewService tx0PreviewService) {
+      Collection<PoolInfo> poolInfos, final Tx0PreviewService tx0PreviewService) {
 
     // biggest balanceMin first
     List<Pool> poolsOrdered =
-        poolInfoSorobans.stream()
+        poolInfos.stream()
             .map(
                 poolInfo -> {
                   Pool pool = new Pool();

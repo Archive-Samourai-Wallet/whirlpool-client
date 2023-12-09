@@ -15,6 +15,7 @@ import com.samourai.whirlpool.client.wallet.beans.Tx0FeeTarget;
 import com.samourai.whirlpool.client.wallet.beans.WhirlpoolAccount;
 import com.samourai.whirlpool.client.whirlpool.beans.Pool;
 import com.samourai.whirlpool.protocol.feeOpReturn.FeeOpReturnImpl;
+import com.samourai.whirlpool.protocol.soroban.api.WhirlpoolPartnerApiClient;
 import java.util.Collection;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -52,7 +53,7 @@ public class WhirlpoolWalletTx0x2Test extends AbstractCahootsTest {
 
     // mock Tx0Data for reproductible test
     mockTx0Datas();
-    Tx0PreviewService tx0PreviewService = mockTx0PreviewService(false);
+    Tx0PreviewService tx0PreviewService = mockTx0PreviewService;
     FeeOpReturnImpl feeOpReturnImpl = computeWhirlpoolWalletConfig().getFeeOpReturnImpl();
     feeOpReturnImpl.setTestMode(true);
     Tx0Service tx0Service = new Tx0Service(params, tx0PreviewService, feeOpReturnImpl);
@@ -62,13 +63,23 @@ public class WhirlpoolWalletTx0x2Test extends AbstractCahootsTest {
     Tx0Config tx0Config =
         new Tx0Config(
             tx0PreviewService,
-            mockCoordinatorSupplier().getPools(),
+            coordinatorSupplier.getPools(),
             Tx0FeeTarget.BLOCKS_24,
             Tx0FeeTarget.BLOCKS_24,
             WhirlpoolAccount.DEPOSIT);
+
     Tx0 tx0Initiator =
-        tx0Service.tx0(
-            spendFroms, walletSupplierSender, pool, tx0Config, utxoProviderSender, serverApi);
+        asyncUtil.blockingGet(
+            whirlpoolWallet.withWhirlpoolPartnerApiClient(
+                whirlpoolPartnerApiClient ->
+                    tx0Service.tx0(
+                        spendFroms,
+                        walletSupplierSender,
+                        pool,
+                        tx0Config,
+                        utxoProviderSender,
+                        whirlpoolPartnerApiClient),
+                pool.getPoolId()));
 
     // run Cahoots
     Tx0x2Context cahootsContextSender =
@@ -120,7 +131,7 @@ public class WhirlpoolWalletTx0x2Test extends AbstractCahootsTest {
 
     // mock Tx0Data for reproductible test
     mockTx0Datas();
-    Tx0PreviewService tx0PreviewService = mockTx0PreviewService(false);
+    Tx0PreviewService tx0PreviewService = mockTx0PreviewService;
     FeeOpReturnImpl feeOpReturnImpl = computeWhirlpoolWalletConfig().getFeeOpReturnImpl();
     feeOpReturnImpl.setTestMode(true);
     Tx0Service tx0Service = new Tx0Service(params, tx0PreviewService, feeOpReturnImpl);
@@ -130,13 +141,21 @@ public class WhirlpoolWalletTx0x2Test extends AbstractCahootsTest {
     Tx0Config tx0Config =
         new Tx0Config(
             tx0PreviewService,
-            mockCoordinatorSupplier().getPools(),
+            coordinatorSupplier.getPools(),
             Tx0FeeTarget.BLOCKS_24,
             Tx0FeeTarget.BLOCKS_24,
             WhirlpoolAccount.DEPOSIT);
+    WhirlpoolPartnerApiClient whirlpoolPartnerApiClient =
+        whirlpoolWallet.withWhirlpoolPartnerApiClient(o -> o, pool.getPoolId());
     Tx0 tx0Initiator =
-        tx0Service.tx0(
-            spendFroms, walletSupplierSender, pool, tx0Config, utxoProviderSender, serverApi);
+        asyncUtil.blockingGet(
+            tx0Service.tx0(
+                spendFroms,
+                walletSupplierSender,
+                pool,
+                tx0Config,
+                utxoProviderSender,
+                whirlpoolPartnerApiClient));
 
     // run Cahoots
     Tx0x2Context cahootsContextSender =
