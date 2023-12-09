@@ -88,6 +88,7 @@ public class WhirlpoolWallet {
   protected MixOrchestratorImpl mixOrchestrator;
   private Optional<AutoTx0Orchestrator> autoTx0Orchestrator;
   private MixingStateEditable mixingState;
+  private MixHistory mixHistory;
 
   private XManagerClient xManagerClient;
   private RpcWallet rpcWallet;
@@ -159,6 +160,7 @@ public class WhirlpoolWallet {
     this.mixOrchestrator = null;
     this.autoTx0Orchestrator = Optional.empty();
     this.mixingState = new MixingStateEditable(this, false);
+    this.mixHistory = new MixHistory();
     this.rpcWallet = null; // will be set with getter
   }
 
@@ -655,7 +657,7 @@ public class WhirlpoolWallet {
 
     // log
     String poolId = whirlpoolUtxo.getUtxoState().getPoolId();
-    String logPrefix = " - [MIX] " + (poolId != null ? poolId + " " : "");
+    String logPrefix = "[MIX] " + (poolId != null ? poolId + " " : "");
     MixDestination destination = whirlpoolUtxo.getUtxoState().getMixProgress().getDestination();
     log.info(
         logPrefix
@@ -672,6 +674,9 @@ public class WhirlpoolWallet {
     int newMixsDone = whirlpoolUtxo.getMixsDone() + 1;
     getUtxoConfigSupplier()
         .setMixsDone(receiveUtxo.getHash(), (int) receiveUtxo.getIndex(), newMixsDone);
+
+    // stats
+    mixHistory.onMixSuccess(mixParams, receiveUtxo);
 
     // persist
     try {
@@ -695,13 +700,13 @@ public class WhirlpoolWallet {
 
     // log
     String poolId = whirlpoolUtxo.getUtxoState().getPoolId();
-    String logPrefix = " - [MIX] " + (poolId != null ? poolId + " " : "");
+    String logPrefix = "[MIX] " + (poolId != null ? poolId + " " : "");
 
     String message = failReason.getMessage();
     if (notifiableError != null) {
       message += " ; " + notifiableError;
     }
-    if (MixFailReason.CANCEL.equals(failReason)) {
+    if (failReason.isSilent()) {
       log.info(logPrefix + message);
     } else {
       MixDestination destination = whirlpoolUtxo.getUtxoState().getMixProgress().getDestination();
@@ -715,6 +720,11 @@ public class WhirlpoolWallet {
                   + destination.getType()
               : "");
       log.error(logPrefix + "⣿ WHIRLPOOL FAILED ⣿ " + message + destinationStr);
+    }
+
+    // mix history
+    if (!failReason.isSilent()) {
+      mixHistory.onMixFail(mixParams, failReason, notifiableError);
     }
 
     // notify
@@ -762,7 +772,7 @@ public class WhirlpoolWallet {
 
     // log
     String poolId = whirlpoolUtxo.getUtxoState().getPoolId();
-    String logPrefix = " - [MIX] " + (poolId != null ? poolId + " " : "");
+    String logPrefix = "[MIX] " + (poolId != null ? poolId + " " : "");
 
     MixStep step = whirlpoolUtxo.getUtxoState().getMixProgress().getMixStep();
     String asciiProgress = renderProgress(step.getProgressPercent());
@@ -904,6 +914,10 @@ public class WhirlpoolWallet {
 
   public WhirlpoolWalletConfig getConfig() {
     return config;
+  }
+
+  public MixHistory getMixHistory() {
+    return mixHistory;
   }
 
   protected DataPersister getDataPersister() {

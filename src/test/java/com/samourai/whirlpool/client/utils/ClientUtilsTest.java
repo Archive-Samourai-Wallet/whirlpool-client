@@ -2,6 +2,8 @@ package com.samourai.whirlpool.client.utils;
 
 import com.samourai.wallet.util.RandomUtil;
 import com.samourai.whirlpool.client.test.AbstractTest;
+import java.util.Arrays;
+import java.util.LinkedList;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -36,5 +38,15 @@ public class ClientUtilsTest extends AbstractTest {
     }
     Assertions.assertTrue(rand >= -1 && rand <= 1);
     return rand;
+  }
+
+  @Test
+  public void subListLastItems() {
+    LinkedList<Integer> list = new LinkedList<>(Arrays.asList(1, 2, 3, 4, 5));
+    Assertions.assertEquals(Arrays.asList(5), ClientUtils.subListLastItems(list, 1));
+    Assertions.assertEquals(Arrays.asList(4, 5), ClientUtils.subListLastItems(list, 2));
+    Assertions.assertEquals(Arrays.asList(2, 3, 4, 5), ClientUtils.subListLastItems(list, 4));
+    Assertions.assertEquals(Arrays.asList(1, 2, 3, 4, 5), ClientUtils.subListLastItems(list, 5));
+    Assertions.assertEquals(Arrays.asList(1, 2, 3, 4, 5), ClientUtils.subListLastItems(list, 10));
   }
 }

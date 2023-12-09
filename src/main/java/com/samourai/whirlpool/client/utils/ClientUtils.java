@@ -341,6 +341,12 @@ public class ClientUtils {
     return dir;
   }
 
+  public static <E> List<E> subListLastItems(LinkedList<E> list, int nb) {
+    int fromIndex = Math.max(0, list.size() - nb);
+    int toIndex = Math.min(fromIndex + nb, list.size());
+    return list.subList(fromIndex, toIndex);
+  }
+
   public static byte[] generateBordereau() {
     return RandomUtil.getInstance().nextBytes(BORDEREAU_LENGTH);
   }
