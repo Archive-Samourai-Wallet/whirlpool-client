@@ -7,6 +7,8 @@ import com.samourai.wallet.api.backend.beans.UnspentOutput;
 import com.samourai.wallet.api.backend.beans.WalletResponse;
 import com.samourai.wallet.bip47.rpc.java.SecretPointFactoryJava;
 import com.samourai.wallet.bip47.rpc.secretPoint.ISecretPointFactory;
+import com.samourai.wallet.bipFormat.BIP_FORMAT;
+import com.samourai.wallet.bipFormat.BipFormatSupplier;
 import com.samourai.wallet.hd.HD_Address;
 import com.samourai.wallet.hd.HD_WalletFactoryGeneric;
 import com.samourai.wallet.segwit.bech32.Bech32UtilGeneric;
@@ -28,15 +30,16 @@ import com.samourai.whirlpool.client.whirlpool.ServerApi;
 import com.samourai.whirlpool.client.whirlpool.beans.Pool;
 import com.samourai.whirlpool.protocol.rest.PoolsResponse;
 import com.samourai.whirlpool.protocol.websocket.notifications.MixStatus;
-import java.io.File;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Optional;
 import org.bitcoinj.core.NetworkParameters;
 import org.bitcoinj.params.TestNet3Params;
 import org.bouncycastle.util.encoders.Hex;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.io.File;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Optional;
 
 public class AbstractTest {
   protected static final Logger log = LoggerFactory.getLogger(AbstractTest.class);
@@ -47,6 +50,7 @@ public class AbstractTest {
 
   protected IHttpClient httpClient;
 
+  protected BipFormatSupplier bipFormatSupplier = BIP_FORMAT.PROVIDER;
   protected NetworkParameters params = TestNet3Params.get();
   protected HD_WalletFactoryGeneric hdWalletFactory = HD_WalletFactoryGeneric.getInstance();
   protected Bech32UtilGeneric bech32Util = Bech32UtilGeneric.getInstance();

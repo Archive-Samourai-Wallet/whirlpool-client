@@ -5,6 +5,7 @@ import com.samourai.tor.client.TorClientService;
 import com.samourai.wallet.api.backend.BackendServer;
 import com.samourai.wallet.api.backend.beans.UnspentOutput;
 import com.samourai.wallet.api.backend.beans.WalletResponse;
+import com.samourai.wallet.api.backend.seenBackend.ISeenBackend;
 import com.samourai.wallet.api.paynym.beans.PaynymState;
 import com.samourai.wallet.bip47.rpc.java.SecretPointFactoryJava;
 import com.samourai.wallet.bip47.rpc.secretPoint.ISecretPointFactory;
@@ -156,6 +157,11 @@ public class JavaExample {
           public String pushTx(String txHex) throws Exception {
             // provide pushTx service here
             return "txid";
+          }
+
+          @Override
+          public ISeenBackend getSeenBackend() {
+            return null; // provide impl here
           }
         };
       };

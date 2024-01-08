@@ -1,14 +1,12 @@
 package com.samourai.whirlpool.client.wallet;
 
+import com.samourai.wallet.api.backend.seenBackend.ISeenBackend;
 import com.samourai.wallet.bipWallet.BipWallet;
 import com.samourai.wallet.client.indexHandler.IIndexHandler;
 import com.samourai.wallet.hd.BipAddress;
 import com.samourai.wallet.hd.Chain;
-import com.samourai.wallet.segwit.bech32.Bech32UtilGeneric;
-import com.samourai.wallet.util.AsyncUtil;
 import com.samourai.whirlpool.client.exception.PostmixIndexAlreadyUsedException;
 import com.samourai.whirlpool.client.utils.ClientUtils;
-import com.samourai.whirlpool.protocol.rest.CheckOutputRequest;
 import org.apache.commons.lang3.tuple.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -17,18 +15,14 @@ public class PostmixIndexService {
   private Logger log = LoggerFactory.getLogger(PostmixIndexService.class);
   private static final int POSTMIX_INDEX_RANGE_ITERATIONS = 50;
   protected static final int POSTMIX_INDEX_RANGE_ACCEPTABLE_GAP = 4;
-  public static final String CHECKOUTPUT_ERROR_OUTPUT_ALREADY_REGISTERED =
-      "Output already registered";
 
   private WhirlpoolWalletConfig config;
-  private Bech32UtilGeneric bech32Util;
 
-  public PostmixIndexService(WhirlpoolWalletConfig config, Bech32UtilGeneric bech32Util) {
+  public PostmixIndexService(WhirlpoolWalletConfig config) {
     this.config = config;
-    this.bech32Util = bech32Util;
   }
 
-  public synchronized void checkPostmixIndex(BipWallet walletPostmix)
+  public synchronized void checkPostmixIndex(BipWallet walletPostmix, ISeenBackend seenBackend)
       throws PostmixIndexAlreadyUsedException {
     IIndexHandler postmixIndexHandler = walletPostmix.getIndexHandlerReceive();
 
@@ -38,7 +32,7 @@ public class PostmixIndexService {
             postmixIndexHandler, config.getIndexRangePostmix());
 
     try {
-      checkPostmixIndex(walletPostmix, postmixIndex);
+      checkPostmixIndex(walletPostmix, postmixIndex, seenBackend);
     } catch (PostmixIndexAlreadyUsedException e) {
       // forward error
       throw e;
@@ -50,31 +44,29 @@ public class PostmixIndexService {
     }
   }
 
-  protected void checkPostmixIndex(BipWallet walletPostmix, int postmixIndex) throws Exception {
+  protected void checkPostmixIndex(
+      BipWallet walletPostmix, int postmixIndex, ISeenBackend seenBackend) throws Exception {
     if (log.isDebugEnabled()) {
       log.debug("checking postmixIndex: " + postmixIndex);
     }
     BipAddress bipAddress = walletPostmix.getAddressAt(Chain.RECEIVE.getIndex(), postmixIndex);
     String outputAddress = bipAddress.getAddressString();
-    String signature = bipAddress.getHdAddress().getECKey().signMessage(outputAddress);
-    CheckOutputRequest checkOutputRequest = new CheckOutputRequest(outputAddress, signature);
 
+    boolean seen = false;
     try {
-      AsyncUtil.getInstance()
-          .blockingSingle(config.getServerApi().checkOutput(checkOutputRequest))
-          .get(); // throws on error
+      seen = seenBackend.seen(outputAddress);
     } catch (Exception e) {
-      // forward index errors as PostmixIndexAlreadyUsedException
-      String restErrorMessage = ClientUtils.parseRestErrorMessage(e);
-      if (restErrorMessage != null
-          && CHECKOUTPUT_ERROR_OUTPUT_ALREADY_REGISTERED.equals(restErrorMessage)) {
-        throw new PostmixIndexAlreadyUsedException(postmixIndex);
+      // ignore http failures
+      if (log.isDebugEnabled()) {
+        log.error("seenBackend failure", e);
       }
-      throw e;
+    }
+    if (seen) {
+      throw new PostmixIndexAlreadyUsedException(postmixIndex);
     }
   }
 
-  public synchronized void fixPostmixIndex(BipWallet walletPostmix)
+  public synchronized void fixPostmixIndex(BipWallet walletPostmix, ISeenBackend seenBackend)
       throws PostmixIndexAlreadyUsedException {
     IIndexHandler postmixIndexHandler = walletPostmix.getIndexHandlerReceive();
 
@@ -83,7 +75,7 @@ public class PostmixIndexService {
     for (int i = 0; i < POSTMIX_INDEX_RANGE_ITERATIONS; i++) {
       try {
         // quickly find index range
-        Pair<Integer, Integer> indexRange = findPostmixIndexRange(walletPostmix);
+        Pair<Integer, Integer> indexRange = findPostmixIndexRange(walletPostmix, seenBackend);
         leftIndex = indexRange.getLeft();
         rightIndex = indexRange.getRight();
         if (log.isDebugEnabled()) {
@@ -117,7 +109,8 @@ public class PostmixIndexService {
   }
 
   // throws
-  private Pair<Integer, Integer> findPostmixIndexRange(BipWallet walletPostmix) throws Exception {
+  private Pair<Integer, Integer> findPostmixIndexRange(
+      BipWallet walletPostmix, ISeenBackend seenBackend) throws Exception {
     IIndexHandler postmixIndexHandler = walletPostmix.getIndexHandlerReceive();
 
     int postmixIndex = 0;
@@ -138,7 +131,7 @@ public class PostmixIndexService {
         }
 
         // check next output
-        checkPostmixIndex(walletPostmix, postmixIndex);
+        checkPostmixIndex(walletPostmix, postmixIndex, seenBackend);
 
         // success!
         if (log.isDebugEnabled()) {

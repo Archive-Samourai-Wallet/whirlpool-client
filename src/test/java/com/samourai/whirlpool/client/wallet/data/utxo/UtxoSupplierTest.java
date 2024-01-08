@@ -3,6 +3,7 @@ package com.samourai.whirlpool.client.wallet.data.utxo;
 import com.google.common.eventbus.Subscribe;
 import com.samourai.wallet.api.backend.beans.UnspentOutput;
 import com.samourai.wallet.api.backend.beans.WalletResponse;
+import com.samourai.wallet.api.backend.seenBackend.ISeenBackend;
 import com.samourai.wallet.hd.HD_Wallet;
 import com.samourai.wallet.util.MessageListener;
 import com.samourai.whirlpool.client.event.UtxoChangesEvent;
@@ -100,6 +101,11 @@ public class UtxoSupplierTest extends AbstractTest {
           public String pushTx(String txHex) throws Exception {
             // do nothing
             return "txid-test";
+          }
+
+          @Override
+          public ISeenBackend getSeenBackend() {
+            return null;
           }
         };
 

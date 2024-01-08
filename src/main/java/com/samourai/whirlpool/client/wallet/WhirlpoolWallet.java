@@ -3,6 +3,7 @@ package com.samourai.whirlpool.client.wallet;
 import com.google.common.primitives.Bytes;
 import com.samourai.wallet.api.backend.ISweepBackend;
 import com.samourai.wallet.api.backend.beans.UnspentOutput;
+import com.samourai.wallet.api.backend.seenBackend.ISeenBackend;
 import com.samourai.wallet.bip47.rpc.BIP47Wallet;
 import com.samourai.wallet.bipFormat.BIP_FORMAT;
 import com.samourai.wallet.bipWallet.BipWallet;
@@ -126,7 +127,7 @@ public class WhirlpoolWallet {
     Bech32UtilGeneric bech32Util = Bech32UtilGeneric.getInstance();
     this.walletAggregateService =
         new WalletAggregateService(config.getNetworkParameters(), bech32Util, this);
-    this.postmixIndexService = new PostmixIndexService(config, bech32Util);
+    this.postmixIndexService = new PostmixIndexService(config);
 
     this.bip44w = bip44w;
     this.dataPersister = null;
@@ -742,9 +743,10 @@ public class WhirlpoolWallet {
   }
 
   protected void checkAndFixPostmixIndex() throws NotifiableException {
+    ISeenBackend seenBackend = dataSource.getSeenBackend();
     try {
       // check
-      postmixIndexService.checkPostmixIndex(getWalletPostmix());
+      postmixIndexService.checkPostmixIndex(getWalletPostmix(), seenBackend);
     } catch (PostmixIndexAlreadyUsedException e) {
       // postmix index is desynchronized
       log.error(
@@ -754,7 +756,7 @@ public class WhirlpoolWallet {
         // autofix
         try {
           WhirlpoolEventService.getInstance().post(new PostmixIndexFixProgressEvent(this));
-          postmixIndexService.fixPostmixIndex(getWalletPostmix());
+          postmixIndexService.fixPostmixIndex(getWalletPostmix(), seenBackend);
           WhirlpoolEventService.getInstance().post(new PostmixIndexFixSuccessEvent(this));
         } catch (PostmixIndexAlreadyUsedException ee) {
           // could not autofix
