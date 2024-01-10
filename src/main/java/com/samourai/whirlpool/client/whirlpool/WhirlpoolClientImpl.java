@@ -4,8 +4,8 @@ import com.samourai.wallet.utxo.UtxoDetail;
 import com.samourai.whirlpool.client.WhirlpoolClient;
 import com.samourai.whirlpool.client.mix.MixClient;
 import com.samourai.whirlpool.client.mix.MixParams;
-import com.samourai.whirlpool.client.mix.listener.MixFailReason;
-import com.samourai.whirlpool.client.mix.listener.MixStep;
+import com.samourai.whirlpool.client.mix.handler.MixDestination;
+import com.samourai.whirlpool.client.mix.listener.*;
 import com.samourai.whirlpool.client.whirlpool.listener.WhirlpoolClientListener;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -71,9 +71,9 @@ public class WhirlpoolClientImpl implements WhirlpoolClient {
     return new WhirlpoolClientListener() {
 
       @Override
-      public void success(UtxoDetail receiveUtxo) {
+      public void success(UtxoDetail receiveUtxo, MixDestination receiveDestination) {
         // done
-        listener.success(receiveUtxo);
+        listener.success(receiveUtxo, receiveDestination);
         disconnect();
       }
 

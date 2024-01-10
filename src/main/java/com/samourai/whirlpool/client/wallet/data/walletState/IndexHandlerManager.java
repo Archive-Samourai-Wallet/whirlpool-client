@@ -11,16 +11,13 @@ import java.util.Map;
 public abstract class IndexHandlerManager {
   private static final String EXTERNAL_INDEX_HANDLER = "external";
 
-  private final IIndexHandler indexHandlerExternal;
-  private Map<String, IIndexHandler> indexHandlerWallets;
+  private Map<String, IIndexHandler> indexHandlers;
 
-  public IndexHandlerManager(int externalIndexDefault) {
-    this.indexHandlerExternal = createIndexHandler(EXTERNAL_INDEX_HANDLER, externalIndexDefault);
-    this.indexHandlerWallets = new LinkedHashMap<>();
+  public IndexHandlerManager() {
+    this.indexHandlers = new LinkedHashMap<>();
   }
 
-  protected abstract IIndexHandler createIndexHandler(
-      final String persistKey, final int defaultValue);
+  protected abstract IIndexHandler createIndexHandler(final String persistKey);
 
   protected String computePersistKeyWallet(
       WhirlpoolAccount account, BipDerivation bipDerivation, Chain chain) {
@@ -30,15 +27,19 @@ public abstract class IndexHandlerManager {
   public IIndexHandler getIndexHandlerWallet(BipWallet bipWallet, Chain chain) {
     String persistKey =
         computePersistKeyWallet(bipWallet.getAccount(), bipWallet.getDerivation(), chain);
-    IIndexHandler indexHandlerWallet = indexHandlerWallets.get(persistKey);
-    if (indexHandlerWallet == null) {
-      indexHandlerWallet = createIndexHandler(persistKey, 0);
-      indexHandlerWallets.put(persistKey, indexHandlerWallet);
+    return getIndexHandler(persistKey);
+  }
+
+  protected IIndexHandler getIndexHandler(String persistKey) {
+    IIndexHandler indexHandler = indexHandlers.get(persistKey);
+    if (indexHandler == null) {
+      indexHandler = createIndexHandler(persistKey);
+      indexHandlers.put(persistKey, indexHandler);
     }
-    return indexHandlerWallet;
+    return indexHandler;
   }
 
   public IIndexHandler getIndexHandlerExternal() {
-    return indexHandlerExternal;
+    return getIndexHandler(EXTERNAL_INDEX_HANDLER);
   }
 }

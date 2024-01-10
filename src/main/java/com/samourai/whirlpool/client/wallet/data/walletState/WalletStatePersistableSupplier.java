@@ -4,7 +4,6 @@ import com.samourai.wallet.bipWallet.BipWallet;
 import com.samourai.wallet.client.indexHandler.AbstractIndexHandler;
 import com.samourai.wallet.client.indexHandler.IIndexHandler;
 import com.samourai.wallet.hd.Chain;
-import com.samourai.whirlpool.client.wallet.beans.ExternalDestination;
 import com.samourai.whirlpool.client.wallet.data.supplier.AbstractPersistableSupplier;
 import com.samourai.whirlpool.client.wallet.data.supplier.IPersister;
 import org.slf4j.Logger;
@@ -16,16 +15,14 @@ public class WalletStatePersistableSupplier extends AbstractPersistableSupplier<
 
   private final IndexHandlerManager indexHandlerManager;
 
-  public WalletStatePersistableSupplier(
-      IPersister<WalletStateData> persister, ExternalDestination externalDestination) {
+  public WalletStatePersistableSupplier(IPersister<WalletStateData> persister) {
     super(persister, log);
 
-    int externalIndexDefault =
-        externalDestination != null ? externalDestination.getStartIndex() : 0;
     this.indexHandlerManager =
-        new IndexHandlerManager(externalIndexDefault) {
+        new IndexHandlerManager() {
           @Override
-          protected IIndexHandler createIndexHandler(String persistKey, int defaultValue) {
+          protected IIndexHandler createIndexHandler(String persistKey) {
+            int defaultValue = 0;
             return new AbstractIndexHandler() {
               @Override
               public int getAndIncrement() {

@@ -4,6 +4,7 @@ Changelog for whirlpool-client.
 ## Unreleased
 ### 
 
+- refactor: use ISeenBackend for  PostmixIndexService *(2024-01-10)*
 - feat: use ISeenBackend *(2024-01-10)*
 - fix: NullPointerException on shutdown *(2023-11-07)*
 - refactor: encode OP_RETURN by counterparty + check maxSpendAmount *(2023-10-13)*

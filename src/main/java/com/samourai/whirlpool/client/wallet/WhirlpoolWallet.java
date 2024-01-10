@@ -30,7 +30,10 @@ import com.samourai.whirlpool.client.event.*;
 import com.samourai.whirlpool.client.exception.NotifiableException;
 import com.samourai.whirlpool.client.exception.PostmixIndexAlreadyUsedException;
 import com.samourai.whirlpool.client.mix.MixParams;
+import com.samourai.whirlpool.client.mix.handler.Bip84PostmixHandler;
+import com.samourai.whirlpool.client.mix.handler.IPostmixHandler;
 import com.samourai.whirlpool.client.mix.handler.MixDestination;
+import com.samourai.whirlpool.client.mix.handler.XPubPostmixHandler;
 import com.samourai.whirlpool.client.mix.listener.MixFailReason;
 import com.samourai.whirlpool.client.mix.listener.MixStep;
 import com.samourai.whirlpool.client.tx0.*;
@@ -412,8 +415,8 @@ public class WhirlpoolWallet {
   }
 
   public synchronized Completable startAsync() {
-    // check postmix index against coordinator
-    return checkAndFixPostmixIndexAsync()
+    // check postmix index
+    return checkAndFixPostmixIndex()
         .doOnComplete(
             () -> {
               // start mixing on success
@@ -558,23 +561,23 @@ public class WhirlpoolWallet {
     mixOrchestrator.mixNow(whirlpoolUtxo);
   }
 
-  public void onMixSuccess(MixParams mixParams, UtxoDetail receiveUtxo) {
+  public void onMixSuccess(
+      MixParams mixParams, UtxoDetail receiveUtxo, MixDestination receiveDestination) {
     WhirlpoolUtxo whirlpoolUtxo = mixParams.getWhirlpoolUtxo();
 
     // log
     String poolId = whirlpoolUtxo.getUtxoState().getPoolId();
     String logPrefix = "[MIX] " + (poolId != null ? poolId + " " : "");
-    MixDestination destination = whirlpoolUtxo.getUtxoState().getMixProgress().getDestination();
     log.info(
         logPrefix
             + "⣿ WHIRLPOOL SUCCESS ⣿ txid: "
             + receiveUtxo.getTxHash()
             + ", receiveAddress="
-            + destination.getAddress()
+            + receiveDestination.getAddress()
             + ", path="
-            + destination.getPath()
+            + receiveDestination.getPath()
             + ", type="
-            + destination.getType());
+            + receiveDestination.getType());
 
     // forward utxoConfig
     int newMixsDone = whirlpoolUtxo.getMixsDone() + 1;
@@ -582,7 +585,7 @@ public class WhirlpoolWallet {
         .setMixsDone(receiveUtxo.getTxHash(), receiveUtxo.getTxOutputIndex(), newMixsDone);
 
     // stats
-    mixHistory.onMixSuccess(mixParams, receiveUtxo);
+    mixHistory.onMixSuccess(mixParams, receiveUtxo, receiveDestination);
 
     // persist
     try {
@@ -615,17 +618,7 @@ public class WhirlpoolWallet {
     if (failReason.isSilent()) {
       log.info(logPrefix + message);
     } else {
-      MixDestination destination = whirlpoolUtxo.getUtxoState().getMixProgress().getDestination();
-      String destinationStr =
-          (destination != null
-              ? ", receiveAddress="
-                  + destination.getAddress()
-                  + ", path="
-                  + destination.getPath()
-                  + ", type="
-                  + destination.getType()
-              : "");
-      log.error(logPrefix + "⣿ WHIRLPOOL FAILED ⣿ " + message + destinationStr);
+      log.error(logPrefix + "⣿ WHIRLPOOL FAILED ⣿ " + message);
     }
 
     // mix history
@@ -655,14 +648,13 @@ public class WhirlpoolWallet {
         }
 
         // check postmixIndex
-        checkAndFixPostmixIndexAsync()
-            .doOnError(
-                e -> {
-                  // stop mixing on postmixIndex error
-                  log.error(e.getMessage());
-                  stop();
-                })
-            .subscribe();
+        try {
+          checkAndFixPostmixIndex(mixParams.getPostmixHandler());
+        } catch (Exception e) {
+          // stop mixing on postmixIndex error
+          log.error(e.getMessage());
+          stop();
+        }
         break;
 
       case STOP:
@@ -708,7 +700,7 @@ public class WhirlpoolWallet {
     return asyncUtil.runIOAsyncCompletable(() -> getUtxoSupplier().refresh());
   }
 
-  public synchronized Completable checkAndFixPostmixIndexAsync() {
+  public synchronized Completable checkAndFixPostmixIndex() {
     return asyncUtil.runIOAsyncCompletable(
         () -> {
           if (!config.isPostmixIndexCheck()) {
@@ -716,15 +708,20 @@ public class WhirlpoolWallet {
             log.warn("postmixIndexCheck is disabled");
             return;
           }
-          checkAndFixPostmixIndex();
+          checkAndFixPostmixIndex(getPostmixHandler());
+          ExternalDestination externalDestination = config.getExternalDestination();
+          if (externalDestination != null) {
+            checkAndFixPostmixIndex(getPostmixHandler(externalDestination));
+          }
         });
   }
 
-  protected void checkAndFixPostmixIndex() throws NotifiableException {
+  protected void checkAndFixPostmixIndex(IPostmixHandler postmixHandler)
+      throws NotifiableException {
     ISeenBackend seenBackend = dataSource.getSeenBackend();
     try {
       // check
-      postmixIndexService.checkPostmixIndex(getWalletPostmix(), seenBackend);
+      postmixIndexService.checkPostmixIndex(postmixHandler, seenBackend);
     } catch (PostmixIndexAlreadyUsedException e) {
       // postmix index is desynchronized
       log.error(
@@ -734,7 +731,7 @@ public class WhirlpoolWallet {
         // autofix
         try {
           WhirlpoolEventService.getInstance().post(new PostmixIndexFixProgressEvent(this));
-          postmixIndexService.fixPostmixIndex(getWalletPostmix(), seenBackend);
+          postmixIndexService.fixPostmixIndex(postmixHandler, seenBackend);
           WhirlpoolEventService.getInstance().post(new PostmixIndexFixSuccessEvent(this));
         } catch (PostmixIndexAlreadyUsedException ee) {
           // could not autofix
@@ -742,6 +739,9 @@ public class WhirlpoolWallet {
           throw new NotifiableException(
               "PostmixIndex error - please resync your wallet or contact support. PostmixIndex="
                   + ee.getPostmixIndex());
+        } catch (Exception ee) {
+          // ignore other errors such as http timeout
+          log.warn("ignoring fixPostmixIndex failure", ee);
         }
       }
     }
@@ -868,6 +868,57 @@ public class WhirlpoolWallet {
         spendAccount,
         getBip47Wallet(),
         bip47WalletOutgoingIdx);
+  }
+
+  public IPostmixHandler getPostmixHandler(ExternalDestination externalDestination) {
+    if (externalDestination.getPostmixHandler() != null) {
+      return externalDestination.getPostmixHandler();
+    }
+    return new XPubPostmixHandler(
+        getWalletStateSupplier().getIndexHandlerExternal(),
+        config.getNetworkParameters(),
+        externalDestination.getXpub(),
+        externalDestination.getChain());
+  }
+
+  public IPostmixHandler getPostmixHandler() {
+    return new Bip84PostmixHandler(
+        config.getNetworkParameters(), getWalletPostmix(), config.getIndexRangePostmix());
+  }
+
+  public IPostmixHandler computePostmixHandler(WhirlpoolUtxo whirlpoolUtxo) {
+    ExternalDestination externalDestination = config.getExternalDestination();
+    if (externalDestination != null) {
+      int nextMixsDone = whirlpoolUtxo.getMixsDone() + 1;
+      if (nextMixsDone >= externalDestination.getMixs()) {
+        // random factor for privacy
+        if (externalDestination.useRandomDelay()) {
+          if (log.isDebugEnabled()) {
+            log.debug(
+                "Mixing to POSTMIX, external destination randomly delayed for better privacy ("
+                    + whirlpoolUtxo
+                    + ")");
+          }
+        } else {
+          if (log.isDebugEnabled()) {
+            log.debug("Mixing to EXTERNAL (" + whirlpoolUtxo + ")");
+          }
+          return getPostmixHandler(externalDestination);
+        }
+      } else {
+        if (log.isDebugEnabled()) {
+          log.debug(
+              "Mixing to POSTMIX, mix "
+                  + nextMixsDone
+                  + "/"
+                  + externalDestination.getMixs()
+                  + " before external destination ("
+                  + whirlpoolUtxo
+                  + ")");
+        }
+      }
+    }
+    return getPostmixHandler();
   }
 
   public BIP47Wallet getBip47Wallet() {

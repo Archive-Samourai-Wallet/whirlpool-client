@@ -5,6 +5,7 @@ import com.samourai.wallet.utxo.UtxoDetail;
 import com.samourai.whirlpool.client.WhirlpoolClient;
 import com.samourai.whirlpool.client.exception.NotifiableException;
 import com.samourai.whirlpool.client.mix.MixParams;
+import com.samourai.whirlpool.client.mix.handler.MixDestination;
 import com.samourai.whirlpool.client.mix.listener.MixFailReason;
 import com.samourai.whirlpool.client.mix.listener.MixStep;
 import com.samourai.whirlpool.client.wallet.beans.*;
@@ -457,7 +458,7 @@ public abstract class MixOrchestrator extends AbstractOrchestrator {
     final WhirlpoolUtxo whirlpoolUtxo = mixParams.getWhirlpoolUtxo();
     return new WhirlpoolClientListener() {
       @Override
-      public void success(UtxoDetail receiveUtxo) {
+      public void success(UtxoDetail receiveUtxo, MixDestination receiveDestination) {
         // manage
         data.removeMixing(whirlpoolUtxo);
 

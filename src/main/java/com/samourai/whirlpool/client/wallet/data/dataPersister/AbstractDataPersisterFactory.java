@@ -2,7 +2,6 @@ package com.samourai.whirlpool.client.wallet.data.dataPersister;
 
 import com.samourai.wallet.hd.HD_Wallet;
 import com.samourai.whirlpool.client.wallet.WhirlpoolWallet;
-import com.samourai.whirlpool.client.wallet.beans.ExternalDestination;
 import com.samourai.whirlpool.client.wallet.data.supplier.IPersister;
 import com.samourai.whirlpool.client.wallet.data.utxoConfig.UtxoConfigData;
 import com.samourai.whirlpool.client.wallet.data.utxoConfig.UtxoConfigPersistableSupplier;
@@ -28,8 +27,7 @@ public abstract class AbstractDataPersisterFactory implements DataPersisterFacto
   protected WalletStateSupplier computeWalletStateSupplier(WhirlpoolWallet whirlpoolWallet)
       throws Exception {
     IPersister<WalletStateData> persister = computeWalletStatePersister(whirlpoolWallet);
-    ExternalDestination externalDestination = whirlpoolWallet.getConfig().getExternalDestination();
-    return new WalletStatePersistableSupplier(persister, externalDestination);
+    return new WalletStatePersistableSupplier(persister);
   }
 
   protected UtxoConfigSupplier computeUtxoConfigSupplier(WhirlpoolWallet whirlpoolWallet)

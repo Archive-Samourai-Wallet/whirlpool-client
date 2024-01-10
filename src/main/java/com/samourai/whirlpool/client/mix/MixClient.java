@@ -229,7 +229,7 @@ public class MixClient {
         disconnect();
         // notify
         listenerProgress(MixStep.SUCCESS);
-        listener.success(mixProcess.getReceiveUtxo());
+        listener.success(mixProcess.getReceiveUtxo(), mixProcess.getReceiveDestination());
       }
 
       @Override

@@ -1,9 +1,10 @@
 package com.samourai.whirlpool.client.wallet.beans;
 
 import com.google.common.collect.Lists;
-import com.samourai.wallet.utxo.UtxoDetail;
+import com.samourai.wallet.utxo.UtxoRef;
 import com.samourai.whirlpool.client.mix.MixParams;
 import com.samourai.whirlpool.client.mix.handler.DestinationType;
+import com.samourai.whirlpool.client.mix.handler.MixDestination;
 import com.samourai.whirlpool.client.mix.listener.MixFailReason;
 import com.samourai.whirlpool.client.utils.ClientUtils;
 import io.reactivex.Observable;
@@ -43,7 +44,8 @@ public class MixHistory {
     this.observable = BehaviorSubject.create();
   }
 
-  public void onMixSuccess(MixParams mixParams, UtxoDetail receiveUtxo) {
+  public void onMixSuccess(
+      MixParams mixParams, UtxoRef receiveUtxo, MixDestination receiveDestination) {
     long now = System.currentTimeMillis();
     this.mixedCount++;
     this.mixedLastTime = now;
@@ -55,9 +57,9 @@ public class MixHistory {
             mixParams.getDenomination(),
             mixParams.getWhirlpoolUtxo().getValueLong() == mixParams.getDenomination(),
             receiveUtxo,
-            mixParams.getPostmixHandler().getDestination());
+            receiveDestination);
     addMixResult(mixResult);
-    if (DestinationType.XPUB.equals(mixParams.getPostmixHandler().getDestination().getType())) {
+    if (DestinationType.XPUB.equals(receiveDestination.getType())) {
       externalXpubCount++;
       externalXpubLastTime = now;
       externalXpubVolume += mixParams.getDenomination();

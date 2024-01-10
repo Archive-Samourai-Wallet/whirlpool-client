@@ -3,7 +3,6 @@ package com.samourai.whirlpool.client.mix.handler;
 import com.samourai.wallet.bipWallet.BipWallet;
 import com.samourai.wallet.hd.BipAddress;
 import com.samourai.wallet.hd.Chain;
-import com.samourai.whirlpool.client.utils.ClientUtils;
 import com.samourai.whirlpool.client.wallet.beans.IndexRange;
 import org.bitcoinj.core.NetworkParameters;
 import org.slf4j.Logger;
@@ -23,20 +22,15 @@ public class Bip84PostmixHandler extends AbstractPostmixHandler {
   }
 
   @Override
-  protected MixDestination computeNextDestination() throws Exception {
-    // index
-    int index =
-        ClientUtils.computeNextReceiveAddressIndex(
-            postmixWallet.getIndexHandlerReceive(), this.indexRange);
+  protected IndexRange getIndexRange() {
+    return indexRange;
+  }
 
-    // address
+  @Override
+  public MixDestination computeDestination(int index) {
     BipAddress receiveAddress = postmixWallet.getAddressAt(Chain.RECEIVE.getIndex(), index);
-
     String address = receiveAddress.getAddressString();
     String path = receiveAddress.getPathAddress();
-    if (log.isDebugEnabled()) {
-      log.debug("Mixing to POSTMIX -> receiveAddress=" + address + ", path=" + path);
-    }
     return new MixDestination(DestinationType.POSTMIX, index, address, path);
   }
 }
