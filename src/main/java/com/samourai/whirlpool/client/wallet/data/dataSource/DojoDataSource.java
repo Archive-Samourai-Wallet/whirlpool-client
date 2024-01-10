@@ -38,13 +38,13 @@ public class DojoDataSource extends WalletResponseDataSource {
   private ISeenBackend seenBackend;
 
   public DojoDataSource(
-      WhirlpoolWallet whirlpoolWallet,
-      HD_Wallet bip44w,
-      WalletStateSupplier walletStateSupplier,
-      UtxoConfigSupplier utxoConfigSupplier,
-      BackendApi backendApi,
-      BackendWsApi backendWsApi)
-      throws Exception {
+          WhirlpoolWallet whirlpoolWallet,
+          HD_Wallet bip44w,
+          WalletStateSupplier walletStateSupplier,
+          UtxoConfigSupplier utxoConfigSupplier,
+          BackendApi backendApi,
+          BackendWsApi backendWsApi)
+          throws Exception {
     super(whirlpoolWallet, bip44w, walletStateSupplier, utxoConfigSupplier);
 
     this.backendApi = backendApi;
@@ -97,10 +97,10 @@ public class DojoDataSource extends WalletResponseDataSource {
 
   private Map<String, TxsResponse.Tx> fetchTxsPostmix() throws Exception {
     String[] zpubs =
-        new String[] {
-          getWhirlpoolWallet().getWalletPremix().getXPub(),
-          getWhirlpoolWallet().getWalletPostmix().getXPub()
-        };
+            new String[] {
+                    getWhirlpoolWallet().getWalletPremix().getXPub(),
+                    getWhirlpoolWallet().getWalletPostmix().getXPub()
+            };
 
     Map<String, TxsResponse.Tx> txs = new LinkedHashMap<String, TxsResponse.Tx>();
     int page = -1;
@@ -125,10 +125,10 @@ public class DojoDataSource extends WalletResponseDataSource {
 
   private Collection<WhirlpoolUtxo> filterRemixableUtxos(Collection<WhirlpoolUtxo> whirlpoolUtxos) {
     return whirlpoolUtxos.stream()
-        .filter(
-            whirlpoolUtxo ->
-                !MixableStatus.NO_POOL.equals(whirlpoolUtxo.getUtxoState().getMixableStatus()))
-        .collect(Collectors.<WhirlpoolUtxo>toList());
+            .filter(
+                    whirlpoolUtxo ->
+                            !MixableStatus.NO_POOL.equals(whirlpoolUtxo.getUtxoState().getMixableStatus()))
+            .collect(Collectors.<WhirlpoolUtxo>toList());
   }
 
   private void initWallet(String xpub) throws Exception {
@@ -142,11 +142,11 @@ public class DojoDataSource extends WalletResponseDataSource {
           log.error("", e);
         }
         log.error(
-            " x Initializing wallet failed, retrying... ("
-                + (i + 1)
-                + "/"
-                + INITWALLET_RETRY
-                + ")");
+                " x Initializing wallet failed, retrying... ("
+                        + (i + 1)
+                        + "/"
+                        + INITWALLET_RETRY
+                        + ")");
         Thread.sleep(INITWALLET_RETRY_TIMEOUT);
       }
     }
@@ -164,43 +164,43 @@ public class DojoDataSource extends WalletResponseDataSource {
 
   protected void startBackendWsApi() throws Exception {
     backendWsApi.connect(
-        (MessageListener<Void>)
-            foo -> {
-              try {
-                // watch blocks
-                backendWsApi.subscribeBlock(
-                    (MessageListener)
-                        message -> {
-                          if (log.isDebugEnabled()) {
-                            log.debug("new block received -> refreshing walletData");
-                            try {
-                              refresh();
-                            } catch (Exception e) {
-                              log.error("", e);
-                            }
-                          }
-                        });
+            (MessageListener<Void>)
+                    foo -> {
+                      try {
+                        // watch blocks
+                        backendWsApi.subscribeBlock(
+                                (MessageListener)
+                                        message -> {
+                                          if (log.isDebugEnabled()) {
+                                            log.debug("new block received -> refreshing walletData");
+                                            try {
+                                              refresh();
+                                            } catch (Exception e) {
+                                              log.error("", e);
+                                            }
+                                          }
+                                        });
 
-                // watch addresses
-                String[] pubs = getWalletSupplier().getXPubs(true);
-                backendWsApi.subscribeAddress(
-                    pubs,
-                    (MessageListener)
-                        message -> {
-                          if (log.isDebugEnabled()) {
-                            log.debug("new address received -> refreshing walletData");
-                            try {
-                              refresh();
-                            } catch (Exception e) {
-                              log.error("", e);
-                            }
-                          }
-                        });
-              } catch (Exception e) {
-                log.error("", e);
-              }
-            },
-        true);
+                        // watch addresses
+                        String[] pubs = getWalletSupplier().getXPubs(true);
+                        backendWsApi.subscribeAddress(
+                                pubs,
+                                (MessageListener)
+                                        message -> {
+                                          if (log.isDebugEnabled()) {
+                                            log.debug("new address received -> refreshing walletData");
+                                            try {
+                                              refresh();
+                                            } catch (Exception e) {
+                                              log.error("", e);
+                                            }
+                                          }
+                                        });
+                      } catch (Exception e) {
+                        log.error("", e);
+                      }
+                    },
+            true);
   }
 
   @Override

@@ -182,6 +182,11 @@ public class JavaExample {
           public ISeenBackend getSeenBackend() {
             return null; // provide impl here
           }
+
+          @Override
+          public ISeenBackend getSeenBackend() {
+            return null; // provide impl here
+          }
         };
       };
     };

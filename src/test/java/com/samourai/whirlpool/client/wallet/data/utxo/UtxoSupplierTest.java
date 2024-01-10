@@ -113,6 +113,11 @@ public class UtxoSupplierTest extends AbstractTest {
           public ISeenBackend getSeenBackend() {
             return null;
           }
+
+          @Override
+          public ISeenBackend getSeenBackend() {
+            return null;
+          }
         };
 
     utxoSupplier = dataSource.getUtxoSupplier();

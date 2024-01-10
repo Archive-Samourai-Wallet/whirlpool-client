@@ -24,102 +24,102 @@ import java.util.Optional;
 import java.util.concurrent.Callable;
 
 public class PostmixIndexServiceTest extends AbstractTest {
-  private PostmixIndexService postmixIndexService;
-  private BipWallet walletPostmix;
+    private PostmixIndexService postmixIndexService;
+    private BipWallet walletPostmix;
 
-  public PostmixIndexServiceTest() throws Exception {}
+    public PostmixIndexServiceTest() throws Exception {}
 
-  @BeforeEach
-  public void setup() throws Exception {
-    byte[] seed = hdWalletFactory.computeSeedFromWords(SEED_WORDS);
-    HD_Wallet bip44w =
-        HD_WalletFactoryGeneric.getInstance().getBIP44(seed, SEED_PASSPHRASE, params);
-    walletPostmix =
-        new BipWallet(
-            bipFormatSupplier, bip44w, new MemoryIndexHandlerSupplier(), BIP_WALLET.POSTMIX_BIP84);
+    @BeforeEach
+    public void setup() throws Exception {
+        byte[] seed = hdWalletFactory.computeSeedFromWords(SEED_WORDS);
+        HD_Wallet bip44w =
+                HD_WalletFactoryGeneric.getInstance().getBIP44(seed, SEED_PASSPHRASE, params);
+        walletPostmix =
+                new BipWallet(
+                        bipFormatSupplier, bip44w, new MemoryIndexHandlerSupplier(), BIP_WALLET.POSTMIX_BIP84);
 
-    WhirlpoolWalletConfig config = computeWhirlpoolWalletConfig();
-    postmixIndexService = new PostmixIndexService(config);
-  }
-
-  @Test
-  public void checkPostmixIndexMock() throws Exception {
-    doCheckPostmixIndexMock(0);
-    doCheckPostmixIndexMock(0);
-    doCheckPostmixIndexMock(15);
-    // doCheckPostmixIndex(2598);
-    // doCheckPostmixIndex(11251);
-  }
-
-  @Test
-  public void checkPostmixIndex_alreadyUsed() throws Exception {
-    PostmixIndexAlreadyUsedException e =
-        Assertions.assertThrows(
-            PostmixIndexAlreadyUsedException.class,
-            () -> postmixIndexService.checkPostmixIndex(walletPostmix, oxtApi));
-    Assertions.assertEquals(0, e.getPostmixIndex());
-  }
-
-  @Test
-  public void checkPostmixIndex_failure() throws Exception {
-    ISeenBackend seenBackend = BackendApi.newBackendApiDojo(httpClient, "http://foo", "foo");
-
-    // ignore other errors such as http timeout
-    postmixIndexService.checkPostmixIndex(walletPostmix, seenBackend); // no exception thrown
-  }
-
-  private void doCheckPostmixIndexMock(int validPostmixIndex) throws Exception {
-    // mock serverApi
-    ISeenBackend seenBackend = mockSeenBackend(validPostmixIndex, walletPostmix);
-    try {
-      // check
-      postmixIndexService.checkPostmixIndex(walletPostmix, seenBackend);
-    } catch (PostmixIndexAlreadyUsedException e) {
-      // postmix index is desynchronized
-      postmixIndexService.fixPostmixIndex(walletPostmix, seenBackend);
+        WhirlpoolWalletConfig config = computeWhirlpoolWalletConfig();
+        postmixIndexService = new PostmixIndexService(config);
     }
 
-    // verify
-    int postmixIndex = walletPostmix.getIndexHandlerReceive().get();
-    int minAcceptable = validPostmixIndex - PostmixIndexService.POSTMIX_INDEX_RANGE_ACCEPTABLE_GAP;
-    int maxAcceptable = validPostmixIndex + PostmixIndexService.POSTMIX_INDEX_RANGE_ACCEPTABLE_GAP;
-    Assertions.assertTrue(postmixIndex >= minAcceptable && postmixIndex <= maxAcceptable);
-  }
-
-  private ISeenBackend mockSeenBackend(int validPostmixIndex, BipWallet walletPostmix) {
-    final List<String> alreadyUsedAddresses = new LinkedList<String>();
-    for (int i = 0; i < validPostmixIndex; i++) {
-      String address = walletPostmix.getAddressAt(0, i).getAddressString();
-      alreadyUsedAddresses.add(address);
+    @Test
+    public void checkPostmixIndexMock() throws Exception {
+        doCheckPostmixIndexMock(0);
+        doCheckPostmixIndexMock(0);
+        doCheckPostmixIndexMock(15);
+        // doCheckPostmixIndex(2598);
+        // doCheckPostmixIndex(11251);
     }
 
-    ISeenBackend seenBackend =
-        new ISeenBackend() {
-          @Override
-          public SeenResponse seen(Collection<String> addresses) throws Exception {
-            return new SeenResponse(null) {
-              @Override
-              public boolean isSeen(String address) {
-                return alreadyUsedAddresses.contains(address);
-              }
-            };
-          }
+    @Test
+    public void checkPostmixIndex_alreadyUsed() throws Exception {
+        PostmixIndexAlreadyUsedException e =
+                Assertions.assertThrows(
+                        PostmixIndexAlreadyUsedException.class,
+                        () -> postmixIndexService.checkPostmixIndex(walletPostmix, oxtApi));
+        Assertions.assertEquals(0, e.getPostmixIndex());
+    }
 
-          @Override
-          public boolean seen(String address) throws Exception {
-            return alreadyUsedAddresses.contains(address);
-          }
+    @Test
+    public void checkPostmixIndex_failure() throws Exception {
+        ISeenBackend seenBackend = BackendApi.newBackendApiDojo(httpClient, "http://foo", "foo");
 
-          @Override
-          public IBackendClient getHttpClient() {
-            return null;
-          }
-        };
-    return seenBackend;
-  }
+        // ignore other errors such as http timeout
+        postmixIndexService.checkPostmixIndex(walletPostmix, seenBackend); // no exception thrown
+    }
 
-  private <T> Single<Optional<T>> httpObservable(final Callable<T> supplier) {
-    return Single.fromCallable(() -> Optional.ofNullable(supplier.call()))
-        .subscribeOn(Schedulers.io());
-  }
+    private void doCheckPostmixIndexMock(int validPostmixIndex) throws Exception {
+        // mock serverApi
+        ISeenBackend seenBackend = mockSeenBackend(validPostmixIndex, walletPostmix);
+        try {
+            // check
+            postmixIndexService.checkPostmixIndex(walletPostmix, seenBackend);
+        } catch (PostmixIndexAlreadyUsedException e) {
+            // postmix index is desynchronized
+            postmixIndexService.fixPostmixIndex(walletPostmix, seenBackend);
+        }
+
+        // verify
+        int postmixIndex = walletPostmix.getIndexHandlerReceive().get();
+        int minAcceptable = validPostmixIndex - PostmixIndexService.POSTMIX_INDEX_RANGE_ACCEPTABLE_GAP;
+        int maxAcceptable = validPostmixIndex + PostmixIndexService.POSTMIX_INDEX_RANGE_ACCEPTABLE_GAP;
+        Assertions.assertTrue(postmixIndex >= minAcceptable && postmixIndex <= maxAcceptable);
+    }
+
+    private ISeenBackend mockSeenBackend(int validPostmixIndex, BipWallet walletPostmix) {
+        final List<String> alreadyUsedAddresses = new LinkedList<String>();
+        for (int i = 0; i < validPostmixIndex; i++) {
+            String address = walletPostmix.getAddressAt(0, i).getAddressString();
+            alreadyUsedAddresses.add(address);
+        }
+
+        ISeenBackend seenBackend =
+                new ISeenBackend() {
+                    @Override
+                    public SeenResponse seen(Collection<String> addresses) throws Exception {
+                        return new SeenResponse(null) {
+                            @Override
+                            public boolean isSeen(String address) {
+                                return alreadyUsedAddresses.contains(address);
+                            }
+                        };
+                    }
+
+                    @Override
+                    public boolean seen(String address) throws Exception {
+                        return alreadyUsedAddresses.contains(address);
+                    }
+
+                    @Override
+                    public IBackendClient getHttpClient() {
+                        return null;
+                    }
+                };
+        return seenBackend;
+    }
+
+    private <T> Single<Optional<T>> httpObservable(final Callable<T> supplier) {
+        return Single.fromCallable(() -> Optional.ofNullable(supplier.call()))
+                .subscribeOn(Schedulers.io());
+    }
 }
