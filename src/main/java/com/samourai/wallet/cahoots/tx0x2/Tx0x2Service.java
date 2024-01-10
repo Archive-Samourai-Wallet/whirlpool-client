@@ -295,15 +295,6 @@ public class Tx0x2Service extends AbstractCahootsService<Tx0x2, Tx0x2Context> {
   }
 
   @Override
-  protected int signTx(Tx0x2Context cahootsContext, Transaction transaction) throws Exception {
-    int nbSigned = super.signTx(cahootsContext, transaction);
-    if (nbSigned <= 0) {
-      throw new Exception("Signing problem: nbSigned=" + nbSigned);
-    }
-    return nbSigned;
-  }
-
-  @Override
   protected CahootsResult<Tx0x2Context, Tx0x2> computeCahootsResult(
       Tx0x2Context cahootsContext, Tx0x2 cahoots) {
     // update partial transactions in CahootsContext.Tx0ResultInitiator from final Cahoots

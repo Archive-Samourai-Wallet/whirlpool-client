@@ -58,18 +58,6 @@ public class ServerApi {
     return WhirlpoolProtocol.getUrlConnect(urlServer);
   }
 
-  public Single<Optional<String>> checkOutput(CheckOutputRequest checkOutputRequest)
-      throws Exception {
-    // POST request through a different identity for mix privacy
-    httpClientRegOutput.connect();
-
-    String checkOutputUrl = WhirlpoolProtocol.getUrlCheckOutput(urlServer);
-    if (log.isDebugEnabled()) {
-      log.debug("POST " + checkOutputUrl + ": " + ClientUtils.toJsonString(checkOutputRequest));
-    }
-    return httpClientRegOutput.postJson(checkOutputUrl, String.class, null, checkOutputRequest);
-  }
-
   public Single<Optional<String>> registerOutput(RegisterOutputRequest registerOutputRequest)
       throws Exception {
     // POST request through a different identity for mix privacy

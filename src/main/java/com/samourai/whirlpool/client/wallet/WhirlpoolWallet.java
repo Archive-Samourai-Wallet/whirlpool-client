@@ -7,6 +7,7 @@ import com.samourai.soroban.client.wallet.sender.SorobanWalletInitiator;
 import com.samourai.wallet.api.backend.IPushTx;
 import com.samourai.wallet.api.backend.ISweepBackend;
 import com.samourai.wallet.api.backend.MinerFeeTarget;
+import com.samourai.wallet.api.backend.seenBackend.ISeenBackend;
 import com.samourai.wallet.bip47.rpc.BIP47Wallet;
 import com.samourai.wallet.bip47.rpc.PaymentCode;
 import com.samourai.wallet.bipFormat.BIP_FORMAT;
@@ -85,6 +86,7 @@ public class WhirlpoolWallet {
   protected MixOrchestratorImpl mixOrchestrator;
   private Optional<AutoTx0Orchestrator> autoTx0Orchestrator;
   private MixingStateEditable mixingState;
+  private MixHistory mixHistory;
 
   private XManagerClient xManagerClient;
 
@@ -150,6 +152,7 @@ public class WhirlpoolWallet {
     this.mixOrchestrator = null;
     this.autoTx0Orchestrator = Optional.empty();
     this.mixingState = new MixingStateEditable(this, false);
+    this.mixHistory = new MixHistory();
   }
 
   protected static String computeWalletIdentifier(
@@ -560,7 +563,7 @@ public class WhirlpoolWallet {
 
     // log
     String poolId = whirlpoolUtxo.getUtxoState().getPoolId();
-    String logPrefix = " - [MIX] " + (poolId != null ? poolId + " " : "");
+    String logPrefix = "[MIX] " + (poolId != null ? poolId + " " : "");
     MixDestination destination = whirlpoolUtxo.getUtxoState().getMixProgress().getDestination();
     log.info(
         logPrefix
@@ -577,6 +580,9 @@ public class WhirlpoolWallet {
     int newMixsDone = whirlpoolUtxo.getMixsDone() + 1;
     getUtxoConfigSupplier()
         .setMixsDone(receiveUtxo.getTxHash(), receiveUtxo.getTxOutputIndex(), newMixsDone);
+
+    // stats
+    mixHistory.onMixSuccess(mixParams, receiveUtxo);
 
     // persist
     try {
@@ -600,13 +606,13 @@ public class WhirlpoolWallet {
 
     // log
     String poolId = whirlpoolUtxo.getUtxoState().getPoolId();
-    String logPrefix = " - [MIX] " + (poolId != null ? poolId + " " : "");
+    String logPrefix = "[MIX] " + (poolId != null ? poolId + " " : "");
 
     String message = failReason.getMessage();
     if (notifiableError != null) {
       message += " ; " + notifiableError;
     }
-    if (MixFailReason.CANCEL.equals(failReason)) {
+    if (failReason.isSilent()) {
       log.info(logPrefix + message);
     } else {
       MixDestination destination = whirlpoolUtxo.getUtxoState().getMixProgress().getDestination();
@@ -620,6 +626,11 @@ public class WhirlpoolWallet {
                   + destination.getType()
               : "");
       log.error(logPrefix + "⣿ WHIRLPOOL FAILED ⣿ " + message + destinationStr);
+    }
+
+    // mix history
+    if (!failReason.isSilent()) {
+      mixHistory.onMixFail(mixParams, failReason, notifiableError);
     }
 
     // notify
@@ -667,7 +678,7 @@ public class WhirlpoolWallet {
 
     // log
     String poolId = whirlpoolUtxo.getUtxoState().getPoolId();
-    String logPrefix = " - [MIX] " + (poolId != null ? poolId + " " : "");
+    String logPrefix = "[MIX] " + (poolId != null ? poolId + " " : "");
 
     MixStep step = whirlpoolUtxo.getUtxoState().getMixProgress().getMixStep();
     String asciiProgress = renderProgress(step.getProgressPercent());
@@ -710,9 +721,10 @@ public class WhirlpoolWallet {
   }
 
   protected void checkAndFixPostmixIndex() throws NotifiableException {
+    ISeenBackend seenBackend = dataSource.getSeenBackend();
     try {
       // check
-      postmixIndexService.checkPostmixIndex(getWalletPostmix());
+      postmixIndexService.checkPostmixIndex(getWalletPostmix(), seenBackend);
     } catch (PostmixIndexAlreadyUsedException e) {
       // postmix index is desynchronized
       log.error(
@@ -722,7 +734,7 @@ public class WhirlpoolWallet {
         // autofix
         try {
           WhirlpoolEventService.getInstance().post(new PostmixIndexFixProgressEvent(this));
-          postmixIndexService.fixPostmixIndex(getWalletPostmix());
+          postmixIndexService.fixPostmixIndex(getWalletPostmix(), seenBackend);
           WhirlpoolEventService.getInstance().post(new PostmixIndexFixSuccessEvent(this));
         } catch (PostmixIndexAlreadyUsedException ee) {
           // could not autofix
@@ -805,6 +817,10 @@ public class WhirlpoolWallet {
 
   public WhirlpoolWalletConfig getConfig() {
     return config;
+  }
+
+  public MixHistory getMixHistory() {
+    return mixHistory;
   }
 
   protected DataPersister getDataPersister() {

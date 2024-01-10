@@ -17,6 +17,7 @@ import com.samourai.whirlpool.client.whirlpool.beans.Pool;
 import java.util.Collection;
 import java.util.Comparator;
 import java.util.Iterator;
+import java.util.List;
 import java.util.stream.Collectors;
 import org.apache.commons.lang3.StringUtils;
 import org.bitcoinj.core.NetworkParameters;
@@ -26,6 +27,7 @@ import org.slf4j.LoggerFactory;
 public class DebugUtils {
   private static final Logger log = LoggerFactory.getLogger(DebugUtils.class);
   private static final UtxoUtil utxoUtil = UtxoUtil.getInstance();
+  private static final int MIX_HISTORY_LIMIT = 50;
 
   public static String getDebug(WhirlpoolWallet whirlpoolWallet) {
     StringBuilder sb = new StringBuilder("\n");
@@ -34,6 +36,10 @@ public class DebugUtils {
       sb.append(getDebugWallet(whirlpoolWallet));
       sb.append(getDebugUtxos(whirlpoolWallet));
       sb.append(getDebugMixingThreads(whirlpoolWallet));
+      sb.append(getDebugMixHistory(whirlpoolWallet));
+      if (whirlpoolWallet.getConfig().getExternalDestination() != null) {
+        sb.append(getDebugXPubHistory(whirlpoolWallet));
+      }
       sb.append(getDebugPools(whirlpoolWallet.getPoolSupplier()));
       sb.append(getDebugPaynym(whirlpoolWallet.getPaynymSupplier()));
     } else {
@@ -158,7 +164,7 @@ public class DebugUtils {
 
   public static String getDebugUtxos(Collection<WhirlpoolUtxo> utxos, int latestBlockHeight) {
     String lineFormat =
-        "| %10s | %7s | %68s | %45s | %13s | %27s | %14s | %8s | %8s | %4s | %19s | %19s |\n";
+        "| %10s | %7s | %68s | %45s | %13s | %28s | %14s | %8s | %8s | %4s | %19s | %19s |\n";
     StringBuilder sb = new StringBuilder().append("\n");
     sb.append(
         String.format(
@@ -262,7 +268,7 @@ public class DebugUtils {
       sb.append("⣿ MIXING THREADS:" + "\n");
 
       String lineFormat =
-          "| %25s | %8s | %10s | %10s | %8s | %68s | %14s | %8s | %6s | %20s | %19s |\n";
+          "| %25s | %8s | %10s | %10s | %8s | %68s | %28s | %8s | %6s | %20s | %19s |\n";
       sb.append(
           String.format(
               lineFormat,
@@ -333,19 +339,115 @@ public class DebugUtils {
     return sb.toString();
   }
 
+  public static String getDebugMixHistory(WhirlpoolWallet whirlpoolWallet) {
+    MixHistory mixHistory = whirlpoolWallet.getMixHistory();
+    StringBuilder sb = new StringBuilder().append("\n");
+    try {
+      sb.append("⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿" + "\n");
+      sb.append("⣿ MIX HISTORY :" + "\n");
+
+      sb.append(
+          mixHistory.getMixedCount()
+              + " mixed ("
+              + ClientUtils.satToBtc(mixHistory.getMixedVolume())
+              + " BTC)"
+              + (mixHistory.getMixedLastTime() != null
+                  ? ", last on " + ClientUtils.dateToString(mixHistory.getMixedLastTime())
+                  : "")
+              + "\n");
+      sb.append(
+          mixHistory.getFailedCount()
+              + " mixs failed"
+              + (mixHistory.getFailedLastTime() != null
+                  ? ", last on " + ClientUtils.dateToString(mixHistory.getFailedLastTime())
+                  : "")
+              + "\n");
+      sb.append("since startup on " + ClientUtils.dateToString(mixHistory.getStartupTime()) + "\n");
+
+      List<MixResult> mixResults = mixHistory.getMixResultsDesc(MIX_HISTORY_LIMIT);
+      sb.append(debugMixResults(mixResults));
+    } catch (Exception e) {
+      log.error("", e);
+    }
+    return sb.toString();
+  }
+
+  protected static String debugMixResults(Collection<MixResult> mixResults) throws Exception {
+    StringBuilder sb = new StringBuilder();
+    if (mixResults.size() > 0) {
+      String lineFormat = "| %20s | %7s | %5s | %9s | %10s | %68s | %45s | %28s | %15s |\n";
+      sb.append(
+          String.format(
+              lineFormat,
+              "DATE",
+              "RESULT",
+              "TYPE",
+              "AMOUNT",
+              "TO",
+              "UTXO",
+              "ADDRESS",
+              "PATH",
+              "ERROR"));
+      for (MixResult mixResult : mixResults) {
+        sb.append(
+            String.format(
+                lineFormat,
+                ClientUtils.dateToString(mixResult.getTime()),
+                mixResult.isSuccess() ? "SUCCESS" : "FAILED",
+                mixResult.isLiquidity() ? "REMIX" : "MIX",
+                ClientUtils.satToBtc(mixResult.getAmount()),
+                mixResult.isSuccess() ? mixResult.getDestinationType().name() : "-",
+                mixResult.isSuccess() ? utxoUtil.utxoToKey(mixResult.getDestinationUtxo()) : "-",
+                mixResult.isSuccess() ? mixResult.getDestinationAddress() : "-",
+                mixResult.isSuccess() ? mixResult.getDestinationPath() : "-",
+                mixResult.isSuccess()
+                    ? "-"
+                    : mixResult.getFailReason().getMessage()
+                        + " "
+                        + utxoUtil.utxoToKey(mixResult.getFailUtxo())
+                        + " "
+                        + StringUtils.defaultIfEmpty(mixResult.getFailError(), "")));
+      }
+    }
+    return sb.toString();
+  }
+
+  public static String getDebugXPubHistory(WhirlpoolWallet whirlpoolWallet) {
+    MixHistory mixHistory = whirlpoolWallet.getMixHistory();
+    StringBuilder sb = new StringBuilder().append("\n");
+    try {
+      sb.append("⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿" + "\n");
+      sb.append("⣿ EXTERNAL XPUB HISTORY :" + "\n");
+      sb.append(
+          mixHistory.getExternalXpubCount()
+              + " mixed UTXOs sent to external XPub ("
+              + ClientUtils.satToBtc(mixHistory.getExternalXpubVolume())
+              + " BTC)"
+              + (mixHistory.getExternalXpubLastTime() != null
+                  ? ", last on " + ClientUtils.dateToString(mixHistory.getExternalXpubLastTime())
+                  : "")
+              + "\n");
+
+      List<MixResult> mixResults = mixHistory.getMixResultsExternalXpubDesc(MIX_HISTORY_LIMIT);
+      sb.append(debugMixResults(mixResults));
+    } catch (Exception e) {
+      log.error("", e);
+    }
+    return sb.toString();
+  }
+
   public static String getDebugPools(PoolSupplier poolSupplier) {
     StringBuilder sb = new StringBuilder().append("\n");
     try {
       sb.append("⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿" + "\n");
       sb.append("⣿ POOLS:" + "\n");
 
-      String lineFormat = "| %15s | %15s | %20s | %15s | %15s | %20s | %15s |\n";
+      String lineFormat = "| %15s | %9s | %15s | %18s | %20s | %15s |\n";
       sb.append(
           String.format(
               lineFormat,
               "NAME",
-              "DENOMINATION",
-              "MAX. PREMIXS PER TX0",
+              "AMOUNT",
               "MIN. DEPOSIT",
               "MAX. PER TX0",
               "MAX. PER CASCADING",

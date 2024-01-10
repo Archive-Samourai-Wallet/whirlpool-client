@@ -4,6 +4,7 @@ import com.google.common.eventbus.Subscribe;
 import com.samourai.wallet.api.backend.IPushTx;
 import com.samourai.wallet.api.backend.beans.UnspentOutput;
 import com.samourai.wallet.api.backend.beans.WalletResponse;
+import com.samourai.wallet.api.backend.seenBackend.ISeenBackend;
 import com.samourai.wallet.hd.BIP_WALLET;
 import com.samourai.wallet.hd.HD_Wallet;
 import com.samourai.wallet.util.MessageListener;
@@ -97,6 +98,11 @@ public class UtxoSupplierTest extends AbstractTest {
                 return "txid-test";
               }
             };
+          }
+
+          @Override
+          public ISeenBackend getSeenBackend() {
+            return null;
           }
         };
 

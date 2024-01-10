@@ -5,6 +5,8 @@ import com.samourai.wallet.api.backend.IPushTx;
 import com.samourai.wallet.api.backend.ISweepBackend;
 import com.samourai.wallet.api.backend.beans.TxsResponse;
 import com.samourai.wallet.api.backend.beans.WalletResponse;
+import com.samourai.wallet.api.backend.seenBackend.ISeenBackend;
+import com.samourai.wallet.api.backend.seenBackend.SeenBackendWithFallback;
 import com.samourai.wallet.api.backend.websocket.BackendWsApi;
 import com.samourai.wallet.bipFormat.BIP_FORMAT;
 import com.samourai.wallet.hd.HD_Wallet;
@@ -34,6 +36,7 @@ public class DojoDataSource extends WalletResponseDataSource
 
   private BackendApi backendApi;
   private BackendWsApi backendWsApi; // may be null
+  private ISeenBackend seenBackend;
 
   public DojoDataSource(
       WhirlpoolWallet whirlpoolWallet,
@@ -47,6 +50,9 @@ public class DojoDataSource extends WalletResponseDataSource
 
     this.backendApi = backendApi;
     this.backendWsApi = backendWsApi;
+    this.seenBackend =
+        SeenBackendWithFallback.withOxt(
+            backendApi, whirlpoolWallet.getConfig().getNetworkParameters());
   }
 
   @Override
@@ -229,6 +235,11 @@ public class DojoDataSource extends WalletResponseDataSource
   @Override
   public ISweepBackend getSweepBackend() {
     return backendApi;
+  }
+
+  @Override
+  public ISeenBackend getSeenBackend() {
+    return seenBackend;
   }
 
   public BackendApi getBackendApi() {

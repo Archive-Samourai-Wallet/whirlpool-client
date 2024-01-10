@@ -69,7 +69,9 @@ public class WalletStateData extends PersistableData {
   protected synchronized void set(String key, int value) {
     int currentIndex = get(key, 0);
     if (currentIndex > value) {
-      log.warn("Rollbacking [" + key + "]: " + currentIndex + " => " + value);
+      if (log.isDebugEnabled()) {
+        log.debug("Rollbacking [" + key + "]: " + currentIndex + " => " + value);
+      }
     }
 
     items.put(key, value);
