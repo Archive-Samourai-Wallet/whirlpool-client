@@ -13,13 +13,15 @@ import com.samourai.whirlpool.client.exception.PostmixIndexAlreadyUsedException;
 import com.samourai.whirlpool.client.test.AbstractTest;
 import io.reactivex.Single;
 import io.reactivex.schedulers.Schedulers;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+
+import java.util.Collection;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.Callable;
-import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
 
 public class PostmixIndexServiceTest extends AbstractTest {
   private PostmixIndexService postmixIndexService;
@@ -94,13 +96,18 @@ public class PostmixIndexServiceTest extends AbstractTest {
     ISeenBackend seenBackend =
         new ISeenBackend() {
           @Override
-          public SeenResponse seen(String... addresses) throws Exception {
+          public SeenResponse seen(Collection<String> addresses) throws Exception {
             return new SeenResponse(null) {
               @Override
               public boolean isSeen(String address) {
                 return alreadyUsedAddresses.contains(address);
               }
             };
+          }
+
+          @Override
+          public boolean seen(String address) throws Exception {
+            return alreadyUsedAddresses.contains(address);
           }
 
           @Override
