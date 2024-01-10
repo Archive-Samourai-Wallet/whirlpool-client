@@ -192,7 +192,7 @@ public class MixProcess {
     }
 
     this.inputsHash = registerOutputMixStatusNotification.getInputsHash();
-    this.receiveDestination = postmixHandler.computeDestination();
+    this.receiveDestination = postmixHandler.computeDestinationNext();
 
     String unblindedSignedBordereau64 =
         WhirlpoolProtocol.encodeBytes(clientCryptoService.unblind(signedBordereau, blindingParams));
@@ -384,6 +384,10 @@ public class MixProcess {
 
   public Utxo getReceiveUtxo() {
     return receiveUtxo;
+  }
+
+  public MixDestination getReceiveDestination() {
+    return receiveDestination;
   }
 
   private boolean throwProtocolException() throws Exception {

@@ -1,7 +1,6 @@
 package com.samourai.whirlpool.client.wallet.beans;
 
 import com.samourai.whirlpool.client.mix.MixParams;
-import com.samourai.whirlpool.client.mix.handler.MixDestination;
 import com.samourai.whirlpool.client.mix.listener.MixStep;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -24,10 +23,6 @@ public class MixProgress {
 
   public long getDenomination() {
     return mixParams.getDenomination();
-  }
-
-  public MixDestination getDestination() {
-    return mixParams.getPostmixHandler().getDestination();
   }
 
   public MixStep getMixStep() {

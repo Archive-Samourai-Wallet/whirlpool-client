@@ -11,7 +11,10 @@ import com.samourai.wallet.hd.BIP_WALLET;
 import com.samourai.wallet.hd.HD_Wallet;
 import com.samourai.wallet.hd.HD_WalletFactoryGeneric;
 import com.samourai.whirlpool.client.exception.PostmixIndexAlreadyUsedException;
+import com.samourai.whirlpool.client.mix.handler.Bip84PostmixHandler;
+import com.samourai.whirlpool.client.mix.handler.IPostmixHandler;
 import com.samourai.whirlpool.client.test.AbstractTest;
+import com.samourai.whirlpool.client.wallet.beans.IndexRange;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -22,7 +25,7 @@ import java.util.List;
 
 public class PostmixIndexServiceTest extends AbstractTest {
   private PostmixIndexService postmixIndexService;
-  private BipWallet walletPostmix;
+  private IPostmixHandler postmixHandler;
 
   public PostmixIndexServiceTest() throws Exception {}
 
@@ -31,8 +34,9 @@ public class PostmixIndexServiceTest extends AbstractTest {
     byte[] seed = hdWalletFactory.computeSeedFromWords(SEED_WORDS);
     HD_Wallet bip44w =
         HD_WalletFactoryGeneric.getInstance().getBIP44(seed, SEED_PASSPHRASE, params);
-    walletPostmix =
+    BipWallet walletPostmix =
         new BipWallet(bip44w, new MemoryIndexHandlerSupplier(), BIP_WALLET.POSTMIX_BIP84);
+    postmixHandler = new Bip84PostmixHandler(params, walletPostmix, IndexRange.EVEN);
 
     WhirlpoolWalletConfig config = computeWhirlpoolWalletConfig(null);
     postmixIndexService = new PostmixIndexService(config);
@@ -49,11 +53,12 @@ public class PostmixIndexServiceTest extends AbstractTest {
 
   @Test
   public void checkPostmixIndex_alreadyUsed() throws Exception {
-    ISeenBackend seenBackend = BackendApi.newBackendApiSamourai(httpClient, BackendServer.TESTNET.getBackendUrlClear());
+    ISeenBackend seenBackend =
+        BackendApi.newBackendApiSamourai(httpClient, BackendServer.TESTNET.getBackendUrlClear());
     PostmixIndexAlreadyUsedException e =
         Assertions.assertThrows(
             PostmixIndexAlreadyUsedException.class,
-            () -> postmixIndexService.checkPostmixIndex(walletPostmix, seenBackend));
+            () -> postmixIndexService.checkPostmixIndex(postmixHandler, seenBackend));
     Assertions.assertEquals(0, e.getPostmixIndex());
   }
 
@@ -62,31 +67,31 @@ public class PostmixIndexServiceTest extends AbstractTest {
     ISeenBackend seenBackend = BackendApi.newBackendApiDojo(httpClient, "http://foo", "foo");
 
     // ignore other errors such as http timeout
-    postmixIndexService.checkPostmixIndex(walletPostmix, seenBackend); // no exception thrown
+    postmixIndexService.checkPostmixIndex(postmixHandler, seenBackend); // no exception thrown
   }
 
   private void doCheckPostmixIndexMock(int validPostmixIndex) throws Exception {
     // mock serverApi
-    ISeenBackend seenBackend = mockSeenBackend(validPostmixIndex, walletPostmix);
+    ISeenBackend seenBackend = mockSeenBackend(validPostmixIndex, postmixHandler);
     try {
       // check
-      postmixIndexService.checkPostmixIndex(walletPostmix, seenBackend);
+      postmixIndexService.checkPostmixIndex(postmixHandler, seenBackend);
     } catch (PostmixIndexAlreadyUsedException e) {
       // postmix index is desynchronized
-      postmixIndexService.fixPostmixIndex(walletPostmix, seenBackend);
+      postmixIndexService.fixPostmixIndex(postmixHandler, seenBackend);
     }
 
     // verify
-    int postmixIndex = walletPostmix.getIndexHandlerReceive().get();
+    int postmixIndex = postmixHandler.getIndexHandler().get();
     int minAcceptable = validPostmixIndex - PostmixIndexService.POSTMIX_INDEX_RANGE_ACCEPTABLE_GAP;
     int maxAcceptable = validPostmixIndex + PostmixIndexService.POSTMIX_INDEX_RANGE_ACCEPTABLE_GAP;
     Assertions.assertTrue(postmixIndex >= minAcceptable && postmixIndex <= maxAcceptable);
   }
 
-  private ISeenBackend mockSeenBackend(int validPostmixIndex, BipWallet walletPostmix) {
+  private ISeenBackend mockSeenBackend(int validPostmixIndex, IPostmixHandler postmixHandler) throws Exception {
     final List<String> alreadyUsedAddresses = new LinkedList<String>();
     for (int i = 0; i < validPostmixIndex; i++) {
-      String address = walletPostmix.getAddressAt(0, i).getAddressString();
+      String address = postmixHandler.computeDestination(i).getAddress();
       alreadyUsedAddresses.add(address);
     }
 

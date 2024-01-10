@@ -59,17 +59,17 @@ public class MixOrchestratorImpl extends MixOrchestrator {
 
     return new WhirlpoolClientListener() {
       @Override
-      public void success(Utxo receiveUtxo) {
+      public void success(Utxo receiveUtxo, MixDestination receiveDestination) {
         // update utxo
         WhirlpoolUtxoState utxoState = whirlpoolUtxo.getUtxoState();
         utxoState.setStatusMixing(
             WhirlpoolUtxoStatus.MIX_SUCCESS, true, mixParams, MixStep.SUCCESS);
 
         // remove from mixings
-        orchestratorListener.success(receiveUtxo);
+        orchestratorListener.success(receiveUtxo, receiveDestination);
 
         // notify
-        whirlpoolWallet.onMixSuccess(mixParams, receiveUtxo);
+        whirlpoolWallet.onMixSuccess(mixParams, receiveUtxo, receiveDestination);
       }
 
       @Override
@@ -146,7 +146,7 @@ public class MixOrchestratorImpl extends MixOrchestrator {
 
   private MixParams computeMixParams(WhirlpoolUtxo whirlpoolUtxo, Pool pool) {
     IPremixHandler premixHandler = computePremixHandler(whirlpoolUtxo);
-    IPostmixHandler postmixHandler = computePostmixHandler(whirlpoolUtxo);
+    IPostmixHandler postmixHandler = whirlpoolWallet.computePostmixHandler(whirlpoolUtxo);
     ChainSupplier chainSupplier = whirlpoolWallet.getChainSupplier();
     return new MixParams(
         pool.getPoolId(),
@@ -197,51 +197,5 @@ public class MixOrchestratorImpl extends MixOrchestrator {
     String userPreHash = ClientUtils.sha256Hash(premix00Bech32);
 
     return new PremixHandler(utxoWithBalance, premixKey, userPreHash);
-  }
-
-  private IPostmixHandler computePostmixHandler(WhirlpoolUtxo whirlpoolUtxo) {
-    ExternalDestination externalDestination = config.getExternalDestination();
-    if (externalDestination != null) {
-      int nextMixsDone = whirlpoolUtxo.getMixsDone() + 1;
-      if (nextMixsDone >= externalDestination.getMixs()) {
-        // random factor for privacy
-        if (externalDestination.useRandomDelay()) {
-          if (log.isDebugEnabled()) {
-            log.debug(
-                "Mixing to POSTMIX, external destination randomly delayed for better privacy ("
-                    + whirlpoolUtxo
-                    + ")");
-          }
-        } else {
-          if (log.isDebugEnabled()) {
-            log.debug("Mixing to EXTERNAL (" + whirlpoolUtxo + ")");
-          }
-          if (externalDestination.getPostmixHandler() != null) {
-            return externalDestination.getPostmixHandler();
-          }
-          return new XPubPostmixHandler(
-              whirlpoolWallet.getWalletStateSupplier().getIndexHandlerExternal(),
-              config.getNetworkParameters(),
-              externalDestination.getXpub(),
-              externalDestination.getChain(),
-              externalDestination.getStartIndex());
-        }
-      } else {
-        if (log.isDebugEnabled()) {
-          log.debug(
-              "Mixing to POSTMIX, mix "
-                  + nextMixsDone
-                  + "/"
-                  + externalDestination.getMixs()
-                  + " before external destination ("
-                  + whirlpoolUtxo
-                  + ")");
-        }
-      }
-    }
-    return new Bip84PostmixHandler(
-        config.getNetworkParameters(),
-        whirlpoolWallet.getWalletPostmix(),
-        config.getIndexRangePostmix());
   }
 }

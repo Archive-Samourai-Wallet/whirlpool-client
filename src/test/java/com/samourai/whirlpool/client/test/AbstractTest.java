@@ -30,16 +30,15 @@ import com.samourai.whirlpool.client.whirlpool.ServerApi;
 import com.samourai.whirlpool.client.whirlpool.beans.Pool;
 import com.samourai.whirlpool.protocol.rest.PoolsResponse;
 import com.samourai.whirlpool.protocol.websocket.notifications.MixStatus;
+import java.io.File;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Optional;
 import org.bitcoinj.core.NetworkParameters;
 import org.bitcoinj.params.TestNet3Params;
 import org.bouncycastle.util.encoders.Hex;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.io.File;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Optional;
 
 public class AbstractTest {
   protected static final Logger log = LoggerFactory.getLogger(AbstractTest.class);
@@ -264,8 +263,7 @@ public class AbstractTest {
 
   protected WalletStateSupplier computeWalletStateSupplier() throws Exception {
     ClientUtils.createFile(STATE_FILENAME);
-    WalletStateSupplier walletStateSupplier =
-        new WalletStatePersistableSupplier(new WalletStatePersisterFile(STATE_FILENAME), null);
+    WalletStateSupplier walletStateSupplier = new WalletStatePersistableSupplier(new WalletStatePersisterFile(STATE_FILENAME));
     walletStateSupplier.load();
     return walletStateSupplier;
   }
