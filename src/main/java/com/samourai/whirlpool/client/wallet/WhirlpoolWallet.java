@@ -396,8 +396,7 @@ public class WhirlpoolWallet {
     for (BipWallet bipWallet : getWalletSupplier().getWallets()) {
       String nextReceivePath = bipWallet.getNextAddress(false).getPathAddress();
       String nextChangePath = bipWallet.getNextChangeAddress(false).getPathAddress();
-      String pub =
-          log.isDebugEnabled() ? bipWallet.getPub() : ClientUtils.maskString(bipWallet.getPub());
+      String pub = ClientUtils.maskString(bipWallet.getPub());
       log.info(
           " +WALLET "
               + bipWallet.getId()
@@ -411,6 +410,21 @@ public class WhirlpoolWallet {
               + nextChangePath
               + ", "
               + pub);
+    }
+    ExternalDestination externalDestination = config.getExternalDestination();
+    if (externalDestination != null) {
+      IPostmixHandler postmixHandlerExternal = getPostmixHandler(externalDestination);
+      MixDestination mixDestination =
+          postmixHandlerExternal.computeDestinationNext(); // increments unconfirmed
+      String pub = ClientUtils.maskString(externalDestination.getXpub());
+      log.info(
+          " +EXTERNAL-XPUB: bipFormat="
+              + BIP_FORMAT.SEGWIT_NATIVE.getId()
+              + ", receive="
+              + mixDestination.getPath()
+              + ", "
+              + pub);
+      postmixHandlerExternal.onMixFail(); // revert unconfirmed index
     }
   }
 
@@ -740,14 +754,18 @@ public class WhirlpoolWallet {
 
   protected void checkAndFixPostmixIndex(IPostmixHandler postmixHandler)
       throws NotifiableException {
-    ISeenBackend seenBackend = dataSource.getSeenBackend();
+    if (log.isDebugEnabled()) {
+      log.debug("Checking next index: " + postmixHandler.getClass().getName());
+    }
+    ISeenBackend seenBackend = getSeenBackend();
     try {
       // check
       postmixIndexService.checkPostmixIndex(postmixHandler, seenBackend);
     } catch (PostmixIndexAlreadyUsedException e) {
       // postmix index is desynchronized
-      log.error(
-          "postmixIndex is desynchronized: " + e.getClass().getSimpleName() + " " + e.getMessage());
+      if (log.isDebugEnabled()) {
+        log.warn("postmixIndex is desynchronized: " + e.getMessage());
+      }
       WhirlpoolEventService.getInstance().post(new PostmixIndexAlreadyUsedEvent(this));
       if (config.isPostmixIndexAutoFix()) {
         // autofix
@@ -860,6 +878,10 @@ public class WhirlpoolWallet {
     return ((DataSourceWithSweep) dataSource).getSweepBackend();
   }
 
+  public ISeenBackend getSeenBackend() {
+    return dataSource.getSeenBackend();
+  }
+
   public RicochetConfig newRicochetConfig(
       int feePerB, boolean useTimeLock, WhirlpoolAccount spendAccount) {
     long latestBlock = getChainSupplier().getLatestBlock().height;
@@ -936,5 +958,9 @@ public class WhirlpoolWallet {
       }
     }
     return getPostmixHandler();
+  }
+
+  public PostmixIndexService getPostmixIndexService() {
+    return postmixIndexService;
   }
 }

@@ -263,7 +263,8 @@ public class AbstractTest {
 
   protected WalletStateSupplier computeWalletStateSupplier() throws Exception {
     ClientUtils.createFile(STATE_FILENAME);
-    WalletStateSupplier walletStateSupplier = new WalletStatePersistableSupplier(new WalletStatePersisterFile(STATE_FILENAME));
+    WalletStateSupplier walletStateSupplier =
+        new WalletStatePersistableSupplier(new WalletStatePersisterFile(STATE_FILENAME));
     walletStateSupplier.load();
     return walletStateSupplier;
   }

@@ -15,13 +15,12 @@ import com.samourai.whirlpool.client.mix.handler.Bip84PostmixHandler;
 import com.samourai.whirlpool.client.mix.handler.IPostmixHandler;
 import com.samourai.whirlpool.client.test.AbstractTest;
 import com.samourai.whirlpool.client.wallet.beans.IndexRange;
-import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-
 import java.util.Collection;
 import java.util.LinkedList;
 import java.util.List;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 public class PostmixIndexServiceTest extends AbstractTest {
   private PostmixIndexService postmixIndexService;
@@ -88,7 +87,8 @@ public class PostmixIndexServiceTest extends AbstractTest {
     Assertions.assertTrue(postmixIndex >= minAcceptable && postmixIndex <= maxAcceptable);
   }
 
-  private ISeenBackend mockSeenBackend(int validPostmixIndex, IPostmixHandler postmixHandler) throws Exception {
+  private ISeenBackend mockSeenBackend(int validPostmixIndex, IPostmixHandler postmixHandler)
+      throws Exception {
     final List<String> alreadyUsedAddresses = new LinkedList<String>();
     for (int i = 0; i < validPostmixIndex; i++) {
       String address = postmixHandler.computeDestination(i).getAddress();

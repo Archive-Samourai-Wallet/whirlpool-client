@@ -29,7 +29,7 @@ public class XPubPostmixHandler extends AbstractPostmixHandler {
   @Override
   public MixDestination computeDestination(int index) throws Exception {
     String address = xPubUtil.getAddressBech32(xPub, index, chain, params);
-    String path = xPubUtil.getPath(index, chain);
+    String path = xPubUtil.getPathSegwit(index, chain, params);
     return new MixDestination(DestinationType.XPUB, index, address, path);
   }
 }

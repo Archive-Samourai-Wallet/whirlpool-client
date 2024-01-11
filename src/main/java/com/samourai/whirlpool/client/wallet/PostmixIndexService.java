@@ -64,6 +64,13 @@ public class PostmixIndexService {
     }
   }
 
+  public synchronized int resetPostmixIndex(
+      IPostmixHandler postmixHandler, ISeenBackend seenBackend) throws Exception {
+    IIndexHandler postmixIndexHandler = postmixHandler.getIndexHandler();
+    postmixIndexHandler.set(0, true);
+    return fixPostmixIndex(postmixHandler, seenBackend);
+  }
+
   public synchronized int fixPostmixIndex(IPostmixHandler postmixHandler, ISeenBackend seenBackend)
       throws Exception {
     IIndexHandler postmixIndexHandler = postmixHandler.getIndexHandler();
@@ -149,7 +156,9 @@ public class PostmixIndexService {
         return Pair.of(leftIndex, postmixIndex);
 
       } catch (PostmixIndexAlreadyUsedException e) {
-        log.warn("postmixIndex already used: " + postmixIndex);
+        if (log.isDebugEnabled()) {
+          log.debug("postmixIndex already used: " + postmixIndex);
+        }
 
         // quick look-forward
         incrementGap *= 2;
