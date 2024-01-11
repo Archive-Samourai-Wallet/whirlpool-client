@@ -62,20 +62,20 @@ public class AbstractTest {
   private static final String STATE_FILENAME = "/tmp/tmp-state";
 
   protected static final String XPUB_DEPOSIT_BIP84 =
-          "tpubDCGZwoNuBCYuS9LbHLzdbfzjYe2fn7dKAHVSUPTkb1vuSfi7hUuiG3eT7tE1DzdcjhBF5SZk3vuu8EkcFUnbsaBpCyB2uDP7v3n774RGre9";
+      "tpubDCGZwoNuBCYuS9LbHLzdbfzjYe2fn7dKAHVSUPTkb1vuSfi7hUuiG3eT7tE1DzdcjhBF5SZk3vuu8EkcFUnbsaBpCyB2uDP7v3n774RGre9";
   protected static final String XPUB_PREMIX =
-          "tpubDCGZwoP3Ws5sUQb1uwYxqQfmEjiPfSGrBcomWLyYgYw7YP5LenJexEzxwHvJoYUQSCWZupgzcx91fr4wVdJCb21LTr6fcv4GvBio4bzAhvr";
+      "tpubDCGZwoP3Ws5sUQb1uwYxqQfmEjiPfSGrBcomWLyYgYw7YP5LenJexEzxwHvJoYUQSCWZupgzcx91fr4wVdJCb21LTr6fcv4GvBio4bzAhvr";
   protected static final String XPUB_POSTMIX =
-          "tpubDCGZwoP3Ws5sZLQpXGpDhtbErQPyFdf59k8JmUpnL5fM6qAj8bbPXNwLLtfiS5s8ivZ1W1PQnaET7obFeiDSooTFBKcTweS29BkgHwhhsQD";
+      "tpubDCGZwoP3Ws5sZLQpXGpDhtbErQPyFdf59k8JmUpnL5fM6qAj8bbPXNwLLtfiS5s8ivZ1W1PQnaET7obFeiDSooTFBKcTweS29BkgHwhhsQD";
 
   protected IHttpClient httpClient;
 
   protected ChainSupplier mockChainSupplier =
-          () -> {
-            WalletResponse.InfoBlock infoBlock = new WalletResponse.InfoBlock();
-            infoBlock.height = 1234;
-            return infoBlock;
-          };
+      () -> {
+        WalletResponse.InfoBlock infoBlock = new WalletResponse.InfoBlock();
+        infoBlock.height = 1234;
+        return infoBlock;
+      };
 
   protected WhirlpoolServer whirlpoolServer = WhirlpoolServer.TESTNET;
   protected WhirlpoolNetwork whirlpoolNetwork = whirlpoolServer.getWhirlpoolNetwork();
@@ -93,18 +93,18 @@ public class AbstractTest {
   protected Pool pool05btc;
   protected Pool pool001btc;
   private static final String WALLET_RESPONSE =
-          "{\"wallet\": {\"final_balance\": 116640227},\"info\": {\"fees\": {\"2\": 1,\"4\": 1,\"6\": 1,\"12\": 1,\"24\": 1},\"latest_block\": {\"height\": 2064015,\"hash\": \"00000000000000409297f8e0c0e73475cdd215ef675ad82802a08507b1c1d0e1\",\"time\": 1628498860}},\"addresses\": [{\"address\": \"vpub5YEhBtZy85KxLBxQB4MiHZvjjhz5DcYT9DV2gLshFykuWXjqSzLxpLd4TwS8nFxJmXAX8RrxRxpanndBh5a9AJPbrJEtqCcTKAnRYcP4Aed\",\"final_balance\": 116640227,\"account_index\": 511,\"change_index\": 183,\"n_tx\": 137}],\"txs\": [],\"unspent_outputs\": []}";
+      "{\"wallet\": {\"final_balance\": 116640227},\"info\": {\"fees\": {\"2\": 1,\"4\": 1,\"6\": 1,\"12\": 1,\"24\": 1},\"latest_block\": {\"height\": 2064015,\"hash\": \"00000000000000409297f8e0c0e73475cdd215ef675ad82802a08507b1c1d0e1\",\"time\": 1628498860}},\"addresses\": [{\"address\": \"vpub5YEhBtZy85KxLBxQB4MiHZvjjhz5DcYT9DV2gLshFykuWXjqSzLxpLd4TwS8nFxJmXAX8RrxRxpanndBh5a9AJPbrJEtqCcTKAnRYcP4Aed\",\"final_balance\": 116640227,\"account_index\": 511,\"change_index\": 183,\"n_tx\": 137}],\"txs\": [],\"unspent_outputs\": []}";
 
   protected MinerFeeSupplier mockMinerFeeSupplier = mockMinerFeeSupplier();
   protected MockTx0PreviewService mockTx0PreviewService =
-          new MockTx0PreviewService(
-                  mockMinerFeeSupplier, new MockTx0PreviewServiceConfig(whirlpoolNetwork)) {};
+      new MockTx0PreviewService(
+          mockMinerFeeSupplier, new MockTx0PreviewServiceConfig(whirlpoolNetwork)) {};
   protected CoordinatorSupplier coordinatorSupplier =
-          new MockCoordinatorSupplier(mockTx0PreviewService);
+      new MockCoordinatorSupplier(mockTx0PreviewService);
 
   protected MockPushTx pushTx = new MockPushTx(params);
   protected static final String MOCK_SAMOURAI_FEE_ADDRESS =
-          "tb1qfd0ukes4xw3xvxwhj9m53nt2huh75khrrdm5dv";
+      "tb1qfd0ukes4xw3xvxwhj9m53nt2huh75khrrdm5dv";
 
   public AbstractTest() throws Exception {
     ClientUtils.setLogLevel(Level.DEBUG);
@@ -166,10 +166,10 @@ public class AbstractTest {
   }
 
   protected UnspentOutput newUnspentOutput(String hash, int index, long value, HD_Address hdAddress)
-          throws Exception {
+      throws Exception {
     String bech32Address = bech32Util.toBech32(hdAddress, params);
     String scriptBytes =
-            Hex.toHexString(Bech32UtilGeneric.getInstance().computeScriptPubKey(bech32Address, params));
+        Hex.toHexString(Bech32UtilGeneric.getInstance().computeScriptPubKey(bech32Address, params));
     UnspentOutput spendFrom = new UnspentOutput();
     spendFrom.tx_hash = hash;
     spendFrom.tx_output_n = index;
@@ -201,27 +201,27 @@ public class AbstractTest {
 
   protected WhirlpoolWalletConfig computeWhirlpoolWalletConfig() {
     DataSourceFactory dataSourceFactory =
-            new DojoDataSourceFactory(BackendServer.TESTNET, false, null);
+        new DojoDataSourceFactory(BackendServer.TESTNET, false, null);
     ISecretPointFactory secretPointFactory = SecretPointFactoryJava.getInstance();
     IHttpClientService httpClientService = computeHttpClientService();
     CryptoUtil cryptoUtil = CryptoUtil.getInstanceJava();
     RpcClientService rpcClientService =
-            new RpcClientService(httpClientService, cryptoUtil, bip47Util, false, params);
+        new RpcClientService(httpClientService, cryptoUtil, bip47Util, false, params);
     SorobanWalletService sorobanWalletService =
-            new SorobanWalletService(bip47Util, bipFormatSupplier, params, rpcClientService);
+        new SorobanWalletService(bip47Util, bipFormatSupplier, params, rpcClientService);
     WhirlpoolWalletConfig config =
-            new WhirlpoolWalletConfig(
-                    dataSourceFactory,
-                    secretPointFactory,
-                    cryptoUtil,
-                    sorobanWalletService,
-                    httpClientService,
-                    rpcClientService,
-                    null,
-                    bip47Util,
-                    whirlpoolNetwork,
-                    false,
-                    false);
+        new WhirlpoolWalletConfig(
+            dataSourceFactory,
+            secretPointFactory,
+            cryptoUtil,
+            sorobanWalletService,
+            httpClientService,
+            rpcClientService,
+            null,
+            bip47Util,
+            whirlpoolNetwork,
+            false,
+            false);
     config.setDataPersisterFactory(new MemoryDataPersisterFactory());
     return config;
   }
@@ -238,7 +238,7 @@ public class AbstractTest {
   protected WalletStateSupplier computeWalletStateSupplier() throws Exception {
     ClientUtils.createFile(STATE_FILENAME);
     WalletStateSupplier walletStateSupplier =
-            new WalletStatePersistableSupplier(new WalletStatePersisterFile(STATE_FILENAME), null);
+        new WalletStatePersistableSupplier(new WalletStatePersisterFile(STATE_FILENAME), null);
     walletStateSupplier.load();
     return walletStateSupplier;
   }
@@ -261,9 +261,9 @@ public class AbstractTest {
     Assertions.assertEquals(utxos1.length, utxos2.size());
 
     List<String> utxos1Ids =
-            Arrays.asList(utxos1).stream()
-                    .map((Function<UnspentOutput, String>) utxo -> computeUtxoId(utxo))
-                    .collect(Collectors.<String>toList());
+        Arrays.asList(utxos1).stream()
+            .map((Function<UnspentOutput, String>) utxo -> computeUtxoId(utxo))
+            .collect(Collectors.<String>toList());
     for (WhirlpoolUtxo whirlpoolUtxo : utxos2) {
       // search utxo by id
       Assertions.assertTrue(utxos1Ids.contains(computeUtxoId(whirlpoolUtxo.getUtxo())));
@@ -276,19 +276,19 @@ public class AbstractTest {
 
   protected void mockTx0Datas() throws Exception {
     byte[] feePayload =
-            computeWhirlpoolWalletConfig()
-                    .getFeeOpReturnImpl()
-                    .computeFeePayload(0, (short) 0, (short) 0);
+        computeWhirlpoolWalletConfig()
+            .getFeeOpReturnImpl()
+            .computeFeePayload(0, (short) 0, (short) 0);
     mockTx0PreviewService.setMockTx0Datas(
-            Arrays.asList(
-                    new Tx0Data(
-                            "0.01btc",
-                            "PM8TJbEnXU7JpR8yMdQee9H5C4RNWTpWAgmb2TVyQ4zfnaQBDMTJ4yYVP9Re8NVsZDSwXvogYbssrqkfVwac9U1QnxdCU2G1zH7Gq6L3JJjzcuWGjB9N",
-                            42500,
-                            0,
-                            0,
-                            null,
-                            feePayload,
-                            MOCK_SAMOURAI_FEE_ADDRESS)));
+        Arrays.asList(
+            new Tx0Data(
+                "0.01btc",
+                "PM8TJbEnXU7JpR8yMdQee9H5C4RNWTpWAgmb2TVyQ4zfnaQBDMTJ4yYVP9Re8NVsZDSwXvogYbssrqkfVwac9U1QnxdCU2G1zH7Gq6L3JJjzcuWGjB9N",
+                42500,
+                0,
+                0,
+                null,
+                feePayload,
+                MOCK_SAMOURAI_FEE_ADDRESS)));
   }
 }

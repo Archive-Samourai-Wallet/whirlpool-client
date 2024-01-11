@@ -12,6 +12,7 @@ import com.samourai.wallet.bipFormat.BIP_FORMAT;
 import com.samourai.wallet.hd.HD_Wallet;
 import com.samourai.wallet.util.MessageListener;
 import com.samourai.whirlpool.client.exception.NotifiableException;
+import com.samourai.whirlpool.client.utils.ClientUtils;
 import com.samourai.whirlpool.client.wallet.WhirlpoolWallet;
 import com.samourai.whirlpool.client.wallet.beans.MixableStatus;
 import com.samourai.whirlpool.client.wallet.beans.WhirlpoolAccount;
@@ -22,6 +23,7 @@ import java.util.Collection;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.stream.Collectors;
+import org.bitcoinj.core.NetworkParameters;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -38,18 +40,19 @@ public class DojoDataSource extends WalletResponseDataSource {
   private ISeenBackend seenBackend;
 
   public DojoDataSource(
-          WhirlpoolWallet whirlpoolWallet,
-          HD_Wallet bip44w,
-          WalletStateSupplier walletStateSupplier,
-          UtxoConfigSupplier utxoConfigSupplier,
-          BackendApi backendApi,
-          BackendWsApi backendWsApi)
-          throws Exception {
+      WhirlpoolWallet whirlpoolWallet,
+      HD_Wallet bip44w,
+      WalletStateSupplier walletStateSupplier,
+      UtxoConfigSupplier utxoConfigSupplier,
+      BackendApi backendApi,
+      BackendWsApi backendWsApi)
+      throws Exception {
     super(whirlpoolWallet, bip44w, walletStateSupplier, utxoConfigSupplier);
 
     this.backendApi = backendApi;
     this.backendWsApi = backendWsApi;
-    this.seenBackend = SeenBackendWithFallback.withOxt(backendApi);
+    NetworkParameters params = whirlpoolWallet.getConfig().getWhirlpoolNetwork().getParams();
+    this.seenBackend = SeenBackendWithFallback.withOxt(backendApi, params);
   }
 
   @Override
@@ -97,10 +100,10 @@ public class DojoDataSource extends WalletResponseDataSource {
 
   private Map<String, TxsResponse.Tx> fetchTxsPostmix() throws Exception {
     String[] zpubs =
-            new String[] {
-                    getWhirlpoolWallet().getWalletPremix().getXPub(),
-                    getWhirlpoolWallet().getWalletPostmix().getXPub()
-            };
+        new String[] {
+          getWhirlpoolWallet().getWalletPremix().getXPub(),
+          getWhirlpoolWallet().getWalletPostmix().getXPub()
+        };
 
     Map<String, TxsResponse.Tx> txs = new LinkedHashMap<String, TxsResponse.Tx>();
     int page = -1;
@@ -125,15 +128,15 @@ public class DojoDataSource extends WalletResponseDataSource {
 
   private Collection<WhirlpoolUtxo> filterRemixableUtxos(Collection<WhirlpoolUtxo> whirlpoolUtxos) {
     return whirlpoolUtxos.stream()
-            .filter(
-                    whirlpoolUtxo ->
-                            !MixableStatus.NO_POOL.equals(whirlpoolUtxo.getUtxoState().getMixableStatus()))
-            .collect(Collectors.<WhirlpoolUtxo>toList());
+        .filter(
+            whirlpoolUtxo ->
+                !MixableStatus.NO_POOL.equals(whirlpoolUtxo.getUtxoState().getMixableStatus()))
+        .collect(Collectors.<WhirlpoolUtxo>toList());
   }
 
   private void initWallet(String xpub) throws Exception {
     for (int i = 0; i < INITWALLET_RETRY; i++) {
-      log.info(" • Initializing wallet");
+      log.info(" • Initializing wallet: " + ClientUtils.maskString(xpub));
       try {
         backendApi.initBip84(xpub);
         return; // success
@@ -142,11 +145,11 @@ public class DojoDataSource extends WalletResponseDataSource {
           log.error("", e);
         }
         log.error(
-                " x Initializing wallet failed, retrying... ("
-                        + (i + 1)
-                        + "/"
-                        + INITWALLET_RETRY
-                        + ")");
+            " x Initializing wallet failed, retrying... ("
+                + (i + 1)
+                + "/"
+                + INITWALLET_RETRY
+                + ")");
         Thread.sleep(INITWALLET_RETRY_TIMEOUT);
       }
     }
@@ -164,43 +167,43 @@ public class DojoDataSource extends WalletResponseDataSource {
 
   protected void startBackendWsApi() throws Exception {
     backendWsApi.connect(
-            (MessageListener<Void>)
-                    foo -> {
-                      try {
-                        // watch blocks
-                        backendWsApi.subscribeBlock(
-                                (MessageListener)
-                                        message -> {
-                                          if (log.isDebugEnabled()) {
-                                            log.debug("new block received -> refreshing walletData");
-                                            try {
-                                              refresh();
-                                            } catch (Exception e) {
-                                              log.error("", e);
-                                            }
-                                          }
-                                        });
+        (MessageListener<Void>)
+            foo -> {
+              try {
+                // watch blocks
+                backendWsApi.subscribeBlock(
+                    (MessageListener)
+                        message -> {
+                          if (log.isDebugEnabled()) {
+                            log.debug("new block received -> refreshing walletData");
+                            try {
+                              refresh();
+                            } catch (Exception e) {
+                              log.error("", e);
+                            }
+                          }
+                        });
 
-                        // watch addresses
-                        String[] pubs = getWalletSupplier().getXPubs(true);
-                        backendWsApi.subscribeAddress(
-                                pubs,
-                                (MessageListener)
-                                        message -> {
-                                          if (log.isDebugEnabled()) {
-                                            log.debug("new address received -> refreshing walletData");
-                                            try {
-                                              refresh();
-                                            } catch (Exception e) {
-                                              log.error("", e);
-                                            }
-                                          }
-                                        });
-                      } catch (Exception e) {
-                        log.error("", e);
-                      }
-                    },
-            true);
+                // watch addresses
+                String[] pubs = getWalletSupplier().getXPubs(true);
+                backendWsApi.subscribeAddress(
+                    pubs,
+                    (MessageListener)
+                        message -> {
+                          if (log.isDebugEnabled()) {
+                            log.debug("new address received -> refreshing walletData");
+                            try {
+                              refresh();
+                            } catch (Exception e) {
+                              log.error("", e);
+                            }
+                          }
+                        });
+              } catch (Exception e) {
+                log.error("", e);
+              }
+            },
+        true);
   }
 
   @Override

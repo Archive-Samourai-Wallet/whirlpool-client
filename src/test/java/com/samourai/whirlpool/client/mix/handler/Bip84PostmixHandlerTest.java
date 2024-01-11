@@ -36,53 +36,53 @@ public class Bip84PostmixHandlerTest extends AbstractTest {
     Bip84PostmixHandler phCli = new Bip84PostmixHandler(params, bipWallet, IndexRange.EVEN);
     Bip84PostmixHandler phMobile = new Bip84PostmixHandler(params, bipWallet, IndexRange.ODD);
 
-    Assertions.assertEquals(0, phCli.computeDestination().getIndex());
-    Assertions.assertEquals(2, phCli.computeDestination().getIndex());
-    Assertions.assertEquals(4, phCli.computeDestination().getIndex());
+    Assertions.assertEquals(0, phCli.computeDestinationNext().getIndex());
+    Assertions.assertEquals(2, phCli.computeDestinationNext().getIndex());
+    Assertions.assertEquals(4, phCli.computeDestinationNext().getIndex());
 
-    Assertions.assertEquals(5, phMobile.computeDestination().getIndex());
-    Assertions.assertEquals(7, phMobile.computeDestination().getIndex());
-    Assertions.assertEquals(9, phMobile.computeDestination().getIndex());
+    Assertions.assertEquals(5, phMobile.computeDestinationNext().getIndex());
+    Assertions.assertEquals(7, phMobile.computeDestinationNext().getIndex());
+    Assertions.assertEquals(9, phMobile.computeDestinationNext().getIndex());
 
-    Assertions.assertEquals(10, phCli.computeDestination().getIndex());
-    Assertions.assertEquals(11, phMobile.computeDestination().getIndex());
-    Assertions.assertEquals(12, phCli.computeDestination().getIndex());
-    Assertions.assertEquals(13, phMobile.computeDestination().getIndex());
-    Assertions.assertEquals(15, phMobile.computeDestination().getIndex());
-    Assertions.assertEquals(16, phCli.computeDestination().getIndex());
-    Assertions.assertEquals(18, phCli.computeDestination().getIndex());
+    Assertions.assertEquals(10, phCli.computeDestinationNext().getIndex());
+    Assertions.assertEquals(11, phMobile.computeDestinationNext().getIndex());
+    Assertions.assertEquals(12, phCli.computeDestinationNext().getIndex());
+    Assertions.assertEquals(13, phMobile.computeDestinationNext().getIndex());
+    Assertions.assertEquals(15, phMobile.computeDestinationNext().getIndex());
+    Assertions.assertEquals(16, phCli.computeDestinationNext().getIndex());
+    Assertions.assertEquals(18, phCli.computeDestinationNext().getIndex());
   }
 
   @Test
   public void onMixFail() throws Exception {
     Bip84PostmixHandler phCli = new Bip84PostmixHandler(params, bipWallet, IndexRange.EVEN);
 
-    Assertions.assertEquals(0, phCli.computeDestination().getIndex());
+    Assertions.assertEquals(0, phCli.computeDestinationNext().getIndex());
     phCli.onRegisterOutput();
-    Assertions.assertEquals(2, phCli.computeDestination().getIndex());
-    phCli.onRegisterOutput();
-    phCli.onMixFail();
-    Assertions.assertEquals(4, phCli.computeDestination().getIndex());
-    phCli.onMixFail();
-    Assertions.assertEquals(4, phCli.computeDestination().getIndex());
-    phCli.onMixFail();
-    Assertions.assertEquals(4, phCli.computeDestination().getIndex());
+    Assertions.assertEquals(2, phCli.computeDestinationNext().getIndex());
     phCli.onRegisterOutput();
     phCli.onMixFail();
-    Assertions.assertEquals(6, phCli.computeDestination().getIndex());
+    Assertions.assertEquals(4, phCli.computeDestinationNext().getIndex());
+    phCli.onMixFail();
+    Assertions.assertEquals(4, phCli.computeDestinationNext().getIndex());
+    phCli.onMixFail();
+    Assertions.assertEquals(4, phCli.computeDestinationNext().getIndex());
     phCli.onRegisterOutput();
     phCli.onMixFail();
-    Assertions.assertEquals(8, phCli.computeDestination().getIndex());
-    Assertions.assertEquals(10, phCli.computeDestination().getIndex());
+    Assertions.assertEquals(6, phCli.computeDestinationNext().getIndex());
     phCli.onRegisterOutput();
     phCli.onMixFail();
-    Assertions.assertEquals(12, phCli.computeDestination().getIndex());
-    Assertions.assertEquals(14, phCli.computeDestination().getIndex());
+    Assertions.assertEquals(8, phCli.computeDestinationNext().getIndex());
+    Assertions.assertEquals(10, phCli.computeDestinationNext().getIndex());
+    phCli.onRegisterOutput();
+    phCli.onMixFail();
+    Assertions.assertEquals(12, phCli.computeDestinationNext().getIndex());
+    Assertions.assertEquals(14, phCli.computeDestinationNext().getIndex());
 
     // reload
     load();
 
-    Assertions.assertEquals(16, phCli.computeDestination().getIndex());
+    Assertions.assertEquals(16, phCli.computeDestinationNext().getIndex());
   }
 
   @Test
@@ -90,13 +90,13 @@ public class Bip84PostmixHandlerTest extends AbstractTest {
     Bip84PostmixHandler ph1 = new Bip84PostmixHandler(params, bipWallet, IndexRange.EVEN);
     Bip84PostmixHandler ph2 = new Bip84PostmixHandler(params, bipWallet, IndexRange.EVEN);
 
-    Assertions.assertEquals(0, ph1.computeDestination().getIndex());
+    Assertions.assertEquals(0, ph1.computeDestinationNext().getIndex());
     ph1.onRegisterOutput();
 
-    Assertions.assertEquals(2, ph1.computeDestination().getIndex());
+    Assertions.assertEquals(2, ph1.computeDestinationNext().getIndex());
     ph1.onRegisterOutput();
 
-    Assertions.assertEquals(4, ph2.computeDestination().getIndex());
+    Assertions.assertEquals(4, ph2.computeDestinationNext().getIndex());
     ph2.onRegisterOutput();
   }
 
@@ -106,19 +106,19 @@ public class Bip84PostmixHandlerTest extends AbstractTest {
     Bip84PostmixHandler ph2 = new Bip84PostmixHandler(params, bipWallet, IndexRange.EVEN);
     Bip84PostmixHandler ph3 = new Bip84PostmixHandler(params, bipWallet, IndexRange.EVEN);
 
-    Assertions.assertEquals(0, ph1.computeDestination().getIndex());
-    Assertions.assertEquals(2, ph2.computeDestination().getIndex());
+    Assertions.assertEquals(0, ph1.computeDestinationNext().getIndex());
+    Assertions.assertEquals(2, ph2.computeDestinationNext().getIndex());
     ph1.onMixFail();
 
     Bip84PostmixHandler ph4 = new Bip84PostmixHandler(params, bipWallet, IndexRange.EVEN);
 
-    Assertions.assertEquals(4, ph3.computeDestination().getIndex());
+    Assertions.assertEquals(4, ph3.computeDestinationNext().getIndex());
     ph3.onRegisterOutput();
 
     ph4.onMixFail();
     ph2.onMixFail();
 
     Bip84PostmixHandler ph5 = new Bip84PostmixHandler(params, bipWallet, IndexRange.EVEN);
-    Assertions.assertEquals(6, ph5.computeDestination().getIndex());
+    Assertions.assertEquals(6, ph5.computeDestinationNext().getIndex());
   }
 }

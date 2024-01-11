@@ -8,25 +8,21 @@ public class ExternalDestination {
   private String xpub;
   private IPostmixHandler postmixHandler;
   private int chain;
-  private int startIndex;
   private int mixs;
   private int mixsRandomFactor;
 
-  public ExternalDestination(
-      String xpub, int chain, int startIndex, int mixs, int mixsRandomFactor) {
+  public ExternalDestination(String xpub, int chain, int mixs, int mixsRandomFactor) {
     this.xpub = xpub;
     this.chain = chain;
-    this.startIndex = startIndex;
     this.mixs = mixs;
     this.mixsRandomFactor = mixsRandomFactor;
   }
 
   // used by Sparrow
   public ExternalDestination(
-      IPostmixHandler postmixHandler, int chain, int startIndex, int mixs, int mixsRandomFactor) {
+      IPostmixHandler postmixHandler, int chain, int mixs, int mixsRandomFactor) {
     this.postmixHandler = postmixHandler;
     this.chain = chain;
-    this.startIndex = startIndex;
     this.mixs = mixs;
     this.mixsRandomFactor = mixsRandomFactor;
   }
@@ -41,10 +37,6 @@ public class ExternalDestination {
 
   public int getChain() {
     return chain;
-  }
-
-  public int getStartIndex() {
-    return startIndex;
   }
 
   public int getMixs() {
@@ -66,8 +58,6 @@ public class ExternalDestination {
         + ClientUtils.maskString(xpub)
         + ", chain="
         + chain
-        + ", startIndex="
-        + startIndex
         + ", mixs="
         + mixs
         + ", mixsRandomFactor="

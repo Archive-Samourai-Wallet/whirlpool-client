@@ -20,12 +20,11 @@ public class WalletStatePersistableSupplier extends AbstractPersistableSupplier<
       IPersister<WalletStateData> persister, ExternalDestination externalDestination) {
     super(persister, log);
 
-    int externalIndexDefault =
-        externalDestination != null ? externalDestination.getStartIndex() : 0;
     this.indexHandlerManager =
-        new IndexHandlerManager(externalIndexDefault) {
+        new IndexHandlerManager() {
           @Override
-          protected IIndexHandler createIndexHandler(String persistKey, int defaultValue) {
+          protected IIndexHandler createIndexHandler(String persistKey) {
+            int defaultValue = 0;
             return new AbstractIndexHandler() {
               @Override
               public int getAndIncrement() {

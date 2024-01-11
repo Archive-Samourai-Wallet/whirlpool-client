@@ -231,12 +231,12 @@ public class MixClient {
     onMixFail(); // TODO fail reason details?
   }
 
-  protected void onMixSuccess() {
+  private void onMixSuccess() {
     // disconnect before notifying listener to avoid reconnecting before disconnect
     disconnect();
     // notify
     listenerProgress(MixStep.SUCCESS);
-    listener.success(mixProcess.getReceiveUtxo());
+    listener.success(mixProcess.getReceiveUtxo(), mixProcess.getReceiveDestination());
   }
 
   protected void onMixFail() {

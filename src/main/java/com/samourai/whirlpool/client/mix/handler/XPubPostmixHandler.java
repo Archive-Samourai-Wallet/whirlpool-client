@@ -2,6 +2,7 @@ package com.samourai.whirlpool.client.mix.handler;
 
 import com.samourai.wallet.client.indexHandler.IIndexHandler;
 import com.samourai.wallet.util.XPubUtil;
+import com.samourai.whirlpool.client.wallet.beans.IndexRange;
 import org.bitcoinj.core.NetworkParameters;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -12,31 +13,23 @@ public class XPubPostmixHandler extends AbstractPostmixHandler {
 
   private String xPub;
   private int chain;
-  private int startIndex;
 
   public XPubPostmixHandler(
-      IIndexHandler indexHandler,
-      NetworkParameters params,
-      String xPub,
-      int chain,
-      int startIndex) {
+      IIndexHandler indexHandler, NetworkParameters params, String xPub, int chain) {
     super(indexHandler, params);
     this.xPub = xPub;
     this.chain = chain;
-    this.startIndex = startIndex;
   }
 
   @Override
-  protected MixDestination computeNextDestination() throws Exception {
-    // index
-    int index = indexHandler.getAndIncrementUnconfirmed();
-    index = Math.max(index, startIndex);
+  protected IndexRange getIndexRange() {
+    return IndexRange.FULL;
+  }
 
-    // address
+  @Override
+  public MixDestination computeDestination(int index) throws Exception {
     String address = xPubUtil.getAddressBech32(xPub, index, chain, params);
-    String path = xPubUtil.getPath(index, chain);
-
-    log.info("Mixing to external xPub -> receiveAddress=" + address + ", path=" + path);
+    String path = xPubUtil.getPathSegwit(index, chain, params);
     return new MixDestination(DestinationType.XPUB, index, address, path);
   }
 }

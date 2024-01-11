@@ -12,9 +12,9 @@ public class MemoryWalletStateSupplier implements WalletStateSupplier {
 
   public MemoryWalletStateSupplier() {
     this.indexHandlerManager =
-        new IndexHandlerManager(0) {
+        new IndexHandlerManager() {
           @Override
-          protected IIndexHandler createIndexHandler(String persistKey, int defaultValue) {
+          protected IIndexHandler createIndexHandler(String persistKey) {
             return new MemoryIndexHandler();
           }
         };
