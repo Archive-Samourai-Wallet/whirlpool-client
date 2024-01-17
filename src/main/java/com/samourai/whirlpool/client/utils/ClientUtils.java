@@ -166,6 +166,7 @@ public class ClientUtils {
     return e;
   }
 
+  // increments postmixIndexHandler's unconfirmed index
   public static int computeNextReceiveAddressIndex(
       IIndexHandler postmixIndexHandler, IndexRange indexRange) {
     // full range
@@ -175,8 +176,30 @@ public class ClientUtils {
 
     int modulo = indexRange == IndexRange.ODD ? 1 : 0;
     int index;
+    List<Integer> unconfirmedIndexes = new LinkedList<>();
     do {
       index = postmixIndexHandler.getAndIncrementUnconfirmed();
+      unconfirmedIndexes.add(index);
+    } while (index % 2 != modulo);
+
+    // keep only last unconfirmedIndex
+    unconfirmedIndexes.remove(unconfirmedIndexes.size() - 1);
+    for (int unconfirmedIndex : unconfirmedIndexes) {
+      postmixIndexHandler.cancelUnconfirmed(unconfirmedIndex);
+    }
+    return index;
+  }
+
+  public static int computeNextReceiveAddressIndex(int index, IndexRange indexRange) {
+    index++;
+    // full range
+    if (indexRange == IndexRange.FULL) {
+      return index;
+    }
+
+    int modulo = indexRange == IndexRange.ODD ? 1 : 0;
+    do {
+      index++;
     } while (index % 2 != modulo);
     return index;
   }

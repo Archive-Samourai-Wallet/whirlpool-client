@@ -5,6 +5,8 @@ import com.samourai.wallet.client.indexHandler.IIndexHandler;
 import com.samourai.whirlpool.client.exception.PostmixIndexAlreadyUsedException;
 import com.samourai.whirlpool.client.mix.handler.IPostmixHandler;
 import com.samourai.whirlpool.client.utils.ClientUtils;
+import java.util.LinkedList;
+import java.util.List;
 import org.apache.commons.lang3.tuple.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -13,6 +15,7 @@ public class PostmixIndexService {
   private Logger log = LoggerFactory.getLogger(PostmixIndexService.class);
   private static final int POSTMIX_INDEX_RANGE_ITERATIONS = 50;
   protected static final int POSTMIX_INDEX_RANGE_ACCEPTABLE_GAP = 4;
+  protected static final int POSTMIX_INDEX_LOOKAHEAD = 10;
 
   private WhirlpoolWalletConfig config;
 
@@ -64,6 +67,38 @@ public class PostmixIndexService {
     }
   }
 
+  protected void checkPostmixIndexLookahead(
+      IPostmixHandler postmixHandler, int postmixIndex, ISeenBackend seenBackend) throws Exception {
+    int value = postmixIndex;
+    List<Integer> unconfirmedIndexs = new LinkedList<>();
+    for (int i = 0; i < POSTMIX_INDEX_LOOKAHEAD; i++) {
+      if (log.isDebugEnabled()) {
+        if (i > 0) {
+          log.debug(
+              "checking postmixIndex: "
+                  + postmixIndex
+                  + ", lookahead: "
+                  + i
+                  + "/"
+                  + POSTMIX_INDEX_LOOKAHEAD);
+        }
+      }
+      // throws PostmixIndexAlreadyUsedException
+      checkPostmixIndex(postmixHandler, value, seenBackend);
+
+      // increments unconfirmed counter
+      value =
+          ClientUtils.computeNextReceiveAddressIndex(
+              postmixHandler.getIndexHandler(), config.getIndexRangePostmix());
+      unconfirmedIndexs.add(value);
+    }
+
+    // rollback unconfirmed index on success (keep it on failure to continue looking further)
+    for (int unconfirmedIndex : unconfirmedIndexs) {
+      postmixHandler.getIndexHandler().cancelUnconfirmed(unconfirmedIndex);
+    }
+  }
+
   public synchronized int resetPostmixIndex(
       IPostmixHandler postmixHandler, ISeenBackend seenBackend) throws Exception {
     IIndexHandler postmixIndexHandler = postmixHandler.getIndexHandler();
@@ -84,7 +119,14 @@ public class PostmixIndexService {
         leftIndex = indexRange.getLeft();
         rightIndex = indexRange.getRight();
         if (log.isDebugEnabled()) {
-          log.debug("valid postmixIndex range #" + i + ": [" + leftIndex + ";" + rightIndex + "]");
+          log.debug(
+              "found candidate postmixIndex range #"
+                  + i
+                  + ": ["
+                  + leftIndex
+                  + ";"
+                  + rightIndex
+                  + "]");
         }
       } catch (PostmixIndexAlreadyUsedException e) {
         throw e;
@@ -94,12 +136,24 @@ public class PostmixIndexService {
       }
 
       if ((rightIndex - leftIndex) < POSTMIX_INDEX_RANGE_ACCEPTABLE_GAP) {
-        // finished
         if (log.isDebugEnabled()) {
-          log.debug("fixing postmixIndex: " + rightIndex);
+          log.debug("found candidate postmixIndex: " + rightIndex);
         }
-        postmixIndexHandler.confirmUnconfirmed(rightIndex);
-        return rightIndex;
+        try {
+          // double-check with lookahead (increments unconfirmed counter)
+          checkPostmixIndexLookahead(postmixHandler, rightIndex, seenBackend);
+
+          // lookahead is clear => finished
+          if (log.isDebugEnabled()) {
+            log.debug("fixing postmixIndex: " + rightIndex);
+          }
+          postmixIndexHandler.confirmUnconfirmed(rightIndex);
+          return rightIndex;
+        } catch (PostmixIndexAlreadyUsedException e) {
+          if (log.isDebugEnabled()) {
+            log.debug("postmixIndex already used: " + rightIndex + " (lookahead already used)");
+          }
+        }
       }
       // continue with closer and closer index range...
     }

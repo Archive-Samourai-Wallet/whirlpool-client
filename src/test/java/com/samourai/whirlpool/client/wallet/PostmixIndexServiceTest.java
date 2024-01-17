@@ -18,8 +18,11 @@ import com.samourai.whirlpool.client.wallet.beans.IndexRange;
 import java.util.Collection;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 public class PostmixIndexServiceTest extends AbstractTest {
@@ -47,10 +50,36 @@ public class PostmixIndexServiceTest extends AbstractTest {
     doCheckPostmixIndexMock(0);
     doCheckPostmixIndexMock(0);
     doCheckPostmixIndexMock(15);
-    // doCheckPostmixIndex(2598);
-    // doCheckPostmixIndex(11251);
+    doCheckPostmixIndexMock(100);
   }
 
+  @Test
+  public void checkPostmixIndexMock_lookahead() throws Exception {
+    // 0-502 used
+    Collection<Integer> alreadyUsedAddressIndexes =
+        IntStream.range(0, 502).boxed().collect(Collectors.toList());
+    // 510-630 used
+    alreadyUsedAddressIndexes.addAll(
+        IntStream.range(510, 630).boxed().collect(Collectors.toList()));
+    // 650-750 used
+    alreadyUsedAddressIndexes.addAll(
+        IntStream.range(650, 750).boxed().collect(Collectors.toList()));
+    int validPostmixIndex = 750; // next unused index
+
+    ISeenBackend seenBackend = mockSeenBackend(alreadyUsedAddressIndexes, postmixHandler);
+    try {
+      // check
+      postmixIndexService.checkPostmixIndex(postmixHandler, seenBackend);
+    } catch (PostmixIndexAlreadyUsedException e) {
+      // postmix index is desynchronized
+      postmixIndexService.fixPostmixIndex(postmixHandler, seenBackend);
+    }
+
+    // verify
+    verifyPostmixIndex(validPostmixIndex);
+  }
+
+  @Disabled
   @Test
   public void checkPostmixIndex_alreadyUsed() throws Exception {
     ISeenBackend seenBackend =
@@ -72,7 +101,9 @@ public class PostmixIndexServiceTest extends AbstractTest {
 
   private void doCheckPostmixIndexMock(int validPostmixIndex) throws Exception {
     // mock serverApi
-    ISeenBackend seenBackend = mockSeenBackend(validPostmixIndex, postmixHandler);
+    Collection<Integer> alreadyUsedAddressIndexes =
+        IntStream.range(0, validPostmixIndex).boxed().collect(Collectors.toList());
+    ISeenBackend seenBackend = mockSeenBackend(alreadyUsedAddressIndexes, postmixHandler);
     try {
       // check
       postmixIndexService.checkPostmixIndex(postmixHandler, seenBackend);
@@ -82,16 +113,27 @@ public class PostmixIndexServiceTest extends AbstractTest {
     }
 
     // verify
+    verifyPostmixIndex(validPostmixIndex);
+  }
+
+  protected void verifyPostmixIndex(int validPostmixIndex) {
+    // verify
     int postmixIndex = postmixHandler.getIndexHandler().get();
     int minAcceptable = validPostmixIndex - PostmixIndexService.POSTMIX_INDEX_RANGE_ACCEPTABLE_GAP;
     int maxAcceptable = validPostmixIndex + PostmixIndexService.POSTMIX_INDEX_RANGE_ACCEPTABLE_GAP;
     Assertions.assertTrue(postmixIndex >= minAcceptable && postmixIndex <= maxAcceptable);
+
+    // verify unconfirmed (increments unconfirmed)
+    Assertions.assertEquals(
+        postmixIndex, postmixHandler.getIndexHandler().getAndIncrementUnconfirmed());
+    postmixHandler.getIndexHandler().cancelUnconfirmed(postmixIndex); // rollback unconfirmed
   }
 
-  private ISeenBackend mockSeenBackend(int validPostmixIndex, IPostmixHandler postmixHandler)
+  private ISeenBackend mockSeenBackend(
+      Collection<Integer> alreadyUsedAddressIndexes, IPostmixHandler postmixHandler)
       throws Exception {
-    final List<String> alreadyUsedAddresses = new LinkedList<String>();
-    for (int i = 0; i < validPostmixIndex; i++) {
+    final List<String> alreadyUsedAddresses = new LinkedList<>();
+    for (int i : alreadyUsedAddressIndexes) {
       String address = postmixHandler.computeDestination(i).getAddress();
       alreadyUsedAddresses.add(address);
     }

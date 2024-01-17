@@ -433,24 +433,26 @@ public class WhirlpoolWallet {
     dataSource.open();
 
     // log wallets
-    for (BipWallet bipWallet : getWalletSupplier().getWallets()) {
-      String nextReceivePath = bipWallet.getNextAddressReceive(false).getPathAddress();
-      String nextChangePath = bipWallet.getNextAddressChange(false).getPathAddress();
-      log.info(
-          " +WALLET "
-              + bipWallet.getId()
-              + ": account="
-              + bipWallet.getAccount()
-              + ", bipFormat="
-              + bipWallet.getBipFormatDefault().getId()
-              + ", receive="
-              + nextReceivePath
-              + ", change="
-              + nextChangePath
-              + ", xpub="
-              + ClientUtils.maskString(bipWallet.getXPub())
-              + ", bipPub="
-              + ClientUtils.maskString(bipWallet.getBipPub()));
+    if (log.isDebugEnabled()) {
+      for (BipWallet bipWallet : getWalletSupplier().getWallets()) {
+        String nextReceivePath = bipWallet.getNextAddressReceive(false).getPathAddress();
+        String nextChangePath = bipWallet.getNextAddressChange(false).getPathAddress();
+        log.debug(
+                " +WALLET "
+                        + bipWallet.getId()
+                        + ": account="
+                        + bipWallet.getAccount()
+                        + ", bipFormat="
+                        + bipWallet.getBipFormatDefault().getId()
+                        + ", receive="
+                        + nextReceivePath
+                        + ", change="
+                        + nextChangePath
+                        + ", xpub="
+                        + ClientUtils.maskString(bipWallet.getXPub())
+                        + ", bipPub="
+                        + ClientUtils.maskString(bipWallet.getBipPub()));
+      }
     }
     ExternalDestination externalDestination = config.getExternalDestination();
     if (externalDestination != null) {
