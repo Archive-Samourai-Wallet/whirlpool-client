@@ -4,13 +4,19 @@ Changelog for whirlpool-client.
 ## Unreleased
 ### 
 
-- refactor: use ISeenBackend for  PostmixIndexService *(2024-01-10)*
-- feat: use ISeenBackend *(2024-01-10)*
+- refactor: use lookahead for PostmixIndexService *(2024-01-17)*
 - fix: NullPointerException on shutdown *(2023-11-07)*
 - refactor: encode OP_RETURN by counterparty + check maxSpendAmount *(2023-10-13)*
 - refactor: upgrade ExtLibJ *(2023-10-04)*
 - fix: Tx0x2 index gap for sender premixs *(2023-10-02)*
 - refactor: single entry point for regular+cascade TX0 with WhirlpoolWallet.tx0() *(2023-09-30)*
+
+## 0.23.48
+### 
+
+- refactor: use ISeenBackend for  PostmixIndexService *(2024-01-11)*
+- refactor: use ISeenBackend for  PostmixIndexService *(2024-01-10)*
+- feat: use ISeenBackend *(2024-01-10)*
 
 ## 0.23.47
 ### 

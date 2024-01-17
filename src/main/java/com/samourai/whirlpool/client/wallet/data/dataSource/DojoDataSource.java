@@ -12,6 +12,7 @@ import com.samourai.wallet.bipFormat.BIP_FORMAT;
 import com.samourai.wallet.hd.HD_Wallet;
 import com.samourai.wallet.util.MessageListener;
 import com.samourai.whirlpool.client.exception.NotifiableException;
+import com.samourai.whirlpool.client.utils.ClientUtils;
 import com.samourai.whirlpool.client.wallet.WhirlpoolWallet;
 import com.samourai.whirlpool.client.wallet.beans.MixableStatus;
 import com.samourai.whirlpool.client.wallet.beans.WhirlpoolAccount;
@@ -136,7 +137,7 @@ public class DojoDataSource extends WalletResponseDataSource
 
   private void initWallet(String xpub) throws Exception {
     for (int i = 0; i < INITWALLET_RETRY; i++) {
-      log.info(" • Initializing wallet");
+      log.info(" • Initializing wallet: " + ClientUtils.maskString(xpub));
       try {
         backendApi.initBip84(xpub);
         return; // success
