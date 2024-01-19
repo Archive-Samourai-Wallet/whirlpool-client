@@ -24,7 +24,6 @@ import com.samourai.whirlpool.client.mix.MixParams;
 import com.samourai.whirlpool.client.mix.handler.Bip84PostmixHandler;
 import com.samourai.whirlpool.client.mix.handler.IPostmixHandler;
 import com.samourai.whirlpool.client.mix.handler.MixDestination;
-import com.samourai.whirlpool.client.mix.handler.XPubPostmixHandler;
 import com.samourai.whirlpool.client.mix.listener.MixFailReason;
 import com.samourai.whirlpool.client.mix.listener.MixStep;
 import com.samourai.whirlpool.client.tx0.*;
@@ -411,22 +410,17 @@ public class WhirlpoolWallet {
                 + nextChangePath
                 + ", "
                 + pub);
+        ExternalDestination externalDestination = config.getExternalDestination();
+        if (externalDestination != null) {
+          log.debug(
+              " +EXTERNAL-XPUB: chain="
+                  + externalDestination.getChain()
+                  + ", mixs >= "
+                  + externalDestination.getMixs()
+                  + ", "
+                  + ClientUtils.maskString(externalDestination.getXpub()));
+        }
       }
-    }
-    ExternalDestination externalDestination = config.getExternalDestination();
-    if (externalDestination != null) {
-      IPostmixHandler postmixHandlerExternal = getPostmixHandler(externalDestination);
-      MixDestination mixDestination =
-          postmixHandlerExternal.computeDestinationNext(); // increments unconfirmed
-      String pub = ClientUtils.maskString(externalDestination.getXpub());
-      log.info(
-          " +EXTERNAL-XPUB: bipFormat="
-              + BIP_FORMAT.SEGWIT_NATIVE.getId()
-              + ", receive="
-              + mixDestination.getPath()
-              + ", "
-              + pub);
-      postmixHandlerExternal.onMixFail(); // revert unconfirmed index
     }
   }
 
@@ -746,10 +740,13 @@ public class WhirlpoolWallet {
             log.warn("postmixIndexCheck is disabled");
             return;
           }
+          // check POSTMIX
           checkAndFixPostmixIndex(getPostmixHandler());
+
+          // check external-xpub
           ExternalDestination externalDestination = config.getExternalDestination();
           if (externalDestination != null) {
-            checkAndFixPostmixIndex(getPostmixHandler(externalDestination));
+            checkAndFixPostmixIndex(externalDestination.computePostmixHandler(this));
           }
         });
   }
@@ -911,17 +908,6 @@ public class WhirlpoolWallet {
         bip47WalletOutgoingIdx);
   }
 
-  public IPostmixHandler getPostmixHandler(ExternalDestination externalDestination) {
-    if (externalDestination.getPostmixHandler() != null) {
-      return externalDestination.getPostmixHandler();
-    }
-    return new XPubPostmixHandler(
-        getWalletStateSupplier().getIndexHandlerExternal(),
-        config.getNetworkParameters(),
-        externalDestination.getXpub(),
-        externalDestination.getChain());
-  }
-
   public IPostmixHandler getPostmixHandler() {
     return new Bip84PostmixHandler(
         config.getNetworkParameters(), getWalletPostmix(), config.getIndexRangePostmix());
@@ -944,7 +930,7 @@ public class WhirlpoolWallet {
           if (log.isDebugEnabled()) {
             log.debug("Mixing to EXTERNAL (" + whirlpoolUtxo + ")");
           }
-          return getPostmixHandler(externalDestination);
+          return externalDestination.computePostmixHandler(this);
         }
       } else {
         if (log.isDebugEnabled()) {
