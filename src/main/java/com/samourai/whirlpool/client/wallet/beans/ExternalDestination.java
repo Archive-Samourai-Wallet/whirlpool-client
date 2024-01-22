@@ -1,8 +1,12 @@
 package com.samourai.whirlpool.client.wallet.beans;
 
+import com.samourai.wallet.client.indexHandler.IIndexHandler;
 import com.samourai.wallet.util.RandomUtil;
 import com.samourai.whirlpool.client.mix.handler.IPostmixHandler;
+import com.samourai.whirlpool.client.mix.handler.XPubPostmixHandler;
 import com.samourai.whirlpool.client.utils.ClientUtils;
+import com.samourai.whirlpool.client.wallet.WhirlpoolWallet;
+import org.bitcoinj.core.NetworkParameters;
 
 public class ExternalDestination {
   private String xpub;
@@ -31,7 +35,13 @@ public class ExternalDestination {
     return xpub;
   }
 
-  public IPostmixHandler getPostmixHandler() {
+  public IPostmixHandler computePostmixHandler(WhirlpoolWallet whirlpoolWallet) {
+    if (postmixHandler == null) {
+      IIndexHandler indexHandlerExternal =
+          whirlpoolWallet.getWalletStateSupplier().getIndexHandlerExternal();
+      NetworkParameters params = whirlpoolWallet.getConfig().getNetworkParameters();
+      postmixHandler = new XPubPostmixHandler(indexHandlerExternal, params, xpub, chain);
+    }
     return postmixHandler;
   }
 

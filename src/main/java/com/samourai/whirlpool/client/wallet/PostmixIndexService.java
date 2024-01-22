@@ -13,7 +13,7 @@ import org.slf4j.LoggerFactory;
 
 public class PostmixIndexService {
   private Logger log = LoggerFactory.getLogger(PostmixIndexService.class);
-  private static final int POSTMIX_INDEX_RANGE_ITERATIONS = 50;
+  private static final int POSTMIX_INDEX_RANGE_ITERATIONS = 10000;
   protected static final int POSTMIX_INDEX_RANGE_ACCEPTABLE_GAP = 4;
   protected static final int POSTMIX_INDEX_LOOKAHEAD = 10;
 
