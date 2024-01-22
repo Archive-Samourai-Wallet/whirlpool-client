@@ -436,34 +436,34 @@ public class WhirlpoolWallet {
       for (BipWallet bipWallet : getWalletSupplier().getWallets()) {
         String nextReceivePath = bipWallet.getNextAddressReceive(false).getPathAddress();
         String nextChangePath = bipWallet.getNextAddressChange(false).getPathAddress();
-        String pub = ClientUtils.maskString(bipWallet.getPub());
+        String pub = ClientUtils.maskString(bipWallet.getBipPub());
         log.debug(
-                " +WALLET "
-                        + bipWallet.getId()
-                        + ": account="
-                        + bipWallet.getAccount()
-                        + ", bipFormat="
-                        + bipWallet.getBipFormat().getId()
-                        + ", receive="
-                        + nextReceivePath
-                        + ", change="
-                        + nextChangePath
-                        + ", "
-                        + pub);
+            " +WALLET "
+                + bipWallet.getId()
+                + ": account="
+                + bipWallet.getAccount()
+                + ", bipFormat="
+                + bipWallet.getBipFormatDefault().getId()
+                + ", receive="
+                + nextReceivePath
+                + ", change="
+                + nextChangePath
+                + ", "
+                + pub);
       }
       ExternalDestination externalDestination = config.getExternalDestination();
       if (externalDestination != null) {
-        IPostmixHandler postmixHandlerExternal = getPostmixHandler(externalDestination);
+        IPostmixHandler postmixHandlerExternal = getPostmixHandler();
         MixDestination mixDestination =
-                postmixHandlerExternal.computeDestinationNext(); // increments unconfirmed
+            postmixHandlerExternal.computeDestinationNext(); // increments unconfirmed
         String pub = ClientUtils.maskString(externalDestination.getXpub());
         log.debug(
-                " +EXTERNAL-XPUB: bipFormat="
-                        + BIP_FORMAT.SEGWIT_NATIVE.getId()
-                        + ", receive="
-                        + mixDestination.getPath()
-                        + ", "
-                        + pub);
+            " +EXTERNAL-XPUB: bipFormat="
+                + BIP_FORMAT.SEGWIT_NATIVE.getId()
+                + ", receive="
+                + mixDestination.getPath()
+                + ", "
+                + pub);
         postmixHandlerExternal.onMixFail(); // revert unconfirmed index
       }
     }
@@ -996,11 +996,6 @@ public class WhirlpoolWallet {
         spendAccount,
         getBip47Wallet(),
         bip47WalletOutgoingIdx);
-  }
-
-  public IPostmixHandler getPostmixHandler() {
-    return new Bip84PostmixHandler(
-            config.getNetworkParameters(), getWalletPostmix(), config.getIndexRangePostmix());
   }
 
   public IPostmixHandler getPostmixHandler() {
