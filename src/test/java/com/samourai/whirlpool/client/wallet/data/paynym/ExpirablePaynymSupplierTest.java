@@ -4,6 +4,7 @@ import com.samourai.wallet.api.paynym.PaynymApi;
 import com.samourai.wallet.api.paynym.PaynymServer;
 import com.samourai.wallet.api.paynym.beans.PaynymContact;
 import com.samourai.wallet.api.paynym.beans.PaynymState;
+import com.samourai.wallet.bip47.rpc.BIP47Account;
 import com.samourai.wallet.bip47.rpc.BIP47Wallet;
 import com.samourai.wallet.bip47.rpc.java.Bip47UtilJava;
 import com.samourai.wallet.hd.HD_Wallet;
@@ -34,10 +35,12 @@ public class ExpirablePaynymSupplierTest extends AbstractTest {
     HD_Wallet bip44w =
         HD_WalletFactoryGeneric.getInstance().restoreWallet(SEED_WORDS, SEED_PASSPHRASE, params);
     BIP47Wallet bip47w = new BIP47Wallet(bip44w);
+    BIP47Account bip47Account = bip47w.getAccount(0);
     walletStateSupplier = computeWalletStateSupplier();
-    paynymSupplier = new ExpirablePaynymSupplier(999999, bip47w, paynymApi, walletStateSupplier);
+    paynymSupplier =
+        new ExpirablePaynymSupplier(999999, bip47Account, paynymApi, walletStateSupplier);
     paynymSupplier.load();
-    Assertions.assertEquals(PCODE, paynymSupplier.getPaymentCode());
+    Assertions.assertEquals(PCODE, paynymSupplier.getPaymentCode().toString());
   }
 
   @Test

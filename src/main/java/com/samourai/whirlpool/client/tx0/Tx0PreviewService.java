@@ -5,10 +5,12 @@ import com.samourai.wallet.util.FeeUtil;
 import com.samourai.whirlpool.client.exception.NotifiableException;
 import com.samourai.whirlpool.client.utils.ClientUtils;
 import com.samourai.whirlpool.client.wallet.beans.Tx0FeeTarget;
+import com.samourai.whirlpool.client.wallet.data.coordinator.CoordinatorSupplier;
 import com.samourai.whirlpool.client.wallet.data.minerFee.MinerFeeSupplier;
+import com.samourai.whirlpool.client.whirlpool.beans.Coordinator;
 import com.samourai.whirlpool.client.whirlpool.beans.Pool;
 import com.samourai.whirlpool.client.whirlpool.beans.Tx0Data;
-import com.samourai.whirlpool.protocol.soroban.api.WhirlpoolPartnerApiClient;
+import com.samourai.whirlpool.protocol.soroban.api.WhirlpoolApiClient;
 import com.samourai.whirlpool.protocol.soroban.tx0.Tx0DataRequest;
 import io.reactivex.Single;
 import java.util.Arrays;
@@ -122,10 +124,11 @@ public class Tx0PreviewService {
   public Single<Tx0Previews> tx0Previews(
       Tx0PreviewConfig tx0PreviewConfig,
       Collection<UnspentOutput> spendFroms,
-      WhirlpoolPartnerApiClient whirlpoolPartnerApiClient) {
+      WhirlpoolApiClient whirlpoolApiClient,
+      CoordinatorSupplier coordinatorSupplier) {
     // fetch fresh Tx0Data
     boolean useCascading = tx0PreviewConfig.getCascadingParent() != null;
-    return fetchTx0Data(config.getPartner(), useCascading, whirlpoolPartnerApiClient)
+    return fetchTx0Data(config.getPartner(), useCascading, whirlpoolApiClient, coordinatorSupplier)
         .map(
             tx0Datas -> {
               // build Tx0Previews
@@ -225,10 +228,15 @@ public class Tx0PreviewService {
   }
 
   protected Single<Collection<Tx0Data>> fetchTx0Data(
-      String partnerId, boolean cascading, WhirlpoolPartnerApiClient whirlpoolPartnerApiClient) {
+      String partnerId,
+      boolean cascading,
+      WhirlpoolApiClient whirlpoolApiClient,
+      CoordinatorSupplier coordinatorSupplier) {
     Tx0DataRequest tx0DataRequest = new Tx0DataRequest(config.getScode(), partnerId, cascading);
-    return whirlpoolPartnerApiClient
-        .fetchTx0Data(tx0DataRequest)
+    Coordinator coordinator =
+        coordinatorSupplier.getCoordinatorRandom(); // TODO adapt for multi-coordinators
+    return whirlpoolApiClient
+        .fetchTx0Data(tx0DataRequest, coordinator.getPaymentCode())
         .map(
             tx0DataResponse ->
                 Arrays.stream(tx0DataResponse.tx0Datas)

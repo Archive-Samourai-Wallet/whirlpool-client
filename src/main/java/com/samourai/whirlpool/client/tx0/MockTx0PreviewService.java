@@ -1,8 +1,9 @@
 package com.samourai.whirlpool.client.tx0;
 
+import com.samourai.whirlpool.client.wallet.data.coordinator.CoordinatorSupplier;
 import com.samourai.whirlpool.client.wallet.data.minerFee.MinerFeeSupplier;
 import com.samourai.whirlpool.client.whirlpool.beans.Tx0Data;
-import com.samourai.whirlpool.protocol.soroban.api.WhirlpoolPartnerApiClient;
+import com.samourai.whirlpool.protocol.soroban.api.WhirlpoolApiClient;
 import io.reactivex.Single;
 import java.util.Collection;
 import org.slf4j.Logger;
@@ -20,11 +21,14 @@ public class MockTx0PreviewService extends Tx0PreviewService {
 
   @Override
   protected Single<Collection<Tx0Data>> fetchTx0Data(
-      String partnerId, boolean cascading, WhirlpoolPartnerApiClient whirlpoolPartnerApiClient) {
+      String partnerId,
+      boolean cascading,
+      WhirlpoolApiClient whirlpoolApiClient,
+      CoordinatorSupplier coordinatorSupplier) {
     if (mockTx0Datas != null) {
       return Single.just(mockTx0Datas);
     }
-    return super.fetchTx0Data(partnerId, cascading, whirlpoolPartnerApiClient);
+    return super.fetchTx0Data(partnerId, cascading, whirlpoolApiClient, coordinatorSupplier);
   }
 
   public void setMockTx0Datas(Collection<Tx0Data> mockTx0Datas) {

@@ -1,10 +1,11 @@
 package com.samourai.whirlpool.client.wallet.data.paynym;
 
 import com.samourai.wallet.api.paynym.beans.PaynymState;
+import com.samourai.wallet.bip47.rpc.PaymentCode;
 import io.reactivex.Completable;
 
 public interface PaynymSupplier {
-  String getPaymentCode();
+  PaymentCode getPaymentCode();
 
   Completable claim() throws Exception;
 

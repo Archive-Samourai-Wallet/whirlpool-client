@@ -1,20 +1,20 @@
 package com.samourai.whirlpool.client.mix;
 
-import com.samourai.soroban.client.SorobanPayload;
+import com.samourai.soroban.client.SorobanPayloadable;
 import com.samourai.soroban.client.exception.SorobanErrorMessageException;
-import com.samourai.soroban.client.exception.UnexpectedTypePayloadSorobanException;
+import com.samourai.soroban.client.exception.UnexpectedSorobanPayloadTypedException;
 import com.samourai.wallet.util.AsyncUtil;
 import com.samourai.whirlpool.client.exception.FailMixNotificationException;
 import com.samourai.whirlpool.client.exception.NotifiableException;
 import com.samourai.whirlpool.client.exception.RevealOutputNotificationException;
 import com.samourai.whirlpool.client.mix.listener.MixFailReason;
 import com.samourai.whirlpool.client.mix.listener.MixStep;
-import com.samourai.whirlpool.client.utils.ClientUtils;
 import com.samourai.whirlpool.client.whirlpool.WhirlpoolClientConfig;
+import com.samourai.whirlpool.client.whirlpool.beans.Coordinator;
 import com.samourai.whirlpool.client.whirlpool.listener.WhirlpoolClientListener;
 import com.samourai.whirlpool.protocol.WhirlpoolErrorCode;
 import com.samourai.whirlpool.protocol.soroban.*;
-import com.samourai.whirlpool.protocol.soroban.api.WhirlpoolPartnerApiClient;
+import com.samourai.whirlpool.protocol.soroban.api.WhirlpoolApiClient;
 import java.util.concurrent.TimeoutException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -24,7 +24,6 @@ public class MixClient {
   private static final String HEALTH_CHECK_SUCCESS = "HEALTH_CHECK_SUCCESS";
   private static final Logger log = LoggerFactory.getLogger(MixClient.class);
   private static final AsyncUtil asyncUtil = AsyncUtil.getInstance();
-  private static final int NOTIFICATION_LOOP_FREQUENCY_MS = 5000;
 
   // server settings
   private WhirlpoolClientConfig config;
@@ -32,21 +31,18 @@ public class MixClient {
   // mix settings
   private MixParams mixParams;
   private WhirlpoolClientListener listener;
-
-  private WhirlpoolPartnerApiClient
-      whirlpoolPartnerApiClient; // set once RegisterInputResponse received
+  private WhirlpoolApiClient whirlpoolApiClient;
 
   private MixProcess mixProcess;
-  private int requestNonce;
   private String mixId; // set by whirlpool()
+  private Coordinator coordinator; // set by doRegisterInput
 
   public MixClient(
       WhirlpoolClientConfig config, MixParams mixParams, WhirlpoolClientListener listener) {
     this.config = config;
     this.mixParams = mixParams;
     this.listener = listener;
-
-    this.whirlpoolPartnerApiClient = null; // will be set by doRegisterInput()
+    this.whirlpoolApiClient = config.createWhirlpoolApiClient();
 
     this.mixProcess =
         new MixProcess(
@@ -59,7 +55,6 @@ public class MixClient {
             mixParams.getPostmixHandler(),
             config.getClientCryptoService(),
             mixParams.getChainSupplier());
-    this.requestNonce = 0;
   }
 
   public void whirlpool() {
@@ -98,20 +93,16 @@ public class MixClient {
   }
 
   protected RegisterInputResponse doRegisterInput() throws Exception {
-    RegisterInputRequest registerInputRequest;
     while (true) {
       try {
         // select coordinator
-        whirlpoolPartnerApiClient =
-            ClientUtils.getWhirlpoolPartnerApiClient(
-                mixParams.getRpcSession(),
-                mixParams.getCoordinatorSupplier(),
-                mixParams.getPoolId(),
-                config.getSorobanProtocolWhirlpool());
+        coordinator =
+            mixParams.getCoordinatorSupplier().findCoordinatorByPoolId(mixParams.getPoolId());
 
-        // REGISTER_INPUT & wait for mix invite - throws SorobanErrorMessageException
-        registerInputRequest = mixProcess.registerInput();
-        return asyncUtil.blockingGet(whirlpoolPartnerApiClient.registerInput(registerInputRequest));
+        // REGISTER_INPUT & wait for mix invite
+        RegisterInputRequest registerInputRequest = mixProcess.registerInput();
+        return asyncUtil.blockingGet(
+            whirlpoolApiClient.registerInput(registerInputRequest, coordinator.getPaymentCode()));
       } catch (TimeoutException e) {
         if (log.isDebugEnabled()) {
           log.debug("Input not registered yet, retrying...");
@@ -129,7 +120,9 @@ public class MixClient {
       listenerProgress(MixStep.CONFIRMING_INPUT);
       ConfirmInputRequest confirmInputRequest = mixProcess.confirmInput(registerInputResponse);
       ConfirmInputResponse confirmInputResponse =
-          asyncUtil.blockingGet(whirlpoolPartnerApiClient.confirmInput(confirmInputRequest, mixId));
+          asyncUtil.blockingGet(
+              whirlpoolApiClient.confirmInput(
+                  confirmInputRequest, mixId, coordinator.getPaymentCode()));
       listenerProgress(MixStep.CONFIRMED_INPUT);
       mixProcess.onConfirmInputResponse(confirmInputResponse);
 
@@ -149,7 +142,8 @@ public class MixClient {
 
       // SIGN
       SigningRequest signingRequest = mixProcess.signing(signingNotification);
-      asyncUtil.blockingAwait(whirlpoolPartnerApiClient.signing(signingRequest, mixId));
+      asyncUtil.blockingAwait(
+          whirlpoolApiClient.signing(signingRequest, mixId, coordinator.getPaymentCode()));
       listenerProgress(MixStep.SIGNED);
 
       // wait for SUCCESS
@@ -157,14 +151,14 @@ public class MixClient {
           loopUntilReplyNotification(PushTxSuccessResponse.class);
       onMixSuccess();
       return successMixNotification;
-    } catch (UnexpectedTypePayloadSorobanException e) {
-      e.getPayload()
+    } catch (UnexpectedSorobanPayloadTypedException e) {
+      e.getSorobanItemTyped()
           .readOn(
               FailMixNotification.class,
               o -> {
                 throw new FailMixNotificationException(o);
               });
-      e.getPayload()
+      e.getSorobanItemTyped()
           .readOn(
               RevealOutputNotification.class,
               o -> {
@@ -174,15 +168,10 @@ public class MixClient {
     }
   }
 
-  protected <T extends SorobanPayload> T loopUntilReplyNotification(Class<T> type)
+  protected <T extends SorobanPayloadable> T loopUntilReplyNotification(Class<T> type)
       throws Exception {
-    String requestId = whirlpoolPartnerApiClient.getSorobanProtocol().getRequestId(requestNonce);
-    T payload =
-        asyncUtil.blockingGet(
-            whirlpoolPartnerApiClient.loopUntilReplyTyped(
-                requestId, NOTIFICATION_LOOP_FREQUENCY_MS, type));
-    requestNonce++;
-    return payload;
+    return asyncUtil.blockingGet(
+        whirlpoolApiClient.waitMixNotification(type, coordinator.getPaymentCode()));
   }
 
   protected void doRegisterOutput(RegisterOutputNotification registerOutputNotification)
@@ -192,11 +181,12 @@ public class MixClient {
         mixProcess.registerOutput(registerOutputNotification);
 
     // use new identity to unlink from input
-    WhirlpoolPartnerApiClient apiTemp = whirlpoolPartnerApiClient.createNewIdentity();
+    WhirlpoolApiClient apiTemp = whirlpoolApiClient.createNewIdentity();
 
     while (true) {
       try {
-        asyncUtil.blockingAwait(apiTemp.registerOutput(registerOutputRequest, mixId));
+        asyncUtil.blockingAwait(
+            apiTemp.registerOutput(registerOutputRequest, mixId, coordinator.getPaymentCode()));
 
         // confirm postmix index on REGISTER_OUTPUT success
         mixParams.getPostmixHandler().onRegisterOutput();
@@ -222,7 +212,9 @@ public class MixClient {
     if (mixId != null) {
       RevealOutputRequest revealOutputRequest = mixProcess.revealOutput();
       listenerProgress(MixStep.REVEALED_OUTPUT);
-      asyncUtil.blockingAwait(whirlpoolPartnerApiClient.revealOutput(revealOutputRequest, mixId));
+      asyncUtil.blockingAwait(
+          whirlpoolApiClient.revealOutput(
+              revealOutputRequest, mixId, coordinator.getPaymentCode()));
     } else {
       if (log.isDebugEnabled()) {
         log.warn("Cannot revealOutput, no mixId yet");

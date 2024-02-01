@@ -99,7 +99,7 @@ public abstract class WalletResponseDataSource implements DataSource {
       WhirlpoolWalletConfig config, Tx0PreviewService tx0PreviewService) throws Exception {
     RpcSession rpcSession = config.getRpcClientService().generateRpcWallet().createRpcSession();
     WhirlpoolApiClient whirlpoolApiClient =
-        new WhirlpoolApiClient(rpcSession, config.getSorobanProtocolWhirlpool());
+        new WhirlpoolApiClient(rpcSession, config.getSorobanAppWhirlpool());
     return new ExpirableCoordinatorSupplier(
         config.getRefreshPoolsDelay(),
         whirlpoolApiClient,
@@ -141,7 +141,7 @@ public abstract class WalletResponseDataSource implements DataSource {
   protected PaynymSupplier computePaynymSupplier(
       WhirlpoolWallet whirlpoolWallet, WalletStateSupplier walletStateSupplier) {
     return ExpirablePaynymSupplier.create(
-        whirlpoolWallet.getConfig(), whirlpoolWallet.getBip47Wallet(), walletStateSupplier);
+        whirlpoolWallet.getConfig(), whirlpoolWallet.getBip47Account(), walletStateSupplier);
   }
 
   public void refresh() throws Exception {

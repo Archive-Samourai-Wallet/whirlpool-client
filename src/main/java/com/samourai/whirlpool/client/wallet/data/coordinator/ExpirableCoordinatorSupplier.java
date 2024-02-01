@@ -1,9 +1,9 @@
 package com.samourai.whirlpool.client.wallet.data.coordinator;
 
-import com.samourai.soroban.client.PayloadWithSender;
 import com.samourai.wallet.api.backend.beans.HttpException;
 import com.samourai.wallet.util.*;
 import com.samourai.whirlpool.client.event.PoolsChangeEvent;
+import com.samourai.whirlpool.client.exception.NotifiableException;
 import com.samourai.whirlpool.client.tx0.Tx0PreviewService;
 import com.samourai.whirlpool.client.utils.ClientUtils;
 import com.samourai.whirlpool.client.wallet.WhirlpoolEventService;
@@ -43,16 +43,7 @@ public class ExpirableCoordinatorSupplier extends ExpirableSupplier<CoordinatorD
     this.tx0PreviewService = tx0PreviewService;
   }
 
-  protected boolean validateCoordinator(PayloadWithSender<RegisterCoordinatorMessage> m) {
-    RegisterCoordinatorMessage payload = m.getPayload();
-    // check coordinator.paymentCode against sender
-    if (!m.getSender().toString().equals(payload.coordinator.paymentCode)) {
-      if (log.isDebugEnabled()) {
-        log.warn("Could not trust coordinator: invalid sender vs coordinator.paymentCode");
-      }
-      return false;
-    }
-
+  protected boolean validateCoordinator(RegisterCoordinatorMessage payload) {
     // check coordinator.paymentCodeSignature against samourai signature
     if (!messageSignUtil.verifySignedMessage(
         whirlpoolNetwork.getSigningAddress(),
@@ -73,7 +64,9 @@ public class ExpirableCoordinatorSupplier extends ExpirableSupplier<CoordinatorD
     }
     try {
       Collection<RegisterCoordinatorMessage> registerCoordinatorMessages =
-          asyncUtil.blockingGet(whirlpoolApiClient.fetchCoordinators(m -> validateCoordinator(m)));
+          asyncUtil.blockingGet(whirlpoolApiClient.fetchCoordinators()).stream()
+              .filter(this::validateCoordinator)
+              .collect(Collectors.toList());
       CoordinatorData coordinatorData =
           new CoordinatorData(registerCoordinatorMessages, tx0PreviewService);
 
@@ -170,5 +163,17 @@ public class ExpirableCoordinatorSupplier extends ExpirableSupplier<CoordinatorD
   @Override
   public Coordinator findCoordinatorByPoolId(String poolId) {
     return getValue().findCoordinatorByPoolId(poolId);
+  }
+
+  @Override
+  public Coordinator findCoordinatorByPoolIdOrThrow(String poolId) throws NotifiableException {
+    Coordinator c = findCoordinatorByPoolId(poolId);
+    if (c == null) {
+      throw new NotifiableException(
+          "No coordinator available for pool "
+              + poolId
+              + ", please retry later or check for upgrade");
+    }
+    return c;
   }
 }

@@ -4,6 +4,7 @@ import com.samourai.http.client.HttpUsage;
 import com.samourai.http.client.IHttpClient;
 import com.samourai.http.client.IHttpClientService;
 import com.samourai.soroban.client.rpc.RpcClientService;
+import com.samourai.soroban.client.rpc.RpcSession;
 import com.samourai.tor.client.TorClientService;
 import com.samourai.wallet.bip47.BIP47UtilGeneric;
 import com.samourai.wallet.crypto.CryptoUtil;
@@ -11,7 +12,8 @@ import com.samourai.whirlpool.client.utils.ClientCryptoService;
 import com.samourai.whirlpool.client.wallet.beans.ExternalDestination;
 import com.samourai.whirlpool.client.wallet.beans.IndexRange;
 import com.samourai.whirlpool.client.wallet.beans.WhirlpoolNetwork;
-import com.samourai.whirlpool.protocol.SorobanProtocolWhirlpool;
+import com.samourai.whirlpool.protocol.SorobanAppWhirlpool;
+import com.samourai.whirlpool.protocol.soroban.api.WhirlpoolApiClient;
 
 public class WhirlpoolClientConfig {
   private IHttpClientService httpClientService;
@@ -24,7 +26,7 @@ public class WhirlpoolClientConfig {
   private IndexRange indexRangePostmix;
   private boolean torOnionCoordinator;
 
-  private SorobanProtocolWhirlpool sorobanProtocolWhirlpool;
+  private SorobanAppWhirlpool sorobanAppWhirlpool;
   private ClientCryptoService clientCryptoService;
 
   public WhirlpoolClientConfig(
@@ -46,8 +48,8 @@ public class WhirlpoolClientConfig {
     this.whirlpoolNetwork = whirlpoolNetwork;
     this.indexRangePostmix = indexRangePostmix;
     this.torOnionCoordinator = torOnionCoordinator;
+    this.sorobanAppWhirlpool = new SorobanAppWhirlpool(whirlpoolNetwork);
 
-    this.sorobanProtocolWhirlpool = new SorobanProtocolWhirlpool(whirlpoolNetwork);
     this.clientCryptoService = new ClientCryptoService();
   }
 
@@ -115,8 +117,13 @@ public class WhirlpoolClientConfig {
     this.torClientService = torClientService;
   }
 
-  public SorobanProtocolWhirlpool getSorobanProtocolWhirlpool() {
-    return sorobanProtocolWhirlpool;
+  public SorobanAppWhirlpool getSorobanAppWhirlpool() {
+    return sorobanAppWhirlpool;
+  }
+
+  public WhirlpoolApiClient createWhirlpoolApiClient() {
+    RpcSession rpcSession = getRpcClientService().generateRpcWallet().createRpcSession();
+    return new WhirlpoolApiClient(rpcSession, sorobanAppWhirlpool);
   }
 
   public ClientCryptoService getClientCryptoService() {

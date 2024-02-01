@@ -3,21 +3,15 @@ package com.samourai.whirlpool.client.utils;
 import ch.qos.logback.classic.Level;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.samourai.soroban.client.rpc.RpcSession;
 import com.samourai.wallet.api.backend.beans.HttpException;
 import com.samourai.wallet.api.backend.beans.UnspentOutput;
-import com.samourai.wallet.bip47.rpc.Bip47Partner;
 import com.samourai.wallet.client.indexHandler.IIndexHandler;
 import com.samourai.wallet.segwit.bech32.Bech32UtilGeneric;
 import com.samourai.wallet.util.*;
 import com.samourai.whirlpool.client.exception.NotifiableException;
 import com.samourai.whirlpool.client.wallet.beans.IndexRange;
-import com.samourai.whirlpool.client.wallet.data.coordinator.CoordinatorSupplier;
-import com.samourai.whirlpool.client.whirlpool.beans.Coordinator;
-import com.samourai.whirlpool.protocol.SorobanProtocolWhirlpool;
 import com.samourai.whirlpool.protocol.WhirlpoolProtocol;
 import com.samourai.whirlpool.protocol.beans.Utxo;
-import com.samourai.whirlpool.protocol.soroban.api.WhirlpoolPartnerApiClient;
 import com.samourai.xmanager.protocol.rest.RestErrorResponse;
 import io.reactivex.Completable;
 import java.io.File;
@@ -51,23 +45,6 @@ public class ClientUtils {
   public static void setupEnv() {
     // prevent user-agent tracking
     System.setProperty("http.agent", USER_AGENT);
-  }
-
-  public static WhirlpoolPartnerApiClient getWhirlpoolPartnerApiClient(
-      RpcSession rpcSession,
-      CoordinatorSupplier coordinatorSupplier,
-      String poolId,
-      SorobanProtocolWhirlpool sorobanProtocolWhirlpool)
-      throws Exception {
-    Coordinator c = coordinatorSupplier.findCoordinatorByPoolId(poolId);
-    if (c == null) {
-      throw new NotifiableException(
-          "No coordinator available for pool "
-              + poolId
-              + ", please retry later or check for upgrade");
-    }
-    Bip47Partner coordinator = rpcSession.getRpcWallet().getBip47Partner(c.getPaymentCode(), true);
-    return new WhirlpoolPartnerApiClient(rpcSession, coordinator, sorobanProtocolWhirlpool);
   }
 
   public static Integer findTxOutputIndex(

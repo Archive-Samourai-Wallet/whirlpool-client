@@ -67,6 +67,7 @@ public class WhirlpoolWalletConfig extends WhirlpoolClientConfig
   private boolean postmixIndexAutoFix;
   private int persistDelaySeconds;
   private String partner;
+  private int bip47AccountId;
 
   private ISecretPointFactory secretPointFactory;
   private SorobanWalletService sorobanWalletService; // may be null
@@ -132,6 +133,7 @@ public class WhirlpoolWalletConfig extends WhirlpoolClientConfig
     this.postmixIndexAutoFix = true;
     this.persistDelaySeconds = 10;
     this.partner = WhirlpoolProtocol.PARTNER_ID_SAMOURAI;
+    this.bip47AccountId = 0;
 
     this.bip47Util = Bip47UtilJava.getInstance();
 
@@ -390,6 +392,14 @@ public class WhirlpoolWalletConfig extends WhirlpoolClientConfig
 
   public void setPartner(String partner) {
     this.partner = partner;
+  }
+
+  public int getBip47AccountId() {
+    return bip47AccountId;
+  }
+
+  public void setBip47AccountId(int bip47AccountId) {
+    this.bip47AccountId = bip47AccountId;
   }
 
   public ISecretPointFactory getSecretPointFactory() {

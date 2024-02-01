@@ -15,7 +15,7 @@ import com.samourai.whirlpool.client.wallet.beans.Tx0FeeTarget;
 import com.samourai.whirlpool.client.wallet.beans.WhirlpoolAccount;
 import com.samourai.whirlpool.client.whirlpool.beans.Pool;
 import com.samourai.whirlpool.protocol.feeOpReturn.FeeOpReturnImpl;
-import com.samourai.whirlpool.protocol.soroban.api.WhirlpoolPartnerApiClient;
+import com.samourai.whirlpool.protocol.soroban.api.WhirlpoolApiClient;
 import java.util.Collection;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -70,16 +70,16 @@ public class WhirlpoolWalletTx0x2Test extends AbstractCahootsTest {
 
     Tx0 tx0Initiator =
         asyncUtil.blockingGet(
-            whirlpoolWallet.withWhirlpoolPartnerApiClient(
-                whirlpoolPartnerApiClient ->
+            whirlpoolWallet.withWhirlpoolApiClient(
+                whirlpoolApiClient ->
                     tx0Service.tx0(
                         spendFroms,
                         walletSupplierSender,
                         pool,
                         tx0Config,
                         utxoProviderSender,
-                        whirlpoolPartnerApiClient),
-                pool.getPoolId()));
+                        whirlpoolApiClient,
+                        whirlpoolWallet.getCoordinatorSupplier())));
 
     // run Cahoots
     Tx0x2Context cahootsContextSender =
@@ -145,8 +145,7 @@ public class WhirlpoolWalletTx0x2Test extends AbstractCahootsTest {
             Tx0FeeTarget.BLOCKS_24,
             Tx0FeeTarget.BLOCKS_24,
             WhirlpoolAccount.DEPOSIT);
-    WhirlpoolPartnerApiClient whirlpoolPartnerApiClient =
-        whirlpoolWallet.withWhirlpoolPartnerApiClient(o -> o, pool.getPoolId());
+    WhirlpoolApiClient whirlpoolApiClient = config.createWhirlpoolApiClient();
     Tx0 tx0Initiator =
         asyncUtil.blockingGet(
             tx0Service.tx0(
@@ -155,7 +154,8 @@ public class WhirlpoolWalletTx0x2Test extends AbstractCahootsTest {
                 pool,
                 tx0Config,
                 utxoProviderSender,
-                whirlpoolPartnerApiClient));
+                whirlpoolApiClient,
+                whirlpoolWallet.getCoordinatorSupplier()));
 
     // run Cahoots
     Tx0x2Context cahootsContextSender =
