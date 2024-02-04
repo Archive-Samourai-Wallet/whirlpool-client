@@ -1,7 +1,7 @@
 package com.samourai.whirlpool.client.whirlpool.beans;
 
 import com.samourai.whirlpool.protocol.WhirlpoolProtocol;
-import com.samourai.whirlpool.protocol.soroban.tx0.Tx0DataResponse;
+import com.samourai.whirlpool.protocol.soroban.payload.tx0.Tx0DataResponse;
 
 public class Tx0Data {
   private String poolId;

@@ -317,12 +317,16 @@ public class DebugUtils {
       sb.append("⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿" + "\n");
       sb.append("⣿ COORDINATORS:" + "\n");
 
-      String lineFormat = "| %15s | %45s |\n";
-      sb.append(String.format(lineFormat, "ID", "POOLS"));
+      String lineFormat = "| %15s | %25s | %45s |\n";
+      sb.append(String.format(lineFormat, "NAME", "SENDER", "POOLS"));
 
       for (Coordinator coordinator : coordinatorSupplier.getCoordinators()) {
         sb.append(
-            String.format(lineFormat, coordinator.getCoordinatorId(), coordinator.getPoolIds()));
+            String.format(
+                lineFormat,
+                coordinator.getName(),
+                coordinator.getSender(),
+                coordinator.getPoolIds()));
       }
     } catch (Exception e) {
       log.error("", e);

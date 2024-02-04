@@ -15,7 +15,7 @@ import com.samourai.whirlpool.client.wallet.beans.Tx0FeeTarget;
 import com.samourai.whirlpool.client.wallet.beans.WhirlpoolAccount;
 import com.samourai.whirlpool.client.whirlpool.beans.Pool;
 import com.samourai.whirlpool.protocol.feeOpReturn.FeeOpReturnImpl;
-import com.samourai.whirlpool.protocol.soroban.api.WhirlpoolApiClient;
+import com.samourai.whirlpool.protocol.soroban.WhirlpoolApiClient;
 import java.util.Collection;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -145,7 +145,7 @@ public class WhirlpoolWalletTx0x2Test extends AbstractCahootsTest {
             Tx0FeeTarget.BLOCKS_24,
             Tx0FeeTarget.BLOCKS_24,
             WhirlpoolAccount.DEPOSIT);
-    WhirlpoolApiClient whirlpoolApiClient = config.createWhirlpoolApiClient();
+    WhirlpoolApiClient whirlpoolApiClient = config.createWhirlpoolApiClient(coordinatorSupplier);
     Tx0 tx0Initiator =
         asyncUtil.blockingGet(
             tx0Service.tx0(

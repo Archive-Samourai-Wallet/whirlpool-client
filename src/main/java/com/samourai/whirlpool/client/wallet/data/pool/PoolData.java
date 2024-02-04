@@ -7,7 +7,7 @@ import com.samourai.whirlpool.client.tx0.Tx0Previews;
 import com.samourai.whirlpool.client.wallet.beans.Tx0FeeTarget;
 import com.samourai.whirlpool.client.wallet.beans.WhirlpoolPoolByBalanceMinDescComparator;
 import com.samourai.whirlpool.client.whirlpool.beans.Pool;
-import com.samourai.whirlpool.protocol.soroban.beans.PoolInfo;
+import com.samourai.whirlpool.protocol.soroban.payload.coordinators.PoolInfo;
 import java.util.Collection;
 import java.util.LinkedHashMap;
 import java.util.List;

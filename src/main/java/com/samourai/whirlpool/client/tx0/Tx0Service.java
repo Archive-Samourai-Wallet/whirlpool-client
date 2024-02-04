@@ -29,11 +29,11 @@ import com.samourai.whirlpool.client.whirlpool.beans.PoolComparatorByDenominatio
 import com.samourai.whirlpool.client.whirlpool.beans.Tx0Data;
 import com.samourai.whirlpool.protocol.WhirlpoolProtocol;
 import com.samourai.whirlpool.protocol.feeOpReturn.FeeOpReturnImpl;
-import com.samourai.whirlpool.protocol.soroban.PushTxErrorResponse;
-import com.samourai.whirlpool.protocol.soroban.PushTxSuccessResponse;
-import com.samourai.whirlpool.protocol.soroban.api.WhirlpoolApiClient;
+import com.samourai.whirlpool.protocol.soroban.WhirlpoolApiClient;
 import com.samourai.whirlpool.protocol.soroban.exception.PushTxErrorException;
-import com.samourai.whirlpool.protocol.soroban.tx0.Tx0PushRequest;
+import com.samourai.whirlpool.protocol.soroban.payload.beans.PushTxError;
+import com.samourai.whirlpool.protocol.soroban.payload.tx0.Tx0PushRequest;
+import com.samourai.whirlpool.protocol.soroban.payload.tx0.Tx0PushResponseSuccess;
 import io.reactivex.Single;
 import java.util.*;
 import org.bitcoinj.core.*;
@@ -481,24 +481,24 @@ public class Tx0Service {
     SendFactoryGeneric.getInstance().signTransaction(tx, keyBag, bipFormatSupplier);
   }
 
-  public PushTxSuccessResponse pushTx0(Tx0 tx0, WhirlpoolWallet whirlpoolWallet) throws Exception {
+  public Tx0PushResponseSuccess pushTx0(Tx0 tx0, WhirlpoolWallet whirlpoolWallet) throws Exception {
     String tx64 = WhirlpoolProtocol.encodeBytes(tx0.getTx().bitcoinSerialize());
     String poolId = tx0.getPool().getPoolId();
     Tx0PushRequest request = new Tx0PushRequest(tx64, poolId);
     Coordinator coordinator =
         whirlpoolWallet.getCoordinatorSupplier().findCoordinatorByPoolIdOrThrow(poolId);
-    PushTxSuccessResponse response =
+    Tx0PushResponseSuccess response =
         asyncUtil.blockingGet(
             whirlpoolWallet.withWhirlpoolApiClient(
                 whirlpoolApiClient ->
-                    whirlpoolApiClient.pushTx0(
-                        request, coordinator.getPaymentCode()))); // throws PushTxErrorException
+                    whirlpoolApiClient.tx0Push(
+                        request, coordinator.getSender()))); // throws PushTxErrorException
     // notify
     WhirlpoolEventService.getInstance().post(new Tx0Event(whirlpoolWallet, tx0));
     return response;
   }
 
-  public PushTxSuccessResponse pushTx0WithRetryOnAddressReuse(
+  public Tx0PushResponseSuccess pushTx0WithRetryOnAddressReuse(
       Tx0 tx0, WhirlpoolWallet whirlpoolWallet) throws Exception {
     int tx0MaxRetry = whirlpoolWallet.getConfig().getTx0MaxRetry();
 
@@ -512,7 +512,7 @@ public class Tx0Service {
       try {
         return pushTx0(tx0, whirlpoolWallet);
       } catch (PushTxErrorException e) {
-        PushTxErrorResponse pushTxErrorResponse = e.getPushTxErrorResponse();
+        PushTxError pushTxError = e.getPushTxError();
         log.warn(
             "tx0 failed: "
                 + e.getMessage()
@@ -520,11 +520,10 @@ public class Tx0Service {
                 + (i + 1)
                 + "/"
                 + tx0MaxRetry
-                + ", pushTxErrorCode="
-                + pushTxErrorResponse.pushTxErrorCode);
+                + ", error="
+                + pushTxError.error);
 
-        if (pushTxErrorResponse.voutsAddressReuse == null
-            || pushTxErrorResponse.voutsAddressReuse.isEmpty()) {
+        if (pushTxError.voutsAddressReuse == null || pushTxError.voutsAddressReuse.isEmpty()) {
           throw e; // not an address-reuse
         }
 
@@ -533,7 +532,7 @@ public class Tx0Service {
         tx0 =
             tx0Retry(
                 tx0,
-                pushTxErrorResponse,
+                pushTxError,
                 whirlpoolWallet.getWalletSupplier(),
                 whirlpoolWallet.getUtxoSupplier());
       }
@@ -543,16 +542,15 @@ public class Tx0Service {
 
   private Tx0 tx0Retry(
       Tx0 tx0,
-      PushTxErrorResponse pushTxErrorResponse,
+      PushTxError pushTxError,
       WalletSupplier walletSupplier,
       UtxoKeyProvider utxoKeyProvider)
       throws Exception {
     // manage premix address reuses
     Collection<Integer> premixOutputIndexs = ClientUtils.getOutputIndexs(tx0.getPremixOutputs());
     boolean isPremixReuse =
-        pushTxErrorResponse.voutsAddressReuse != null
-            && !ClientUtils.intersect(pushTxErrorResponse.voutsAddressReuse, premixOutputIndexs)
-                .isEmpty();
+        pushTxError.voutsAddressReuse != null
+            && !ClientUtils.intersect(pushTxError.voutsAddressReuse, premixOutputIndexs).isEmpty();
     if (!isPremixReuse) {
       if (log.isDebugEnabled()) {
         log.debug("isPremixReuse=false => reverting tx0 premix index");
@@ -563,9 +561,8 @@ public class Tx0Service {
     // manage change address reuses
     Collection<Integer> changeOutputIndexs = ClientUtils.getOutputIndexs(tx0.getChangeOutputs());
     boolean isChangeReuse =
-        pushTxErrorResponse.voutsAddressReuse != null
-            && !ClientUtils.intersect(pushTxErrorResponse.voutsAddressReuse, changeOutputIndexs)
-                .isEmpty();
+        pushTxError.voutsAddressReuse != null
+            && !ClientUtils.intersect(pushTxError.voutsAddressReuse, changeOutputIndexs).isEmpty();
 
     if (!isChangeReuse) {
       if (log.isDebugEnabled()) {

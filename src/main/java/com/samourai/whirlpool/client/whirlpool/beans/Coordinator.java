@@ -8,30 +8,40 @@ import org.slf4j.LoggerFactory;
 public class Coordinator {
   private final Logger log = LoggerFactory.getLogger(Coordinator.class);
 
-  private String coordinatorId;
-  private PaymentCode paymentCode;
+  private String name;
+  private PaymentCode sender;
   private Collection<String> poolIds;
+  private Collection<String> sorobanNodeUrls;
 
-  public Coordinator(String coordinatorId, PaymentCode paymentCode, Collection<String> poolIds) {
-    this.coordinatorId = coordinatorId;
-    this.paymentCode = paymentCode;
+  public Coordinator(
+      String name,
+      PaymentCode sender,
+      Collection<String> poolIds,
+      Collection<String> sorobanNodeUrls) {
+    this.name = name;
+    this.sender = sender;
     this.poolIds = poolIds;
+    this.sorobanNodeUrls = sorobanNodeUrls;
   }
 
-  public String getCoordinatorId() {
-    return coordinatorId;
+  public String getName() {
+    return name;
   }
 
-  public PaymentCode getPaymentCode() {
-    return paymentCode;
+  public PaymentCode getSender() {
+    return sender;
   }
 
   public Collection<String> getPoolIds() {
     return poolIds;
   }
 
+  public Collection<String> getSorobanNodeUrls() {
+    return sorobanNodeUrls;
+  }
+
   @Override
   public String toString() {
-    return "coordinatorId='" + coordinatorId + '\'' + ", paymentCode=" + paymentCode;
+    return "name='" + name + '\'' + ", sender=" + sender + ", sorobanNodeUrls=" + sorobanNodeUrls;
   }
 }

@@ -10,8 +10,8 @@ import com.samourai.whirlpool.client.wallet.data.minerFee.MinerFeeSupplier;
 import com.samourai.whirlpool.client.whirlpool.beans.Coordinator;
 import com.samourai.whirlpool.client.whirlpool.beans.Pool;
 import com.samourai.whirlpool.client.whirlpool.beans.Tx0Data;
-import com.samourai.whirlpool.protocol.soroban.api.WhirlpoolApiClient;
-import com.samourai.whirlpool.protocol.soroban.tx0.Tx0DataRequest;
+import com.samourai.whirlpool.protocol.soroban.WhirlpoolApiClient;
+import com.samourai.whirlpool.protocol.soroban.payload.tx0.Tx0DataRequest;
 import io.reactivex.Single;
 import java.util.Arrays;
 import java.util.Collection;
@@ -235,8 +235,9 @@ public class Tx0PreviewService {
     Tx0DataRequest tx0DataRequest = new Tx0DataRequest(config.getScode(), partnerId, cascading);
     Coordinator coordinator =
         coordinatorSupplier.getCoordinatorRandom(); // TODO adapt for multi-coordinators
+    String poolId = coordinator.getPoolIds().iterator().next(); // TODO
     return whirlpoolApiClient
-        .fetchTx0Data(tx0DataRequest, coordinator.getPaymentCode())
+        .tx0FetchData(tx0DataRequest, coordinator.getSender(), poolId)
         .map(
             tx0DataResponse ->
                 Arrays.stream(tx0DataResponse.tx0Datas)

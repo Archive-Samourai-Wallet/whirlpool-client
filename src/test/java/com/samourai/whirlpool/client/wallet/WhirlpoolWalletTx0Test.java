@@ -10,7 +10,7 @@ import com.samourai.whirlpool.client.wallet.beans.WhirlpoolAccount;
 import com.samourai.whirlpool.client.wallet.beans.WhirlpoolUtxo;
 import com.samourai.whirlpool.client.wallet.data.pool.PoolSupplier;
 import com.samourai.whirlpool.client.whirlpool.beans.Pool;
-import com.samourai.whirlpool.protocol.soroban.tx0.Tx0PushRequest;
+import com.samourai.whirlpool.protocol.soroban.payload.tx0.Tx0PushRequest;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.LinkedList;

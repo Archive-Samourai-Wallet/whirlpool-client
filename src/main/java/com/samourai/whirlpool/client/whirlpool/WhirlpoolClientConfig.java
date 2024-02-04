@@ -4,7 +4,6 @@ import com.samourai.http.client.HttpUsage;
 import com.samourai.http.client.IHttpClient;
 import com.samourai.http.client.IHttpClientService;
 import com.samourai.soroban.client.rpc.RpcClientService;
-import com.samourai.soroban.client.rpc.RpcSession;
 import com.samourai.tor.client.TorClientService;
 import com.samourai.wallet.bip47.BIP47UtilGeneric;
 import com.samourai.wallet.crypto.CryptoUtil;
@@ -12,8 +11,11 @@ import com.samourai.whirlpool.client.utils.ClientCryptoService;
 import com.samourai.whirlpool.client.wallet.beans.ExternalDestination;
 import com.samourai.whirlpool.client.wallet.beans.IndexRange;
 import com.samourai.whirlpool.client.wallet.beans.WhirlpoolNetwork;
+import com.samourai.whirlpool.client.wallet.data.coordinator.CoordinatorSupplier;
+import com.samourai.whirlpool.client.whirlpool.beans.Coordinator;
 import com.samourai.whirlpool.protocol.SorobanAppWhirlpool;
-import com.samourai.whirlpool.protocol.soroban.api.WhirlpoolApiClient;
+import com.samourai.whirlpool.protocol.soroban.WhirlpoolApiClient;
+import java.util.Collection;
 
 public class WhirlpoolClientConfig {
   private IHttpClientService httpClientService;
@@ -121,8 +123,13 @@ public class WhirlpoolClientConfig {
     return sorobanAppWhirlpool;
   }
 
-  public WhirlpoolApiClient createWhirlpoolApiClient() {
-    RpcSession rpcSession = getRpcClientService().generateRpcWallet().createRpcSession();
+  public WhirlpoolApiClient createWhirlpoolApiClient(CoordinatorSupplier coordinatorSupplier) {
+    RpcSessionClient rpcSession =
+        new RpcSessionClient(getRpcClientService().generateRpcWallet().createRpcSession());
+    Collection<Coordinator> coordinators = coordinatorSupplier.getCoordinators(); // TODO
+    if (!coordinators.isEmpty()) {
+      rpcSession.setCoordinator(coordinators.iterator().next());
+    }
     return new WhirlpoolApiClient(rpcSession, sorobanAppWhirlpool);
   }
 

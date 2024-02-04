@@ -1,19 +1,20 @@
 package com.samourai.whirlpool.client.wallet.data.coordinator;
 
 import com.samourai.wallet.api.backend.beans.HttpException;
+import com.samourai.wallet.bip47.rpc.PaymentCode;
 import com.samourai.wallet.util.*;
 import com.samourai.whirlpool.client.event.PoolsChangeEvent;
 import com.samourai.whirlpool.client.exception.NotifiableException;
 import com.samourai.whirlpool.client.tx0.Tx0PreviewService;
 import com.samourai.whirlpool.client.utils.ClientUtils;
 import com.samourai.whirlpool.client.wallet.WhirlpoolEventService;
-import com.samourai.whirlpool.client.wallet.beans.WhirlpoolNetwork;
+import com.samourai.whirlpool.client.wallet.WhirlpoolWalletConfig;
 import com.samourai.whirlpool.client.wallet.data.pool.PoolData;
 import com.samourai.whirlpool.client.wallet.data.supplier.ExpirableSupplier;
 import com.samourai.whirlpool.client.whirlpool.beans.Coordinator;
 import com.samourai.whirlpool.client.whirlpool.beans.Pool;
-import com.samourai.whirlpool.protocol.soroban.RegisterCoordinatorMessage;
-import com.samourai.whirlpool.protocol.soroban.api.WhirlpoolApiClient;
+import com.samourai.whirlpool.protocol.soroban.WhirlpoolApiClient;
+import com.samourai.whirlpool.protocol.soroban.payload.coordinators.CoordinatorMessage;
 import java.util.Collection;
 import java.util.stream.Collectors;
 import org.slf4j.Logger;
@@ -22,39 +23,22 @@ import org.slf4j.LoggerFactory;
 public class ExpirableCoordinatorSupplier extends ExpirableSupplier<CoordinatorData>
     implements CoordinatorSupplier {
   private static final Logger log = LoggerFactory.getLogger(ExpirableCoordinatorSupplier.class);
-  private static final AsyncUtil asyncUtil = AsyncUtil.getInstance();
-  private static final MessageSignUtilGeneric messageSignUtil =
-      MessageSignUtilGeneric.getInstance();
   private static final int COORDINATOR_ATTEMPTS = 5;
 
   private final WhirlpoolEventService eventService = WhirlpoolEventService.getInstance();
   private final WhirlpoolApiClient whirlpoolApiClient;
-  private WhirlpoolNetwork whirlpoolNetwork;
   protected final Tx0PreviewService tx0PreviewService;
+  protected final WhirlpoolWalletConfig config;
 
   public ExpirableCoordinatorSupplier(
       int refreshPoolsDelay,
       WhirlpoolApiClient whirlpoolApiClient,
-      WhirlpoolNetwork whirlpoolNetwork,
-      Tx0PreviewService tx0PreviewService) {
+      Tx0PreviewService tx0PreviewService,
+      WhirlpoolWalletConfig config) {
     super(refreshPoolsDelay, log);
     this.whirlpoolApiClient = whirlpoolApiClient;
-    this.whirlpoolNetwork = whirlpoolNetwork;
     this.tx0PreviewService = tx0PreviewService;
-  }
-
-  protected boolean validateCoordinator(RegisterCoordinatorMessage payload) {
-    // check coordinator.paymentCodeSignature against samourai signature
-    if (!messageSignUtil.verifySignedMessage(
-        whirlpoolNetwork.getSigningAddress(),
-        payload.coordinator.paymentCode,
-        payload.coordinator.paymentCodeSignature,
-        whirlpoolNetwork.getParams())) {
-      if (log.isDebugEnabled()) {
-        log.warn("Could not trust coordinator: invalid coordinator.paymentCodeSignature");
-      }
-    }
-    return true;
+    this.config = config;
   }
 
   @Override
@@ -63,16 +47,15 @@ public class ExpirableCoordinatorSupplier extends ExpirableSupplier<CoordinatorD
       log.debug("fetching coordinators...");
     }
     try {
-      Collection<RegisterCoordinatorMessage> registerCoordinatorMessages =
-          asyncUtil.blockingGet(whirlpoolApiClient.fetchCoordinators()).stream()
-              .filter(this::validateCoordinator)
-              .collect(Collectors.toList());
+      Collection<Pair<CoordinatorMessage, PaymentCode>> coordinatorMessages =
+          whirlpoolApiClient.coordinatorsFetch();
+      boolean onion = config.isTorOnionCoordinator();
       CoordinatorData coordinatorData =
-          new CoordinatorData(registerCoordinatorMessages, tx0PreviewService);
+          new CoordinatorData(coordinatorMessages, tx0PreviewService, onion);
 
       if (coordinatorData.getCoordinators().isEmpty()) {
         // immediately retry on another SorobanServer as current one it may be out-of-sync
-        throw new HttpException("No Whirlpool coordinator found, retrying...");
+        throw new HttpException("No coordinator found, retrying...");
       }
       return coordinatorData;
     } catch (HttpException e) { // TODO ?
@@ -143,7 +126,7 @@ public class ExpirableCoordinatorSupplier extends ExpirableSupplier<CoordinatorD
     }
     Coordinator coordinator = RandomUtil.getInstance().next(getCoordinators());
     if (log.isDebugEnabled()) {
-      log.debug("Using coordinator: " + coordinator.getCoordinatorId());
+      log.debug("Using coordinator: " + coordinator.getSender());
     }
     return coordinator;
   }

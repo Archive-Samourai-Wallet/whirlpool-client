@@ -55,7 +55,7 @@ import com.samourai.whirlpool.client.wallet.orchestrator.AutoTx0Orchestrator;
 import com.samourai.whirlpool.client.wallet.orchestrator.MixOrchestratorImpl;
 import com.samourai.whirlpool.client.whirlpool.beans.Pool;
 import com.samourai.whirlpool.protocol.beans.Utxo;
-import com.samourai.whirlpool.protocol.soroban.api.WhirlpoolApiClient;
+import com.samourai.whirlpool.protocol.soroban.WhirlpoolApiClient;
 import com.samourai.xmanager.client.XManagerClient;
 import com.samourai.xmanager.protocol.XManagerService;
 import io.reactivex.Completable;
@@ -636,7 +636,8 @@ public class WhirlpoolWallet {
 
   public <R> R withWhirlpoolApiClient(CallbackWithArg<WhirlpoolApiClient, R> callable)
       throws Exception {
-    WhirlpoolApiClient whirlpoolApiClient = config.createWhirlpoolApiClient();
+    WhirlpoolApiClient whirlpoolApiClient =
+        config.createWhirlpoolApiClient(getCoordinatorSupplier());
     return callable.apply(whirlpoolApiClient);
   }
 

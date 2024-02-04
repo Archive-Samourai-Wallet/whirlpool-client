@@ -12,7 +12,9 @@ import com.samourai.whirlpool.client.utils.ClientCryptoService;
 import com.samourai.whirlpool.client.utils.ClientUtils;
 import com.samourai.whirlpool.protocol.WhirlpoolProtocol;
 import com.samourai.whirlpool.protocol.beans.Utxo;
-import com.samourai.whirlpool.protocol.soroban.*;
+import com.samourai.whirlpool.protocol.soroban.payload.mix.*;
+import com.samourai.whirlpool.protocol.soroban.payload.registerInput.RegisterInputRequest;
+import com.samourai.whirlpool.protocol.soroban.payload.registerInput.RegisterInputResponse;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -166,7 +168,7 @@ public class MixProcess {
   }
 
   protected RegisterOutputRequest registerOutput(
-      RegisterOutputNotification registerOutputNotification) throws Exception {
+      MixStatusResponseRegisterOutput mixNotificationRegisterOutput) throws Exception {
     if (!registeredInput
         || !confirmedInput
         || !confirmedInputResponse
@@ -176,7 +178,7 @@ public class MixProcess {
       throwProtocolException();
     }
 
-    this.inputsHash = registerOutputNotification.getInputsHash();
+    this.inputsHash = mixNotificationRegisterOutput.getInputsHash();
     this.receiveDestination = postmixHandler.computeDestinationNext();
 
     String unblindedSignedBordereau64 =
@@ -211,7 +213,8 @@ public class MixProcess {
     return revealOutputRequest;
   }
 
-  protected SigningRequest signing(SigningNotification signingNotification) throws Exception {
+  protected SigningRequest signing(MixStatusResponseSigning mixNotificationSigning)
+      throws Exception {
     if (!registeredInput
         || !confirmedInput
         || !confirmedInputResponse
@@ -221,7 +224,7 @@ public class MixProcess {
       throwProtocolException();
     }
 
-    byte[] rawTx = WhirlpoolProtocol.decodeBytes(signingNotification.transaction64);
+    byte[] rawTx = WhirlpoolProtocol.decodeBytes(mixNotificationSigning.transaction64);
     Transaction tx = new Transaction(params, rawTx);
 
     // verify tx

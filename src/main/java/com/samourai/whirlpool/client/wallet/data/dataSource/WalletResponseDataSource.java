@@ -28,7 +28,7 @@ import com.samourai.whirlpool.client.wallet.data.utxo.UtxoData;
 import com.samourai.whirlpool.client.wallet.data.utxo.UtxoSupplier;
 import com.samourai.whirlpool.client.wallet.data.utxoConfig.UtxoConfigSupplier;
 import com.samourai.whirlpool.client.wallet.data.walletState.WalletStateSupplier;
-import com.samourai.whirlpool.protocol.soroban.api.WhirlpoolApiClient;
+import com.samourai.whirlpool.protocol.soroban.WhirlpoolApiClient;
 import java.util.Map;
 import org.apache.commons.lang3.math.NumberUtils;
 import org.slf4j.Logger;
@@ -101,10 +101,7 @@ public abstract class WalletResponseDataSource implements DataSource {
     WhirlpoolApiClient whirlpoolApiClient =
         new WhirlpoolApiClient(rpcSession, config.getSorobanAppWhirlpool());
     return new ExpirableCoordinatorSupplier(
-        config.getRefreshPoolsDelay(),
-        whirlpoolApiClient,
-        config.getWhirlpoolNetwork(),
-        tx0PreviewService);
+        config.getRefreshPoolsDelay(), whirlpoolApiClient, tx0PreviewService, config);
   }
 
   protected BasicChainSupplier computeChainSupplier() throws Exception {

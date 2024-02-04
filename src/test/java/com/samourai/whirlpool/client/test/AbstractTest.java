@@ -38,7 +38,7 @@ import com.samourai.whirlpool.client.wallet.data.walletState.WalletStatePersiste
 import com.samourai.whirlpool.client.wallet.data.walletState.WalletStateSupplier;
 import com.samourai.whirlpool.client.whirlpool.beans.Pool;
 import com.samourai.whirlpool.client.whirlpool.beans.Tx0Data;
-import com.samourai.whirlpool.protocol.soroban.tx0.Tx0PushRequest;
+import com.samourai.whirlpool.protocol.soroban.payload.tx0.Tx0PushRequest;
 import java.io.File;
 import java.util.Arrays;
 import java.util.Collection;
@@ -100,7 +100,7 @@ public class AbstractTest {
       new MockTx0PreviewService(
           mockMinerFeeSupplier, new MockTx0PreviewServiceConfig(whirlpoolNetwork)) {};
   protected CoordinatorSupplier coordinatorSupplier =
-      new MockCoordinatorSupplier(mockTx0PreviewService);
+      new MockCoordinatorSupplier(mockTx0PreviewService, computeWhirlpoolWalletConfig());
 
   protected MockPushTx pushTx = new MockPushTx(params);
   protected static final String MOCK_SAMOURAI_FEE_ADDRESS =

@@ -1,5 +1,7 @@
 package com.samourai.whirlpool.client.exception;
 
+import com.samourai.soroban.client.exception.SorobanErrorMessageException;
+import com.samourai.soroban.protocol.payload.SorobanErrorMessage;
 import java.nio.channels.AsynchronousCloseException;
 import java.util.concurrent.TimeoutException;
 import org.slf4j.Logger;
@@ -53,6 +55,12 @@ public class NotifiableException extends Exception {
     }
     if (AsynchronousCloseException.class.isAssignableFrom(e.getClass())) {
       return new NotifiableException("Network error");
+    }
+    if (SorobanErrorMessageException.class.isAssignableFrom(e.getClass())) {
+      SorobanErrorMessage sorobanErrorMessage =
+          ((SorobanErrorMessageException) e).getSorobanErrorMessage();
+      return new NotifiableException(
+          "Error " + sorobanErrorMessage.errorCode + ": " + sorobanErrorMessage.message);
     }
     return null;
   }
