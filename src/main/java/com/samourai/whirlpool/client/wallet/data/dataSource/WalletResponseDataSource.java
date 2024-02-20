@@ -97,7 +97,11 @@ public abstract class WalletResponseDataSource implements DataSource {
 
   protected ExpirableCoordinatorSupplier computeCoordinatorSupplier(
       WhirlpoolWalletConfig config, Tx0PreviewService tx0PreviewService) throws Exception {
-    RpcSession rpcSession = config.getRpcClientService().generateRpcWallet().createRpcSession();
+    RpcSession rpcSession = config.createRpcSession(null);
+    if (log.isDebugEnabled()) {
+      String sender = rpcSession.getRpcWallet().getBip47Account().getPaymentCode().toString();
+      log.debug("New soroban identity for CoordinatorSupplier: sender=" + sender);
+    }
     WhirlpoolApiClient whirlpoolApiClient =
         new WhirlpoolApiClient(rpcSession, config.getSorobanAppWhirlpool());
     return new ExpirableCoordinatorSupplier(

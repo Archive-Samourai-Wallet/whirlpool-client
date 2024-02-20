@@ -251,6 +251,8 @@ public class ClientUtils {
     LogbackUtils.setLogLevel(
         "org.bitcoin", org.slf4j.event.Level.WARN.toString()); // "no wallycore"
     LogbackUtils.setLogLevel("org.eclipse.jetty", org.slf4j.event.Level.INFO.toString());
+    /*LogbackUtils.setLogLevel(
+    "com.samourai.soroban.client.rpc.RpcClient", org.slf4j.event.Level.INFO.toString());*/
   }
 
   public static long computeTx0MinerFee(

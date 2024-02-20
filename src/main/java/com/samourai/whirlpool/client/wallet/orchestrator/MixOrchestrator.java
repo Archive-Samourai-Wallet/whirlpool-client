@@ -459,7 +459,7 @@ public abstract class MixOrchestrator extends AbstractOrchestrator {
     final WhirlpoolUtxo whirlpoolUtxo = mixParams.getWhirlpoolUtxo();
     return new WhirlpoolClientListener() {
       @Override
-      public void success(Utxo receiveUtxo, MixDestination receiveDestination) {
+      public void success(String mixId, Utxo receiveUtxo, MixDestination receiveDestination) {
         // manage
         data.removeMixing(whirlpoolUtxo);
 
@@ -468,7 +468,7 @@ public abstract class MixOrchestrator extends AbstractOrchestrator {
       }
 
       @Override
-      public void fail(MixFailReason reason, String notifiableError) {
+      public void fail(String mixId, MixFailReason reason, String notifiableError) {
         // manage
         data.removeMixing(whirlpoolUtxo);
 
@@ -477,7 +477,7 @@ public abstract class MixOrchestrator extends AbstractOrchestrator {
       }
 
       @Override
-      public void progress(MixStep mixStep) {
+      public void progress(String mixId, MixStep mixStep) {
         // nothing to do
       }
     };
@@ -525,10 +525,18 @@ public abstract class MixOrchestrator extends AbstractOrchestrator {
       // stop mixing it
       Mixing mixing = data.getMixing(whirlpoolUtxo.getUtxo());
       if (mixing != null) {
-        if (log.isDebugEnabled()) {
-          log.debug("Stopping mixing removed utxo: " + whirlpoolUtxo);
+        if (whirlpoolUtxo.getUtxoState().getMixProgress().getMixStep().isInterruptable()) {
+          if (log.isDebugEnabled()) {
+            log.debug("Spent utxo is mixing, cancelling: " + whirlpoolUtxo);
+          }
+          stopWhirlpoolClient(mixing, true, false);
+        } else {
+          if (log.isDebugEnabled()) {
+            log.debug(
+                "Spent utxo is mixing (not interruptable), waiting for the mix to complete: "
+                    + whirlpoolUtxo);
+          }
         }
-        stopWhirlpoolClient(mixing, true, false);
       }
     }
 

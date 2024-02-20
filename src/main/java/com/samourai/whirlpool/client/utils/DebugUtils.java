@@ -166,7 +166,7 @@ public class DebugUtils {
 
   public static String getDebugUtxos(Collection<WhirlpoolUtxo> utxos, int latestBlockHeight) {
     String lineFormat =
-        "| %10s | %7s | %68s | %45s | %13s | %28s | %14s | %8s | %8s | %4s | %10s |\n";
+        "| %10s | %7s | %68s | %45s | %13s | %28s | %14s | %10s | %8s | %4s | %10s |\n";
     StringBuilder sb = new StringBuilder().append("\n");
     sb.append(
         String.format(
@@ -253,11 +253,13 @@ public class DebugUtils {
       sb.append("⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿" + "\n");
       sb.append("⣿ MIXING THREADS:" + "\n");
 
-      String lineFormat = "| %25s | %8s | %10s | %10s | %8s | %68s | %14s | %8s | %6s | %10s |\n";
+      String lineFormat =
+          "| %25s | %42s | %8s | %10s | %10s | %8s | %68s | %14s | %8s | %6s | %10s | %10s |\n";
       sb.append(
           String.format(
               lineFormat,
               "STATUS",
+              "MIX",
               "SINCE",
               "ACCOUNT",
               "BALANCE",
@@ -266,19 +268,24 @@ public class DebugUtils {
               "PATH",
               "POOL",
               "MIXS",
-              "ACTIVITY"));
+              "ACTIVITY",
+              "SOROBAN ID"));
 
       for (WhirlpoolUtxo whirlpoolUtxo : mixingState.getUtxosMixing()) {
         UnspentOutput o = whirlpoolUtxo.getUtxo();
         WhirlpoolUtxoState utxoState = whirlpoolUtxo.getUtxoState();
+        MixProgress mixProgress = utxoState.getMixProgress();
+        String mixId =
+            mixProgress != null && mixProgress.getMixId() != null ? mixProgress.getMixId() : "";
         String since =
-            utxoState.getMixProgress() != null
-                ? Util.formatDurationFromNow(utxoState.getMixProgress().getSince())
-                : "";
+            mixProgress != null ? Util.formatDurationFromNow(mixProgress.getSince()) : "";
+        String sorobanSender =
+            mixProgress != null ? mixProgress.getSorobanSender().toString().substring(0, 10) : "";
         sb.append(
             String.format(
                 lineFormat,
                 utxoState.getStatusToString(),
+                mixId,
                 since,
                 whirlpoolUtxo.getAccount().name(),
                 ClientUtils.satToBtc(o.value),
@@ -287,7 +294,8 @@ public class DebugUtils {
                 o.getPath(),
                 StringUtils.defaultIfEmpty(utxoState.getPoolId(), "-"),
                 whirlpoolUtxo.getMixsDone(),
-                whirlpoolUtxo.getUtxoState().getActivityOrErrorStr()));
+                whirlpoolUtxo.getUtxoState().getActivityOrErrorStr(),
+                sorobanSender));
       }
     } catch (Exception e) {
       log.error("", e);
@@ -317,16 +325,18 @@ public class DebugUtils {
       sb.append("⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿" + "\n");
       sb.append("⣿ COORDINATORS:" + "\n");
 
-      String lineFormat = "| %15s | %25s | %45s |\n";
-      sb.append(String.format(lineFormat, "NAME", "SENDER", "POOLS"));
+      String lineFormat = "| %22s | %35s | %20s | %50s |\n";
+      sb.append(String.format(lineFormat, "NAME", "POOLS", "SOROBAN NODES", "SENDER"));
 
       for (Coordinator coordinator : coordinatorSupplier.getCoordinators()) {
+        String poolIds = StringUtils.join(coordinator.getPoolIds(), ", ");
         sb.append(
             String.format(
                 lineFormat,
                 coordinator.getName(),
-                coordinator.getSender(),
-                coordinator.getPoolIds()));
+                poolIds,
+                coordinator.getSorobanNodeUrls().size() + " node(s)",
+                coordinator.getSender()));
       }
     } catch (Exception e) {
       log.error("", e);

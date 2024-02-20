@@ -76,16 +76,18 @@ public class WhirlpoolUtxoState {
       WhirlpoolUtxoStatus status,
       boolean updateLastActivity,
       MixParams mixParams,
-      MixStep mixStep) {
-    setStatus(status, updateLastActivity, new MixProgress(mixParams, mixStep), null, false);
+      MixStep mixStep,
+      String mixId) {
+    setStatus(status, updateLastActivity, new MixProgress(mixParams, mixStep, mixId), null, false);
   }
 
   public void setStatusError(WhirlpoolUtxoStatus status, String error) {
     setStatus(status, true, null, error, true);
   }
 
-  public void setStatusMixingError(WhirlpoolUtxoStatus status, MixParams mixParams, String error) {
-    setStatus(status, true, new MixProgress(mixParams, MixStep.FAIL), error, true);
+  public void setStatusMixingError(
+      WhirlpoolUtxoStatus status, MixParams mixParams, String mixId, String error) {
+    setStatus(status, true, new MixProgress(mixParams, MixStep.FAIL, mixId), error, true);
   }
 
   public void setStatus(

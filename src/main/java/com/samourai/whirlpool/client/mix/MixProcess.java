@@ -4,6 +4,7 @@ import com.samourai.wallet.chain.ChainSupplier;
 import com.samourai.wallet.segwit.bech32.Bech32UtilGeneric;
 import com.samourai.wallet.util.TxUtil;
 import com.samourai.whirlpool.client.exception.NotifiableException;
+import com.samourai.whirlpool.client.exception.ProtocolException;
 import com.samourai.whirlpool.client.mix.handler.IPostmixHandler;
 import com.samourai.whirlpool.client.mix.handler.IPremixHandler;
 import com.samourai.whirlpool.client.mix.handler.MixDestination;
@@ -115,8 +116,7 @@ public class MixProcess {
     String signature = premixHandler.signMessage(poolId);
     int blockHeight = chainSupplier.getLatestBlock().height;
     RegisterInputRequest registerInputRequest =
-        new RegisterInputRequest(
-            poolId, utxo.getHash(), utxo.getIndex(), signature, this.liquidity, blockHeight);
+        new RegisterInputRequest(utxo.getHash(), utxo.getIndex(), signature, blockHeight);
 
     registeredInput = true;
     return registerInputRequest;
@@ -390,5 +390,10 @@ public class MixProcess {
             + ", signed="
             + signed;
     throw new ProtocolException(message);
+  }
+
+  // only available after .registerInput()
+  public boolean isLiquidity() {
+    return liquidity;
   }
 }

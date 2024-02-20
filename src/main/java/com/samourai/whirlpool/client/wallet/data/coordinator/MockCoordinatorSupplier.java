@@ -48,7 +48,7 @@ public class MockCoordinatorSupplier extends ExpirableCoordinatorSupplier {
     for (Pair<CoordinatorMessage, PaymentCode> pair : pairs) {
       pair.getLeft().sorobanInfo =
           new SorobanInfo(
-              sorobanServerDex.getServerUrlsClear(), sorobanServerDex.getServerUrlsOnion());
+              sorobanServerDex.getSorobanUrlsClear(), sorobanServerDex.getSorobanUrlsOnion());
     }
     setValue(new CoordinatorData(pairs, tx0PreviewService, config.isTorOnionCoordinator()));
   }

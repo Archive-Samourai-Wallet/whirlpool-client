@@ -63,7 +63,7 @@ public class Tx0ServiceV1Test extends AbstractTx0ServiceTest {
     Tx0Preview tx0Preview =
         tx0PreviewService.tx0Preview(tx0Param, tx0Data, Arrays.asList(spendFromUtxo));
     check(tx0Preview);
-    Assertions.assertEquals(570, tx0Preview.getTx0MinerFee());
+    Assertions.assertEquals(579, tx0Preview.getTx0MinerFee());
     Assertions.assertEquals(feeValue, tx0Preview.getFeeValue());
     Assertions.assertEquals(feeChange, tx0Preview.getFeeChange());
     Assertions.assertEquals(feeDiscountPercent, tx0Preview.getFeeDiscountPercent());
@@ -157,7 +157,7 @@ public class Tx0ServiceV1Test extends AbstractTx0ServiceTest {
     Tx0Param tx0Param = new Tx0Param(feeSatPerByte, feeSatPerByte, pool01btc, null);
     Assertions.assertEquals(1000175, tx0Param.getPremixValue());
 
-    int TX0_SIZE = 570;
+    int TX0_SIZE = 579;
 
     // feeTx0
     int feeTx0 = 1;

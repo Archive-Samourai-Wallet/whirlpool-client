@@ -58,9 +58,6 @@ public abstract class ExpirableSupplier<D> extends BasicSupplier<D> {
   }
 
   public synchronized void load() throws Exception {
-    if (log.isDebugEnabled()) {
-      log.debug("load()");
-    }
     D currentValue = getValue();
     try {
       // reload value if expired

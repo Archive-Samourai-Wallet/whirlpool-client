@@ -68,21 +68,21 @@ public class WhirlpoolClientImpl implements WhirlpoolClient {
     return new WhirlpoolClientListener() {
 
       @Override
-      public void success(Utxo receiveUtxo, MixDestination receiveDestination) {
+      public void success(String mixId, Utxo receiveUtxo, MixDestination receiveDestination) {
         // done
-        listener.success(receiveUtxo, receiveDestination);
+        listener.success(mixId, receiveUtxo, receiveDestination);
         disconnect();
       }
 
       @Override
-      public void fail(MixFailReason reason, String notifiableError) {
-        listener.fail(reason, notifiableError);
+      public void fail(String mixId, MixFailReason reason, String notifiableError) {
+        listener.fail(mixId, reason, notifiableError);
         disconnect();
       }
 
       @Override
-      public void progress(MixStep mixStep) {
-        listener.progress(mixStep);
+      public void progress(String mixId, MixStep mixStep) {
+        listener.progress(mixId, mixStep);
       }
     };
   }

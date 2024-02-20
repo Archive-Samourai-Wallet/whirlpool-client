@@ -61,21 +61,21 @@ public class MixOrchestratorImpl extends MixOrchestrator {
 
     return new WhirlpoolClientListener() {
       @Override
-      public void success(Utxo receiveUtxo, MixDestination receiveDestination) {
+      public void success(String mixId, Utxo receiveUtxo, MixDestination receiveDestination) {
         // update utxo
         WhirlpoolUtxoState utxoState = whirlpoolUtxo.getUtxoState();
         utxoState.setStatusMixing(
-            WhirlpoolUtxoStatus.MIX_SUCCESS, true, mixParams, MixStep.SUCCESS);
+            WhirlpoolUtxoStatus.MIX_SUCCESS, true, mixParams, MixStep.SUCCESS, mixId);
 
         // remove from mixings
-        orchestratorListener.success(receiveUtxo, receiveDestination);
+        orchestratorListener.success(mixId, receiveUtxo, receiveDestination);
 
         // notify
         whirlpoolWallet.onMixSuccess(mixParams, receiveUtxo, receiveDestination);
       }
 
       @Override
-      public void fail(MixFailReason reason, String notifiableError) {
+      public void fail(String mixId, MixFailReason reason, String notifiableError) {
         // update utxo
         String error = reason.getMessage();
         if (notifiableError != null) {
@@ -90,24 +90,24 @@ public class MixOrchestratorImpl extends MixOrchestrator {
           utxoState.setStatus(WhirlpoolUtxoStatus.READY, false, false);
         } else {
           // mix failure
-          utxoState.setStatusMixingError(WhirlpoolUtxoStatus.MIX_FAILED, mixParams, error);
+          utxoState.setStatusMixingError(WhirlpoolUtxoStatus.MIX_FAILED, mixParams, mixId, error);
         }
 
         // remove from mixings
-        orchestratorListener.fail(reason, notifiableError);
+        orchestratorListener.fail(mixId, reason, notifiableError);
 
         // notify & re-add to mixQueue...
         whirlpoolWallet.onMixFail(mixParams, reason, notifiableError);
       }
 
       @Override
-      public void progress(MixStep mixStep) {
+      public void progress(String mixId, MixStep mixStep) {
         // update utxo
         WhirlpoolUtxoState utxoState = whirlpoolUtxo.getUtxoState();
-        utxoState.setStatusMixing(utxoState.getStatus(), true, mixParams, mixStep);
+        utxoState.setStatusMixing(utxoState.getStatus(), true, mixParams, mixStep, mixId);
 
         // manage orchestrator
-        orchestratorListener.progress(mixStep);
+        orchestratorListener.progress(mixId, mixStep);
 
         // notify
         whirlpoolWallet.onMixProgress(mixParams);
@@ -135,7 +135,7 @@ public class MixOrchestratorImpl extends MixOrchestrator {
     // prepare mixing
     MixParams mixParams = computeMixParams(whirlpoolUtxo, pool);
     WhirlpoolClientListener mixListener = computeMixListener(mixParams);
-    mixListener.progress(MixStep.REGISTERING_INPUT);
+    mixListener.progress(null, MixStep.REGISTERING_INPUT);
 
     // start mixing (whirlpoolClient will start a new thread)
     WhirlpoolClient whirlpoolClient = new WhirlpoolClientImpl(config);
@@ -150,7 +150,11 @@ public class MixOrchestratorImpl extends MixOrchestrator {
     CoordinatorSupplier coordinatorSupplier = whirlpoolWallet.getCoordinatorSupplier();
 
     // generate temporary Soroban identity
-    RpcSession rpcSession = config.getRpcClientService().generateRpcWallet().createRpcSession();
+    RpcSession rpcSession = config.createRpcSession(coordinatorSupplier);
+    if (log.isDebugEnabled()) {
+      String sender = rpcSession.getRpcWallet().getBip47Account().getPaymentCode().toString();
+      log.debug("New soroban identity for mixing: sender=" + sender);
+    }
     return new MixParams(
         pool,
         whirlpoolUtxo,

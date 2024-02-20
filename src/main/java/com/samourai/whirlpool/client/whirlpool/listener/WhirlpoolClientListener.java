@@ -6,9 +6,9 @@ import com.samourai.whirlpool.client.mix.listener.MixStep;
 import com.samourai.whirlpool.protocol.beans.Utxo;
 
 public interface WhirlpoolClientListener {
-  void success(Utxo receiveUtxo, MixDestination receiveDestination);
+  void success(String mixId, Utxo receiveUtxo, MixDestination receiveDestination);
 
-  void fail(MixFailReason reason, String notifiableError);
+  void fail(String mixId, MixFailReason reason, String notifiableError);
 
-  void progress(MixStep mixStep);
+  void progress(String mixId, MixStep mixStep);
 }

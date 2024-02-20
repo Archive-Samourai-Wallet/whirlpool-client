@@ -16,10 +16,10 @@ public class RpcSessionClient extends RpcSession {
   }
 
   @Override
-  public Collection<String> getServerUrlsUp() {
+  public Collection<String> getSorobanUrlsUp() {
     if (coordinator != null) {
       return coordinator.getSorobanNodeUrls();
     }
-    return super.getServerUrlsUp();
+    return super.getSorobanUrlsUp();
   }
 }

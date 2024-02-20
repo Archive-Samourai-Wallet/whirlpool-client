@@ -124,13 +124,20 @@ public class WhirlpoolClientConfig {
   }
 
   public WhirlpoolApiClient createWhirlpoolApiClient(CoordinatorSupplier coordinatorSupplier) {
+    RpcSessionClient rpcSession = createRpcSession(coordinatorSupplier);
+    return new WhirlpoolApiClient(rpcSession, sorobanAppWhirlpool);
+  }
+
+  public RpcSessionClient createRpcSession(CoordinatorSupplier coordinatorSupplierOrNull) {
     RpcSessionClient rpcSession =
         new RpcSessionClient(getRpcClientService().generateRpcWallet().createRpcSession());
-    Collection<Coordinator> coordinators = coordinatorSupplier.getCoordinators(); // TODO
-    if (!coordinators.isEmpty()) {
-      rpcSession.setCoordinator(coordinators.iterator().next());
+    if (coordinatorSupplierOrNull != null) {
+      Collection<Coordinator> coordinators = coordinatorSupplierOrNull.getCoordinators(); // TODO
+      if (!coordinators.isEmpty()) {
+        rpcSession.setCoordinator(coordinators.iterator().next());
+      }
     }
-    return new WhirlpoolApiClient(rpcSession, sorobanAppWhirlpool);
+    return rpcSession;
   }
 
   public ClientCryptoService getClientCryptoService() {
