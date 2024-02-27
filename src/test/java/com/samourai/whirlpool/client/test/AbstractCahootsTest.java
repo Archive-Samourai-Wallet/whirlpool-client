@@ -1,12 +1,10 @@
 package com.samourai.whirlpool.client.test;
 
-import com.samourai.soroban.cahoots.CahootsContext;
-import com.samourai.soroban.cahoots.ManualCahootsMessage;
 import com.samourai.wallet.bipFormat.BIP_FORMAT;
 import com.samourai.wallet.bipWallet.WalletSupplier;
 import com.samourai.wallet.bipWallet.WalletSupplierImpl;
 import com.samourai.wallet.cahoots.*;
-import com.samourai.wallet.cahoots.tx0x2.Tx0x2Service;
+import com.samourai.wallet.cahoots.manual.ManualCahootsMessage;
 import com.samourai.wallet.client.indexHandler.MemoryIndexHandlerSupplier;
 import com.samourai.wallet.hd.BIP_WALLET;
 import com.samourai.wallet.hd.Chain;
@@ -14,6 +12,7 @@ import com.samourai.wallet.hd.HD_Wallet;
 import com.samourai.wallet.send.provider.MockUtxoProvider;
 import com.samourai.wallet.util.TestUtil;
 import com.samourai.wallet.util.TxUtil;
+import com.samourai.whirlpool.client.tx0x2.Tx0x2Service;
 import com.samourai.whirlpool.client.wallet.AbstractWhirlpoolWalletTest;
 import java.util.LinkedHashMap;
 import java.util.Map;

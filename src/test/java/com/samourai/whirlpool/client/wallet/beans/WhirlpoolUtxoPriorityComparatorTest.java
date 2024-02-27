@@ -1,8 +1,6 @@
-package com.samourai.wallet.beans;
+package com.samourai.whirlpool.client.wallet.beans;
 
 import com.samourai.whirlpool.client.test.AbstractTest;
-import com.samourai.whirlpool.client.wallet.beans.WhirlpoolUtxo;
-import com.samourai.whirlpool.client.wallet.beans.WhirlpoolUtxoPriorityComparator;
 import java.util.LinkedList;
 import java.util.List;
 import org.slf4j.Logger;

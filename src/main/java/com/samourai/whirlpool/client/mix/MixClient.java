@@ -162,7 +162,8 @@ public class MixClient {
 
             // mix completed on our side, wait for mix result
             try {
-              AbstractMixStatusResponse mixResult = whirlpoolApiClient.mixResult(mixId, coordinator.getSender());
+              AbstractMixStatusResponse mixResult =
+                  whirlpoolApiClient.mixResult(mixId, coordinator.getSender());
               switch (mixResult.getMixStatus()) {
                 case SUCCESS:
                   onMixSuccess();

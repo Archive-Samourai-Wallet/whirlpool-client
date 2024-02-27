@@ -1,12 +1,12 @@
 package com.samourai.whirlpool.client.wallet.data.dataSource;
 
-import com.samourai.http.client.HttpUsage;
-import com.samourai.http.client.IHttpClient;
 import com.samourai.wallet.api.backend.BackendApi;
 import com.samourai.wallet.api.backend.BackendServer;
 import com.samourai.wallet.api.backend.websocket.BackendWsApi;
 import com.samourai.wallet.hd.HD_Wallet;
-import com.samourai.websocket.client.IWebsocketClient;
+import com.samourai.wallet.httpClient.HttpUsage;
+import com.samourai.wallet.httpClient.IHttpClient;
+import com.samourai.wallet.websocketClient.IWebsocketClient;
 import com.samourai.whirlpool.client.exception.NotifiableException;
 import com.samourai.whirlpool.client.wallet.WhirlpoolWallet;
 import com.samourai.whirlpool.client.wallet.WhirlpoolWalletConfig;

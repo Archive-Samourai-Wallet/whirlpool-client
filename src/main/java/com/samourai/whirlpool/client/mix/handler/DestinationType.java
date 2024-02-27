@@ -1,6 +1,6 @@
 package com.samourai.whirlpool.client.mix.handler;
 
-import com.samourai.whirlpool.client.wallet.beans.WhirlpoolAccount;
+import com.samourai.wallet.constants.WhirlpoolAccount;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

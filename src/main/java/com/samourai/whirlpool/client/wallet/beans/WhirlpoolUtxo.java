@@ -3,6 +3,7 @@ package com.samourai.whirlpool.client.wallet.beans;
 import com.samourai.wallet.api.backend.beans.UnspentOutput;
 import com.samourai.wallet.bipFormat.BipFormat;
 import com.samourai.wallet.bipWallet.BipWallet;
+import com.samourai.wallet.constants.WhirlpoolAccount;
 import com.samourai.wallet.hd.BipAddress;
 import com.samourai.whirlpool.client.wallet.data.utxoConfig.UtxoConfig;
 import com.samourai.whirlpool.client.wallet.data.utxoConfig.UtxoConfigPersisted;

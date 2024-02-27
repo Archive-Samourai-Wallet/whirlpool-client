@@ -1,30 +1,22 @@
-package com.samourai.wallet.cahoots.tx0x2;
+package com.samourai.whirlpool.client.tx0x2;
 
-import com.samourai.soroban.cahoots.CahootsContext;
 import com.samourai.wallet.api.backend.beans.UnspentOutput;
 import com.samourai.wallet.bipFormat.BIP_FORMAT;
 import com.samourai.wallet.bipFormat.BipFormatSupplier;
-import com.samourai.wallet.cahoots.AbstractCahoots2xService;
-import com.samourai.wallet.cahoots.CahootsType;
-import com.samourai.wallet.cahoots.CahootsUtxo;
-import com.samourai.wallet.cahoots.CahootsWallet;
+import com.samourai.wallet.cahoots.*;
+import com.samourai.wallet.constants.SamouraiAccountIndex;
 import com.samourai.wallet.hd.BipAddress;
 import com.samourai.wallet.util.FeeUtil;
 import com.samourai.wallet.util.RandomUtil;
 import com.samourai.wallet.util.TxUtil;
 import com.samourai.whirlpool.client.tx0.Tx0;
 import com.samourai.whirlpool.client.utils.ClientUtils;
-import com.samourai.whirlpool.client.wallet.beans.SamouraiAccountIndex;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
-import org.bitcoinj.core.Coin;
-import org.bitcoinj.core.NetworkParameters;
-import org.bitcoinj.core.Transaction;
-import org.bitcoinj.core.TransactionInput;
-import org.bitcoinj.core.TransactionOutput;
+import org.bitcoinj.core.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

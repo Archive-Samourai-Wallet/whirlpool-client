@@ -1,12 +1,12 @@
 package com.samourai.whirlpool.client.wallet.data.paynym;
 
-import com.samourai.http.client.HttpUsage;
-import com.samourai.http.client.IHttpClient;
 import com.samourai.wallet.api.paynym.PaynymApi;
 import com.samourai.wallet.api.paynym.PaynymServer;
 import com.samourai.wallet.api.paynym.beans.PaynymState;
 import com.samourai.wallet.bip47.rpc.BIP47Account;
 import com.samourai.wallet.bip47.rpc.PaymentCode;
+import com.samourai.wallet.httpClient.HttpUsage;
+import com.samourai.wallet.httpClient.IHttpClient;
 import com.samourai.wallet.util.AsyncUtil;
 import com.samourai.whirlpool.client.event.PaynymChangeEvent;
 import com.samourai.whirlpool.client.exception.NotifiableException;

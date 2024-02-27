@@ -6,6 +6,7 @@ import com.samourai.wallet.api.backend.beans.WalletResponse;
 import com.samourai.wallet.api.paynym.beans.PaynymContact;
 import com.samourai.wallet.api.paynym.beans.PaynymState;
 import com.samourai.wallet.bipWallet.BipWallet;
+import com.samourai.wallet.constants.WhirlpoolAccount;
 import com.samourai.wallet.hd.BipAddress;
 import com.samourai.wallet.hd.Chain;
 import com.samourai.wallet.util.Util;

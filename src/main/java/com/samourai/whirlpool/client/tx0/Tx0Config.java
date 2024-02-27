@@ -1,7 +1,7 @@
 package com.samourai.whirlpool.client.tx0;
 
+import com.samourai.wallet.constants.WhirlpoolAccount;
 import com.samourai.whirlpool.client.wallet.beans.Tx0FeeTarget;
-import com.samourai.whirlpool.client.wallet.beans.WhirlpoolAccount;
 import com.samourai.whirlpool.client.whirlpool.beans.Pool;
 import java.util.Collection;
 

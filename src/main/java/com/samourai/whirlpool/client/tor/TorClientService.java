@@ -1,4 +1,4 @@
-package com.samourai.tor.client;
+package com.samourai.whirlpool.client.tor;
 
 public abstract class TorClientService {
 

@@ -1,5 +1,6 @@
 package com.samourai.whirlpool.client.wallet.orchestrator;
 
+import com.samourai.wallet.constants.WhirlpoolAccount;
 import com.samourai.wallet.util.AbstractOrchestrator;
 import com.samourai.whirlpool.client.exception.AutoTx0InsufficientBalanceException;
 import com.samourai.whirlpool.client.exception.NotifiableException;

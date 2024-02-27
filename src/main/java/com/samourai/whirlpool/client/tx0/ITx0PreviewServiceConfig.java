@@ -1,6 +1,6 @@
 package com.samourai.whirlpool.client.tx0;
 
-import com.samourai.whirlpool.client.wallet.beans.WhirlpoolNetwork;
+import com.samourai.wallet.constants.WhirlpoolNetwork;
 
 public interface ITx0PreviewServiceConfig {
   WhirlpoolNetwork getWhirlpoolNetwork();

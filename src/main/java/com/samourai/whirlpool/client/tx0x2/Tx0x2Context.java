@@ -1,6 +1,6 @@
-package com.samourai.wallet.cahoots.tx0x2;
+package com.samourai.whirlpool.client.tx0x2;
 
-import com.samourai.soroban.cahoots.CahootsContext;
+import com.samourai.wallet.cahoots.CahootsContext;
 import com.samourai.wallet.cahoots.CahootsType;
 import com.samourai.wallet.cahoots.CahootsTypeUser;
 import com.samourai.wallet.cahoots.CahootsWallet;
