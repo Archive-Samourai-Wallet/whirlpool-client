@@ -2,8 +2,8 @@ package com.samourai.whirlpool.client.wallet.data.supplier;
 
 import com.google.common.base.Supplier;
 import com.google.common.base.Suppliers;
-import com.zeroleak.throwingsupplier.Throwing;
-import com.zeroleak.throwingsupplier.ThrowingSupplier;
+import com.samourai.whirlpool.client.utils.supplier.Throwing;
+import com.samourai.whirlpool.client.utils.supplier.ThrowingSupplier;
 import java.util.concurrent.TimeUnit;
 import org.slf4j.Logger;
 

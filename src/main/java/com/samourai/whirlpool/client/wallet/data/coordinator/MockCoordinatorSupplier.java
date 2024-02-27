@@ -1,7 +1,7 @@
 package com.samourai.whirlpool.client.wallet.data.coordinator;
 
-import com.samourai.soroban.client.SorobanServerDex;
 import com.samourai.wallet.bip47.rpc.PaymentCode;
+import com.samourai.wallet.sorobanClient.SorobanServerDex;
 import com.samourai.wallet.util.Pair;
 import com.samourai.whirlpool.client.tx0.Tx0PreviewService;
 import com.samourai.whirlpool.client.utils.ClientUtils;
