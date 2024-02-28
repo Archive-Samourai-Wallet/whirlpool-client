@@ -1,6 +1,5 @@
 package com.samourai.whirlpool.client.wallet;
 
-import com.samourai.soroban.client.rpc.RpcClientService;
 import com.samourai.soroban.client.wallet.SorobanWalletService;
 import com.samourai.wallet.bip47.BIP47UtilGeneric;
 import com.samourai.wallet.bip47.rpc.java.Bip47UtilJava;
@@ -9,10 +8,10 @@ import com.samourai.wallet.constants.WhirlpoolNetwork;
 import com.samourai.wallet.crypto.CryptoUtil;
 import com.samourai.wallet.httpClient.HttpUsage;
 import com.samourai.wallet.httpClient.IHttpClientService;
+import com.samourai.wallet.httpClient.IHttpProxyService;
 import com.samourai.wallet.util.FormatsUtilGeneric;
 import com.samourai.wallet.xmanagerClient.XManagerClient;
 import com.samourai.whirlpool.client.exception.NotifiableException;
-import com.samourai.whirlpool.client.tor.TorClientService;
 import com.samourai.whirlpool.client.tx0.ITx0PreviewServiceConfig;
 import com.samourai.whirlpool.client.utils.ClientUtils;
 import com.samourai.whirlpool.client.wallet.beans.IndexRange;
@@ -80,8 +79,7 @@ public class WhirlpoolWalletConfig extends WhirlpoolClientConfig
       CryptoUtil cryptoUtil,
       SorobanWalletService sorobanWalletService,
       IHttpClientService httpClientService,
-      RpcClientService rpcClientService,
-      TorClientService torClientService,
+      IHttpProxyService httpProxyService,
       BIP47UtilGeneric bip47Util,
       WhirlpoolNetwork whirlpoolNetwork,
       boolean mobile,
@@ -89,8 +87,8 @@ public class WhirlpoolWalletConfig extends WhirlpoolClientConfig
     // Android => odd indexs, CLI => even indexs
     super(
         httpClientService,
-        torClientService,
-        rpcClientService,
+        httpProxyService,
+        sorobanWalletService.getSorobanService().getRpcClientService(),
         bip47Util,
         cryptoUtil,
         null,

@@ -1,5 +1,4 @@
 import com.google.common.eventbus.Subscribe;
-import com.samourai.soroban.client.rpc.RpcClientService;
 import com.samourai.soroban.client.wallet.SorobanWalletService;
 import com.samourai.wallet.api.backend.BackendServer;
 import com.samourai.wallet.api.backend.IPushTx;
@@ -22,10 +21,10 @@ import com.samourai.wallet.constants.WhirlpoolNetwork;
 import com.samourai.wallet.crypto.CryptoUtil;
 import com.samourai.wallet.hd.HD_Wallet;
 import com.samourai.wallet.httpClient.IHttpClientService;
+import com.samourai.wallet.httpClient.IHttpProxyService;
 import com.samourai.wallet.util.AsyncUtil;
 import com.samourai.wallet.websocketClient.IWebsocketClient;
 import com.samourai.whirlpool.client.event.*;
-import com.samourai.whirlpool.client.tor.TorClientService;
 import com.samourai.whirlpool.client.tx0.Tx0;
 import com.samourai.whirlpool.client.tx0.Tx0Config;
 import com.samourai.whirlpool.client.tx0.Tx0Preview;
@@ -80,8 +79,7 @@ public class JavaExample {
     // for Android, use AndroidSecretPointFactory from 'samourai-wallet-android'
     ISecretPointFactory secretPointFactory = SecretPointFactoryJava.getInstance();
     CryptoUtil cryptoUtil = CryptoUtil.getInstanceJava();
-    TorClientService torClientService = null; // provide impl here
-    RpcClientService rpcClientService = null; // provide impl here
+    IHttpProxyService httpProxyService = null; // provide impl here
     SorobanWalletService sorobanWalletService = null; // provide impl or null if not using Soroban
     boolean mobile = false; // true for mobile configuration, false for desktop/CLI
     boolean torOnionCoordinator = false;
@@ -92,8 +90,7 @@ public class JavaExample {
             cryptoUtil,
             sorobanWalletService,
             httpClientService,
-            rpcClientService,
-            torClientService,
+            httpProxyService,
             bip47Util,
             whirlpoolNetwork,
             mobile,

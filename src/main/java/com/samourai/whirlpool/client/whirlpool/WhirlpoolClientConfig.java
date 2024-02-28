@@ -7,7 +7,7 @@ import com.samourai.wallet.crypto.CryptoUtil;
 import com.samourai.wallet.httpClient.HttpUsage;
 import com.samourai.wallet.httpClient.IHttpClient;
 import com.samourai.wallet.httpClient.IHttpClientService;
-import com.samourai.whirlpool.client.tor.TorClientService;
+import com.samourai.wallet.httpClient.IHttpProxyService;
 import com.samourai.whirlpool.client.utils.ClientCryptoService;
 import com.samourai.whirlpool.client.wallet.beans.ExternalDestination;
 import com.samourai.whirlpool.client.wallet.beans.IndexRange;
@@ -19,7 +19,7 @@ import java.util.Collection;
 
 public class WhirlpoolClientConfig {
   private IHttpClientService httpClientService;
-  private TorClientService torClientService;
+  private IHttpProxyService httpProxyService;
   private RpcClientService rpcClientService;
   private BIP47UtilGeneric bip47Util;
   private CryptoUtil cryptoUtil;
@@ -33,7 +33,7 @@ public class WhirlpoolClientConfig {
 
   public WhirlpoolClientConfig(
       IHttpClientService httpClientService,
-      TorClientService torClientService,
+      IHttpProxyService httpProxyService,
       RpcClientService rpcClientService,
       BIP47UtilGeneric bip47Util,
       CryptoUtil cryptoUtil,
@@ -42,7 +42,7 @@ public class WhirlpoolClientConfig {
       IndexRange indexRangePostmix,
       boolean torOnionCoordinator) {
     this.httpClientService = httpClientService;
-    this.torClientService = torClientService;
+    this.httpProxyService = httpProxyService;
     this.rpcClientService = rpcClientService;
     this.bip47Util = bip47Util;
     this.cryptoUtil = cryptoUtil;
@@ -63,8 +63,8 @@ public class WhirlpoolClientConfig {
     return httpClientService.getHttpClient(httpUsage);
   }
 
-  public TorClientService getTorClientService() {
-    return torClientService;
+  public IHttpProxyService getHttpProxyService() {
+    return httpProxyService;
   }
 
   public RpcClientService getRpcClientService() {
@@ -115,8 +115,8 @@ public class WhirlpoolClientConfig {
     return torOnionCoordinator;
   }
 
-  public void setTorClientService(TorClientService torClientService) {
-    this.torClientService = torClientService;
+  public void setHttpProxyService(IHttpProxyService httpProxyService) {
+    this.httpProxyService = httpProxyService;
   }
 
   public SorobanAppWhirlpool getSorobanAppWhirlpool() {

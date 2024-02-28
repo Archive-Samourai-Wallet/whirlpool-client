@@ -1,7 +1,6 @@
 package com.samourai.whirlpool.client.test;
 
 import ch.qos.logback.classic.Level;
-import com.samourai.http.client.HttpProxy;
 import com.samourai.http.client.JettyHttpClient;
 import com.samourai.soroban.client.rpc.RpcClientService;
 import com.samourai.soroban.client.wallet.SorobanWalletService;
@@ -20,9 +19,7 @@ import com.samourai.wallet.constants.WhirlpoolServer;
 import com.samourai.wallet.crypto.CryptoUtil;
 import com.samourai.wallet.hd.HD_Address;
 import com.samourai.wallet.hd.HD_WalletFactoryGeneric;
-import com.samourai.wallet.httpClient.HttpUsage;
-import com.samourai.wallet.httpClient.IHttpClient;
-import com.samourai.wallet.httpClient.IHttpClientService;
+import com.samourai.wallet.httpClient.*;
 import com.samourai.wallet.segwit.bech32.Bech32UtilGeneric;
 import com.samourai.wallet.util.AsyncUtil;
 import com.samourai.whirlpool.client.tx0.MockTx0PreviewService;
@@ -165,6 +162,9 @@ public class AbstractTest {
       }
 
       @Override
+      public void changeIdentity() {}
+
+      @Override
       public void stop() {}
     };
   }
@@ -195,6 +195,9 @@ public class AbstractTest {
       }
 
       @Override
+      public void changeIdentity() {}
+
+      @Override
       public void stop() {}
     };
   }
@@ -213,6 +216,16 @@ public class AbstractTest {
         new RpcClientService(httpClientService, cryptoUtil, bip47Util, false, params);
     SorobanWalletService sorobanWalletService =
         new SorobanWalletService(bip47Util, bipFormatSupplier, params, rpcClientService);
+    IHttpProxyService httpProxyService =
+        new IHttpProxyService() {
+          @Override
+          public Optional<HttpProxy> getHttpProxy(HttpUsage httpUsage) {
+            return Optional.empty();
+          }
+
+          @Override
+          public void changeIdentity() {}
+        };
     WhirlpoolWalletConfig config =
         new WhirlpoolWalletConfig(
             dataSourceFactory,
@@ -220,8 +233,7 @@ public class AbstractTest {
             cryptoUtil,
             sorobanWalletService,
             httpClientService,
-            rpcClientService,
-            null,
+            httpProxyService,
             bip47Util,
             whirlpoolNetwork,
             false,

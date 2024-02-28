@@ -705,13 +705,14 @@ public class WhirlpoolWallet {
     }
 
     // change Tor identity
-    config.getTorClientService().changeIdentity();
+    changeIdentity();
 
     // refresh new utxos in background
     refreshUtxosDelayAsync().subscribe();
 
     // notify
-    WhirlpoolEventService.getInstance().post(new MixSuccessEvent(this, mixParams, receiveUtxo));
+    WhirlpoolEventService.getInstance()
+        .post(new MixSuccessEvent(this, mixParams, receiveUtxo, receiveDestination));
   }
 
   public void onMixFail(MixParams mixParams, MixFailReason failReason, String notifiableError) {
@@ -735,6 +736,9 @@ public class WhirlpoolWallet {
     if (!failReason.isSilent()) {
       mixHistory.onMixFail(mixParams, failReason, notifiableError);
     }
+
+    // change Tor identity
+    changeIdentity();
 
     // notify
     WhirlpoolEventService.getInstance()
@@ -773,6 +777,10 @@ public class WhirlpoolWallet {
         // not retrying
         break;
     }
+  }
+
+  protected void changeIdentity() {
+    config.getHttpClientService().changeIdentity();
   }
 
   public void onMixProgress(MixParams mixParams) {
