@@ -17,6 +17,7 @@ import com.samourai.wallet.bipWallet.BipWallet;
 import com.samourai.wallet.bipWallet.WalletSupplier;
 import com.samourai.wallet.cahoots.Cahoots;
 import com.samourai.wallet.cahoots.CahootsWallet;
+import com.samourai.wallet.cahoots.CahootsWalletImpl;
 import com.samourai.wallet.chain.ChainSupplier;
 import com.samourai.wallet.constants.WhirlpoolAccount;
 import com.samourai.wallet.hd.BIP_WALLET;
@@ -397,10 +398,9 @@ public class WhirlpoolWallet {
             config.getFeeOpReturnImpl());
     this.paynymSupplier = dataSource.getPaynymSupplier();
     this.cahootsWallet =
-        new CahootsWallet(
-            getWalletSupplier(),
+        new CahootsWalletImpl(
             getChainSupplier(),
-            BIP_FORMAT.PROVIDER,
+            getWalletSupplier(),
             new SimpleCahootsUtxoProvider(getUtxoSupplier()));
 
     // start orchestrators
@@ -832,7 +832,7 @@ public class WhirlpoolWallet {
           // check external-xpub
           ExternalDestination externalDestination = config.getExternalDestination();
           if (externalDestination != null) {
-            checkAndFixPostmixIndex(externalDestination.computePostmixHandler(this));
+            checkAndFixPostmixIndex(externalDestination.getPostmixHandlerCustomOrDefault(this));
           }
         });
   }
@@ -1020,7 +1020,7 @@ public class WhirlpoolWallet {
           if (log.isDebugEnabled()) {
             log.debug("Mixing to EXTERNAL (" + whirlpoolUtxo + ")");
           }
-          return externalDestination.computePostmixHandler(this);
+          return externalDestination.getPostmixHandlerCustomOrDefault(this);
         }
       } else {
         if (log.isDebugEnabled()) {

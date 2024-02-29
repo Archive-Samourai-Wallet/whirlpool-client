@@ -9,14 +9,16 @@ import com.samourai.whirlpool.client.wallet.WhirlpoolWallet;
 import org.bitcoinj.core.NetworkParameters;
 
 public class ExternalDestination {
-  private String xpub;
-  private IPostmixHandler postmixHandler;
+  private String xpub; // null when postmixHandlerCustom is set
+  private IPostmixHandler postmixHandlerCustom; // may be null
+  private IPostmixHandler postmixHandler; // set by getPostmixHandlerCustomOrDefault()
   private int chain;
   private int mixs;
   private int mixsRandomFactor;
 
   public ExternalDestination(String xpub, int chain, int mixs, int mixsRandomFactor) {
     this.xpub = xpub;
+    this.postmixHandlerCustom = null;
     this.chain = chain;
     this.mixs = mixs;
     this.mixsRandomFactor = mixsRandomFactor;
@@ -24,8 +26,9 @@ public class ExternalDestination {
 
   // used by Sparrow
   public ExternalDestination(
-      IPostmixHandler postmixHandler, int chain, int mixs, int mixsRandomFactor) {
-    this.postmixHandler = postmixHandler;
+      IPostmixHandler postmixHandlerCustom, int chain, int mixs, int mixsRandomFactor) {
+    this.xpub = null;
+    this.postmixHandlerCustom = postmixHandlerCustom;
     this.chain = chain;
     this.mixs = mixs;
     this.mixsRandomFactor = mixsRandomFactor;
@@ -35,7 +38,11 @@ public class ExternalDestination {
     return xpub;
   }
 
-  public IPostmixHandler computePostmixHandler(WhirlpoolWallet whirlpoolWallet) {
+  public IPostmixHandler getPostmixHandlerCustom() {
+    return postmixHandlerCustom;
+  }
+
+  public IPostmixHandler getPostmixHandlerCustomOrDefault(WhirlpoolWallet whirlpoolWallet) {
     if (postmixHandler == null) {
       IIndexHandler indexHandlerExternal =
           whirlpoolWallet.getWalletStateSupplier().getIndexHandlerExternal();

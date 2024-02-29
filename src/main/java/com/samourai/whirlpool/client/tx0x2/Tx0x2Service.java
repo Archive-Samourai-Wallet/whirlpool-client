@@ -5,7 +5,6 @@ import com.samourai.wallet.bipFormat.BIP_FORMAT;
 import com.samourai.wallet.bipFormat.BipFormatSupplier;
 import com.samourai.wallet.cahoots.*;
 import com.samourai.wallet.constants.SamouraiAccountIndex;
-import com.samourai.wallet.hd.BipAddress;
 import com.samourai.wallet.util.FeeUtil;
 import com.samourai.wallet.util.RandomUtil;
 import com.samourai.wallet.util.TxUtil;
@@ -124,14 +123,14 @@ public class Tx0x2Service extends AbstractCahoots2xService<Tx0x2, Tx0x2Context> 
             - myPremixOutputsSum
             - payload0.getSamouraiFeeValueEach(); // not including minerFee yet
     if (changeAmount > 0) {
-      BipAddress changeAddress =
+      String changeAddress =
           cahootsWallet.fetchAddressChange(
               payload0.getCounterpartyAccount(), true, BIP_FORMAT.SEGWIT_NATIVE);
       if (log.isDebugEnabled()) {
         log.debug("+output (CounterParty change) = " + changeAddress + ", value=" + changeAmount);
       }
       TransactionOutput changeOutput = computeTxOutput(changeAddress, changeAmount, cahootsContext);
-      payload1.setCollabChange(changeAddress.getAddressString());
+      payload1.setCollabChange(changeAddress);
       outputs.add(changeOutput);
     }
 
@@ -180,7 +179,7 @@ public class Tx0x2Service extends AbstractCahoots2xService<Tx0x2, Tx0x2Context> 
 
     List<TransactionOutput> outputs = new ArrayList<>();
     for (int i = 0; i < nbPremixs; i++) {
-      BipAddress changeAddress =
+      String changeAddress =
           cahootsWallet.fetchAddressReceive(
               SamouraiAccountIndex.PREMIX, true, BIP_FORMAT.SEGWIT_NATIVE);
       if (log.isDebugEnabled()) {

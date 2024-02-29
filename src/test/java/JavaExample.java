@@ -21,7 +21,6 @@ import com.samourai.wallet.constants.WhirlpoolNetwork;
 import com.samourai.wallet.crypto.CryptoUtil;
 import com.samourai.wallet.hd.HD_Wallet;
 import com.samourai.wallet.httpClient.IHttpClientService;
-import com.samourai.wallet.httpClient.IHttpProxyService;
 import com.samourai.wallet.util.AsyncUtil;
 import com.samourai.wallet.websocketClient.IWebsocketClient;
 import com.samourai.whirlpool.client.event.*;
@@ -79,7 +78,6 @@ public class JavaExample {
     // for Android, use AndroidSecretPointFactory from 'samourai-wallet-android'
     ISecretPointFactory secretPointFactory = SecretPointFactoryJava.getInstance();
     CryptoUtil cryptoUtil = CryptoUtil.getInstanceJava();
-    IHttpProxyService httpProxyService = null; // provide impl here
     SorobanWalletService sorobanWalletService = null; // provide impl or null if not using Soroban
     boolean mobile = false; // true for mobile configuration, false for desktop/CLI
     boolean torOnionCoordinator = false;
@@ -90,7 +88,6 @@ public class JavaExample {
             cryptoUtil,
             sorobanWalletService,
             httpClientService,
-            httpProxyService,
             bip47Util,
             whirlpoolNetwork,
             mobile,

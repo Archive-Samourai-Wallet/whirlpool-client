@@ -7,7 +7,6 @@ import com.samourai.wallet.crypto.CryptoUtil;
 import com.samourai.wallet.httpClient.HttpUsage;
 import com.samourai.wallet.httpClient.IHttpClient;
 import com.samourai.wallet.httpClient.IHttpClientService;
-import com.samourai.wallet.httpClient.IHttpProxyService;
 import com.samourai.whirlpool.client.utils.ClientCryptoService;
 import com.samourai.whirlpool.client.wallet.beans.ExternalDestination;
 import com.samourai.whirlpool.client.wallet.beans.IndexRange;
@@ -19,7 +18,6 @@ import java.util.Collection;
 
 public class WhirlpoolClientConfig {
   private IHttpClientService httpClientService;
-  private IHttpProxyService httpProxyService;
   private RpcClientService rpcClientService;
   private BIP47UtilGeneric bip47Util;
   private CryptoUtil cryptoUtil;
@@ -33,7 +31,6 @@ public class WhirlpoolClientConfig {
 
   public WhirlpoolClientConfig(
       IHttpClientService httpClientService,
-      IHttpProxyService httpProxyService,
       RpcClientService rpcClientService,
       BIP47UtilGeneric bip47Util,
       CryptoUtil cryptoUtil,
@@ -42,7 +39,6 @@ public class WhirlpoolClientConfig {
       IndexRange indexRangePostmix,
       boolean torOnionCoordinator) {
     this.httpClientService = httpClientService;
-    this.httpProxyService = httpProxyService;
     this.rpcClientService = rpcClientService;
     this.bip47Util = bip47Util;
     this.cryptoUtil = cryptoUtil;
@@ -61,10 +57,6 @@ public class WhirlpoolClientConfig {
 
   public IHttpClient getHttpClient(HttpUsage httpUsage) {
     return httpClientService.getHttpClient(httpUsage);
-  }
-
-  public IHttpProxyService getHttpProxyService() {
-    return httpProxyService;
   }
 
   public RpcClientService getRpcClientService() {
@@ -113,10 +105,6 @@ public class WhirlpoolClientConfig {
 
   public boolean isTorOnionCoordinator() {
     return torOnionCoordinator;
-  }
-
-  public void setHttpProxyService(IHttpProxyService httpProxyService) {
-    this.httpProxyService = httpProxyService;
   }
 
   public SorobanAppWhirlpool getSorobanAppWhirlpool() {

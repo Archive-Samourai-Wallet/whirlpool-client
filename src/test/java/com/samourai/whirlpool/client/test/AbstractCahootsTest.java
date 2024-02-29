@@ -69,11 +69,8 @@ public abstract class AbstractCahootsTest extends AbstractWhirlpoolWalletTest {
             bipFormatSupplier, new MemoryIndexHandlerSupplier(), bip84WalletSender);
     utxoProviderSender = new MockUtxoProvider(params, walletSupplierSender);
     cahootsWalletSender =
-        new CahootsWallet(
-            walletSupplierSender,
-            mockChainSupplier,
-            bipFormatSupplier,
-            utxoProviderSender.getCahootsUtxoProvider());
+        new CahootsWalletImpl(
+            mockChainSupplier, walletSupplierSender, utxoProviderSender.getCahootsUtxoProvider());
 
     final HD_Wallet bip84WalletCounterparty =
         TestUtil.computeBip84wallet(SEED_WORDS, SEED_PASSPHRASE_COUNTERPARTY);
@@ -82,10 +79,9 @@ public abstract class AbstractCahootsTest extends AbstractWhirlpoolWalletTest {
             bipFormatSupplier, new MemoryIndexHandlerSupplier(), bip84WalletCounterparty);
     utxoProviderCounterparty = new MockUtxoProvider(params, walletSupplierCounterparty);
     cahootsWalletCounterparty =
-        new CahootsWallet(
-            walletSupplierCounterparty,
+        new CahootsWalletImpl(
             mockChainSupplier,
-            bipFormatSupplier,
+            walletSupplierCounterparty,
             utxoProviderCounterparty.getCahootsUtxoProvider());
 
     SENDER_RECEIVE_84 = new String[4];

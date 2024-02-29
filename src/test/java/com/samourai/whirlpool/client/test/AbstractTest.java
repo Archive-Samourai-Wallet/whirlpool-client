@@ -15,11 +15,13 @@ import com.samourai.wallet.bipFormat.BIP_FORMAT;
 import com.samourai.wallet.bipFormat.BipFormatSupplier;
 import com.samourai.wallet.chain.ChainSupplier;
 import com.samourai.wallet.constants.WhirlpoolNetwork;
-import com.samourai.wallet.constants.WhirlpoolServer;
 import com.samourai.wallet.crypto.CryptoUtil;
 import com.samourai.wallet.hd.HD_Address;
 import com.samourai.wallet.hd.HD_WalletFactoryGeneric;
-import com.samourai.wallet.httpClient.*;
+import com.samourai.wallet.httpClient.HttpProxy;
+import com.samourai.wallet.httpClient.HttpUsage;
+import com.samourai.wallet.httpClient.IHttpClient;
+import com.samourai.wallet.httpClient.IHttpClientService;
 import com.samourai.wallet.segwit.bech32.Bech32UtilGeneric;
 import com.samourai.wallet.util.AsyncUtil;
 import com.samourai.whirlpool.client.tx0.MockTx0PreviewService;
@@ -78,8 +80,7 @@ public class AbstractTest {
         return infoBlock;
       };
 
-  protected WhirlpoolServer whirlpoolServer = WhirlpoolServer.TESTNET;
-  protected WhirlpoolNetwork whirlpoolNetwork = whirlpoolServer.getWhirlpoolNetwork();
+  protected WhirlpoolNetwork whirlpoolNetwork = WhirlpoolNetwork.TESTNET;
 
   protected OxtApi oxtApi;
 
@@ -216,16 +217,6 @@ public class AbstractTest {
         new RpcClientService(httpClientService, cryptoUtil, bip47Util, false, params);
     SorobanWalletService sorobanWalletService =
         new SorobanWalletService(bip47Util, bipFormatSupplier, params, rpcClientService);
-    IHttpProxyService httpProxyService =
-        new IHttpProxyService() {
-          @Override
-          public Optional<HttpProxy> getHttpProxy(HttpUsage httpUsage) {
-            return Optional.empty();
-          }
-
-          @Override
-          public void changeIdentity() {}
-        };
     WhirlpoolWalletConfig config =
         new WhirlpoolWalletConfig(
             dataSourceFactory,
@@ -233,7 +224,6 @@ public class AbstractTest {
             cryptoUtil,
             sorobanWalletService,
             httpClientService,
-            httpProxyService,
             bip47Util,
             whirlpoolNetwork,
             false,
