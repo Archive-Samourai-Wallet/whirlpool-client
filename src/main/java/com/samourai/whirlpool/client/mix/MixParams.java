@@ -1,12 +1,12 @@
 package com.samourai.whirlpool.client.mix;
 
-import com.samourai.soroban.client.rpc.RpcSession;
 import com.samourai.wallet.chain.ChainSupplier;
 import com.samourai.whirlpool.client.mix.handler.IPostmixHandler;
 import com.samourai.whirlpool.client.mix.handler.IPremixHandler;
 import com.samourai.whirlpool.client.wallet.beans.WhirlpoolUtxo;
 import com.samourai.whirlpool.client.wallet.data.coordinator.CoordinatorSupplier;
 import com.samourai.whirlpool.client.whirlpool.beans.Pool;
+import com.samourai.whirlpool.protocol.soroban.WhirlpoolApiClient;
 
 public class MixParams {
   private String poolId;
@@ -18,7 +18,7 @@ public class MixParams {
   private IPostmixHandler postmixHandler;
   private ChainSupplier chainSupplier;
   private CoordinatorSupplier coordinatorSupplier;
-  private RpcSession rpcSession; // temporary identity for Soroban
+  private WhirlpoolApiClient whirlpoolApiClient; // temporary identity for Soroban
 
   public MixParams(
       String poolId,
@@ -30,7 +30,7 @@ public class MixParams {
       IPostmixHandler postmixHandler,
       ChainSupplier chainSupplier,
       CoordinatorSupplier coordinatorSupplier,
-      RpcSession rpcSession) {
+      WhirlpoolApiClient whirlpoolApiClient) {
     this.poolId = poolId;
     this.denomination = denomination;
     this.mustMixBalanceMin = mustMixBalanceMin;
@@ -40,7 +40,7 @@ public class MixParams {
     this.postmixHandler = postmixHandler;
     this.chainSupplier = chainSupplier;
     this.coordinatorSupplier = coordinatorSupplier;
-    this.rpcSession = rpcSession;
+    this.whirlpoolApiClient = whirlpoolApiClient;
   }
 
   public MixParams(
@@ -50,7 +50,7 @@ public class MixParams {
       IPostmixHandler postmixHandler,
       ChainSupplier chainSupplier,
       CoordinatorSupplier coordinatorSupplier,
-      RpcSession rpcSession) {
+      WhirlpoolApiClient whirlpoolApiClient) {
     this(
         pool.getPoolId(),
         pool.getDenomination(),
@@ -61,7 +61,7 @@ public class MixParams {
         postmixHandler,
         chainSupplier,
         coordinatorSupplier,
-        rpcSession);
+        whirlpoolApiClient);
   }
 
   public String getPoolId() {
@@ -100,7 +100,7 @@ public class MixParams {
     return coordinatorSupplier;
   }
 
-  public RpcSession getRpcSession() {
-    return rpcSession;
+  public WhirlpoolApiClient getWhirlpoolApiClient() {
+    return whirlpoolApiClient;
   }
 }

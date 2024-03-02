@@ -11,12 +11,10 @@ import com.samourai.wallet.hd.HD_Wallet;
 import com.samourai.wallet.util.MessageListener;
 import com.samourai.whirlpool.client.event.UtxoChangesEvent;
 import com.samourai.whirlpool.client.test.AbstractTest;
-import com.samourai.whirlpool.client.tx0.Tx0PreviewService;
 import com.samourai.whirlpool.client.wallet.WhirlpoolEventService;
 import com.samourai.whirlpool.client.wallet.WhirlpoolWallet;
 import com.samourai.whirlpool.client.wallet.WhirlpoolWalletConfig;
 import com.samourai.whirlpool.client.wallet.beans.WhirlpoolUtxoChanges;
-import com.samourai.whirlpool.client.wallet.data.coordinator.ExpirableCoordinatorSupplier;
 import com.samourai.whirlpool.client.wallet.data.dataPersister.DataPersister;
 import com.samourai.whirlpool.client.wallet.data.dataPersister.FileDataPersisterFactory;
 import com.samourai.whirlpool.client.wallet.data.dataSource.WalletResponseDataSource;
@@ -79,12 +77,6 @@ public class UtxoSupplierTest extends AbstractTest {
               throw new Exception("utxos not available");
             }
             return mockWalletResponse;
-          }
-
-          @Override
-          protected ExpirableCoordinatorSupplier computeCoordinatorSupplier(
-              WhirlpoolWalletConfig config, Tx0PreviewService tx0PreviewService) throws Exception {
-            return (ExpirableCoordinatorSupplier) UtxoSupplierTest.this.coordinatorSupplier;
           }
 
           @Override

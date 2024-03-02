@@ -2,7 +2,10 @@ package com.samourai.whirlpool.client.wallet.data.coordinator;
 
 import com.samourai.wallet.api.backend.beans.HttpException;
 import com.samourai.wallet.bip47.rpc.PaymentCode;
-import com.samourai.wallet.util.*;
+import com.samourai.wallet.util.CallbackWithArg;
+import com.samourai.wallet.util.Pair;
+import com.samourai.wallet.util.RandomUtil;
+import com.samourai.wallet.util.Util;
 import com.samourai.whirlpool.client.event.PoolsChangeEvent;
 import com.samourai.whirlpool.client.exception.NotifiableException;
 import com.samourai.whirlpool.client.tx0.Tx0PreviewService;

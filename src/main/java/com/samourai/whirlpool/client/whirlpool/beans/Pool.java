@@ -110,7 +110,9 @@ public class Pool {
     this.anonymitySet = anonymitySet;
   }
 
-  /** @return smallest possible Tx0Preview for pool (without taking SCODE into account) */
+  /**
+   * @return smallest possible Tx0Preview for pool (without taking SCODE into account)
+   */
   public Tx0Preview getTx0PreviewMin() {
     return tx0PreviewMin;
   }

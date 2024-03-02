@@ -44,6 +44,7 @@ import com.samourai.whirlpool.client.tx0x2.Tx0x2Context;
 import com.samourai.whirlpool.client.utils.ClientUtils;
 import com.samourai.whirlpool.client.utils.DebugUtils;
 import com.samourai.whirlpool.client.wallet.beans.*;
+import com.samourai.whirlpool.client.wallet.data.WhirlpoolInfo;
 import com.samourai.whirlpool.client.wallet.data.coordinator.CoordinatorSupplier;
 import com.samourai.whirlpool.client.wallet.data.dataPersister.DataPersister;
 import com.samourai.whirlpool.client.wallet.data.dataSource.DataSource;
@@ -84,6 +85,7 @@ public class WhirlpoolWallet {
   private BIP47Account bip47Account;
   private DataPersister dataPersister;
   private DataSource dataSource;
+  private WhirlpoolInfo whirlpoolInfo;
   private Tx0Service tx0Service;
   private PaynymSupplier paynymSupplier;
   private CahootsWallet cahootsWallet;
@@ -156,6 +158,7 @@ public class WhirlpoolWallet {
     this.bip47Account = new BIP47Wallet(bip44w).getAccount(config.getBip47AccountId());
     this.dataPersister = null;
     this.dataSource = null;
+    this.whirlpoolInfo = null; // will be set with datasource
     this.tx0Service = null; // will be set with datasource
     this.paynymSupplier = null; // will be set with datasource
     this.cahootsWallet = null; // will be set with datasource
@@ -228,8 +231,7 @@ public class WhirlpoolWallet {
       Tx0Config tx0Config, Collection<UnspentOutput> whirlpoolUtxos) throws Exception {
     return withWhirlpoolApiClient(
         whirlpoolApiClient ->
-            dataSource
-                .getTx0PreviewService()
+            getTx0PreviewService()
                 .tx0Previews(
                     tx0Config, whirlpoolUtxos, whirlpoolApiClient, getCoordinatorSupplier()));
   }
@@ -391,10 +393,12 @@ public class WhirlpoolWallet {
                 passphrase,
                 dataPersister.getWalletStateSupplier(),
                 dataPersister.getUtxoConfigSupplier());
+    this.whirlpoolInfo =
+        new WhirlpoolInfo(dataSource.getDataSourceConfig().getMinerFeeSupplier(), config);
     this.tx0Service =
         new Tx0Service(
             config.getWhirlpoolNetwork().getParams(),
-            dataSource.getTx0PreviewService(),
+            whirlpoolInfo.getTx0PreviewService(),
             config.getFeeOpReturnImpl());
     this.paynymSupplier = dataSource.getPaynymSupplier();
     this.cahootsWallet =
@@ -422,6 +426,8 @@ public class WhirlpoolWallet {
 
     // open data
     dataPersister.open();
+    whirlpoolInfo.getCoordinatorSupplier().load();
+    dataSource.getUtxoSupplier()._setCoordinatorSupplier(getCoordinatorSupplier()); // TODO
     dataSource.open();
 
     // log wallets
@@ -503,23 +509,23 @@ public class WhirlpoolWallet {
 
   protected void checkCoordinators() {
     // wait for online Whirlpool coordinator
-    while (dataSource.getCoordinatorSupplier().getCoordinators().isEmpty()) {
+    while (getCoordinatorSupplier().getCoordinators().isEmpty()) {
       log.warn("Waiting for Whirlpool coordinator to be online...");
       try {
         wait(5000);
       } catch (InterruptedException e) {
       }
       try {
-        dataSource.getCoordinatorSupplier().refresh();
+        getCoordinatorSupplier().refresh();
       } catch (Exception e) {
         log.error("", e);
       }
     }
     log.info(
         "Found "
-            + dataSource.getCoordinatorSupplier().getPools().size()
+            + getCoordinatorSupplier().getPools().size()
             + " pools and "
-            + dataSource.getCoordinatorSupplier().getCoordinators().size()
+            + getCoordinatorSupplier().getCoordinators().size()
             + " coordinator(s)");
   }
 
@@ -628,17 +634,20 @@ public class WhirlpoolWallet {
   }
 
   public MinerFeeSupplier getMinerFeeSupplier() {
-    return dataSource.getMinerFeeSupplier();
+    return dataSource.getDataSourceConfig().getMinerFeeSupplier();
   }
 
   public ChainSupplier getChainSupplier() {
-    return dataSource.getChainSupplier();
+    return dataSource.getDataSourceConfig().getChainSupplier();
+  }
+
+  public WhirlpoolApiClient createWhirlpoolApiClient() {
+    return whirlpoolInfo.createWhirlpoolApiClient();
   }
 
   public <R> R withWhirlpoolApiClient(CallbackWithArg<WhirlpoolApiClient, R> callable)
       throws Exception {
-    WhirlpoolApiClient whirlpoolApiClient =
-        config.createWhirlpoolApiClient(getCoordinatorSupplier());
+    WhirlpoolApiClient whirlpoolApiClient = createWhirlpoolApiClient();
     return callable.apply(whirlpoolApiClient);
   }
 
@@ -647,7 +656,7 @@ public class WhirlpoolWallet {
   }
 
   public CoordinatorSupplier getCoordinatorSupplier() {
-    return dataSource.getCoordinatorSupplier();
+    return whirlpoolInfo.getCoordinatorSupplier();
   }
 
   public PaynymSupplier getPaynymSupplier() {
@@ -655,7 +664,7 @@ public class WhirlpoolWallet {
   }
 
   public Tx0PreviewService getTx0PreviewService() {
-    return dataSource.getTx0PreviewService();
+    return whirlpoolInfo.getTx0PreviewService();
   }
 
   public Tx0Service getTx0Service() {

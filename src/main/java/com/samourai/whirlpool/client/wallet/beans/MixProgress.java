@@ -37,7 +37,12 @@ public class MixProgress {
   }
 
   public PaymentCode getSorobanSender() {
-    return mixParams.getRpcSession().getRpcWallet().getBip47Account().getPaymentCode();
+    return mixParams
+        .getWhirlpoolApiClient()
+        .getRpcSession()
+        .getRpcWallet()
+        .getBip47Account()
+        .getPaymentCode();
   }
 
   @Override

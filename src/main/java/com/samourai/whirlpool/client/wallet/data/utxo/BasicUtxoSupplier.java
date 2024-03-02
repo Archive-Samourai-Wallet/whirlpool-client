@@ -6,15 +6,16 @@ import com.samourai.wallet.bipFormat.BipFormat;
 import com.samourai.wallet.bipFormat.BipFormatSupplier;
 import com.samourai.wallet.bipWallet.BipWallet;
 import com.samourai.wallet.bipWallet.WalletSupplier;
-import com.samourai.wallet.chain.ChainSupplier;
 import com.samourai.wallet.constants.WhirlpoolAccount;
 import com.samourai.wallet.hd.Chain;
 import com.samourai.wallet.send.MyTransactionOutPoint;
 import com.samourai.wallet.send.UTXO;
 import com.samourai.wallet.send.provider.UtxoProvider;
 import com.samourai.whirlpool.client.exception.NotifiableException;
+import com.samourai.whirlpool.client.wallet.WhirlpoolWallet;
 import com.samourai.whirlpool.client.wallet.beans.WhirlpoolUtxo;
-import com.samourai.whirlpool.client.wallet.data.pool.PoolSupplier;
+import com.samourai.whirlpool.client.wallet.data.coordinator.CoordinatorSupplier;
+import com.samourai.whirlpool.client.wallet.data.dataSource.DataSourceConfig;
 import com.samourai.whirlpool.client.wallet.data.supplier.BasicSupplier;
 import com.samourai.whirlpool.client.wallet.data.utxoConfig.UtxoConfigSupplier;
 import java.util.Collection;
@@ -29,34 +30,37 @@ public abstract class BasicUtxoSupplier extends BasicSupplier<UtxoData>
     implements UtxoProvider, UtxoSupplier {
   private static final Logger log = LoggerFactory.getLogger(BasicUtxoSupplier.class);
 
+  private WhirlpoolWallet whirlpoolWallet;
   private final WalletSupplier walletSupplier;
   private final UtxoConfigSupplier utxoConfigSupplier;
-  private final ChainSupplier chainSupplier;
-  private final PoolSupplier poolSupplier;
-  private final BipFormatSupplier bipFormatSupplier;
+  private final DataSourceConfig dataSourceConfig;
+  private CoordinatorSupplier coordinatorSupplier;
 
   private Map<String, WhirlpoolUtxo> previousUtxos;
 
   public BasicUtxoSupplier(
+      WhirlpoolWallet whirlpoolWallet,
       WalletSupplier walletSupplier,
       UtxoConfigSupplier utxoConfigSupplier,
-      ChainSupplier chainSupplier,
-      PoolSupplier poolSupplier,
-      BipFormatSupplier bipFormatSupplier)
-      throws Exception {
+      DataSourceConfig dataSourceConfig) {
     super(log);
-    this.previousUtxos = null;
+    this.whirlpoolWallet = whirlpoolWallet;
     this.walletSupplier = walletSupplier;
     this.utxoConfigSupplier = utxoConfigSupplier;
-    this.chainSupplier = chainSupplier;
-    this.poolSupplier = poolSupplier;
-    this.bipFormatSupplier = bipFormatSupplier;
+    this.dataSourceConfig = dataSourceConfig;
+    this.coordinatorSupplier = null; // will be set by init()
+    this.previousUtxos = null;
+  }
+
+  @Override
+  public void _setCoordinatorSupplier(CoordinatorSupplier coordinatorSupplier) {
+    this.coordinatorSupplier = coordinatorSupplier;
   }
 
   public abstract void refresh() throws Exception;
 
   protected void onUtxoChanges(UtxoData utxoData) {
-    // overridable
+    whirlpoolWallet.onUtxoChanges(utxoData);
   }
 
   @Override
@@ -77,9 +81,9 @@ public abstract class BasicUtxoSupplier extends BasicSupplier<UtxoData>
         walletSupplier,
         utxoConfigSupplier,
         this,
-        poolSupplier,
+        coordinatorSupplier,
         previousUtxos,
-        chainSupplier.getLatestBlock().height);
+        dataSourceConfig.getChainSupplier().getLatestBlock().height);
 
     // update previousUtxos
     Map<String, WhirlpoolUtxo> newPreviousUtxos = new LinkedHashMap<String, WhirlpoolUtxo>();
@@ -238,6 +242,6 @@ public abstract class BasicUtxoSupplier extends BasicSupplier<UtxoData>
 
   @Override
   public BipFormatSupplier getBipFormatSupplier() {
-    return bipFormatSupplier;
+    return dataSourceConfig.getBipFormatSupplier();
   }
 }

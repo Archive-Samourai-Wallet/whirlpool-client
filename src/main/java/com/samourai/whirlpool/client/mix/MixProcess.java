@@ -178,7 +178,7 @@ public class MixProcess {
       throwProtocolException();
     }
 
-    this.inputsHash = mixNotificationRegisterOutput.getInputsHash();
+    this.inputsHash = mixNotificationRegisterOutput.inputsHash;
     this.receiveDestination = postmixHandler.computeDestinationNext();
 
     String unblindedSignedBordereau64 =

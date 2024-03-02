@@ -1,5 +1,6 @@
 package com.samourai.whirlpool.client.wallet;
 
+import com.samourai.soroban.client.SorobanConfig;
 import com.samourai.soroban.client.wallet.SorobanWalletService;
 import com.samourai.wallet.bip47.BIP47UtilGeneric;
 import com.samourai.wallet.bip47.rpc.java.Bip47UtilJava;
@@ -68,7 +69,7 @@ public class WhirlpoolWalletConfig extends WhirlpoolClientConfig
   private int bip47AccountId;
 
   private ISecretPointFactory secretPointFactory;
-  private SorobanWalletService sorobanWalletService; // may be null
+  private SorobanWalletService sorobanWalletService;
   private BIP47UtilGeneric bip47Util;
   private FeeOpReturnImpl feeOpReturnImpl;
 
@@ -85,7 +86,6 @@ public class WhirlpoolWalletConfig extends WhirlpoolClientConfig
     // Android => odd indexs, CLI => even indexs
     super(
         httpClientService,
-        sorobanWalletService.getSorobanService().getRpcClientService(),
         bip47Util,
         cryptoUtil,
         null,
@@ -135,6 +135,20 @@ public class WhirlpoolWalletConfig extends WhirlpoolClientConfig
     // use OpReturnImplV1
     XorMask xorMask = XorMask.getInstance(secretPointFactory);
     feeOpReturnImpl = new FeeOpReturnImplV1(xorMask);
+  }
+
+  public WhirlpoolWalletConfig(
+      DataSourceFactory dataSourceFactory, SorobanConfig sorobanConfig, boolean mobile) {
+    this(
+        dataSourceFactory,
+        sorobanConfig.getExtLibJConfig().getSecretPointFactory(),
+        sorobanConfig.getExtLibJConfig().getCryptoUtil(),
+        sorobanConfig.getSorobanWalletService(),
+        sorobanConfig.getExtLibJConfig().getHttpClientService(),
+        sorobanConfig.getExtLibJConfig().getBip47Util(),
+        sorobanConfig.getExtLibJConfig().getWhirlpoolNetwork(),
+        sorobanConfig.getExtLibJConfig().isOnion(),
+        mobile);
   }
 
   public void verify() throws Exception {

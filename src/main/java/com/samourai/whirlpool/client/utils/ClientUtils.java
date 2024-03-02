@@ -1,6 +1,5 @@
 package com.samourai.whirlpool.client.utils;
 
-import ch.qos.logback.classic.Level;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.samourai.wallet.api.backend.beans.HttpException;
@@ -90,13 +89,6 @@ public class ClientUtils {
 
   public static <T> T fromJson(String json, Class<T> type) throws Exception {
     return objectMapper.readValue(json, type);
-  }
-
-  public static Logger prefixLogger(Logger log, String logPrefix) {
-    Level level = ((ch.qos.logback.classic.Logger) log).getEffectiveLevel();
-    Logger newLog = LoggerFactory.getLogger(log.getName() + "[" + logPrefix + "]");
-    ((ch.qos.logback.classic.Logger) newLog).setLevel(level);
-    return newLog;
   }
 
   private static String parseRestErrorMessage(String responseBody) {
@@ -224,27 +216,26 @@ public class ClientUtils {
     return Util.maskString(value);
   }
 
-  public static void setLogLevel(Level logLevel) {
-    LogbackUtils.setLogLevel("com.samourai", logLevel.toString());
+  public static void setLogLevel(String logLevel) {
+    LogbackUtils.setLogLevel("com.samourai", logLevel);
 
-    LogbackUtils.setLogLevel("com.samourai.whirlpool.client", logLevel.toString());
-    LogbackUtils.setLogLevel("com.samourai.whirlpool.client.mix.dialog", logLevel.toString());
-    LogbackUtils.setLogLevel("com.samourai.stomp.client", logLevel.toString());
-    LogbackUtils.setLogLevel("com.samourai.wallet.util.FeeUtil", logLevel.toString());
+    LogbackUtils.setLogLevel("com.samourai.whirlpool.client", logLevel);
+    LogbackUtils.setLogLevel("com.samourai.whirlpool.client.mix.dialog", logLevel);
+    LogbackUtils.setLogLevel("com.samourai.stomp.client", logLevel);
+    LogbackUtils.setLogLevel("com.samourai.wallet.util.FeeUtil", logLevel);
 
-    LogbackUtils.setLogLevel("com.samourai.whirlpool.client.utils", logLevel.toString());
-    LogbackUtils.setLogLevel("com.samourai.whirlpool.client.wallet", logLevel.toString());
+    LogbackUtils.setLogLevel("com.samourai.whirlpool.client.utils", logLevel);
+    LogbackUtils.setLogLevel("com.samourai.whirlpool.client.wallet", logLevel);
 
-    LogbackUtils.setLogLevel("com.samourai.wallet.cahoots", logLevel.toString());
-    LogbackUtils.setLogLevel("com.samourai.wallet.cahoots.stowaway", logLevel.toString());
-    LogbackUtils.setLogLevel("com.samourai.wallet.cahoots.stonewallx2", logLevel.toString());
-    LogbackUtils.setLogLevel("com.samourai.soroban.client", logLevel.toString());
-    LogbackUtils.setLogLevel("com.samourai.soroban.client.rpc", logLevel.toString());
-    LogbackUtils.setLogLevel("com.samourai.soroban.client.dialog", logLevel.toString());
-    LogbackUtils.setLogLevel("com.samourai.soroban.client.meeting", logLevel.toString());
+    LogbackUtils.setLogLevel("com.samourai.wallet.cahoots", logLevel);
+    LogbackUtils.setLogLevel("com.samourai.wallet.cahoots.stowaway", logLevel);
+    LogbackUtils.setLogLevel("com.samourai.wallet.cahoots.stonewallx2", logLevel);
+    LogbackUtils.setLogLevel("com.samourai.soroban.client", logLevel);
+    LogbackUtils.setLogLevel("com.samourai.soroban.client.rpc", logLevel);
+    LogbackUtils.setLogLevel("com.samourai.soroban.client.dialog", logLevel);
+    LogbackUtils.setLogLevel("com.samourai.soroban.client.meeting", logLevel);
 
-    LogbackUtils.setLogLevel(
-        "com.samourai.whirlpool.client.wallet.orchestrator", logLevel.toString());
+    LogbackUtils.setLogLevel("com.samourai.whirlpool.client.wallet.orchestrator", logLevel);
 
     // skip noisy logs
     LogbackUtils.setLogLevel("org.bitcoinj", org.slf4j.event.Level.ERROR.toString());

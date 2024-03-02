@@ -11,11 +11,13 @@ import com.samourai.whirlpool.client.whirlpool.beans.Coordinator;
 import com.samourai.whirlpool.client.whirlpool.listener.WhirlpoolClientListener;
 import com.samourai.whirlpool.protocol.WhirlpoolErrorCode;
 import com.samourai.whirlpool.protocol.soroban.WhirlpoolApiClient;
+import com.samourai.whirlpool.protocol.soroban.WhirlpoolApiClientMix;
 import com.samourai.whirlpool.protocol.soroban.payload.beans.BlameReason;
 import com.samourai.whirlpool.protocol.soroban.payload.beans.MixStatus;
 import com.samourai.whirlpool.protocol.soroban.payload.mix.*;
 import com.samourai.whirlpool.protocol.soroban.payload.registerInput.RegisterInputRequest;
 import com.samourai.whirlpool.protocol.soroban.payload.registerInput.RegisterInputResponse;
+import java.util.Optional;
 import java.util.concurrent.TimeoutException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -24,13 +26,11 @@ public class MixClient {
   // server health-check response
   private static final String HEALTH_CHECK_SUCCESS = "HEALTH_CHECK_SUCCESS";
   private static final Logger log = LoggerFactory.getLogger(MixClient.class);
-  private static final int TIMEOUT_SWITCH_INPUT_MS = 900000; // 15min
+  private static final int TIMEOUT_SWITCH_INPUT_MS = 1200000; // 20min
 
   // mix settings
   private MixParams mixParams;
   private WhirlpoolClientListener listener;
-  private WhirlpoolApiClient whirlpoolApiClient;
-
   private MixProcess mixProcess;
   private String mixId; // set by whirlpool()
   private Coordinator coordinator; // set by doRegisterInput
@@ -39,7 +39,6 @@ public class MixClient {
       WhirlpoolClientConfig config, MixParams mixParams, WhirlpoolClientListener listener) {
     this.mixParams = mixParams;
     this.listener = listener;
-    this.whirlpoolApiClient = config.createWhirlpoolApiClient(mixParams.getCoordinatorSupplier());
 
     this.mixProcess =
         new MixProcess(
@@ -77,17 +76,19 @@ public class MixClient {
       }
 
       mixId = registerInputResponse.mixId;
+      WhirlpoolApiClient clientApi = mixParams.getWhirlpoolApiClient();
+      WhirlpoolApiClientMix mixApi =
+          clientApi.createWhirlpoolApiClientMix(mixId, coordinator.getSender());
 
       // CONFIRM_INPUT
       listenerProgress(MixStep.CONFIRMING_INPUT);
       ConfirmInputRequest confirmInputRequest = mixProcess.confirmInput(registerInputResponse);
-      ConfirmInputResponse confirmInputResponse =
-          whirlpoolApiClient.confirmInput(confirmInputRequest, mixId, coordinator.getSender());
+      ConfirmInputResponse confirmInputResponse = mixApi.confirmInput(confirmInputRequest);
       listenerProgress(MixStep.CONFIRMED_INPUT);
       mixProcess.onConfirmInputResponse(confirmInputResponse);
 
       // complete the mix
-      doMix();
+      doMix(mixApi);
     } catch (TimeoutException e) {
       if (log.isDebugEnabled()) {
         log.debug("MIX_TIMEOUT " + mixId);
@@ -108,6 +109,7 @@ public class MixClient {
   }
 
   protected RegisterInputResponse doRegisterInput() throws Exception {
+    WhirlpoolApiClient whirlpoolApiClient = mixParams.getWhirlpoolApiClient();
     // select coordinator
     coordinator = mixParams.getCoordinatorSupplier().findCoordinatorByPoolId(mixParams.getPoolId());
 
@@ -126,21 +128,29 @@ public class MixClient {
     return registerInputResponse;
   }
 
-  protected void doMix() throws Exception {
+  protected void doMix(WhirlpoolApiClientMix mixApi) throws Exception {
+    WhirlpoolApiClient clientApi = mixParams.getWhirlpoolApiClient();
     long resendFrequency =
-        whirlpoolApiClient
+        clientApi
             .getSorobanApp()
-            .getEndpointMix_ALL(mixId, coordinator.getSender())
+            .getEndpointMixConfirmInput(mixId, coordinator.getSender())
             .getResendFrequencyWhenNoReplyMs();
     MixStatus mixStatus = MixStatus.CONFIRM_INPUT;
     while (!isDone()) {
-      // fetch mix status
-      AbstractMixStatusResponse mixStatusResponse =
-          whirlpoolApiClient.mixStatus(mixId, coordinator.getSender());
+      // check for mix result
+      Optional<AbstractMixStatusResponse> mixResultOpt = mixApi.findMixResult();
+      if (mixResultOpt.isPresent()) {
+        // early mix failure
+        onMixResult(mixResultOpt.get());
+        return;
+      }
 
-      if (!mixStatusResponse.getMixStatus().equals(mixStatus)) {
+      // fetch mix status
+      AbstractMixStatusResponse mixStatusResponse = mixApi.waitMixStatus();
+
+      if (!mixStatusResponse.mixStatus.equals(mixStatus)) {
         // mix progress
-        mixStatus = mixStatusResponse.getMixStatus();
+        mixStatus = mixStatusResponse.mixStatus;
 
         if (log.isDebugEnabled()) {
           log.debug("MIX_PROGRESS " + mixId + " " + mixStatus);
@@ -157,23 +167,14 @@ public class MixClient {
             listenerProgress(MixStep.SIGNING);
             SigningRequest signingRequest =
                 mixProcess.signing((MixStatusResponseSigning) mixStatusResponse);
-            whirlpoolApiClient.signing(signingRequest, mixId, coordinator.getSender());
+            mixApi.signing(signingRequest);
             listenerProgress(MixStep.SIGNED);
 
             // mix completed on our side, wait for mix result
             try {
-              AbstractMixStatusResponse mixResult =
-                  whirlpoolApiClient.mixResult(mixId, coordinator.getSender());
-              switch (mixResult.getMixStatus()) {
-                case SUCCESS:
-                  onMixSuccess();
-                  return;
-
-                case FAIL:
-                  // mix failed
-                  onMixFail(((MixStatusResponseFail) mixResult).getBlame());
-                  return;
-              }
+              AbstractMixStatusResponse mixResult = mixApi.waitMixResult();
+              onMixResult(mixResult);
+              return;
             } catch (TimeoutException e) {
               // consider timeout as mix failure
               if (log.isDebugEnabled()) {
@@ -184,12 +185,27 @@ public class MixClient {
             return;
 
           case REVEAL_OUTPUT:
-            doRevealOutput(mixId);
-            break;
+            if (mixId != null) {
+              try {
+                RevealOutputRequest revealOutputRequest = mixProcess.revealOutput();
+                mixApi.revealOutput(revealOutputRequest);
+              } catch (ProtocolException e) {
+                // this can happen when we couldnt REGISTER_OUTPUT
+                if (log.isDebugEnabled()) {
+                  log.error("REVEAL_OUTPUT failed", e);
+                }
+              }
+            } else {
+              if (log.isDebugEnabled()) {
+                log.error("Failed to revealOutput, no mixId received yet");
+              }
+            }
+            onMixFail(BlameReason.REGISTER_OUTPUT);
+            return;
 
           case FAIL:
             // mix failed
-            onMixFail(((MixStatusResponseFail) mixStatusResponse).getBlame());
+            onMixFail(((MixStatusResponseFail) mixStatusResponse).blame);
             return;
         }
       } /* else {
@@ -203,6 +219,17 @@ public class MixClient {
     }
   }
 
+  private void onMixResult(AbstractMixStatusResponse mixResult) {
+    switch (mixResult.mixStatus) {
+      case SUCCESS:
+        onMixSuccess();
+
+      case FAIL:
+        // mix failed
+        onMixFail(((MixStatusResponseFail) mixResult).blame);
+    }
+  }
+
   protected void doRegisterOutput(MixStatusResponseRegisterOutput mixNotificationRegisterOutput)
       throws Exception {
     // this will increment unconfirmed postmix index
@@ -210,11 +237,15 @@ public class MixClient {
         mixProcess.registerOutput(mixNotificationRegisterOutput);
 
     // use new identity to unlink from input
+    WhirlpoolApiClient whirlpoolApiClient = mixParams.getWhirlpoolApiClient();
     WhirlpoolApiClient apiTemp = whirlpoolApiClient.createNewIdentity();
 
     while (!isDone()) {
       try {
-        apiTemp.registerOutput(registerOutputRequest, mixId, coordinator.getSender());
+        apiTemp.registerOutput(
+            registerOutputRequest,
+            mixNotificationRegisterOutput.inputsHash,
+            coordinator.getSender());
 
         // confirm postmix index on REGISTER_OUTPUT success
         mixParams.getPostmixHandler().onRegisterOutput();
@@ -235,26 +266,6 @@ public class MixClient {
     }
   }
 
-  protected void doRevealOutput(String mixId) throws Exception {
-    if (mixId != null) {
-      try {
-        RevealOutputRequest revealOutputRequest = mixProcess.revealOutput();
-        whirlpoolApiClient.revealOutput(revealOutputRequest, mixId, coordinator.getSender());
-        listenerProgress(MixStep.FAIL);
-      } catch (ProtocolException e) {
-        // this can happen when we couldnt REGISTER_OUTPUT
-        if (log.isDebugEnabled()) {
-          log.error("REVEAL_OUTPUT failed", e);
-        }
-      }
-    } else {
-      if (log.isDebugEnabled()) {
-        log.error("Failed to revealOutput, no mixId received yet");
-      }
-    }
-    onMixFail(BlameReason.REGISTER_OUTPUT);
-  }
-
   private void onMixSuccess() {
     // disconnect before notifying listener to avoid reconnecting before disconnect
     disconnect();
@@ -267,7 +278,7 @@ public class MixClient {
     String notifiableError =
         blameReason != null
             ? "Mix failed due to your behavior: " + blameReason.name()
-            : "Mix failed due to a peer (not your fault)";
+            : "Mix failed due to another peer (not your fault)";
     failAndExit(MixFailReason.MIX_FAILED, notifiableError);
   }
 
@@ -277,9 +288,9 @@ public class MixClient {
 
   public void disconnect() {
     if (log.isDebugEnabled()) {
-      log.debug("MIX_DISCONECT from " + mixId);
+      log.debug("MIX_DISCONECT " + mixParams.getWhirlpoolUtxo());
     }
-    mixParams.getRpcSession().exit();
+    mixParams.getWhirlpoolApiClient().getRpcSession().exit();
   }
 
   private void failAndExit(MixFailReason reason, String notifiableError) {
@@ -301,6 +312,6 @@ public class MixClient {
   }
 
   private boolean isDone() {
-    return mixParams.getRpcSession().isDone();
+    return mixParams.getWhirlpoolApiClient().getRpcSession().isDone();
   }
 }

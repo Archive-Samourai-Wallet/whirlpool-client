@@ -4,18 +4,11 @@ import com.samourai.wallet.api.backend.BackendServer;
 import com.samourai.wallet.api.backend.IPushTx;
 import com.samourai.wallet.api.backend.ISweepBackend;
 import com.samourai.wallet.api.backend.beans.UnspentOutput;
-import com.samourai.wallet.api.backend.beans.WalletResponse;
 import com.samourai.wallet.api.backend.seenBackend.ISeenBackend;
 import com.samourai.wallet.api.paynym.beans.PaynymState;
 import com.samourai.wallet.bip47.rpc.java.Bip47UtilJava;
 import com.samourai.wallet.bip47.rpc.java.SecretPointFactoryJava;
 import com.samourai.wallet.bip47.rpc.secretPoint.ISecretPointFactory;
-import com.samourai.wallet.bipFormat.BIP_FORMAT;
-import com.samourai.wallet.bipFormat.BipFormat;
-import com.samourai.wallet.bipFormat.BipFormatSupplier;
-import com.samourai.wallet.bipWallet.BipDerivation;
-import com.samourai.wallet.bipWallet.BipWallet;
-import com.samourai.wallet.bipWallet.WalletSupplierImpl;
 import com.samourai.wallet.constants.WhirlpoolAccount;
 import com.samourai.wallet.constants.WhirlpoolNetwork;
 import com.samourai.wallet.crypto.CryptoUtil;
@@ -24,21 +17,12 @@ import com.samourai.wallet.httpClient.IHttpClientService;
 import com.samourai.wallet.util.AsyncUtil;
 import com.samourai.wallet.websocketClient.IWebsocketClient;
 import com.samourai.whirlpool.client.event.*;
-import com.samourai.whirlpool.client.tx0.Tx0;
-import com.samourai.whirlpool.client.tx0.Tx0Config;
-import com.samourai.whirlpool.client.tx0.Tx0Preview;
-import com.samourai.whirlpool.client.tx0.Tx0Previews;
-import com.samourai.whirlpool.client.wallet.WhirlpoolEventService;
-import com.samourai.whirlpool.client.wallet.WhirlpoolWallet;
-import com.samourai.whirlpool.client.wallet.WhirlpoolWalletConfig;
-import com.samourai.whirlpool.client.wallet.WhirlpoolWalletService;
+import com.samourai.whirlpool.client.tx0.*;
+import com.samourai.whirlpool.client.wallet.*;
 import com.samourai.whirlpool.client.wallet.beans.*;
 import com.samourai.whirlpool.client.wallet.data.dataPersister.DataPersister;
 import com.samourai.whirlpool.client.wallet.data.dataPersister.DataPersisterFactory;
-import com.samourai.whirlpool.client.wallet.data.dataSource.DataSource;
-import com.samourai.whirlpool.client.wallet.data.dataSource.DataSourceFactory;
-import com.samourai.whirlpool.client.wallet.data.dataSource.DojoDataSourceFactory;
-import com.samourai.whirlpool.client.wallet.data.dataSource.WalletResponseDataSource;
+import com.samourai.whirlpool.client.wallet.data.dataSource.*;
 import com.samourai.whirlpool.client.wallet.data.paynym.PaynymSupplier;
 import com.samourai.whirlpool.client.wallet.data.pool.PoolSupplier;
 import com.samourai.whirlpool.client.wallet.data.utxo.UtxoSupplier;
@@ -127,40 +111,18 @@ public class JavaExample {
           UtxoConfigSupplier utxoConfigSupplier)
           throws Exception {
         // use WalletResponse data (or use your own implementation of DataSource)
-        return new WalletResponseDataSource(
-            whirlpoolWallet, bip44w, walletStateSupplier, utxoConfigSupplier) {
-          @Override
-          protected WalletResponse fetchWalletResponse() throws Exception {
-            WalletResponse walletResponse = null; // provide data here
-            return walletResponse;
-          }
+        return new AbstractDataSource(
+            whirlpoolWallet,
+            bip44w,
+            walletStateSupplier,
+            new DataSourceConfig(
+                null, // provide minerFeeSupplier impl here
+                null // provide chainSupplier impl here
+                )) {
 
           @Override
-          protected WalletSupplierImpl computeWalletSupplier(
-              WhirlpoolWallet whirlpoolWallet,
-              HD_Wallet bip44w,
-              WalletStateSupplier walletStateSupplier)
-              throws Exception {
-            WalletSupplierImpl walletSupplier =
-                super.computeWalletSupplier(whirlpoolWallet, bip44w, walletStateSupplier);
-
-            // register additional custom wallet for DEPOSIT
-            int purpose = 84;
-            int acountIndex = 4;
-            BipDerivation derivation = new BipDerivation(purpose, acountIndex);
-            BipFormat bipFormat = BIP_FORMAT.SEGWIT_NATIVE; // or define your own BipFormat
-            BipFormatSupplier bipFormatSupplier = computeBipFormatSupplier();
-            walletSupplier.register(
-                new BipWallet(
-                    bipFormatSupplier,
-                    "DEPOSIT_ACCOUNT_4_SEGWIT_NATIVE",
-                    bip44w,
-                    walletStateSupplier,
-                    WhirlpoolAccount.DEPOSIT,
-                    derivation,
-                    Arrays.asList(bipFormat),
-                    bipFormat));
-            return walletSupplier;
+          public UtxoSupplier getUtxoSupplier() {
+            return null; // provide impl here
           }
 
           @Override
@@ -177,8 +139,12 @@ public class JavaExample {
           public ISeenBackend getSeenBackend() {
             return null; // provide impl here
           }
+
+          @Override
+          public void close() throws Exception {}
         };
-      };
+      }
+      ;
     };
   }
 

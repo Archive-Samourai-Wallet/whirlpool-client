@@ -18,7 +18,6 @@ import com.samourai.wallet.constants.WhirlpoolNetwork;
 import com.samourai.wallet.crypto.CryptoUtil;
 import com.samourai.wallet.hd.HD_Address;
 import com.samourai.wallet.hd.HD_WalletFactoryGeneric;
-import com.samourai.wallet.httpClient.HttpProxy;
 import com.samourai.wallet.httpClient.HttpUsage;
 import com.samourai.wallet.httpClient.IHttpClient;
 import com.samourai.wallet.httpClient.IHttpClientService;
@@ -46,7 +45,6 @@ import java.io.File;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
-import java.util.Optional;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import org.bitcoinj.core.NetworkParameters;
@@ -111,7 +109,7 @@ public class AbstractTest {
   public AbstractTest() throws Exception {
     ClientUtils.setLogLevel(Level.DEBUG);
 
-    httpClient = new JettyHttpClient(5000, Optional.<HttpProxy>empty(), "test");
+    httpClient = new JettyHttpClient(5000);
     oxtApi = new OxtApi(httpClient);
 
     pool01btc = new Pool();

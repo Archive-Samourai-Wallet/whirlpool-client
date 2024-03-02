@@ -18,4 +18,6 @@ public interface CoordinatorSupplier extends PoolSupplier {
   <R> R withCoordinatorRandom(CallbackWithArg<Coordinator, R> callable) throws Exception;
 
   void refresh() throws Exception;
+
+  void load() throws Exception;
 }

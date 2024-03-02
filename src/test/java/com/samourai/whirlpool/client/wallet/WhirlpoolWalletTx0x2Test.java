@@ -145,7 +145,7 @@ public class WhirlpoolWalletTx0x2Test extends AbstractCahootsTest {
             Tx0FeeTarget.BLOCKS_24,
             Tx0FeeTarget.BLOCKS_24,
             WhirlpoolAccount.DEPOSIT);
-    WhirlpoolApiClient whirlpoolApiClient = config.createWhirlpoolApiClient(coordinatorSupplier);
+    WhirlpoolApiClient whirlpoolApiClient = whirlpoolWallet.createWhirlpoolApiClient();
     Tx0 tx0Initiator =
         asyncUtil.blockingGet(
             tx0Service.tx0(
