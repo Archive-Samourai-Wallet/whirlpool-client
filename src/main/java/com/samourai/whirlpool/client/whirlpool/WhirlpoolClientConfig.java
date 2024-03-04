@@ -1,7 +1,7 @@
 package com.samourai.whirlpool.client.whirlpool;
 
 import com.samourai.wallet.bip47.BIP47UtilGeneric;
-import com.samourai.wallet.constants.WhirlpoolNetwork;
+import com.samourai.wallet.constants.SamouraiNetwork;
 import com.samourai.wallet.crypto.CryptoUtil;
 import com.samourai.wallet.httpClient.HttpUsage;
 import com.samourai.wallet.httpClient.IHttpClient;
@@ -15,7 +15,7 @@ public class WhirlpoolClientConfig {
   private BIP47UtilGeneric bip47Util;
   private CryptoUtil cryptoUtil;
   private ExternalDestination externalDestination;
-  private WhirlpoolNetwork whirlpoolNetwork;
+  private SamouraiNetwork samouraiNetwork;
   private IndexRange indexRangePostmix;
   private boolean torOnionCoordinator;
 
@@ -26,14 +26,14 @@ public class WhirlpoolClientConfig {
       BIP47UtilGeneric bip47Util,
       CryptoUtil cryptoUtil,
       ExternalDestination externalDestination,
-      WhirlpoolNetwork whirlpoolNetwork,
+      SamouraiNetwork samouraiNetwork,
       IndexRange indexRangePostmix,
       boolean torOnionCoordinator) {
     this.httpClientService = httpClientService;
     this.bip47Util = bip47Util;
     this.cryptoUtil = cryptoUtil;
     this.externalDestination = externalDestination;
-    this.whirlpoolNetwork = whirlpoolNetwork;
+    this.samouraiNetwork = samouraiNetwork;
     this.indexRangePostmix = indexRangePostmix;
     this.torOnionCoordinator = torOnionCoordinator;
     this.clientCryptoService = new ClientCryptoService();
@@ -71,12 +71,12 @@ public class WhirlpoolClientConfig {
     this.externalDestination = externalDestination;
   }
 
-  public WhirlpoolNetwork getWhirlpoolNetwork() {
-    return whirlpoolNetwork;
+  public SamouraiNetwork getSamouraiNetwork() {
+    return samouraiNetwork;
   }
 
-  public void setWhirlpoolNetwork(WhirlpoolNetwork whirlpoolNetwork) {
-    this.whirlpoolNetwork = whirlpoolNetwork;
+  public void setSamouraiNetwork(SamouraiNetwork samouraiNetwork) {
+    this.samouraiNetwork = samouraiNetwork;
   }
 
   public IndexRange getIndexRangePostmix() {

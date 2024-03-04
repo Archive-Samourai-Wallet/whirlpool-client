@@ -1,7 +1,7 @@
 package com.samourai.whirlpool.client.wallet;
 
 import com.samourai.wallet.api.backend.beans.UnspentOutput;
-import com.samourai.wallet.constants.WhirlpoolAccount;
+import com.samourai.wallet.constants.SamouraiAccount;
 import com.samourai.wallet.hd.HD_Address;
 import com.samourai.whirlpool.client.tx0.AbstractTx0ServiceTest;
 import com.samourai.whirlpool.client.tx0.Tx0;
@@ -435,7 +435,7 @@ public class WhirlpoolWalletTx0Test extends AbstractTx0ServiceTest {
 
     // run
     Collection<WhirlpoolUtxo> spendFroms =
-        whirlpoolWallet.getUtxoSupplier().findUtxos(WhirlpoolAccount.DEPOSIT);
+        whirlpoolWallet.getUtxoSupplier().findUtxos(SamouraiAccount.DEPOSIT);
     Tx0 firstTx0 = whirlpoolWallet.tx0Cascade(spendFroms, pools, tx0Config).iterator().next();
 
     log.info("Tx0: " + firstTx0.getSpendFroms() + " " + firstTx0.getTx());
@@ -463,7 +463,7 @@ public class WhirlpoolWalletTx0Test extends AbstractTx0ServiceTest {
 
     // run
     Collection<WhirlpoolUtxo> spendFroms =
-        whirlpoolWallet.getUtxoSupplier().findUtxos(WhirlpoolAccount.DEPOSIT);
+        whirlpoolWallet.getUtxoSupplier().findUtxos(SamouraiAccount.DEPOSIT);
     Tx0 tx0 = whirlpoolWallet.tx0Cascade(spendFroms, pools, tx0Config).iterator().next();
     log.info("Tx0: " + tx0.getSpendFroms() + " " + tx0.getTx());
   }

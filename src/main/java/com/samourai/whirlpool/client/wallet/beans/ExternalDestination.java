@@ -46,7 +46,7 @@ public class ExternalDestination {
     if (postmixHandler == null) {
       IIndexHandler indexHandlerExternal =
           whirlpoolWallet.getWalletStateSupplier().getIndexHandlerExternal();
-      NetworkParameters params = whirlpoolWallet.getConfig().getWhirlpoolNetwork().getParams();
+      NetworkParameters params = whirlpoolWallet.getConfig().getSamouraiNetwork().getParams();
       postmixHandler = new XPubPostmixHandler(indexHandlerExternal, params, xpub, chain);
     }
     return postmixHandler;

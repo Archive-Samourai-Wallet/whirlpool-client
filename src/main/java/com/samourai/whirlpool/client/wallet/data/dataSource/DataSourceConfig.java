@@ -1,7 +1,7 @@
 package com.samourai.whirlpool.client.wallet.data.dataSource;
 
-import com.samourai.wallet.bipFormat.BIP_FORMAT;
 import com.samourai.wallet.bipFormat.BipFormatSupplier;
+import com.samourai.wallet.bipWallet.BipWalletSupplier;
 import com.samourai.wallet.chain.ChainSupplier;
 import com.samourai.whirlpool.client.wallet.data.minerFee.MinerFeeSupplier;
 import org.slf4j.Logger;
@@ -12,24 +12,17 @@ public class DataSourceConfig {
   protected final MinerFeeSupplier minerFeeSupplier;
   protected final ChainSupplier chainSupplier;
   protected final BipFormatSupplier bipFormatSupplier;
+  protected final BipWalletSupplier bipWalletSupplier;
 
   public DataSourceConfig(
       MinerFeeSupplier minerFeeSupplier,
       ChainSupplier chainSupplier,
-      BipFormatSupplier bipFormatSupplier) {
+      BipFormatSupplier bipFormatSupplier,
+      BipWalletSupplier bipWalletSupplier) {
     this.minerFeeSupplier = minerFeeSupplier;
     this.chainSupplier = chainSupplier;
     this.bipFormatSupplier = bipFormatSupplier;
-  }
-
-  public DataSourceConfig(MinerFeeSupplier minerFeeSupplier, ChainSupplier chainSupplier) {
-    this.minerFeeSupplier = minerFeeSupplier;
-    this.chainSupplier = chainSupplier;
-    this.bipFormatSupplier = computeBipFormatSupplier();
-  }
-
-  protected BipFormatSupplier computeBipFormatSupplier() {
-    return BIP_FORMAT.PROVIDER;
+    this.bipWalletSupplier = bipWalletSupplier;
   }
 
   public MinerFeeSupplier getMinerFeeSupplier() {
@@ -42,5 +35,9 @@ public class DataSourceConfig {
 
   public BipFormatSupplier getBipFormatSupplier() {
     return bipFormatSupplier;
+  }
+
+  public BipWalletSupplier getBipWalletSupplier() {
+    return bipWalletSupplier;
   }
 }

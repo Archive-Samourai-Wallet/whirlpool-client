@@ -9,8 +9,10 @@ import com.samourai.wallet.api.paynym.beans.PaynymState;
 import com.samourai.wallet.bip47.rpc.java.Bip47UtilJava;
 import com.samourai.wallet.bip47.rpc.java.SecretPointFactoryJava;
 import com.samourai.wallet.bip47.rpc.secretPoint.ISecretPointFactory;
-import com.samourai.wallet.constants.WhirlpoolAccount;
-import com.samourai.wallet.constants.WhirlpoolNetwork;
+import com.samourai.wallet.bipWallet.BipWalletSupplier;
+import com.samourai.wallet.constants.BIP_WALLETS;
+import com.samourai.wallet.constants.SamouraiAccount;
+import com.samourai.wallet.constants.SamouraiNetwork;
 import com.samourai.wallet.crypto.CryptoUtil;
 import com.samourai.wallet.hd.HD_Wallet;
 import com.samourai.wallet.httpClient.IHttpClientService;
@@ -41,19 +43,19 @@ public class JavaExample {
     BackendServer backendServer = BackendServer.TESTNET;
     boolean onion = true; // use Tor onion services?
     IWebsocketClient wsClient = null; // provide impl, or null to disable real-time sync backend
-    DataSourceFactory dataSourceFactory = new DojoDataSourceFactory(backendServer, onion, wsClient);
+    DataSourceFactory dataSourceFactory = new DojoDataSourceFactory(backendServer, onion, wsClient, BIP_WALLETS.WHIRLPOOL);
 
     // option 2 - use Dojo backend
     String dojoUrl = ""; // provide Dojo onion URL
     String dojoApiKey = ""; // provide Dojo apiKey
     wsClient = null; // provide impl, or null to disable real-time sync backend
-    dataSourceFactory = new DojoDataSourceFactory(dojoUrl, dojoApiKey, wsClient);
+    dataSourceFactory = new DojoDataSourceFactory(dojoUrl, dojoApiKey, wsClient, BIP_WALLETS.WHIRLPOOL);
 
     // option 3 - use external backend
     dataSourceFactory =
         computeDataSourceFactoryExternal(); // example of external backend integration
 
-    WhirlpoolNetwork whirlpoolNetwork = WhirlpoolNetwork.TESTNET;
+    SamouraiNetwork samouraiNetwork = SamouraiNetwork.TESTNET;
 
     // coordinator configuration
     IHttpClientService httpClientService = null; // provide impl here, ie: new AndroidHttpClient();
@@ -73,7 +75,7 @@ public class JavaExample {
             sorobanWalletService,
             httpClientService,
             bip47Util,
-            whirlpoolNetwork,
+            samouraiNetwork,
             mobile,
             torOnionCoordinator);
 
@@ -102,14 +104,9 @@ public class JavaExample {
   private DataSourceFactory computeDataSourceFactoryExternal() {
     // note: when external data changed, use WalletResponseDataSource.refresh() to refresh it
     return new DataSourceFactory() {
+
       @Override
-      public DataSource createDataSource(
-          WhirlpoolWallet whirlpoolWallet,
-          HD_Wallet bip44w,
-          String passphrase,
-          WalletStateSupplier walletStateSupplier,
-          UtxoConfigSupplier utxoConfigSupplier)
-          throws Exception {
+      public DataSource createDataSource(WhirlpoolWallet whirlpoolWallet, HD_Wallet bip44w, String passphrase, WalletStateSupplier walletStateSupplier, UtxoConfigSupplier utxoConfigSupplier) throws Exception {
         // use WalletResponse data (or use your own implementation of DataSource)
         return new AbstractDataSource(
             whirlpoolWallet,
@@ -117,7 +114,9 @@ public class JavaExample {
             walletStateSupplier,
             new DataSourceConfig(
                 null, // provide minerFeeSupplier impl here
-                null // provide chainSupplier impl here
+                null, // provide chainSupplier impl here
+                null, // provide bipFormatSupplier impl here
+                null // provide bipWalletSupplier impl here
                 )) {
 
           @Override
@@ -144,7 +143,6 @@ public class JavaExample {
           public void close() throws Exception {}
         };
       }
-      ;
     };
   }
 
@@ -243,7 +241,7 @@ public class JavaExample {
     UtxoSupplier utxoSupplier = whirlpoolWallet.getUtxoSupplier();
 
     // list utxos
-    Collection<WhirlpoolUtxo> utxosDeposit = utxoSupplier.findUtxos(WhirlpoolAccount.DEPOSIT);
+    Collection<WhirlpoolUtxo> utxosDeposit = utxoSupplier.findUtxos(SamouraiAccount.DEPOSIT);
 
     // get specific utxo
     WhirlpoolUtxo whirlpoolUtxo =
@@ -274,7 +272,7 @@ public class JavaExample {
       Tx0Config tx0Config =
           whirlpoolWallet
               .getTx0Config(tx0FeeTarget, mixFeeTarget)
-              .setChangeWallet(WhirlpoolAccount.BADBANK);
+              .setChangeWallet(SamouraiAccount.BADBANK);
 
       // preview tx0
       try {
@@ -312,7 +310,7 @@ public class JavaExample {
       Tx0Config tx0Config =
           whirlpoolWallet
               .getTx0Config(tx0FeeTarget, mixFeeTarget)
-              .setChangeWallet(WhirlpoolAccount.BADBANK);
+              .setChangeWallet(SamouraiAccount.BADBANK);
 
       // preview tx0
       try {

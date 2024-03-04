@@ -6,7 +6,7 @@ import com.samourai.wallet.bipFormat.BipFormat;
 import com.samourai.wallet.bipFormat.BipFormatSupplier;
 import com.samourai.wallet.bipWallet.BipWallet;
 import com.samourai.wallet.bipWallet.WalletSupplier;
-import com.samourai.wallet.constants.WhirlpoolAccount;
+import com.samourai.wallet.constants.SamouraiAccount;
 import com.samourai.wallet.hd.Chain;
 import com.samourai.wallet.send.MyTransactionOutPoint;
 import com.samourai.wallet.send.UTXO;
@@ -95,14 +95,14 @@ public abstract class BasicUtxoSupplier extends BasicSupplier<UtxoData>
   }
 
   @Override
-  public Collection<WhirlpoolUtxo> findUtxos(final WhirlpoolAccount... whirlpoolAccounts) {
-    return getValue().findUtxos(whirlpoolAccounts);
+  public Collection<WhirlpoolUtxo> findUtxos(final SamouraiAccount... samouraiAccounts) {
+    return getValue().findUtxos(samouraiAccounts);
   }
 
   @Override
   public Collection<WhirlpoolUtxo> findUtxos(
-      final BipFormat bipFormat, final WhirlpoolAccount... whirlpoolAccounts) {
-    return findUtxos(whirlpoolAccounts).stream()
+      final BipFormat bipFormat, final SamouraiAccount... samouraiAccounts) {
+    return findUtxos(samouraiAccounts).stream()
         .filter(whirlpoolUtxo -> whirlpoolUtxo.getBipFormat() == bipFormat)
         .collect(Collectors.<WhirlpoolUtxo>toList());
   }
@@ -113,13 +113,13 @@ public abstract class BasicUtxoSupplier extends BasicSupplier<UtxoData>
   }
 
   @Override
-  public Collection<WalletResponse.Tx> findTxs(WhirlpoolAccount whirlpoolAccount) {
-    return getValue().findTxs(whirlpoolAccount);
+  public Collection<WalletResponse.Tx> findTxs(SamouraiAccount samouraiAccount) {
+    return getValue().findTxs(samouraiAccount);
   }
 
   @Override
-  public long getBalance(WhirlpoolAccount whirlpoolAccount) {
-    return getValue().getBalance(whirlpoolAccount);
+  public long getBalance(SamouraiAccount samouraiAccount) {
+    return getValue().getBalance(samouraiAccount);
   }
 
   @Override
@@ -142,18 +142,18 @@ public abstract class BasicUtxoSupplier extends BasicSupplier<UtxoData>
 
   @Override
   public String getNextAddressChange(
-      WhirlpoolAccount account, BipFormat bipFormat, boolean increment) {
+      SamouraiAccount account, BipFormat bipFormat, boolean increment) {
     BipWallet bipWallet = walletSupplier.getWallet(account, bipFormat);
     return bipWallet.getNextAddressChange().getAddressString();
   }
 
   @Override
-  public Collection<UTXO> getUtxos(WhirlpoolAccount account, BipFormat bipFormat) {
+  public Collection<UTXO> getUtxos(SamouraiAccount account, BipFormat bipFormat) {
     return toUTXOs(findUtxos(bipFormat, account));
   }
 
   @Override
-  public Collection<UTXO> getUtxos(WhirlpoolAccount account) {
+  public Collection<UTXO> getUtxos(SamouraiAccount account) {
     return toUTXOs(findUtxos(account));
   }
 
@@ -182,10 +182,10 @@ public abstract class BasicUtxoSupplier extends BasicSupplier<UtxoData>
 
   @Override
   public boolean isMixableUtxo(UnspentOutput unspentOutput, BipWallet bipWallet) {
-    WhirlpoolAccount whirlpoolAccount = bipWallet.getAccount();
+    SamouraiAccount samouraiAccount = bipWallet.getAccount();
 
     // don't mix BADBANK utxos
-    if (WhirlpoolAccount.BADBANK.equals(whirlpoolAccount)) {
+    if (SamouraiAccount.BADBANK.equals(samouraiAccount)) {
       if (log.isDebugEnabled()) {
         log.debug("Ignoring non-mixable utxo (BADBANK): " + unspentOutput);
       }
@@ -193,8 +193,8 @@ public abstract class BasicUtxoSupplier extends BasicSupplier<UtxoData>
     }
 
     // don't mix PREMIX/POSTMIX changes
-    if (WhirlpoolAccount.PREMIX.equals(whirlpoolAccount)
-        || WhirlpoolAccount.POSTMIX.equals(whirlpoolAccount)) {
+    if (SamouraiAccount.PREMIX.equals(samouraiAccount)
+        || SamouraiAccount.POSTMIX.equals(samouraiAccount)) {
       // ignore change utxos
       if (unspentOutput.xpub != null && unspentOutput.xpub.path != null) {
         int chainIndex = unspentOutput.computePathChainIndex();

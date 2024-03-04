@@ -2,7 +2,10 @@ package com.samourai.whirlpool.client.wallet.data.dataSource;
 
 import com.samourai.wallet.api.backend.MinerFee;
 import com.samourai.wallet.api.backend.beans.WalletResponse;
+import com.samourai.wallet.bipFormat.BIP_FORMAT;
+import com.samourai.wallet.bipFormat.BipFormatSupplier;
 import com.samourai.wallet.bipWallet.BipWallet;
+import com.samourai.wallet.bipWallet.BipWalletSupplier;
 import com.samourai.wallet.bipWallet.WalletSupplier;
 import com.samourai.wallet.hd.HD_Wallet;
 import com.samourai.wallet.util.AbstractOrchestrator;
@@ -11,6 +14,7 @@ import com.samourai.whirlpool.client.wallet.WhirlpoolWallet;
 import com.samourai.whirlpool.client.wallet.WhirlpoolWalletConfig;
 import com.samourai.whirlpool.client.wallet.data.chain.BasicChainSupplier;
 import com.samourai.whirlpool.client.wallet.data.chain.ChainData;
+import com.samourai.whirlpool.client.wallet.data.coordinator.CoordinatorSupplier;
 import com.samourai.whirlpool.client.wallet.data.minerFee.BasicMinerFeeSupplier;
 import com.samourai.whirlpool.client.wallet.data.utxo.BasicUtxoSupplier;
 import com.samourai.whirlpool.client.wallet.data.utxo.UtxoData;
@@ -35,18 +39,28 @@ public abstract class WalletResponseDataSource extends AbstractDataSource {
       WhirlpoolWallet whirlpoolWallet,
       HD_Wallet bip44w,
       WalletStateSupplier walletStateSupplier,
-      UtxoConfigSupplier utxoConfigSupplier)
+      UtxoConfigSupplier utxoConfigSupplier,
+      BipWalletSupplier bipWalletSupplier)
       throws Exception {
     super(
         whirlpoolWallet,
         bip44w,
         walletStateSupplier,
-        new DataSourceConfig(computeMinerFeeSupplier(whirlpoolWallet), computeChainSupplier()));
+        computeDataSourceConfig(whirlpoolWallet, bipWalletSupplier));
     this.walletResponseSupplier = new WalletResponseSupplier(whirlpoolWallet, this);
 
     this.utxoSupplier =
         computeUtxoSupplier(
             whirlpoolWallet, walletSupplier, utxoConfigSupplier, getDataSourceConfig());
+  }
+
+  protected static DataSourceConfig computeDataSourceConfig(
+      WhirlpoolWallet whirlpoolWallet, BipWalletSupplier bipWalletSupplier) throws Exception {
+    return new DataSourceConfig(
+        computeMinerFeeSupplier(whirlpoolWallet),
+        computeChainSupplier(),
+        computeBipFormatSupplier(),
+        bipWalletSupplier);
   }
 
   protected static BasicMinerFeeSupplier computeMinerFeeSupplier(WhirlpoolWallet whirlpoolWallet)
@@ -59,6 +73,10 @@ public abstract class WalletResponseDataSource extends AbstractDataSource {
 
   protected static BasicChainSupplier computeChainSupplier() throws Exception {
     return new BasicChainSupplier();
+  }
+
+  protected static BipFormatSupplier computeBipFormatSupplier() {
+    return BIP_FORMAT.PROVIDER;
   }
 
   protected BasicUtxoSupplier computeUtxoSupplier(
@@ -142,8 +160,8 @@ public abstract class WalletResponseDataSource extends AbstractDataSource {
   }
 
   @Override
-  public void open() throws Exception {
-    super.open();
+  public void open(CoordinatorSupplier coordinatorSupplier) throws Exception {
+    super.open(coordinatorSupplier);
 
     // data orchestrator
     runDataOrchestrator();

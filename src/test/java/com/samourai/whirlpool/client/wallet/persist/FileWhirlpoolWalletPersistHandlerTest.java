@@ -40,9 +40,9 @@ public class FileWhirlpoolWalletPersistHandlerTest extends AbstractTest {
   }
 
   private WhirlpoolUtxo computeUtxo(UnspentOutput utxo) {
-    WhirlpoolAccount whirlpoolAccount = WhirlpoolAccount.DEPOSIT;
-    WhirlpoolUtxoConfig utxoConfig = whirlpoolWallet.computeUtxoConfig(utxo, whirlpoolAccount);
-    return new WhirlpoolUtxo(utxo, whirlpoolAccount, utxoConfig, WhirlpoolUtxoStatus.READY);
+    SamouraiAccount samouraiAccount = SamouraiAccount.DEPOSIT;
+    WhirlpoolUtxoConfig utxoConfig = whirlpoolWallet.computeUtxoConfig(utxo, samouraiAccount);
+    return new WhirlpoolUtxo(utxo, samouraiAccount, utxoConfig, WhirlpoolUtxoStatus.READY);
   }
 
   @Test

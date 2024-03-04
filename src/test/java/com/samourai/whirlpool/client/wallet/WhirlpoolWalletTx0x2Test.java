@@ -3,8 +3,8 @@ package com.samourai.whirlpool.client.wallet;
 import com.samourai.wallet.api.backend.beans.UnspentOutput;
 import com.samourai.wallet.bipWallet.BipWallet;
 import com.samourai.wallet.cahoots.Cahoots;
-import com.samourai.wallet.constants.WhirlpoolAccount;
-import com.samourai.wallet.hd.BIP_WALLET;
+import com.samourai.wallet.constants.BIP_WALLET;
+import com.samourai.wallet.constants.SamouraiAccount;
 import com.samourai.wallet.send.UTXO;
 import com.samourai.whirlpool.client.test.AbstractCahootsTest;
 import com.samourai.whirlpool.client.tx0.Tx0;
@@ -66,7 +66,7 @@ public class WhirlpoolWalletTx0x2Test extends AbstractCahootsTest {
             coordinatorSupplier.getPools(),
             Tx0FeeTarget.BLOCKS_24,
             Tx0FeeTarget.BLOCKS_24,
-            WhirlpoolAccount.DEPOSIT);
+            SamouraiAccount.DEPOSIT);
 
     Tx0 tx0Initiator =
         asyncUtil.blockingGet(
@@ -144,7 +144,7 @@ public class WhirlpoolWalletTx0x2Test extends AbstractCahootsTest {
             coordinatorSupplier.getPools(),
             Tx0FeeTarget.BLOCKS_24,
             Tx0FeeTarget.BLOCKS_24,
-            WhirlpoolAccount.DEPOSIT);
+            SamouraiAccount.DEPOSIT);
     WhirlpoolApiClient whirlpoolApiClient = whirlpoolWallet.createWhirlpoolApiClient();
     Tx0 tx0Initiator =
         asyncUtil.blockingGet(

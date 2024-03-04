@@ -3,7 +3,7 @@ package com.samourai.whirlpool.client.wallet.data.walletState;
 import com.samourai.wallet.bipWallet.BipDerivation;
 import com.samourai.wallet.bipWallet.BipWallet;
 import com.samourai.wallet.client.indexHandler.IIndexHandler;
-import com.samourai.wallet.constants.WhirlpoolAccount;
+import com.samourai.wallet.constants.SamouraiAccount;
 import com.samourai.wallet.hd.Chain;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -22,7 +22,7 @@ public abstract class IndexHandlerManager {
   protected abstract IIndexHandler createIndexHandler(final String persistKey);
 
   protected String computePersistKeyWallet(
-      WhirlpoolAccount account, BipDerivation bipDerivation, Chain chain) {
+      SamouraiAccount account, BipDerivation bipDerivation, Chain chain) {
     return account.name() + "_" + bipDerivation.getPurpose() + "_" + chain.getIndex();
   }
 

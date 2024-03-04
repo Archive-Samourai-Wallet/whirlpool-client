@@ -1,10 +1,10 @@
 package com.samourai.whirlpool.client.wallet.data.dataSource;
 
-import com.samourai.wallet.bipFormat.BipFormatSupplier;
 import com.samourai.wallet.bipWallet.WalletSupplier;
 import com.samourai.wallet.bipWallet.WalletSupplierImpl;
 import com.samourai.wallet.hd.HD_Wallet;
 import com.samourai.whirlpool.client.wallet.WhirlpoolWallet;
+import com.samourai.whirlpool.client.wallet.data.coordinator.CoordinatorSupplier;
 import com.samourai.whirlpool.client.wallet.data.paynym.ExpirablePaynymSupplier;
 import com.samourai.whirlpool.client.wallet.data.paynym.PaynymSupplier;
 import com.samourai.whirlpool.client.wallet.data.walletState.WalletStateSupplier;
@@ -28,8 +28,7 @@ public abstract class AbstractDataSource implements DataSource {
       throws Exception {
     this.whirlpoolWallet = whirlpoolWallet;
     this.walletStateSupplier = walletStateSupplier;
-    this.walletSupplier =
-        computeWalletSupplier(bip44w, walletStateSupplier, dataSourceConfig.getBipFormatSupplier());
+    this.walletSupplier = computeWalletSupplier(bip44w, walletStateSupplier, dataSourceConfig);
     this.paynymSupplier = computePaynymSupplier(whirlpoolWallet, walletStateSupplier);
     this.dataSourceConfig = dataSourceConfig;
   }
@@ -40,17 +39,20 @@ public abstract class AbstractDataSource implements DataSource {
   }
 
   @Override
-  public void open() throws Exception {
+  public void open(CoordinatorSupplier coordinatorSupplier) throws Exception {
+    getUtxoSupplier()._setCoordinatorSupplier(coordinatorSupplier); // TODO
     // load initial data (or fail)
     load(true);
   }
 
   protected WalletSupplierImpl computeWalletSupplier(
-      HD_Wallet bip44w,
-      WalletStateSupplier walletStateSupplier,
-      BipFormatSupplier bipFormatSupplier)
+      HD_Wallet bip44w, WalletStateSupplier walletStateSupplier, DataSourceConfig dataSourceConfig)
       throws Exception {
-    return new WalletSupplierImpl(bipFormatSupplier, walletStateSupplier, bip44w);
+    return new WalletSupplierImpl(
+        dataSourceConfig.getBipFormatSupplier(),
+        walletStateSupplier,
+        bip44w,
+        dataSourceConfig.getBipWalletSupplier());
   }
 
   protected PaynymSupplier computePaynymSupplier(

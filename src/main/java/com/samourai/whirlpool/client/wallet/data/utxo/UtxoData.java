@@ -5,7 +5,7 @@ import com.samourai.wallet.api.backend.beans.WalletResponse;
 import com.samourai.wallet.bipFormat.BipFormat;
 import com.samourai.wallet.bipWallet.BipWallet;
 import com.samourai.wallet.bipWallet.WalletSupplier;
-import com.samourai.wallet.constants.WhirlpoolAccount;
+import com.samourai.wallet.constants.SamouraiAccount;
 import com.samourai.whirlpool.client.utils.ClientUtils;
 import com.samourai.whirlpool.client.wallet.beans.WhirlpoolUtxo;
 import com.samourai.whirlpool.client.wallet.beans.WhirlpoolUtxoChanges;
@@ -28,9 +28,9 @@ public class UtxoData {
   // computed by init()
   private Map<String, WhirlpoolUtxo> utxos;
   private Map<String, List<WhirlpoolUtxo>> utxosByAddress;
-  private Map<WhirlpoolAccount, List<WalletResponse.Tx>> txsByAccount;
+  private Map<SamouraiAccount, List<WalletResponse.Tx>> txsByAccount;
   private WhirlpoolUtxoChanges utxoChanges;
-  private Map<WhirlpoolAccount, Long> balanceByAccount;
+  private Map<SamouraiAccount, Long> balanceByAccount;
   private long balanceTotal;
 
   public UtxoData(UnspentOutput[] unspentOutputs, WalletResponse.Tx[] txs) {
@@ -46,14 +46,14 @@ public class UtxoData {
       Map<String, WhirlpoolUtxo> previousUtxos,
       int latestBlockHeight) {
     // txs
-    final Map<WhirlpoolAccount, List<WalletResponse.Tx>> freshTxs =
-        new LinkedHashMap<WhirlpoolAccount, List<WalletResponse.Tx>>();
-    for (WhirlpoolAccount account : WhirlpoolAccount.values()) {
+    final Map<SamouraiAccount, List<WalletResponse.Tx>> freshTxs =
+        new LinkedHashMap<SamouraiAccount, List<WalletResponse.Tx>>();
+    for (SamouraiAccount account : SamouraiAccount.values()) {
       freshTxs.put(account, new LinkedList<WalletResponse.Tx>());
     }
     for (WalletResponse.Tx tx : txs) {
-      Collection<WhirlpoolAccount> txAccounts = findTxAccounts(tx, walletSupplier);
-      for (WhirlpoolAccount txAccount : txAccounts) {
+      Collection<SamouraiAccount> txAccounts = findTxAccounts(tx, walletSupplier);
+      for (SamouraiAccount txAccount : txAccounts) {
         freshTxs.get(txAccount).add(tx);
       }
     }
@@ -110,12 +110,12 @@ public class UtxoData {
           if (bipWallet == null) {
             throw new Exception("Unknown wallet for: " + pub);
           }
-          WhirlpoolAccount whirlpoolAccount = bipWallet.getAccount();
+          SamouraiAccount samouraiAccount = bipWallet.getAccount();
 
           // auto-assign pool for mixable utxos
           String poolId = null;
           if (utxoSupplier.isMixableUtxo(utxo, bipWallet)) { //  exclude premix/postmix change
-            poolId = computeAutoAssignPoolId(whirlpoolAccount, utxo.value, poolSupplier);
+            poolId = computeAutoAssignPoolId(samouraiAccount, utxo.value, poolSupplier);
           }
 
           // add missing
@@ -141,9 +141,9 @@ public class UtxoData {
     }
 
     // compute balances
-    this.balanceByAccount = new LinkedHashMap<WhirlpoolAccount, Long>();
+    this.balanceByAccount = new LinkedHashMap<SamouraiAccount, Long>();
     long total = 0;
-    for (WhirlpoolAccount account : WhirlpoolAccount.values()) {
+    for (SamouraiAccount account : SamouraiAccount.values()) {
       Collection<WhirlpoolUtxo> utxosForAccount = findUtxos(account);
       long balance = WhirlpoolUtxo.sumValue(utxosForAccount);
       balanceByAccount.put(account, balance);
@@ -164,7 +164,7 @@ public class UtxoData {
   }
 
   private String computeAutoAssignPoolId(
-      WhirlpoolAccount account, long value, PoolSupplier poolSupplier) {
+      SamouraiAccount account, long value, PoolSupplier poolSupplier) {
     Collection<Pool> eligiblePools = new LinkedList<Pool>();
 
     // find eligible pools for tx0/premix/postmix
@@ -200,9 +200,9 @@ public class UtxoData {
     utxosByAddress.get(addr).add(whirlpoolUtxo);
   }
 
-  private Collection<WhirlpoolAccount> findTxAccounts(
+  private Collection<SamouraiAccount> findTxAccounts(
       WalletResponse.Tx tx, WalletSupplier walletSupplier) {
-    Set<WhirlpoolAccount> accounts = new LinkedHashSet<WhirlpoolAccount>();
+    Set<SamouraiAccount> accounts = new LinkedHashSet<SamouraiAccount>();
     // verify inputs
     for (WalletResponse.TxInput input : tx.inputs) {
       if (input.prev_out != null) {
@@ -228,8 +228,8 @@ public class UtxoData {
     return utxos;
   }
 
-  public Collection<WalletResponse.Tx> findTxs(WhirlpoolAccount whirlpoolAccount) {
-    return txsByAccount.get(whirlpoolAccount);
+  public Collection<WalletResponse.Tx> findTxs(SamouraiAccount samouraiAccount) {
+    return txsByAccount.get(samouraiAccount);
   }
 
   public WhirlpoolUtxoChanges getUtxoChanges() {
@@ -241,11 +241,11 @@ public class UtxoData {
     return utxos.get(utxoKey);
   }
 
-  public Collection<WhirlpoolUtxo> findUtxos(final WhirlpoolAccount... whirlpoolAccounts) {
+  public Collection<WhirlpoolUtxo> findUtxos(final SamouraiAccount... samouraiAccounts) {
     return utxos.values().stream()
         .filter(
             whirlpoolUtxo -> {
-              if (!ArrayUtils.contains(whirlpoolAccounts, whirlpoolUtxo.getAccount())) {
+              if (!ArrayUtils.contains(samouraiAccounts, whirlpoolUtxo.getAccount())) {
                 return false;
               }
               return true;
@@ -263,7 +263,7 @@ public class UtxoData {
 
   // balances
 
-  public long getBalance(WhirlpoolAccount account) {
+  public long getBalance(SamouraiAccount account) {
     return balanceByAccount.get(account);
   }
 

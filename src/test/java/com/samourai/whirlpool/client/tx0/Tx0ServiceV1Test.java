@@ -1,7 +1,7 @@
 package com.samourai.whirlpool.client.tx0;
 
 import com.samourai.wallet.api.backend.beans.UnspentOutput;
-import com.samourai.wallet.constants.WhirlpoolAccount;
+import com.samourai.wallet.constants.SamouraiAccount;
 import com.samourai.wallet.hd.HD_Address;
 import com.samourai.wallet.util.TxUtil;
 import com.samourai.whirlpool.client.wallet.beans.Tx0FeeTarget;
@@ -262,7 +262,7 @@ public class Tx0ServiceV1Test extends AbstractTx0ServiceTest {
             coordinatorSupplier.getPools(),
             Tx0FeeTarget.BLOCKS_24,
             Tx0FeeTarget.BLOCKS_24,
-            WhirlpoolAccount.DEPOSIT);
+            SamouraiAccount.DEPOSIT);
     int nbOutputsExpected = 10;
     long premixValue = 1000150;
     String feePaymentCode =
@@ -348,25 +348,25 @@ public class Tx0ServiceV1Test extends AbstractTx0ServiceTest {
     Bip84Wallet depositWallet =
         new Bip84Wallet(
             bip84w,
-            WhirlpoolAccount.DEPOSIT,
+            SamouraiAccount.DEPOSIT,
             new MemoryIndexHandler(),
             new MemoryIndexHandler());
     Bip84Wallet premixWallet =
         new Bip84Wallet(
             bip84w,
-            WhirlpoolAccount.PREMIX,
+            SamouraiAccount.PREMIX,
             new MemoryIndexHandler(),
             new MemoryIndexHandler());
     Bip84Wallet postmixWallet =
         new Bip84Wallet(
             bip84w,
-            WhirlpoolAccount.POSTMIX,
+            SamouraiAccount.POSTMIX,
             new MemoryIndexHandler(),
             new MemoryIndexHandler());
     Bip84Wallet badbankWallet =
         new Bip84Wallet(
             bip84w,
-            WhirlpoolAccount.BADBANK,
+            SamouraiAccount.BADBANK,
             new MemoryIndexHandler(),
             new MemoryIndexHandler());
     Tx0Config tx0Config = new Tx0Config();
@@ -497,7 +497,7 @@ public class Tx0ServiceV1Test extends AbstractTx0ServiceTest {
             coordinatorSupplier.getPools(),
             Tx0FeeTarget.BLOCKS_24,
             Tx0FeeTarget.BLOCKS_24,
-            WhirlpoolAccount.DEPOSIT);
+            SamouraiAccount.DEPOSIT);
     int nbOutputsExpected = 1;
     long premixValue = 1000150;
     String feePaymentCode =
@@ -581,7 +581,7 @@ public class Tx0ServiceV1Test extends AbstractTx0ServiceTest {
             coordinatorSupplier.getPools(),
             Tx0FeeTarget.BLOCKS_24,
             Tx0FeeTarget.BLOCKS_24,
-            WhirlpoolAccount.DEPOSIT);
+            SamouraiAccount.DEPOSIT);
     int nbOutputsExpected = 1;
     long premixValue = 1000150;
     String feePaymentCode =
@@ -665,7 +665,7 @@ public class Tx0ServiceV1Test extends AbstractTx0ServiceTest {
             coordinatorSupplier.getPools(),
             Tx0FeeTarget.BLOCKS_24,
             Tx0FeeTarget.BLOCKS_24,
-            WhirlpoolAccount.DEPOSIT);
+            SamouraiAccount.DEPOSIT);
     int nbOutputsExpected = 1;
     long premixValue = 1000150;
     String feePaymentCode =
@@ -748,7 +748,7 @@ public class Tx0ServiceV1Test extends AbstractTx0ServiceTest {
             coordinatorSupplier.getPools(),
             Tx0FeeTarget.BLOCKS_24,
             Tx0FeeTarget.BLOCKS_24,
-            WhirlpoolAccount.POSTMIX);
+            SamouraiAccount.POSTMIX);
     int nbOutputsExpected = 1;
     long premixValue = 1000150;
     String feePaymentCode =

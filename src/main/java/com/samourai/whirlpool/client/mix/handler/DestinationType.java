@@ -1,6 +1,6 @@
 package com.samourai.whirlpool.client.mix.handler;
 
-import com.samourai.wallet.constants.WhirlpoolAccount;
+import com.samourai.wallet.constants.SamouraiAccount;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -13,8 +13,8 @@ public enum DestinationType {
 
   private static final Logger log = LoggerFactory.getLogger(DestinationType.class);
 
-  public static DestinationType find(WhirlpoolAccount whirlpoolAccount) {
-    switch (whirlpoolAccount) {
+  public static DestinationType find(SamouraiAccount samouraiAccount) {
+    switch (samouraiAccount) {
       case DEPOSIT:
         return DestinationType.DEPOSIT;
       case PREMIX:
@@ -24,7 +24,7 @@ public enum DestinationType {
       case BADBANK:
         return DestinationType.BADBANK;
     }
-    log.error("Unknown DestinationType for WhirlpoolAccount: " + whirlpoolAccount);
+    log.error("Unknown DestinationType for SamouraiAccount: " + samouraiAccount);
     return null;
   }
 }

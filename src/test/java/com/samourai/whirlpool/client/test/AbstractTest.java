@@ -14,7 +14,8 @@ import com.samourai.wallet.bip47.rpc.secretPoint.ISecretPointFactory;
 import com.samourai.wallet.bipFormat.BIP_FORMAT;
 import com.samourai.wallet.bipFormat.BipFormatSupplier;
 import com.samourai.wallet.chain.ChainSupplier;
-import com.samourai.wallet.constants.WhirlpoolNetwork;
+import com.samourai.wallet.constants.BIP_WALLETS;
+import com.samourai.wallet.constants.SamouraiNetwork;
 import com.samourai.wallet.crypto.CryptoUtil;
 import com.samourai.wallet.hd.HD_Address;
 import com.samourai.wallet.hd.HD_WalletFactoryGeneric;
@@ -78,7 +79,7 @@ public class AbstractTest {
         return infoBlock;
       };
 
-  protected WhirlpoolNetwork whirlpoolNetwork = WhirlpoolNetwork.TESTNET;
+  protected SamouraiNetwork samouraiNetwork = SamouraiNetwork.TESTNET;
 
   protected OxtApi oxtApi;
 
@@ -98,7 +99,7 @@ public class AbstractTest {
   protected MinerFeeSupplier mockMinerFeeSupplier = mockMinerFeeSupplier();
   protected MockTx0PreviewService mockTx0PreviewService =
       new MockTx0PreviewService(
-          mockMinerFeeSupplier, new MockTx0PreviewServiceConfig(whirlpoolNetwork)) {};
+          mockMinerFeeSupplier, new MockTx0PreviewServiceConfig(samouraiNetwork)) {};
   protected CoordinatorSupplier coordinatorSupplier =
       new MockCoordinatorSupplier(mockTx0PreviewService, computeWhirlpoolWalletConfig());
 
@@ -107,9 +108,9 @@ public class AbstractTest {
       "tb1qfd0ukes4xw3xvxwhj9m53nt2huh75khrrdm5dv";
 
   public AbstractTest() throws Exception {
-    ClientUtils.setLogLevel(Level.DEBUG);
+    ClientUtils.setLogLevel(Level.DEBUG.toString());
 
-    httpClient = new JettyHttpClient(5000);
+    httpClient = new JettyHttpClient(5000, null, ClientUtils.USER_AGENT);
     oxtApi = new OxtApi(httpClient);
 
     pool01btc = new Pool();
@@ -207,7 +208,7 @@ public class AbstractTest {
 
   protected WhirlpoolWalletConfig computeWhirlpoolWalletConfig() {
     DataSourceFactory dataSourceFactory =
-        new DojoDataSourceFactory(BackendServer.TESTNET, false, null);
+        new DojoDataSourceFactory(BackendServer.TESTNET, false, null, BIP_WALLETS.WHIRLPOOL);
     ISecretPointFactory secretPointFactory = SecretPointFactoryJava.getInstance();
     IHttpClientService httpClientService = computeHttpClientService();
     CryptoUtil cryptoUtil = CryptoUtil.getInstanceJava();
@@ -223,7 +224,7 @@ public class AbstractTest {
             sorobanWalletService,
             httpClientService,
             bip47Util,
-            whirlpoolNetwork,
+            samouraiNetwork,
             false,
             false);
     config.setDataPersisterFactory(new MemoryDataPersisterFactory());

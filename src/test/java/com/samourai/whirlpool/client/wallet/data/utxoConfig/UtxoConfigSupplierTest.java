@@ -17,7 +17,7 @@ public class UtxoConfigSupplierTest extends UtxoSupplierTest {
     // mock initial data
     UnspentOutput[] utxos1 = new UnspentOutput[] {UTXO_DEPOSIT1, UTXO_PREMIX1, UTXO_POSTMIX1};
     setMockWalletResponse(utxos1);
-    dataSource.open();
+    dataSource.open(coordinatorSupplier);
 
     // verify
     doTest(utxos1);
@@ -41,7 +41,7 @@ public class UtxoConfigSupplierTest extends UtxoSupplierTest {
     // mock initial data
     UnspentOutput[] utxos1 = new UnspentOutput[] {UTXO_DEPOSIT1};
     setMockWalletResponse(utxos1);
-    dataSource.open();
+    dataSource.open(coordinatorSupplier);
 
     // verify
     doTest(utxos1);

@@ -6,7 +6,8 @@ import com.samourai.wallet.bipWallet.WalletSupplierImpl;
 import com.samourai.wallet.cahoots.*;
 import com.samourai.wallet.cahoots.manual.ManualCahootsMessage;
 import com.samourai.wallet.client.indexHandler.MemoryIndexHandlerSupplier;
-import com.samourai.wallet.hd.BIP_WALLET;
+import com.samourai.wallet.constants.BIP_WALLET;
+import com.samourai.wallet.constants.BIP_WALLETS;
 import com.samourai.wallet.hd.Chain;
 import com.samourai.wallet.hd.HD_Wallet;
 import com.samourai.wallet.send.provider.MockUtxoProvider;
@@ -66,7 +67,10 @@ public abstract class AbstractCahootsTest extends AbstractWhirlpoolWalletTest {
         TestUtil.computeBip84wallet(SEED_WORDS, SEED_PASSPHRASE_INITIATOR);
     walletSupplierSender =
         new WalletSupplierImpl(
-            bipFormatSupplier, new MemoryIndexHandlerSupplier(), bip84WalletSender);
+            bipFormatSupplier,
+            new MemoryIndexHandlerSupplier(),
+            bip84WalletSender,
+            BIP_WALLETS.WHIRLPOOL);
     utxoProviderSender = new MockUtxoProvider(params, walletSupplierSender);
     cahootsWalletSender =
         new CahootsWalletImpl(
@@ -76,7 +80,10 @@ public abstract class AbstractCahootsTest extends AbstractWhirlpoolWalletTest {
         TestUtil.computeBip84wallet(SEED_WORDS, SEED_PASSPHRASE_COUNTERPARTY);
     walletSupplierCounterparty =
         new WalletSupplierImpl(
-            bipFormatSupplier, new MemoryIndexHandlerSupplier(), bip84WalletCounterparty);
+            bipFormatSupplier,
+            new MemoryIndexHandlerSupplier(),
+            bip84WalletCounterparty,
+            BIP_WALLETS.WHIRLPOOL);
     utxoProviderCounterparty = new MockUtxoProvider(params, walletSupplierCounterparty);
     cahootsWalletCounterparty =
         new CahootsWalletImpl(

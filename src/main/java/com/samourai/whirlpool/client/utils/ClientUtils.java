@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.samourai.wallet.api.backend.beans.HttpException;
 import com.samourai.wallet.api.backend.beans.UnspentOutput;
+import com.samourai.wallet.bip47.rpc.PaymentCode;
 import com.samourai.wallet.client.indexHandler.IIndexHandler;
 import com.samourai.wallet.segwit.bech32.Bech32UtilGeneric;
 import com.samourai.wallet.util.*;
@@ -365,5 +366,9 @@ public class ClientUtils {
 
   public static byte[] generateBordereau() {
     return RandomUtil.getInstance().nextBytes(BORDEREAU_LENGTH);
+  }
+
+  public static String shortSender(PaymentCode sender) {
+    return sender.toString().substring(0, 10);
   }
 }

@@ -7,7 +7,7 @@ import com.samourai.wallet.bipFormat.BipFormatSupplier;
 import com.samourai.wallet.bipWallet.BipWallet;
 import com.samourai.wallet.bipWallet.KeyBag;
 import com.samourai.wallet.bipWallet.WalletSupplier;
-import com.samourai.wallet.hd.BIP_WALLET;
+import com.samourai.wallet.constants.BIP_WALLET;
 import com.samourai.wallet.hd.BipAddress;
 import com.samourai.wallet.hd.HD_Address;
 import com.samourai.wallet.segwit.bech32.Bech32UtilGeneric;

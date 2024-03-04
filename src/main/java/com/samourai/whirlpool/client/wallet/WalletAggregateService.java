@@ -4,7 +4,7 @@ import com.samourai.wallet.api.backend.MinerFeeTarget;
 import com.samourai.wallet.api.backend.beans.UnspentOutput;
 import com.samourai.wallet.bip69.BIP69InputComparator;
 import com.samourai.wallet.bipWallet.BipWallet;
-import com.samourai.wallet.constants.WhirlpoolAccount;
+import com.samourai.wallet.constants.SamouraiAccount;
 import com.samourai.wallet.segwit.bech32.Bech32UtilGeneric;
 import com.samourai.wallet.send.SendFactoryGeneric;
 import com.samourai.wallet.util.FeeUtil;
@@ -42,19 +42,19 @@ public class WalletAggregateService {
   }
 
   private boolean toWallet(
-      WhirlpoolAccount sourceAccount, BipWallet destinationWallet, int feeSatPerByte)
+      SamouraiAccount sourceAccount, BipWallet destinationWallet, int feeSatPerByte)
       throws Exception {
     return doAggregate(sourceAccount, null, destinationWallet, feeSatPerByte);
   }
 
-  public boolean toAddress(WhirlpoolAccount sourceAccount, String destinationAddress)
+  public boolean toAddress(SamouraiAccount sourceAccount, String destinationAddress)
       throws Exception {
     int feeSatPerByte = whirlpoolWallet.getMinerFeeSupplier().getFee(MinerFeeTarget.BLOCKS_2);
     return doAggregate(sourceAccount, destinationAddress, null, feeSatPerByte);
   }
 
   private boolean doAggregate(
-      WhirlpoolAccount sourceAccount,
+      SamouraiAccount sourceAccount,
       String destinationAddress,
       BipWallet destinationWallet,
       int feeSatPerByte)
@@ -180,14 +180,14 @@ public class WalletAggregateService {
 
     // consolidate each account to deposit
     int feeSatPerByte = whirlpoolWallet.getMinerFeeSupplier().getFee(MinerFeeTarget.BLOCKS_2);
-    for (WhirlpoolAccount account : WhirlpoolAccount.values()) {
+    for (SamouraiAccount account : SamouraiAccount.values()) {
       log.info(" • Consolidating " + account + " -> " + destinationWallet.getId() + "...");
       if (toWallet(account, destinationWallet, feeSatPerByte)) {
         success = true;
       }
     }
 
-    if (whirlpoolWallet.getUtxoSupplier().findUtxos(WhirlpoolAccount.DEPOSIT).size() < 2) {
+    if (whirlpoolWallet.getUtxoSupplier().findUtxos(SamouraiAccount.DEPOSIT).size() < 2) {
       log.info(" • Consolidating deposit... nothing to aggregate.");
       return false;
     }

@@ -9,7 +9,8 @@ import com.samourai.wallet.api.backend.seenBackend.ISeenBackend;
 import com.samourai.wallet.api.backend.seenBackend.SeenBackendWithFallback;
 import com.samourai.wallet.api.backend.websocket.BackendWsApi;
 import com.samourai.wallet.bipFormat.BIP_FORMAT;
-import com.samourai.wallet.constants.WhirlpoolAccount;
+import com.samourai.wallet.bipWallet.BipWalletSupplier;
+import com.samourai.wallet.constants.SamouraiAccount;
 import com.samourai.wallet.hd.HD_Wallet;
 import com.samourai.wallet.util.MessageListener;
 import com.samourai.whirlpool.client.exception.NotifiableException;
@@ -17,6 +18,7 @@ import com.samourai.whirlpool.client.utils.ClientUtils;
 import com.samourai.whirlpool.client.wallet.WhirlpoolWallet;
 import com.samourai.whirlpool.client.wallet.beans.MixableStatus;
 import com.samourai.whirlpool.client.wallet.beans.WhirlpoolUtxo;
+import com.samourai.whirlpool.client.wallet.data.coordinator.CoordinatorSupplier;
 import com.samourai.whirlpool.client.wallet.data.utxoConfig.UtxoConfigSupplier;
 import com.samourai.whirlpool.client.wallet.data.walletState.WalletStateSupplier;
 import java.util.Collection;
@@ -44,14 +46,15 @@ public class DojoDataSource extends WalletResponseDataSource {
       HD_Wallet bip44w,
       WalletStateSupplier walletStateSupplier,
       UtxoConfigSupplier utxoConfigSupplier,
+      BipWalletSupplier bipWalletSupplier,
       BackendApi backendApi,
       BackendWsApi backendWsApi)
       throws Exception {
-    super(whirlpoolWallet, bip44w, walletStateSupplier, utxoConfigSupplier);
+    super(whirlpoolWallet, bip44w, walletStateSupplier, utxoConfigSupplier, bipWalletSupplier);
 
     this.backendApi = backendApi;
     this.backendWsApi = backendWsApi;
-    NetworkParameters params = whirlpoolWallet.getConfig().getWhirlpoolNetwork().getParams();
+    NetworkParameters params = whirlpoolWallet.getConfig().getSamouraiNetwork().getParams();
     this.seenBackend = SeenBackendWithFallback.withOxt(backendApi, params);
   }
 
@@ -83,7 +86,7 @@ public class DojoDataSource extends WalletResponseDataSource {
 
   public void resyncMixsDone() {
     // only resync if we have remixable utxos
-    Collection<WhirlpoolUtxo> postmixUtxos = getUtxoSupplier().findUtxos(WhirlpoolAccount.POSTMIX);
+    Collection<WhirlpoolUtxo> postmixUtxos = getUtxoSupplier().findUtxos(SamouraiAccount.POSTMIX);
     if (!filterRemixableUtxos(postmixUtxos).isEmpty()) {
       // there are remixable postmix utxos
       if (log.isDebugEnabled()) {
@@ -157,8 +160,8 @@ public class DojoDataSource extends WalletResponseDataSource {
   }
 
   @Override
-  public void open() throws Exception {
-    super.open();
+  public void open(CoordinatorSupplier coordinatorSupplier) throws Exception {
+    super.open(coordinatorSupplier);
 
     if (backendWsApi != null) {
       this.startBackendWsApi();

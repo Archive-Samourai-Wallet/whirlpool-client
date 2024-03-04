@@ -44,7 +44,7 @@ public class MockCoordinatorSupplier extends ExpirableCoordinatorSupplier {
                             "PM8TJbDtnHjxaFrFUeFcyRDrR3yhedohPPMqdkcy56vrU6gcyPykqyYBpA8Uk85uVwhKgnqj6W9TkPMJmBSYPZw7VPTAZKYe2CXZMoq6J9mdMDLchCdE")))
             .collect(Collectors.toList());
     SorobanServerDex sorobanServerDex =
-        SorobanServerDex.get(config.getWhirlpoolNetwork().getParams());
+        SorobanServerDex.get(config.getSamouraiNetwork().getParams());
     for (Pair<CoordinatorMessage, PaymentCode> pair : pairs) {
       pair.getLeft().sorobanInfo =
           new SorobanInfo(

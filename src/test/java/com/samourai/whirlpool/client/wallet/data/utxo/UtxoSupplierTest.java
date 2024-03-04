@@ -6,7 +6,8 @@ import com.samourai.wallet.api.backend.ISweepBackend;
 import com.samourai.wallet.api.backend.beans.UnspentOutput;
 import com.samourai.wallet.api.backend.beans.WalletResponse;
 import com.samourai.wallet.api.backend.seenBackend.ISeenBackend;
-import com.samourai.wallet.constants.WhirlpoolAccount;
+import com.samourai.wallet.constants.BIP_WALLETS;
+import com.samourai.wallet.constants.SamouraiAccount;
 import com.samourai.wallet.hd.HD_Wallet;
 import com.samourai.wallet.util.MessageListener;
 import com.samourai.whirlpool.client.event.UtxoChangesEvent;
@@ -70,7 +71,8 @@ public class UtxoSupplierTest extends AbstractTest {
             whirlpoolWallet,
             bip44w,
             dataPersister.getWalletStateSupplier(),
-            dataPersister.getUtxoConfigSupplier()) {
+            dataPersister.getUtxoConfigSupplier(),
+            BIP_WALLETS.WHIRLPOOL) {
           @Override
           protected WalletResponse fetchWalletResponse() throws Exception {
             if (mockException) {
@@ -124,7 +126,7 @@ public class UtxoSupplierTest extends AbstractTest {
     // mock initial data
     UnspentOutput[] utxos1 = new UnspentOutput[] {UTXO_DEPOSIT1, UTXO_PREMIX1, UTXO_POSTMIX1};
     setMockWalletResponse(utxos1);
-    dataSource.open();
+    dataSource.open(coordinatorSupplier);
 
     // verify
     doTest(utxos1);
@@ -157,7 +159,7 @@ public class UtxoSupplierTest extends AbstractTest {
 
     // verify
     try {
-      dataSource.open();
+      dataSource.open(coordinatorSupplier);
       Assertions.assertTrue(false);
     } catch (Exception e) {
       Assertions.assertEquals("utxos not available", e.getMessage());
@@ -169,7 +171,7 @@ public class UtxoSupplierTest extends AbstractTest {
     // mock initial data
     UnspentOutput[] utxos1 = new UnspentOutput[] {UTXO_DEPOSIT1, UTXO_PREMIX1, UTXO_POSTMIX1};
     setMockWalletResponse(utxos1);
-    dataSource.open();
+    dataSource.open(coordinatorSupplier);
 
     // verify
     doTest(utxos1);
@@ -193,7 +195,7 @@ public class UtxoSupplierTest extends AbstractTest {
   }
 
   protected void doTest(UnspentOutput[] expected) throws Exception {
-    assertUtxoEquals(expected, utxoSupplier.findUtxos(WhirlpoolAccount.values()));
+    assertUtxoEquals(expected, utxoSupplier.findUtxos(SamouraiAccount.values()));
   }
 
   protected void assertUtxoChanges(

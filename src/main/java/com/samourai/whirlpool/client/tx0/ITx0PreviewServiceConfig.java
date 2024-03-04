@@ -1,9 +1,9 @@
 package com.samourai.whirlpool.client.tx0;
 
-import com.samourai.wallet.constants.WhirlpoolNetwork;
+import com.samourai.wallet.constants.SamouraiNetwork;
 
 public interface ITx0PreviewServiceConfig {
-  WhirlpoolNetwork getWhirlpoolNetwork();
+  SamouraiNetwork getSamouraiNetwork();
 
   Long getOverspend(String poolId);
 

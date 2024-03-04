@@ -7,7 +7,7 @@ import com.samourai.wallet.api.backend.seenBackend.ISeenBackend;
 import com.samourai.wallet.api.backend.seenBackend.SeenResponse;
 import com.samourai.wallet.bipWallet.BipWallet;
 import com.samourai.wallet.client.indexHandler.MemoryIndexHandlerSupplier;
-import com.samourai.wallet.hd.BIP_WALLET;
+import com.samourai.wallet.constants.BIP_WALLET;
 import com.samourai.wallet.hd.HD_Wallet;
 import com.samourai.wallet.hd.HD_WalletFactoryGeneric;
 import com.samourai.whirlpool.client.exception.PostmixIndexAlreadyUsedException;
@@ -36,9 +36,7 @@ public class PostmixIndexServiceTest extends AbstractTest {
     byte[] seed = hdWalletFactory.computeSeedFromWords(SEED_WORDS);
     HD_Wallet bip44w =
         HD_WalletFactoryGeneric.getInstance().getBIP44(seed, SEED_PASSPHRASE, params);
-    BipWallet walletPostmix =
-        new BipWallet(
-            bipFormatSupplier, bip44w, new MemoryIndexHandlerSupplier(), BIP_WALLET.POSTMIX_BIP84);
+    BipWallet walletPostmix =BIP_WALLET.POSTMIX_BIP84.newBipWallet(bipFormatSupplier, bip44w, new MemoryIndexHandlerSupplier());
     postmixHandler = new Bip84PostmixHandler(params, walletPostmix, IndexRange.EVEN);
 
     WhirlpoolWalletConfig config = computeWhirlpoolWalletConfig();

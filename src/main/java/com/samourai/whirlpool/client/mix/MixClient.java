@@ -42,7 +42,7 @@ public class MixClient {
 
     this.mixProcess =
         new MixProcess(
-            config.getWhirlpoolNetwork().getParams(),
+            config.getSamouraiNetwork().getParams(),
             mixParams.getPoolId(),
             mixParams.getDenomination(),
             mixParams.getMustMixBalanceMin(),
@@ -223,10 +223,12 @@ public class MixClient {
     switch (mixResult.mixStatus) {
       case SUCCESS:
         onMixSuccess();
+        break;
 
       case FAIL:
         // mix failed
         onMixFail(((MixStatusResponseFail) mixResult).blame);
+        break;
     }
   }
 

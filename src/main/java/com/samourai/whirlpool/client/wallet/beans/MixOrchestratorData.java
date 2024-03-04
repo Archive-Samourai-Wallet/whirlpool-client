@@ -2,7 +2,7 @@ package com.samourai.whirlpool.client.wallet.beans;
 
 import com.samourai.wallet.api.backend.beans.UnspentOutput;
 import com.samourai.wallet.chain.ChainSupplier;
-import com.samourai.wallet.constants.WhirlpoolAccount;
+import com.samourai.wallet.constants.SamouraiAccount;
 import com.samourai.whirlpool.client.utils.ClientUtils;
 import com.samourai.whirlpool.client.wallet.data.pool.PoolSupplier;
 import com.samourai.whirlpool.client.wallet.data.utxo.UtxoSupplier;
@@ -41,7 +41,7 @@ public class MixOrchestratorData {
   }
 
   public Stream<WhirlpoolUtxo> getQueue() {
-    return utxoSupplier.findUtxos(WhirlpoolAccount.PREMIX, WhirlpoolAccount.POSTMIX).stream()
+    return utxoSupplier.findUtxos(SamouraiAccount.PREMIX, SamouraiAccount.POSTMIX).stream()
         .filter(
             whirlpoolUtxo -> {
               // queued

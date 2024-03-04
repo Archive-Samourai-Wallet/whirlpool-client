@@ -1,7 +1,7 @@
 package com.samourai.whirlpool.client.mix.handler;
 
 import com.samourai.wallet.bipWallet.BipWallet;
-import com.samourai.wallet.hd.BIP_WALLET;
+import com.samourai.wallet.constants.BIP_WALLET;
 import com.samourai.wallet.hd.HD_Wallet;
 import com.samourai.whirlpool.client.test.AbstractTest;
 import com.samourai.whirlpool.client.wallet.beans.IndexRange;
@@ -27,8 +27,7 @@ public class Bip84PostmixHandlerTest extends AbstractTest {
     HD_Wallet bip84w = hdWalletFactory.getBIP84(seed, SEED_PASSPHRASE, params);
 
     WalletStateSupplier walletStateSupplier = computeWalletStateSupplier();
-    bipWallet =
-        new BipWallet(bipFormatSupplier, bip84w, walletStateSupplier, BIP_WALLET.POSTMIX_BIP84);
+    bipWallet =BIP_WALLET.POSTMIX_BIP84.newBipWallet(bipFormatSupplier, bip84w, walletStateSupplier);
   }
 
   @Test

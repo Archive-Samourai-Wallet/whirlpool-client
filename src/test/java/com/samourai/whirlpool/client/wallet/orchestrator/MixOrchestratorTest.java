@@ -33,15 +33,15 @@ public class MixOrchestratorTest extends AbstractTest {
 
   protected void init(Integer maxClients, int maxClientsPerPool) throws Exception {
     utxos = new LinkedList<WhirlpoolUtxo>();
-    utxos.add(newUtxo(POOL_001, WhirlpoolAccount.PREMIX, "0.01btcPremix0conf", 0, null));
-    utxos.add(newUtxo(POOL_001, WhirlpoolAccount.PREMIX, "0.01btcPremix10conf", 10, null));
-    utxos.add(newUtxo(POOL_001, WhirlpoolAccount.PREMIX, "0.01btcPremix5confError", 5, 3L));
-    utxos.add(newUtxo(POOL_001, WhirlpoolAccount.PREMIX, "0.01btcPremix1conf", 1, null));
+    utxos.add(newUtxo(POOL_001, SamouraiAccount.PREMIX, "0.01btcPremix0conf", 0, null));
+    utxos.add(newUtxo(POOL_001, SamouraiAccount.PREMIX, "0.01btcPremix10conf", 10, null));
+    utxos.add(newUtxo(POOL_001, SamouraiAccount.PREMIX, "0.01btcPremix5confError", 5, 3L));
+    utxos.add(newUtxo(POOL_001, SamouraiAccount.PREMIX, "0.01btcPremix1conf", 1, null));
 
-    utxos.add(newUtxo(POOL_001, WhirlpoolAccount.POSTMIX, "0.01btcPostmix0conf", 0, null));
-    utxos.add(newUtxo(POOL_001, WhirlpoolAccount.POSTMIX, "0.01btcPostmix10conf", 10, null));
-    utxos.add(newUtxo(POOL_001, WhirlpoolAccount.POSTMIX, "0.01btcPostmix5confError", 5, 3L));
-    utxos.add(newUtxo(POOL_001, WhirlpoolAccount.POSTMIX, "0.01btcPostmix1conf", 1, null));
+    utxos.add(newUtxo(POOL_001, SamouraiAccount.POSTMIX, "0.01btcPostmix0conf", 0, null));
+    utxos.add(newUtxo(POOL_001, SamouraiAccount.POSTMIX, "0.01btcPostmix10conf", 10, null));
+    utxos.add(newUtxo(POOL_001, SamouraiAccount.POSTMIX, "0.01btcPostmix5confError", 5, 3L));
+    utxos.add(newUtxo(POOL_001, SamouraiAccount.POSTMIX, "0.01btcPostmix1conf", 1, null));
 
     data =
         new MixOrchestratorData(mixingState) {
@@ -163,7 +163,7 @@ public class MixOrchestratorTest extends AbstractTest {
     Assertions.assertNotNull(data.getMixing(utxo.getUtxo())); // mixing
 
     // new utxo
-    utxo = newUtxo(POOL_001, WhirlpoolAccount.PREMIX, "0.01btcPremix9confNew", 9, null);
+    utxo = newUtxo(POOL_001, SamouraiAccount.PREMIX, "0.01btcPremix9confNew", 9, null);
     utxos.add(utxo);
     Assertions.assertNull(data.getMixing(utxo.getUtxo())); // not mixing
     {
@@ -218,7 +218,7 @@ public class MixOrchestratorTest extends AbstractTest {
 
     // adding same priority utxo doesn't change anything
     WhirlpoolUtxo newUtxo =
-        newUtxo(POOL_001, WhirlpoolAccount.PREMIX, "0.01btcPremix10confNew", 10, null);
+        newUtxo(POOL_001, SamouraiAccount.PREMIX, "0.01btcPremix10confNew", 10, null);
     utxos.add(newUtxo);
     {
       WhirlpoolUtxoChanges whirlpoolUtxoChanges = new WhirlpoolUtxoChanges(false);

@@ -1,6 +1,6 @@
 package com.samourai.whirlpool.client.wallet.orchestrator;
 
-import com.samourai.wallet.constants.WhirlpoolAccount;
+import com.samourai.wallet.constants.SamouraiAccount;
 import com.samourai.wallet.util.AbstractOrchestrator;
 import com.samourai.whirlpool.client.exception.AutoTx0InsufficientBalanceException;
 import com.samourai.whirlpool.client.exception.NotifiableException;
@@ -71,12 +71,12 @@ public class AutoTx0Orchestrator extends AbstractOrchestrator {
       throws Exception { // throws AutoMixInsufficientBalanceException
 
     // spend TX0 from all non-PREMIX accounts when --auto-tx0-aggregate
-    WhirlpoolAccount[] accounts =
+    SamouraiAccount[] accounts =
         config.isAutoTx0Aggregate()
-            ? new WhirlpoolAccount[] {
-              WhirlpoolAccount.DEPOSIT, WhirlpoolAccount.POSTMIX, WhirlpoolAccount.BADBANK
+            ? new SamouraiAccount[] {
+              SamouraiAccount.DEPOSIT, SamouraiAccount.POSTMIX, SamouraiAccount.BADBANK
             }
-            : new WhirlpoolAccount[] {WhirlpoolAccount.DEPOSIT};
+            : new SamouraiAccount[] {SamouraiAccount.DEPOSIT};
     Collection<WhirlpoolUtxo> spendFroms = whirlpoolWallet.getUtxoSupplier().findUtxos(accounts);
 
     // find ready DEPOSITS
@@ -107,7 +107,7 @@ public class AutoTx0Orchestrator extends AbstractOrchestrator {
   private long computeTotalUnconfirmedDeposits() {
     final int latestBlockHeight = whirlpoolWallet.getChainSupplier().getLatestBlock().height;
     return WhirlpoolUtxo.sumValue(
-        whirlpoolWallet.getUtxoSupplier().findUtxos(WhirlpoolAccount.DEPOSIT).stream()
+        whirlpoolWallet.getUtxoSupplier().findUtxos(SamouraiAccount.DEPOSIT).stream()
             .filter(
                 whirlpoolUtxo -> {
                   // find unconfirmed utxos
@@ -146,7 +146,7 @@ public class AutoTx0Orchestrator extends AbstractOrchestrator {
     // do we have enough premix to mix at full speed?
     int maxClients = Math.min(config.getMaxClients(), config.getMaxClientsPerPool());
     long minQueueBalance = autoMixDenomination * maxClients;
-    long totalPremix = whirlpoolWallet.getUtxoSupplier().getBalance(WhirlpoolAccount.PREMIX);
+    long totalPremix = whirlpoolWallet.getUtxoSupplier().getBalance(SamouraiAccount.PREMIX);
     if (log.isDebugEnabled()) {
       log.debug(
           "totalPremix="
@@ -214,13 +214,13 @@ public class AutoTx0Orchestrator extends AbstractOrchestrator {
         log.debug(
             "Balances: deposit="
                 + ClientUtils.satToBtc(
-                    whirlpoolWallet.getUtxoSupplier().getBalance(WhirlpoolAccount.DEPOSIT))
+                    whirlpoolWallet.getUtxoSupplier().getBalance(SamouraiAccount.DEPOSIT))
                 + ", premix="
                 + ClientUtils.satToBtc(
-                    whirlpoolWallet.getUtxoSupplier().getBalance(WhirlpoolAccount.PREMIX))
+                    whirlpoolWallet.getUtxoSupplier().getBalance(SamouraiAccount.PREMIX))
                 + ", postmix="
                 + ClientUtils.satToBtc(
-                    whirlpoolWallet.getUtxoSupplier().getBalance(WhirlpoolAccount.POSTMIX))
+                    whirlpoolWallet.getUtxoSupplier().getBalance(SamouraiAccount.POSTMIX))
                 + ", total="
                 + ClientUtils.satToBtc(whirlpoolWallet.getUtxoSupplier().getBalanceTotal()));
       }

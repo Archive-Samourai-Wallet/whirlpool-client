@@ -2,7 +2,7 @@ package com.samourai.whirlpool.client.wallet.data.walletState;
 
 import com.samourai.wallet.bipWallet.BipWallet;
 import com.samourai.wallet.client.indexHandler.IIndexHandler;
-import com.samourai.wallet.hd.BIP_WALLET;
+import com.samourai.wallet.constants.BIP_WALLET;
 import com.samourai.wallet.hd.Chain;
 import com.samourai.wallet.hd.HD_Wallet;
 import com.samourai.wallet.hd.HD_WalletFactoryGeneric;
@@ -31,7 +31,7 @@ public class WalletStatePersistableSupplierTest extends AbstractTest {
     HD_Wallet bip44w =
         HD_WalletFactoryGeneric.getInstance().getBIP44(seed, SEED_PASSPHRASE, params);
     walletPostmix =
-        new BipWallet(bipFormatSupplier, bip44w, walletStateSupplier, BIP_WALLET.POSTMIX_BIP84);
+        BIP_WALLET.POSTMIX_BIP84.newBipWallet(bipFormatSupplier, bip44w, walletStateSupplier);
   }
 
   @Test

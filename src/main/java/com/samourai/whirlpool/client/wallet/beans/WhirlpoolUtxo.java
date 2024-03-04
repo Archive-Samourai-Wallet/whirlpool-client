@@ -3,7 +3,7 @@ package com.samourai.whirlpool.client.wallet.beans;
 import com.samourai.wallet.api.backend.beans.UnspentOutput;
 import com.samourai.wallet.bipFormat.BipFormat;
 import com.samourai.wallet.bipWallet.BipWallet;
-import com.samourai.wallet.constants.WhirlpoolAccount;
+import com.samourai.wallet.constants.SamouraiAccount;
 import com.samourai.wallet.hd.BipAddress;
 import com.samourai.whirlpool.client.wallet.data.utxoConfig.UtxoConfig;
 import com.samourai.whirlpool.client.wallet.data.utxoConfig.UtxoConfigPersisted;
@@ -99,7 +99,7 @@ public class WhirlpoolUtxo {
   public UtxoConfig getUtxoConfigOrDefault() {
     UtxoConfig utxoConfig = utxoConfigSupplier.getUtxo(utxo.tx_hash, utxo.tx_output_n);
     if (utxoConfig == null) {
-      int mixsDone = WhirlpoolAccount.POSTMIX.equals(getAccount()) ? 1 : 0;
+      int mixsDone = SamouraiAccount.POSTMIX.equals(getAccount()) ? 1 : 0;
       utxoConfig = new UtxoConfigPersisted(mixsDone);
     }
     return utxoConfig;
@@ -145,7 +145,7 @@ public class WhirlpoolUtxo {
     return bipFormat;
   }
 
-  public WhirlpoolAccount getAccount() {
+  public SamouraiAccount getAccount() {
     return bipWallet.getAccount();
   }
 
@@ -154,15 +154,15 @@ public class WhirlpoolUtxo {
   }
 
   public boolean isAccountDeposit() {
-    return WhirlpoolAccount.DEPOSIT.equals(getAccount());
+    return SamouraiAccount.DEPOSIT.equals(getAccount());
   }
 
   public boolean isAccountPremix() {
-    return WhirlpoolAccount.PREMIX.equals(getAccount());
+    return SamouraiAccount.PREMIX.equals(getAccount());
   }
 
   public boolean isAccountPostmix() {
-    return WhirlpoolAccount.POSTMIX.equals(getAccount());
+    return SamouraiAccount.POSTMIX.equals(getAccount());
   }
 
   public String getPathAddress() {

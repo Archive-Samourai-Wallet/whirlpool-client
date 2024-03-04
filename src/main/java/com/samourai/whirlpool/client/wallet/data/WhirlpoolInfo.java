@@ -43,7 +43,7 @@ public class WhirlpoolInfo {
     this.tx0PreviewService = computeTx0PreviewService(minerFeeSupplier, whirlpoolWalletConfig);
     this.rpcClientService =
         whirlpoolWalletConfig.getSorobanWalletService().getSorobanService().getRpcClientService();
-    this.sorobanAppWhirlpool = new SorobanAppWhirlpool(whirlpoolWalletConfig.getWhirlpoolNetwork());
+    this.sorobanAppWhirlpool = new SorobanAppWhirlpool(whirlpoolWalletConfig.getSamouraiNetwork());
     this.coordinatorSupplier =
         computeCoordinatorSupplier(
             whirlpoolWalletConfig, tx0PreviewService, rpcClientService, sorobanAppWhirlpool);

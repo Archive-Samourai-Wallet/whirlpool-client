@@ -5,7 +5,7 @@ import com.samourai.soroban.client.wallet.SorobanWalletService;
 import com.samourai.wallet.bip47.BIP47UtilGeneric;
 import com.samourai.wallet.bip47.rpc.java.Bip47UtilJava;
 import com.samourai.wallet.bip47.rpc.secretPoint.ISecretPointFactory;
-import com.samourai.wallet.constants.WhirlpoolNetwork;
+import com.samourai.wallet.constants.SamouraiNetwork;
 import com.samourai.wallet.crypto.CryptoUtil;
 import com.samourai.wallet.httpClient.HttpUsage;
 import com.samourai.wallet.httpClient.IHttpClientService;
@@ -80,7 +80,7 @@ public class WhirlpoolWalletConfig extends WhirlpoolClientConfig
       SorobanWalletService sorobanWalletService,
       IHttpClientService httpClientService,
       BIP47UtilGeneric bip47Util,
-      WhirlpoolNetwork whirlpoolNetwork,
+      SamouraiNetwork samouraiNetwork,
       boolean mobile,
       boolean onion) {
     // Android => odd indexs, CLI => even indexs
@@ -89,7 +89,7 @@ public class WhirlpoolWalletConfig extends WhirlpoolClientConfig
         bip47Util,
         cryptoUtil,
         null,
-        whirlpoolNetwork,
+        samouraiNetwork,
         mobile ? IndexRange.ODD : IndexRange.EVEN,
         onion);
 
@@ -146,14 +146,14 @@ public class WhirlpoolWalletConfig extends WhirlpoolClientConfig
         sorobanConfig.getSorobanWalletService(),
         sorobanConfig.getExtLibJConfig().getHttpClientService(),
         sorobanConfig.getExtLibJConfig().getBip47Util(),
-        sorobanConfig.getExtLibJConfig().getWhirlpoolNetwork(),
+        sorobanConfig.getExtLibJConfig().getSamouraiNetwork(),
         sorobanConfig.getExtLibJConfig().isOnion(),
         mobile);
   }
 
   public void verify() throws Exception {
     boolean isTestnet =
-        FormatsUtilGeneric.getInstance().isTestNet(getWhirlpoolNetwork().getParams());
+        FormatsUtilGeneric.getInstance().isTestNet(getSamouraiNetwork().getParams());
 
     // require testnet for autoTx0Aggregate
     if (autoTx0Aggregate && !isTestnet) {
@@ -182,7 +182,7 @@ public class WhirlpoolWalletConfig extends WhirlpoolClientConfig
   }
 
   public XManagerClient computeXManagerClient() {
-    boolean testnet = FormatsUtilGeneric.getInstance().isTestNet(getWhirlpoolNetwork().getParams());
+    boolean testnet = FormatsUtilGeneric.getInstance().isTestNet(getSamouraiNetwork().getParams());
     return new XManagerClient(
         getHttpClientService().getHttpClient(HttpUsage.BACKEND), testnet, false);
   }
@@ -442,7 +442,7 @@ public class WhirlpoolWalletConfig extends WhirlpoolClientConfig
     configInfo.put(
         "server",
         "network="
-            + getWhirlpoolNetwork().getParams().getPaymentProtocolId()
+            + getSamouraiNetwork().getParams().getPaymentProtocolId()
             + ", torOnionCoordinator="
             + Boolean.toString(isTorOnionCoordinator()));
     configInfo.put(

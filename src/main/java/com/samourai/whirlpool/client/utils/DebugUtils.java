@@ -6,7 +6,7 @@ import com.samourai.wallet.api.backend.beans.WalletResponse;
 import com.samourai.wallet.api.paynym.beans.PaynymContact;
 import com.samourai.wallet.api.paynym.beans.PaynymState;
 import com.samourai.wallet.bipWallet.BipWallet;
-import com.samourai.wallet.constants.WhirlpoolAccount;
+import com.samourai.wallet.constants.SamouraiAccount;
 import com.samourai.wallet.hd.BipAddress;
 import com.samourai.wallet.hd.Chain;
 import com.samourai.wallet.util.Util;
@@ -66,7 +66,7 @@ public class DebugUtils {
     // balance
     sb.append("⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿" + "\n");
     sb.append("⣿ WALLET:" + "\n");
-    for (WhirlpoolAccount account : WhirlpoolAccount.values()) {
+    for (SamouraiAccount account : SamouraiAccount.values()) {
       Collection<WhirlpoolUtxo> utxos = whirlpoolWallet.getUtxoSupplier().findUtxos(account);
       sb.append(
           " • "
@@ -132,13 +132,13 @@ public class DebugUtils {
 
   public static String getDebugUtxos(WhirlpoolWallet whirlpoolWallet) {
     StringBuilder sb = new StringBuilder().append("\n");
-    for (WhirlpoolAccount account : WhirlpoolAccount.values()) {
+    for (SamouraiAccount account : SamouraiAccount.values()) {
       sb.append(getDebugUtxos(whirlpoolWallet, account) + "\n");
     }
     return sb.toString();
   }
 
-  private static String getDebugUtxos(WhirlpoolWallet whirlpoolWallet, WhirlpoolAccount account) {
+  private static String getDebugUtxos(WhirlpoolWallet whirlpoolWallet, SamouraiAccount account) {
     StringBuilder sb = new StringBuilder().append("\n");
 
     Collection<WhirlpoolUtxo> utxos = whirlpoolWallet.getUtxoSupplier().findUtxos(account);
@@ -255,7 +255,7 @@ public class DebugUtils {
       sb.append("⣿ MIXING THREADS:" + "\n");
 
       String lineFormat =
-          "| %25s | %42s | %8s | %10s | %10s | %8s | %68s | %14s | %8s | %6s | %10s | %10s |\n";
+          "| %25s | %42s | %8s | %10s | %10s | %8s | %68s | %14s | %6s | %10s | %10s |\n";
       sb.append(
           String.format(
               lineFormat,
@@ -267,10 +267,9 @@ public class DebugUtils {
               "CONFIRMS",
               "UTXO",
               "PATH",
-              "POOL",
               "MIXS",
               "ACTIVITY",
-              "SOROBAN ID"));
+              "IDENTITY"));
 
       for (WhirlpoolUtxo whirlpoolUtxo : mixingState.getUtxosMixing()) {
         UnspentOutput o = whirlpoolUtxo.getUtxo();
@@ -281,7 +280,7 @@ public class DebugUtils {
         String since =
             mixProgress != null ? Util.formatDurationFromNow(mixProgress.getSince()) : "";
         String sorobanSender =
-            mixProgress != null ? mixProgress.getSorobanSender().toString().substring(0, 10) : "";
+            mixProgress != null ? ClientUtils.shortSender(mixProgress.getSorobanSender()) : "";
         sb.append(
             String.format(
                 lineFormat,
@@ -326,8 +325,8 @@ public class DebugUtils {
       sb.append("⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿" + "\n");
       sb.append("⣿ COORDINATORS:" + "\n");
 
-      String lineFormat = "| %22s | %35s | %20s | %50s |\n";
-      sb.append(String.format(lineFormat, "NAME", "POOLS", "SOROBAN NODES", "SENDER"));
+      String lineFormat = "| %30s | %40s | %18s | %10s |\n";
+      sb.append(String.format(lineFormat, "NAME", "POOLS", "SOROBAN NODES", "IDENTITY"));
 
       for (Coordinator coordinator : coordinatorSupplier.getCoordinators()) {
         String poolIds = StringUtils.join(coordinator.getPoolIds(), ", ");
@@ -337,7 +336,7 @@ public class DebugUtils {
                 coordinator.getName(),
                 poolIds,
                 coordinator.getSorobanNodeUrls().size() + " node(s)",
-                coordinator.getSender()));
+                ClientUtils.shortSender(coordinator.getSender())));
       }
     } catch (Exception e) {
       log.error("", e);

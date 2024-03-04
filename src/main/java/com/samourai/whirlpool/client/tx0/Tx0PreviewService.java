@@ -61,7 +61,7 @@ public class Tx0PreviewService {
     int feeTx0 = tx0Param.getTx0MinerFeePrice();
     Pool pool = tx0Param.getPool();
 
-    NetworkParameters params = config.getWhirlpoolNetwork().getParams();
+    NetworkParameters params = config.getSamouraiNetwork().getParams();
     long spendFromBalance = UnspentOutput.sumValue(spendFrom);
 
     // compute nbPremix ignoring TX0 fee
@@ -182,7 +182,7 @@ public class Tx0PreviewService {
       throw new NotifiableException("Invalid premixValue for Tx0: " + premixValue);
     }
 
-    NetworkParameters params = config.getWhirlpoolNetwork().getParams();
+    NetworkParameters params = config.getSamouraiNetwork().getParams();
 
     Pool pool = tx0Param.getPool();
     long feeValueOrFeeChange =

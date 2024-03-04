@@ -17,15 +17,15 @@ public class WhirlpoolUtxoPriorityComparatorTest extends AbstractTest {
   }
   /*
   public WhirlpoolUtxoPriorityComparatorTest() {
-    utxos.add(newUtxo("0.01btc", WhirlpoolAccount.PREMIX, "0.01btcPremix0conf", 0, null));
-    utxos.add(newUtxo("0.01btc", WhirlpoolAccount.PREMIX, "0.01btcPremix10conf", 10, null));
-    utxos.add(newUtxo("0.01btc", WhirlpoolAccount.PREMIX, "0.01btcPremix5confError", 5, 3L));
-    utxos.add(newUtxo("0.01btc", WhirlpoolAccount.PREMIX, "0.01btcPremix1conf", 1, null));
+    utxos.add(newUtxo("0.01btc", SamouraiAccount.PREMIX, "0.01btcPremix0conf", 0, null));
+    utxos.add(newUtxo("0.01btc", SamouraiAccount.PREMIX, "0.01btcPremix10conf", 10, null));
+    utxos.add(newUtxo("0.01btc", SamouraiAccount.PREMIX, "0.01btcPremix5confError", 5, 3L));
+    utxos.add(newUtxo("0.01btc", SamouraiAccount.PREMIX, "0.01btcPremix1conf", 1, null));
 
-    utxos.add(newUtxo("0.01btc", WhirlpoolAccount.POSTMIX, "0.01btcPostmix0conf", 0, null));
-    utxos.add(newUtxo("0.01btc", WhirlpoolAccount.POSTMIX, "0.01btcPostmix10conf", 10, null));
-    utxos.add(newUtxo("0.01btc", WhirlpoolAccount.POSTMIX, "0.01btcPostmix5confError", 5, 3L));
-    utxos.add(newUtxo("0.01btc", WhirlpoolAccount.POSTMIX, "0.01btcPostmix1conf", 1, null));
+    utxos.add(newUtxo("0.01btc", SamouraiAccount.POSTMIX, "0.01btcPostmix0conf", 0, null));
+    utxos.add(newUtxo("0.01btc", SamouraiAccount.POSTMIX, "0.01btcPostmix10conf", 10, null));
+    utxos.add(newUtxo("0.01btc", SamouraiAccount.POSTMIX, "0.01btcPostmix5confError", 5, 3L));
+    utxos.add(newUtxo("0.01btc", SamouraiAccount.POSTMIX, "0.01btcPostmix1conf", 1, null));
   }
 
   @Test

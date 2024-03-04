@@ -3,7 +3,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>io.samourai.code.whirlpool</groupId>
     <artifactId>whirlpool-client</artifactId>
-    <version>1.0.0-dexwp-beta9-SNAPSHOT</version>
+    <version>1.0.0-beta3-SNAPSHOT</version>
     <name>whirlpool-client</name>
     <properties>
         <maven.compiler.source>1.8</maven.compiler.source>
@@ -14,17 +14,17 @@
         <dependency>
             <groupId>io.samourai.code.whirlpool</groupId>
             <artifactId>whirlpool-protocol</artifactId>
-            <version>1.0.0-dexwp-beta2-SNAPSHOT</version>
+            <version>1.0.0-beta3</version>
         </dependency>
         <dependency>
             <groupId>io.samourai.code.wallet</groupId>
             <artifactId>extlibj</artifactId>
-            <version>0.0.43-dexwp-beta2-SNAPSHOT</version>
+            <version>1.0.0-dexwp-beta3</version>
         </dependency>
         <dependency>
             <groupId>io.samourai.code.wallet</groupId>
             <artifactId>soroban-client-java</artifactId>
-            <version>0.1.2-dexwp-beta2-SNAPSHOT</version>
+            <version>1.0.0-beta3</version>
             <scope>compile</scope>
         </dependency>
         <dependency>
@@ -48,7 +48,7 @@
         <dependency>
             <groupId>io.samourai.code.wallet</groupId>
             <artifactId>java-http-client</artifactId>
-            <version>1.0.8-SNAPSHOT</version>
+            <version>2.0.0-beta3</version>
             <scope>test</scope>
         </dependency>
     </dependencies>
@@ -57,19 +57,34 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-surefire-plugin</artifactId>
-                <version>2.22.1</version>
+                <version>3.2.5</version>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <version>3.12.1</version>
             </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-source-plugin</artifactId>
+                <version>3.3.0</version>
                 <executions>
                     <execution>
                         <id>attach-sources</id>
                         <goals>
-                            <goal>jar</goal>
+                            <goal>jar-no-fork</goal>
                         </goals>
                     </execution>
                 </executions>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-release-plugin</artifactId>
+                <version>3.0.1</version>
+                <configuration>
+                    <tagNameFormat>@{project.version}</tagNameFormat>
+                    <developmentVersion>develop-SNAPSHOT</developmentVersion>
+                </configuration>
             </plugin>
             <plugin>
                 <groupId>com.spotify.fmt</groupId>
@@ -82,15 +97,6 @@
                         </goals>
                     </execution>
                 </executions>
-            </plugin>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-release-plugin</artifactId>
-                <version>2.5.3</version>
-                <configuration>
-                    <tagNameFormat>@{project.version}</tagNameFormat>
-                    <developmentVersion>develop-SNAPSHOT</developmentVersion>
-                </configuration>
             </plugin>
             <plugin>
                 <groupId>org.moditect</groupId>

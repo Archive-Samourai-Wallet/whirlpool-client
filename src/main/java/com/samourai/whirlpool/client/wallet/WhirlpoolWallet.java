@@ -19,8 +19,8 @@ import com.samourai.wallet.cahoots.Cahoots;
 import com.samourai.wallet.cahoots.CahootsWallet;
 import com.samourai.wallet.cahoots.CahootsWalletImpl;
 import com.samourai.wallet.chain.ChainSupplier;
-import com.samourai.wallet.constants.WhirlpoolAccount;
-import com.samourai.wallet.hd.BIP_WALLET;
+import com.samourai.wallet.constants.BIP_WALLET;
+import com.samourai.wallet.constants.SamouraiAccount;
 import com.samourai.wallet.hd.HD_Wallet;
 import com.samourai.wallet.hd.HD_WalletFactoryGeneric;
 import com.samourai.wallet.ricochet.RicochetConfig;
@@ -117,7 +117,7 @@ public class WhirlpoolWallet {
             .getBIP44(
                 seed,
                 passphrase != null ? passphrase : "",
-                config.getWhirlpoolNetwork().getParams()),
+                config.getSamouraiNetwork().getParams()),
         walletIdentifier);
   }
 
@@ -151,7 +151,7 @@ public class WhirlpoolWallet {
 
     Bech32UtilGeneric bech32Util = Bech32UtilGeneric.getInstance();
     this.walletAggregateService =
-        new WalletAggregateService(config.getWhirlpoolNetwork().getParams(), bech32Util, this);
+        new WalletAggregateService(config.getSamouraiNetwork().getParams(), bech32Util, this);
     this.postmixIndexService = new PostmixIndexService(config);
 
     this.bip44w = bip44w;
@@ -369,7 +369,7 @@ public class WhirlpoolWallet {
             getPoolSupplier().getPools(),
             tx0FeeTarget,
             mixFeeTarget,
-            WhirlpoolAccount.DEPOSIT);
+            SamouraiAccount.DEPOSIT);
     return tx0Config;
   }
 
@@ -397,7 +397,7 @@ public class WhirlpoolWallet {
         new WhirlpoolInfo(dataSource.getDataSourceConfig().getMinerFeeSupplier(), config);
     this.tx0Service =
         new Tx0Service(
-            config.getWhirlpoolNetwork().getParams(),
+            config.getSamouraiNetwork().getParams(),
             whirlpoolInfo.getTx0PreviewService(),
             config.getFeeOpReturnImpl());
     this.paynymSupplier = dataSource.getPaynymSupplier();
@@ -427,8 +427,7 @@ public class WhirlpoolWallet {
     // open data
     dataPersister.open();
     whirlpoolInfo.getCoordinatorSupplier().load();
-    dataSource.getUtxoSupplier()._setCoordinatorSupplier(getCoordinatorSupplier()); // TODO
-    dataSource.open();
+    dataSource.open(getCoordinatorSupplier());
 
     // log wallets
     if (log.isDebugEnabled()) {
@@ -526,7 +525,7 @@ public class WhirlpoolWallet {
             + getCoordinatorSupplier().getPools().size()
             + " pools and "
             + getCoordinatorSupplier().getCoordinators().size()
-            + " coordinator(s)");
+            + " coordinator(s) online");
   }
 
   protected synchronized void doStart() {
@@ -606,19 +605,19 @@ public class WhirlpoolWallet {
   }
 
   public BipWallet getWalletDeposit() {
-    return getWalletSupplier().getWallet(WhirlpoolAccount.DEPOSIT, BIP_FORMAT.SEGWIT_NATIVE);
+    return getWalletSupplier().getWallet(SamouraiAccount.DEPOSIT, BIP_FORMAT.SEGWIT_NATIVE);
   }
 
   public BipWallet getWalletPremix() {
-    return getWalletSupplier().getWallet(WhirlpoolAccount.PREMIX, BIP_FORMAT.SEGWIT_NATIVE);
+    return getWalletSupplier().getWallet(SamouraiAccount.PREMIX, BIP_FORMAT.SEGWIT_NATIVE);
   }
 
   public BipWallet getWalletPostmix() {
-    return getWalletSupplier().getWallet(WhirlpoolAccount.POSTMIX, BIP_FORMAT.SEGWIT_NATIVE);
+    return getWalletSupplier().getWallet(SamouraiAccount.POSTMIX, BIP_FORMAT.SEGWIT_NATIVE);
   }
 
   public BipWallet getWalletBadbank() {
-    return getWalletSupplier().getWallet(WhirlpoolAccount.BADBANK, BIP_FORMAT.SEGWIT_NATIVE);
+    return getWalletSupplier().getWallet(SamouraiAccount.BADBANK, BIP_FORMAT.SEGWIT_NATIVE);
   }
 
   public WalletSupplier getWalletSupplier() {
@@ -818,7 +817,7 @@ public class WhirlpoolWallet {
 
   /** Refresh utxos in background after utxosDelay */
   public Completable refreshUtxosDelayAsync() {
-    return ClientUtils.sleepUtxosDelayAsync(config.getWhirlpoolNetwork().getParams())
+    return ClientUtils.sleepUtxosDelayAsync(config.getSamouraiNetwork().getParams())
         .doOnComplete(() -> refreshUtxosAsync().blockingAwait());
   }
 
@@ -903,7 +902,7 @@ public class WhirlpoolWallet {
 
     // send to destination
     log.info(" • Moving funds to: " + toAddress);
-    walletAggregateService.toAddress(WhirlpoolAccount.DEPOSIT, toAddress);
+    walletAggregateService.toAddress(SamouraiAccount.DEPOSIT, toAddress);
 
     // refresh
     getUtxoSupplier().refresh();
@@ -981,7 +980,7 @@ public class WhirlpoolWallet {
   }
 
   public RicochetConfig newRicochetConfig(
-      int feePerB, boolean useTimeLock, WhirlpoolAccount spendAccount) {
+      int feePerB, boolean useTimeLock, SamouraiAccount spendAccount) {
     long latestBlock = getChainSupplier().getLatestBlock().height;
     BipWallet bipWalletRicochet = getWalletSupplier().getWallet(BIP_WALLET.RICOCHET_BIP84);
     BipWallet bipWalletChange =
@@ -1007,9 +1006,7 @@ public class WhirlpoolWallet {
 
   public IPostmixHandler getPostmixHandler() {
     return new Bip84PostmixHandler(
-        config.getWhirlpoolNetwork().getParams(),
-        getWalletPostmix(),
-        config.getIndexRangePostmix());
+        config.getSamouraiNetwork().getParams(), getWalletPostmix(), config.getIndexRangePostmix());
   }
 
   public IPostmixHandler computePostmixHandler(WhirlpoolUtxo whirlpoolUtxo) {

@@ -1,17 +1,17 @@
 package com.samourai.whirlpool.client.tx0;
 
-import com.samourai.wallet.constants.WhirlpoolNetwork;
+import com.samourai.wallet.constants.SamouraiNetwork;
 
 public class MockTx0PreviewServiceConfig implements ITx0PreviewServiceConfig {
-  private WhirlpoolNetwork whirlpoolNetwork;
+  private SamouraiNetwork samouraiNetwork;
 
-  public MockTx0PreviewServiceConfig(WhirlpoolNetwork whirlpoolNetwork) {
-    this.whirlpoolNetwork = whirlpoolNetwork;
+  public MockTx0PreviewServiceConfig(SamouraiNetwork samouraiNetwork) {
+    this.samouraiNetwork = samouraiNetwork;
   }
 
   @Override
-  public WhirlpoolNetwork getWhirlpoolNetwork() {
-    return whirlpoolNetwork;
+  public SamouraiNetwork getSamouraiNetwork() {
+    return samouraiNetwork;
   }
 
   @Override

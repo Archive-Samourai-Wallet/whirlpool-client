@@ -3,6 +3,7 @@ package com.samourai.whirlpool.client.wallet.data.dataSource;
 import com.samourai.wallet.api.backend.BackendApi;
 import com.samourai.wallet.api.backend.BackendServer;
 import com.samourai.wallet.api.backend.websocket.BackendWsApi;
+import com.samourai.wallet.bipWallet.BipWalletSupplier;
 import com.samourai.wallet.hd.HD_Wallet;
 import com.samourai.wallet.httpClient.HttpUsage;
 import com.samourai.wallet.httpClient.IHttpClient;
@@ -17,17 +18,26 @@ public class DojoDataSourceFactory implements DataSourceFactory {
   private String dojoUrl;
   private String dojoApiKey; // may be null
   private IWebsocketClient wsClient; // may be null
+  private BipWalletSupplier bipWalletSupplier;
 
-  public DojoDataSourceFactory(String dojoUrl, String dojoApiKey, final IWebsocketClient wsClient) {
+  public DojoDataSourceFactory(
+      String dojoUrl,
+      String dojoApiKey,
+      final IWebsocketClient wsClient,
+      BipWalletSupplier bipWalletSupplier) {
     this.dojoUrl = dojoUrl;
     this.dojoApiKey = dojoApiKey;
     this.wsClient = wsClient;
+    this.bipWalletSupplier = bipWalletSupplier;
   }
 
   // Samourai backend
   public DojoDataSourceFactory(
-      BackendServer backendServer, boolean onion, final IWebsocketClient wsClient) {
-    this(backendServer.getBackendUrl(onion), null, wsClient);
+      BackendServer backendServer,
+      boolean onion,
+      final IWebsocketClient wsClient,
+      BipWalletSupplier bipWalletSupplier) {
+    this(backendServer.getBackendUrl(onion), null, wsClient, bipWalletSupplier);
   }
 
   // overridable
@@ -63,7 +73,13 @@ public class DojoDataSourceFactory implements DataSourceFactory {
     checkConnectivity(backendApi, backendWsApi);
 
     return new DojoDataSource(
-        whirlpoolWallet, bip44w, walletStateSupplier, utxoConfigSupplier, backendApi, backendWsApi);
+        whirlpoolWallet,
+        bip44w,
+        walletStateSupplier,
+        utxoConfigSupplier,
+        bipWalletSupplier,
+        backendApi,
+        backendWsApi);
   }
 
   protected void checkConnectivity(BackendApi backendApi, BackendWsApi backendWsApi)
