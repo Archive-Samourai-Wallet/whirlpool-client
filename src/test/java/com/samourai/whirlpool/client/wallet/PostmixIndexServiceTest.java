@@ -36,7 +36,9 @@ public class PostmixIndexServiceTest extends AbstractTest {
     byte[] seed = hdWalletFactory.computeSeedFromWords(SEED_WORDS);
     HD_Wallet bip44w =
         HD_WalletFactoryGeneric.getInstance().getBIP44(seed, SEED_PASSPHRASE, params);
-    BipWallet walletPostmix =BIP_WALLET.POSTMIX_BIP84.newBipWallet(bipFormatSupplier, bip44w, new MemoryIndexHandlerSupplier());
+    BipWallet walletPostmix =
+        BIP_WALLET.POSTMIX_BIP84.newBipWallet(
+            bipFormatSupplier, bip44w, new MemoryIndexHandlerSupplier());
     postmixHandler = new Bip84PostmixHandler(params, walletPostmix, IndexRange.EVEN);
 
     WhirlpoolWalletConfig config = computeWhirlpoolWalletConfig();

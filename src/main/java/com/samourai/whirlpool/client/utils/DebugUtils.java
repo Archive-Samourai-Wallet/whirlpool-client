@@ -292,7 +292,6 @@ public class DebugUtils {
                 whirlpoolUtxo.computeConfirmations(latestBlockHeight),
                 o.getUtxoName(),
                 o.getPath(),
-                StringUtils.defaultIfEmpty(utxoState.getPoolId(), "-"),
                 whirlpoolUtxo.getMixsDone(),
                 whirlpoolUtxo.getUtxoState().getActivityOrErrorStr(),
                 sorobanSender));

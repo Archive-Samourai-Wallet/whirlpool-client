@@ -9,7 +9,6 @@ import com.samourai.wallet.api.paynym.beans.PaynymState;
 import com.samourai.wallet.bip47.rpc.java.Bip47UtilJava;
 import com.samourai.wallet.bip47.rpc.java.SecretPointFactoryJava;
 import com.samourai.wallet.bip47.rpc.secretPoint.ISecretPointFactory;
-import com.samourai.wallet.bipWallet.BipWalletSupplier;
 import com.samourai.wallet.constants.BIP_WALLETS;
 import com.samourai.wallet.constants.SamouraiAccount;
 import com.samourai.wallet.constants.SamouraiNetwork;
@@ -43,13 +42,15 @@ public class JavaExample {
     BackendServer backendServer = BackendServer.TESTNET;
     boolean onion = true; // use Tor onion services?
     IWebsocketClient wsClient = null; // provide impl, or null to disable real-time sync backend
-    DataSourceFactory dataSourceFactory = new DojoDataSourceFactory(backendServer, onion, wsClient, BIP_WALLETS.WHIRLPOOL);
+    DataSourceFactory dataSourceFactory =
+        new DojoDataSourceFactory(backendServer, onion, wsClient, BIP_WALLETS.WHIRLPOOL);
 
     // option 2 - use Dojo backend
     String dojoUrl = ""; // provide Dojo onion URL
     String dojoApiKey = ""; // provide Dojo apiKey
     wsClient = null; // provide impl, or null to disable real-time sync backend
-    dataSourceFactory = new DojoDataSourceFactory(dojoUrl, dojoApiKey, wsClient, BIP_WALLETS.WHIRLPOOL);
+    dataSourceFactory =
+        new DojoDataSourceFactory(dojoUrl, dojoApiKey, wsClient, BIP_WALLETS.WHIRLPOOL);
 
     // option 3 - use external backend
     dataSourceFactory =
@@ -106,7 +107,13 @@ public class JavaExample {
     return new DataSourceFactory() {
 
       @Override
-      public DataSource createDataSource(WhirlpoolWallet whirlpoolWallet, HD_Wallet bip44w, String passphrase, WalletStateSupplier walletStateSupplier, UtxoConfigSupplier utxoConfigSupplier) throws Exception {
+      public DataSource createDataSource(
+          WhirlpoolWallet whirlpoolWallet,
+          HD_Wallet bip44w,
+          String passphrase,
+          WalletStateSupplier walletStateSupplier,
+          UtxoConfigSupplier utxoConfigSupplier)
+          throws Exception {
         // use WalletResponse data (or use your own implementation of DataSource)
         return new AbstractDataSource(
             whirlpoolWallet,
