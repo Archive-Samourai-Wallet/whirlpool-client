@@ -9,6 +9,7 @@ import com.samourai.wallet.send.provider.UtxoProvider;
 import com.samourai.whirlpool.client.wallet.beans.WhirlpoolUtxo;
 import com.samourai.whirlpool.client.wallet.data.coordinator.CoordinatorSupplier;
 import java.util.Collection;
+import java.util.function.Consumer;
 
 public interface UtxoSupplier extends UtxoProvider {
 
@@ -32,6 +33,8 @@ public interface UtxoSupplier extends UtxoProvider {
   Long getLastUpdate();
 
   void _setCoordinatorSupplier(CoordinatorSupplier coordinatorSupplier);
+
+  void _setUtxoChangeListener(Consumer<UtxoData> onUtxoChange);
 
   void refresh() throws Exception;
 

@@ -48,10 +48,8 @@ public abstract class WalletResponseDataSource extends AbstractDataSource {
         walletStateSupplier,
         computeDataSourceConfig(whirlpoolWallet, bipWalletSupplier));
     this.walletResponseSupplier = new WalletResponseSupplier(whirlpoolWallet, this);
-
     this.utxoSupplier =
-        computeUtxoSupplier(
-            whirlpoolWallet, walletSupplier, utxoConfigSupplier, getDataSourceConfig());
+        computeUtxoSupplier(walletSupplier, utxoConfigSupplier, getDataSourceConfig());
   }
 
   protected static DataSourceConfig computeDataSourceConfig(
@@ -80,13 +78,11 @@ public abstract class WalletResponseDataSource extends AbstractDataSource {
   }
 
   protected BasicUtxoSupplier computeUtxoSupplier(
-      final WhirlpoolWallet whirlpoolWallet,
       WalletSupplier walletSupplier,
       UtxoConfigSupplier utxoConfigSupplier,
       DataSourceConfig dataSourceConfig)
       throws Exception {
-    return new BasicUtxoSupplier(
-        whirlpoolWallet, walletSupplier, utxoConfigSupplier, dataSourceConfig) {
+    return new BasicUtxoSupplier(walletSupplier, utxoConfigSupplier, dataSourceConfig) {
       @Override
       public void refresh() throws Exception {
         WalletResponseDataSource.this.refresh();

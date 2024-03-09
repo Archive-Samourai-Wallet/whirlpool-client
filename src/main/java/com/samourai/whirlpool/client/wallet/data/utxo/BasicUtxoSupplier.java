@@ -12,7 +12,6 @@ import com.samourai.wallet.send.MyTransactionOutPoint;
 import com.samourai.wallet.send.UTXO;
 import com.samourai.wallet.send.provider.UtxoProvider;
 import com.samourai.whirlpool.client.exception.NotifiableException;
-import com.samourai.whirlpool.client.wallet.WhirlpoolWallet;
 import com.samourai.whirlpool.client.wallet.beans.WhirlpoolUtxo;
 import com.samourai.whirlpool.client.wallet.data.coordinator.CoordinatorSupplier;
 import com.samourai.whirlpool.client.wallet.data.dataSource.DataSourceConfig;
@@ -21,6 +20,7 @@ import com.samourai.whirlpool.client.wallet.data.utxoConfig.UtxoConfigSupplier;
 import java.util.Collection;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.function.Consumer;
 import java.util.stream.Collectors;
 import org.bitcoinj.core.NetworkParameters;
 import org.slf4j.Logger;
@@ -30,25 +30,24 @@ public abstract class BasicUtxoSupplier extends BasicSupplier<UtxoData>
     implements UtxoProvider, UtxoSupplier {
   private static final Logger log = LoggerFactory.getLogger(BasicUtxoSupplier.class);
 
-  private WhirlpoolWallet whirlpoolWallet;
   private final WalletSupplier walletSupplier;
   private final UtxoConfigSupplier utxoConfigSupplier;
   private final DataSourceConfig dataSourceConfig;
   private CoordinatorSupplier coordinatorSupplier;
+  private Consumer<UtxoData> utxoChangesListener; // may be null
 
   private Map<String, WhirlpoolUtxo> previousUtxos;
 
   public BasicUtxoSupplier(
-      WhirlpoolWallet whirlpoolWallet,
       WalletSupplier walletSupplier,
       UtxoConfigSupplier utxoConfigSupplier,
       DataSourceConfig dataSourceConfig) {
     super(log);
-    this.whirlpoolWallet = whirlpoolWallet;
     this.walletSupplier = walletSupplier;
     this.utxoConfigSupplier = utxoConfigSupplier;
     this.dataSourceConfig = dataSourceConfig;
     this.coordinatorSupplier = null; // will be set by init()
+    this.utxoChangesListener = null;
     this.previousUtxos = null;
   }
 
@@ -57,11 +56,12 @@ public abstract class BasicUtxoSupplier extends BasicSupplier<UtxoData>
     this.coordinatorSupplier = coordinatorSupplier;
   }
 
-  public abstract void refresh() throws Exception;
-
-  protected void onUtxoChanges(UtxoData utxoData) {
-    whirlpoolWallet.onUtxoChanges(utxoData);
+  @Override
+  public void _setUtxoChangeListener(Consumer<UtxoData> utxoChangesListener) {
+    this.utxoChangesListener = utxoChangesListener;
   }
+
+  public abstract void refresh() throws Exception;
 
   @Override
   protected void validate(UtxoData value) {
@@ -71,7 +71,9 @@ public abstract class BasicUtxoSupplier extends BasicSupplier<UtxoData>
   @Override
   protected void onValueChange(UtxoData value) throws Exception {
     if (!value.getUtxoChanges().isEmpty()) {
-      onUtxoChanges(value);
+      if (utxoChangesListener != null) {
+        utxoChangesListener.accept(value);
+      }
     }
   }
 

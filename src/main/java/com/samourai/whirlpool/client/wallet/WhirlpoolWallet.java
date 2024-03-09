@@ -393,6 +393,7 @@ public class WhirlpoolWallet {
                 passphrase,
                 dataPersister.getWalletStateSupplier(),
                 dataPersister.getUtxoConfigSupplier());
+    this.dataSource.getUtxoSupplier()._setUtxoChangeListener(this::onUtxoChanges);
     this.whirlpoolInfo =
         new WhirlpoolInfo(dataSource.getDataSourceConfig().getMinerFeeSupplier(), config);
     this.tx0Service =
@@ -560,7 +561,7 @@ public class WhirlpoolWallet {
     WhirlpoolEventService.getInstance().post(new WalletStartEvent(this, utxoData));
   }
 
-  public void onUtxoChanges(UtxoData utxoData) {
+  private void onUtxoChanges(UtxoData utxoData) {
     if (isStarted()) {
       if (mixOrchestrator != null) {
         mixOrchestrator.onUtxoChanges(utxoData.getUtxoChanges());
