@@ -14,17 +14,17 @@
         <dependency>
             <groupId>io.samourai.code.whirlpool</groupId>
             <artifactId>whirlpool-protocol</artifactId>
-            <version>1.0.0-beta3</version>
+            <version>1.0.0-beta4</version>
         </dependency>
         <dependency>
             <groupId>io.samourai.code.wallet</groupId>
             <artifactId>extlibj</artifactId>
-            <version>1.0.0-dexwp-beta3</version>
+            <version>1.0.0-beta4</version>
         </dependency>
         <dependency>
             <groupId>io.samourai.code.wallet</groupId>
             <artifactId>soroban-client-java</artifactId>
-            <version>1.0.0-beta3</version>
+            <version>1.0.0-beta4</version>
             <scope>compile</scope>
         </dependency>
         <dependency>

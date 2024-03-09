@@ -147,8 +147,8 @@ public class WhirlpoolWalletConfig extends WhirlpoolClientConfig
         sorobanConfig.getExtLibJConfig().getHttpClientService(),
         sorobanConfig.getExtLibJConfig().getBip47Util(),
         sorobanConfig.getExtLibJConfig().getSamouraiNetwork(),
-        sorobanConfig.getExtLibJConfig().isOnion(),
-        mobile);
+        mobile,
+        sorobanConfig.getExtLibJConfig().isOnion());
   }
 
   public void verify() throws Exception {

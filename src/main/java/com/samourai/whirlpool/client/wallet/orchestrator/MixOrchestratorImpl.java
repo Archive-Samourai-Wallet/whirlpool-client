@@ -135,7 +135,7 @@ public class MixOrchestratorImpl extends MixOrchestrator {
     // prepare mixing
     MixParams mixParams = computeMixParams(whirlpoolUtxo, pool);
     WhirlpoolClientListener mixListener = computeMixListener(mixParams);
-    mixListener.progress(null, MixStep.CONNECTING);
+    mixListener.progress(null, MixStep.REGISTER_INPUT);
 
     // start mixing (whirlpoolClient will start a new thread)
     WhirlpoolClient whirlpoolClient = new WhirlpoolClientImpl(config);

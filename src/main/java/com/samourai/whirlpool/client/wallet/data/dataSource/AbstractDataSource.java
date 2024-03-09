@@ -40,7 +40,6 @@ public abstract class AbstractDataSource implements DataSource {
 
   @Override
   public void open(CoordinatorSupplier coordinatorSupplier) throws Exception {
-    getUtxoSupplier()._setCoordinatorSupplier(coordinatorSupplier); // TODO
     // load initial data (or fail)
     load(true);
   }

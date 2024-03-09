@@ -177,14 +177,14 @@ public class WhirlpoolWallet {
         Bytes.concat(seed, seedPassphrase.getBytes(), params.getId().getBytes()));
   }
 
-  public Single<Cahoots> tx0x2(
+  public Cahoots tx0x2(
       Collection<WhirlpoolUtxo> whirlpoolUtxos,
       Pool pool,
       Tx0Config tx0Config,
       PaymentCode paymentCodeCounterparty)
       throws Exception {
     // adapt tx0() for WhirlpoolUtxo
-    Callable<Single<Cahoots>> runTx0x2 =
+    Callable<Cahoots> runTx0x2 =
         () ->
             tx0x2(
                 WhirlpoolUtxo.toUnspentOutputs(whirlpoolUtxos),
@@ -194,7 +194,7 @@ public class WhirlpoolWallet {
     return handleUtxoStatusForTx0(whirlpoolUtxos, runTx0x2);
   }
 
-  public Single<Cahoots> tx0x2(
+  public Cahoots tx0x2(
       Collection<UnspentOutput> spendFroms,
       Tx0Config tx0Config,
       Pool pool,
@@ -428,6 +428,9 @@ public class WhirlpoolWallet {
     // open data
     dataPersister.open();
     whirlpoolInfo.getCoordinatorSupplier().load();
+    dataSource
+        .getUtxoSupplier()
+        ._setCoordinatorSupplier(whirlpoolInfo.getCoordinatorSupplier()); // TODO
     dataSource.open(getCoordinatorSupplier());
 
     // log wallets
@@ -801,7 +804,7 @@ public class WhirlpoolWallet {
 
     MixStep step = whirlpoolUtxo.getUtxoState().getMixProgress().getMixStep();
     String asciiProgress = renderProgress(step.getProgressPercent());
-    log.info(logPrefix + asciiProgress + " " + step + " : " + step.getMessage());
+    log.info(logPrefix + asciiProgress + " " + step.getMessage());
 
     // notify
     WhirlpoolEventService.getInstance().post(new MixProgressEvent(this, mixParams));

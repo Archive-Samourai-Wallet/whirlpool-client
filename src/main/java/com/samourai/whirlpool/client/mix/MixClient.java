@@ -34,6 +34,7 @@ public class MixClient {
   private MixProcess mixProcess;
   private String mixId; // set by whirlpool()
   private Coordinator coordinator; // set by doRegisterInput
+  private boolean done;
 
   public MixClient(
       WhirlpoolClientConfig config, MixParams mixParams, WhirlpoolClientListener listener) {
@@ -51,9 +52,19 @@ public class MixClient {
             mixParams.getPostmixHandler(),
             config.getClientCryptoService(),
             mixParams.getChainSupplier());
+    this.done = false;
   }
 
   public void whirlpool() {
+    while (!done) {
+      mixAttempt();
+    }
+  }
+
+  private void mixAttempt() {
+    if (log.isDebugEnabled()) {
+      log.debug("MIX_ATTEMPT " + mixParams.getWhirlpoolUtxo());
+    }
     try {
       // REGISTER_INPUT
       RegisterInputResponse registerInputResponse;
@@ -90,7 +101,7 @@ public class MixClient {
       doMix(mixApi);
     } catch (TimeoutException e) {
       if (log.isDebugEnabled()) {
-        log.debug("MIX_TIMEOUT " + mixId);
+        log.debug("MIX_TIMEOUT " + mixId + " " + mixParams.getWhirlpoolUtxo());
         stop(true); // cancel mixing this input
       }
     } catch (InterruptedException e) { // when a loop is interrupted by rpcSession.done
@@ -99,6 +110,16 @@ public class MixClient {
         stop(true); // cancel mixing this input
       }
     } catch (Exception e) {
+      if (e instanceof SorobanErrorMessageException) {
+        // restart mix on "confirming input not found"
+        if (((SorobanErrorMessageException) e).getSorobanErrorMessage().errorCode
+            == WhirlpoolErrorCode.MIX_OVER) {
+          if (log.isDebugEnabled()) {
+            log.error("MIX_RESTART " + mixId + " reason=MIX_OVER", e);
+          }
+          return; // exit with done=false to restart with a new mix attempt
+        }
+      }
       if (log.isDebugEnabled()) {
         log.error("MIX_ERROR " + mixId, e);
       }
@@ -285,11 +306,14 @@ public class MixClient {
     this.listener.progress(mixId, mixStep);
   }
 
-  public void disconnect() {
-    if (log.isDebugEnabled()) {
-      log.debug("MIX_DISCONECT " + mixParams.getWhirlpoolUtxo());
+  private void disconnect() {
+    if (!done) {
+      done = true;
+      if (log.isDebugEnabled()) {
+        log.debug("MIX_DISCONECT " + mixParams.getWhirlpoolUtxo());
+      }
+      mixParams.getWhirlpoolApiClient().getRpcSession().exit();
     }
-    mixParams.getWhirlpoolApiClient().getRpcSession().exit();
   }
 
   private void failAndExit(MixFailReason reason, String notifiableError) {
