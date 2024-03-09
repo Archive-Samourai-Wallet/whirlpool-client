@@ -1,16 +1,14 @@
 package com.samourai.whirlpool.client.mix.listener;
 
 public enum MixStep {
-  REGISTERING_INPUT("waiting for a mix...", 10, true),
+  CONNECTING("connecting", 0, true),
+  REGISTER_INPUT("waiting for a mix...", 20, true),
 
-  CONFIRMING_INPUT("joining a mix...", 30, true),
-  CONFIRMED_INPUT("joined a mix", 50, true),
+  CONFIRM_INPUT("joined a mix", 40, true),
 
-  REGISTERING_OUTPUT("registering output", 60, false),
-  REGISTERED_OUTPUT("registered output", 70, false),
+  REGISTER_OUTPUT("registered output", 60, false),
 
-  SIGNING("signing", 80, false),
-  SIGNED("signed", 90, false),
+  SIGN("signed", 80, false),
 
   SUCCESS("mix success", 100, true),
   FAIL("mix failed", 100, true);

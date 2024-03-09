@@ -809,7 +809,7 @@ public class WhirlpoolWallet {
 
   private String renderProgress(int progressPercent) {
     StringBuilder progress = new StringBuilder();
-    for (int i = 0; i < 100; i += 10) {
+    for (int i = 0; i < 100; i += 20) {
       progress.append(i < progressPercent ? "▮" : "▯");
     }
     progress.append(" (" + progressPercent + "%)");

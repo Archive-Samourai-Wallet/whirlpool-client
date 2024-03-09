@@ -81,10 +81,9 @@ public class MixClient {
           clientApi.createWhirlpoolApiClientMix(mixId, coordinator.getSender());
 
       // CONFIRM_INPUT
-      listenerProgress(MixStep.CONFIRMING_INPUT);
       ConfirmInputRequest confirmInputRequest = mixProcess.confirmInput(registerInputResponse);
       ConfirmInputResponse confirmInputResponse = mixApi.confirmInput(confirmInputRequest);
-      listenerProgress(MixStep.CONFIRMED_INPUT);
+      listenerProgress(MixStep.CONFIRM_INPUT);
       mixProcess.onConfirmInputResponse(confirmInputResponse);
 
       // complete the mix
@@ -158,17 +157,15 @@ public class MixClient {
 
         switch (mixStatus) {
           case REGISTER_OUTPUT:
-            listenerProgress(MixStep.REGISTERING_OUTPUT);
             doRegisterOutput((MixStatusResponseRegisterOutput) mixStatusResponse);
-            listenerProgress(MixStep.REGISTERED_OUTPUT);
+            listenerProgress(MixStep.REGISTER_OUTPUT);
             break;
 
           case SIGNING:
-            listenerProgress(MixStep.SIGNING);
             SigningRequest signingRequest =
                 mixProcess.signing((MixStatusResponseSigning) mixStatusResponse);
             mixApi.signing(signingRequest);
-            listenerProgress(MixStep.SIGNED);
+            listenerProgress(MixStep.SIGN);
 
             // mix completed on our side, wait for mix result
             try {
