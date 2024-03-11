@@ -29,6 +29,7 @@ public class MixClient {
   private static final int TIMEOUT_SWITCH_INPUT_MS = 1200000; // 20min
 
   // mix settings
+  private WhirlpoolClientConfig config;
   private MixParams mixParams;
   private WhirlpoolClientListener listener;
   private MixProcess mixProcess;
@@ -38,25 +39,26 @@ public class MixClient {
 
   public MixClient(
       WhirlpoolClientConfig config, MixParams mixParams, WhirlpoolClientListener listener) {
+    this.config = config;
     this.mixParams = mixParams;
     this.listener = listener;
 
-    this.mixProcess =
-        new MixProcess(
-            config.getSamouraiNetwork().getParams(),
-            mixParams.getPoolId(),
-            mixParams.getDenomination(),
-            mixParams.getMustMixBalanceMin(),
-            mixParams.getMustMixBalanceMax(),
-            mixParams.getPremixHandler(),
-            mixParams.getPostmixHandler(),
-            config.getClientCryptoService(),
-            mixParams.getChainSupplier());
     this.done = false;
   }
 
   public void whirlpool() {
     while (!done) {
+      this.mixProcess =
+          new MixProcess(
+              config.getSamouraiNetwork().getParams(),
+              mixParams.getPoolId(),
+              mixParams.getDenomination(),
+              mixParams.getMustMixBalanceMin(),
+              mixParams.getMustMixBalanceMax(),
+              mixParams.getPremixHandler(),
+              mixParams.getPostmixHandler(),
+              config.getClientCryptoService(),
+              mixParams.getChainSupplier());
       mixAttempt();
     }
   }
