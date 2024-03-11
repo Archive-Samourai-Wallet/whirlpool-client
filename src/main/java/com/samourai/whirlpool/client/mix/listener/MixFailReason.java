@@ -1,20 +1,24 @@
 package com.samourai.whirlpool.client.mix.listener;
 
 public enum MixFailReason {
-  PROTOCOL_MISMATCH("Protocol mismatch (check for updates!)", false),
-  MIX_FAILED("Mix failed", false),
-  DISCONNECTED("Disconnected", false),
-  INPUT_REJECTED("Input rejected", false),
-  INTERNAL_ERROR("Internal error", false),
-  CANCEL("Cancelled", true), // silent stop
-  STOP("Stopped", false);
+  MIX_FAILED("Mix failed", false, true, true),
+  NETWORK_ERROR("Network error", false, true, true),
+  INPUT_REJECTED("Input rejected", false, true, true),
+  INTERNAL_ERROR("Internal error", false, true, true),
+  ROTATE("Rotate", true, true, false),
+  CANCEL("Cancelled", true, false, false),
+  STOP("Stopped", false, false, false);
 
   private String message;
   private boolean silent;
+  private boolean requeue;
+  private boolean error;
 
-  MixFailReason(String message, boolean silent) {
+  MixFailReason(String message, boolean silent, boolean requeue, boolean error) {
     this.message = message;
     this.silent = silent;
+    this.requeue = requeue;
+    this.error = error;
   }
 
   public String getMessage() {
@@ -23,5 +27,13 @@ public enum MixFailReason {
 
   public boolean isSilent() {
     return silent;
+  }
+
+  public boolean isRequeue() {
+    return requeue;
+  }
+
+  public boolean isError() {
+    return error;
   }
 }

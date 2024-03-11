@@ -3,6 +3,7 @@ package com.samourai.whirlpool.client.whirlpool;
 import com.samourai.whirlpool.client.WhirlpoolClient;
 import com.samourai.whirlpool.client.mix.MixClient;
 import com.samourai.whirlpool.client.mix.MixParams;
+import com.samourai.whirlpool.client.mix.listener.MixFailReason;
 import com.samourai.whirlpool.client.whirlpool.listener.WhirlpoolClientListener;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -44,9 +45,9 @@ public class WhirlpoolClientImpl implements WhirlpoolClient {
   }
 
   @Override
-  public void stop(boolean cancel) {
+  public void stop(MixFailReason failReason) {
     if (mixClient != null) {
-      mixClient.stop(cancel);
+      mixClient.failAndExit(failReason, null);
     }
   }
 }

@@ -1,6 +1,7 @@
 package com.samourai.whirlpool.client.mix;
 
 import com.samourai.soroban.client.exception.SorobanErrorMessageException;
+import com.samourai.wallet.api.backend.beans.HttpException;
 import com.samourai.whirlpool.client.exception.NotifiableException;
 import com.samourai.whirlpool.client.exception.ProtocolException;
 import com.samourai.whirlpool.client.mix.listener.MixFailReason;
@@ -82,9 +83,9 @@ public class MixClient {
       } catch (TimeoutException e) {
         // cancel mixing this input and try later with another one
         if (log.isDebugEnabled()) {
-          log.debug("Input was not selected for a mix, cancelling.");
+          log.debug("Input was not selected for a mix, rotating.");
         }
-        stop(true);
+        failAndExit(MixFailReason.ROTATE, null);
         return;
       }
 
@@ -104,26 +105,36 @@ public class MixClient {
     } catch (TimeoutException e) {
       if (log.isDebugEnabled()) {
         log.debug("MIX_TIMEOUT " + mixId + " " + mixParams.getWhirlpoolUtxo());
-        stop(true); // cancel mixing this input
+        // failAndExit(MixFailReason.ROTATE, null);
+        return; // exit with done=false to restart with a new mix attempt
       }
     } catch (InterruptedException e) { // when a loop is interrupted by rpcSession.done
       if (log.isDebugEnabled()) {
-        log.debug("MIX_CANCEL " + mixId);
-        stop(true); // cancel mixing this input
+        log.debug("MIX_INTERRUPTED " + mixId + " " + mixParams.getWhirlpoolUtxo());
+        // failAndExit(MixFailReason.ROTATE, null);
+        return; // exit with done=false to restart with a new mix attempt
       }
+    } catch (HttpException e) {
+      if (log.isDebugEnabled()) {
+        log.error("NETWORK_ERROR " + mixId + " " + mixParams.getWhirlpoolUtxo(), e);
+      }
+      Exception notifiableException = NotifiableException.computeNotifiableException(e);
+      failAndExit(MixFailReason.NETWORK_ERROR, notifiableException.getMessage());
     } catch (Exception e) {
       if (e instanceof SorobanErrorMessageException) {
         // restart mix on "confirming input not found"
         if (((SorobanErrorMessageException) e).getSorobanErrorMessage().errorCode
             == WhirlpoolErrorCode.MIX_OVER) {
           if (log.isDebugEnabled()) {
-            log.error("MIX_RESTART " + mixId + " reason=MIX_OVER", e);
+            log.error(
+                "MIX_RESTART " + mixId + " " + mixParams.getWhirlpoolUtxo() + " reason=MIX_OVER",
+                e);
           }
           return; // exit with done=false to restart with a new mix attempt
         }
       }
       if (log.isDebugEnabled()) {
-        log.error("MIX_ERROR " + mixId, e);
+        log.error("MIX_ERROR " + mixId + " " + mixParams.getWhirlpoolUtxo(), e);
       }
       Exception notifiableException = NotifiableException.computeNotifiableException(e);
       failAndExit(MixFailReason.INTERNAL_ERROR, notifiableException.getMessage());
@@ -318,15 +329,10 @@ public class MixClient {
     }
   }
 
-  private void failAndExit(MixFailReason reason, String notifiableError) {
+  public void failAndExit(MixFailReason reason, String notifiableError) {
     mixParams.getPostmixHandler().onMixFail();
     this.listener.fail(mixId, reason, notifiableError);
     disconnect();
-  }
-
-  public void stop(boolean cancel) {
-    MixFailReason failReason = cancel ? MixFailReason.CANCEL : MixFailReason.STOP;
-    failAndExit(failReason, null);
   }
 
   public void exitOnInputRejected(String notifiableError) {

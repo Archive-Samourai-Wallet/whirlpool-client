@@ -91,9 +91,9 @@ public class DebugUtils {
                 + ", bipFormatDefault="
                 + wallet.getBipFormatDefault().getId()
                 + ", xpub="
-                + ClientUtils.maskString(wallet.getXPub())
+                + wallet.getXPub()
                 + ", bipPub="
-                + ClientUtils.maskString(wallet.getBipPub())
+                + wallet.getBipPub()
                 + ", nextAddressReceive="
                 + nextAddressReceive
                 + ", nextAddressChange="

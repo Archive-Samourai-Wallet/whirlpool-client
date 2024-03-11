@@ -1,6 +1,7 @@
 package com.samourai.whirlpool.client;
 
 import com.samourai.whirlpool.client.mix.MixParams;
+import com.samourai.whirlpool.client.mix.listener.MixFailReason;
 import com.samourai.whirlpool.client.whirlpool.listener.WhirlpoolClientListener;
 
 /** Whirlpool client */
@@ -14,5 +15,5 @@ public interface WhirlpoolClient {
   void whirlpool(MixParams mixParams, WhirlpoolClientListener listener);
 
   /** Abort mix. */
-  void stop(boolean cancel);
+  void stop(MixFailReason failReason);
 }

@@ -82,15 +82,15 @@ public class MixOrchestratorImpl extends MixOrchestrator {
           error += " ; " + notifiableError;
         }
         WhirlpoolUtxoState utxoState = whirlpoolUtxo.getUtxoState();
-        if (reason == MixFailReason.STOP) {
-          // silent stop
-          utxoState.setStatus(WhirlpoolUtxoStatus.STOP, false, false);
-        } else if (reason == MixFailReason.CANCEL) {
-          // silent cancel
-          utxoState.setStatus(WhirlpoolUtxoStatus.READY, false, false);
-        } else {
+        if (reason.isError()) {
           // mix failure
           utxoState.setStatusMixingError(WhirlpoolUtxoStatus.MIX_FAILED, mixParams, mixId, error);
+        } else if (reason.isRequeue()) {
+          // requeue
+          utxoState.setStatus(WhirlpoolUtxoStatus.READY, false, false);
+        } else {
+          // stop
+          utxoState.setStatus(WhirlpoolUtxoStatus.STOP, false, false);
         }
 
         // remove from mixings
@@ -162,18 +162,17 @@ public class MixOrchestratorImpl extends MixOrchestrator {
   }
 
   @Override
-  protected void stopWhirlpoolClient(
-      final Mixing mixing, final boolean cancel, final boolean reQueue) {
-    super.stopWhirlpoolClient(mixing, cancel, reQueue);
+  protected void stopWhirlpoolClient(final Mixing mixing, final MixFailReason failReason) {
+    super.stopWhirlpoolClient(mixing, failReason);
 
     // stop in new thread for faster response
     new Thread(
             new Runnable() {
               @Override
               public void run() {
-                mixing.getWhirlpoolClient().stop(cancel);
+                mixing.getWhirlpoolClient().stop(failReason);
 
-                if (reQueue) {
+                if (failReason.isRequeue()) {
                   try {
                     mixQueue(mixing.getUtxo(), false);
                   } catch (Exception e) {

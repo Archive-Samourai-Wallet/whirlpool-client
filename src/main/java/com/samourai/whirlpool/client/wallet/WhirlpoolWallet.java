@@ -604,8 +604,8 @@ public class WhirlpoolWallet {
     this.mixOrchestrator.mixQueue(whirlpoolUtxo);
   }
 
-  public void mixStop(WhirlpoolUtxo whirlpoolUtxo) throws NotifiableException {
-    this.mixOrchestrator.mixStop(whirlpoolUtxo, true, false);
+  public void mixStop(WhirlpoolUtxo whirlpoolUtxo) {
+    this.mixOrchestrator.mixStop(whirlpoolUtxo, MixFailReason.STOP);
   }
 
   public BipWallet getWalletDeposit() {
@@ -756,38 +756,24 @@ public class WhirlpoolWallet {
     WhirlpoolEventService.getInstance()
         .post(new MixFailEvent(this, mixParams, failReason, notifiableError));
 
-    switch (failReason) {
-      case PROTOCOL_MISMATCH:
-        // stop mixing on protocol mismatch
+    if (failReason.isRequeue()) {
+      // retry later
+      try {
+        mixQueue(whirlpoolUtxo);
+      } catch (Exception e) {
+        log.error("", e);
+      }
+    }
+
+    if (failReason.isError()) {
+      // check postmixIndex
+      try {
+        checkAndFixPostmixIndex(mixParams.getPostmixHandler());
+      } catch (Exception e) {
+        // stop mixing on postmixIndex error
+        log.error(e.getMessage());
         stop();
-        break;
-
-      case DISCONNECTED:
-      case MIX_FAILED:
-      case INPUT_REJECTED:
-      case INTERNAL_ERROR:
-        // retry later
-        try {
-          mixQueue(whirlpoolUtxo);
-        } catch (Exception e) {
-          log.error("", e);
-        }
-
-        // check postmixIndex
-        try {
-          checkAndFixPostmixIndex(mixParams.getPostmixHandler());
-        } catch (Exception e) {
-          // stop mixing on postmixIndex error
-          log.error(e.getMessage());
-          stop();
-        }
-        break;
-
-      case STOP:
-      case CANCEL:
-      default:
-        // not retrying
-        break;
+      }
     }
   }
 

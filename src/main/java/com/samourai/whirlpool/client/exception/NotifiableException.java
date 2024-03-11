@@ -62,6 +62,9 @@ public class NotifiableException extends Exception {
       return new NotifiableException(
           "Error " + sorobanErrorMessage.errorCode + ": " + sorobanErrorMessage.message);
     }
+    if (e.getCause() != null) {
+      return findNotifiableException(e.getCause());
+    }
     return null;
   }
 }
