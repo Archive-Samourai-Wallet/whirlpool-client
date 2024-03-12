@@ -2,6 +2,7 @@ package com.samourai.whirlpool.client.mix;
 
 import com.samourai.soroban.client.exception.SorobanErrorMessageException;
 import com.samourai.wallet.api.backend.beans.HttpException;
+import com.samourai.wallet.util.ShutdownException;
 import com.samourai.whirlpool.client.exception.NotifiableException;
 import com.samourai.whirlpool.client.exception.ProtocolException;
 import com.samourai.whirlpool.client.mix.listener.MixFailReason;
@@ -103,16 +104,19 @@ public class MixClient {
       // complete the mix
       doMix(mixApi);
     } catch (TimeoutException e) {
+      // exit with done=false to restart with a new mix attempt
       if (log.isDebugEnabled()) {
         log.debug("MIX_TIMEOUT " + mixId + " " + mixParams.getWhirlpoolUtxo());
-        // failAndExit(MixFailReason.ROTATE, null);
-        return; // exit with done=false to restart with a new mix attempt
       }
     } catch (InterruptedException e) { // when a loop is interrupted by rpcSession.done
+      // exit with done=false to restart with a new mix attempt
       if (log.isDebugEnabled()) {
         log.debug("MIX_INTERRUPTED " + mixId + " " + mixParams.getWhirlpoolUtxo());
-        // failAndExit(MixFailReason.ROTATE, null);
-        return; // exit with done=false to restart with a new mix attempt
+      }
+    } catch (ShutdownException e) {
+      // silent exit on shutdown
+      if (log.isDebugEnabled()) {
+        log.debug("MIX_SHUTDOWN " + mixId + " " + mixParams.getWhirlpoolUtxo());
       }
     } catch (HttpException e) {
       if (log.isDebugEnabled()) {
