@@ -49,11 +49,11 @@ public class MixsDoneResyncManager {
       for (TxsResponse.TxInput txInput : tx.inputs) {
         prevTx = postmixTxs.get(txInput.prev_out.txid);
         if (prevTx != null) {
+          mixsDone++;
           break;
         }
       }
       tx = prevTx;
-      mixsDone++;
     }
     return mixsDone;
   }
