@@ -6,6 +6,7 @@ import com.samourai.wallet.api.backend.beans.HttpException;
 import com.samourai.wallet.api.backend.beans.UnspentOutput;
 import com.samourai.wallet.bip47.rpc.PaymentCode;
 import com.samourai.wallet.client.indexHandler.IIndexHandler;
+import com.samourai.wallet.httpClient.HttpResponseException;
 import com.samourai.wallet.segwit.bech32.Bech32UtilGeneric;
 import com.samourai.wallet.util.*;
 import com.samourai.whirlpool.client.exception.NotifiableException;
@@ -106,8 +107,8 @@ public class ClientUtils {
   }
 
   public static String getHttpResponseBody(Throwable e) {
-    if (e instanceof HttpException) {
-      return ((HttpException) e).getResponseBody();
+    if (e instanceof HttpResponseException) {
+      return ((HttpResponseException) e).getResponseBody();
     }
     return null;
   }

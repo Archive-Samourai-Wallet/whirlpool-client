@@ -110,7 +110,7 @@ public class AbstractTest {
   public AbstractTest() throws Exception {
     ClientUtils.setLogLevel(Level.DEBUG.toString());
 
-    httpClient = new JettyHttpClient(5000, null, ClientUtils.USER_AGENT);
+    httpClient = new JettyHttpClient(5000, null, ClientUtils.USER_AGENT, null);
     oxtApi = new OxtApi(httpClient);
 
     pool01btc = new Pool();

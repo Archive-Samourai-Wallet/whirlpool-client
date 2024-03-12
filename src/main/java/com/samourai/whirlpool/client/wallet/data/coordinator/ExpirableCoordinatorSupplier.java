@@ -2,6 +2,7 @@ package com.samourai.whirlpool.client.wallet.data.coordinator;
 
 import com.samourai.wallet.api.backend.beans.HttpException;
 import com.samourai.wallet.bip47.rpc.PaymentCode;
+import com.samourai.wallet.httpClient.HttpResponseException;
 import com.samourai.wallet.util.CallbackWithArg;
 import com.samourai.wallet.util.Pair;
 import com.samourai.wallet.util.RandomUtil;
@@ -18,10 +19,11 @@ import com.samourai.whirlpool.client.whirlpool.beans.Coordinator;
 import com.samourai.whirlpool.client.whirlpool.beans.Pool;
 import com.samourai.whirlpool.protocol.soroban.WhirlpoolApiClient;
 import com.samourai.whirlpool.protocol.soroban.payload.coordinators.CoordinatorMessage;
-import java.util.Collection;
-import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.util.Collection;
+import java.util.stream.Collectors;
 
 public class ExpirableCoordinatorSupplier extends ExpirableSupplier<CoordinatorData>
     implements CoordinatorSupplier {
@@ -58,7 +60,7 @@ public class ExpirableCoordinatorSupplier extends ExpirableSupplier<CoordinatorD
 
       if (coordinatorData.getCoordinators().isEmpty()) {
         // immediately retry on another SorobanServer as current one it may be out-of-sync
-        throw new HttpException("No coordinator found, retrying...");
+        throw new HttpResponseException("No coordinator found, retrying...", 200);
       }
       return coordinatorData;
     } catch (HttpException e) { // TODO ?
