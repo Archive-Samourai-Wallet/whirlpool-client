@@ -605,7 +605,7 @@ public class WhirlpoolWallet {
   }
 
   public void mixStop(WhirlpoolUtxo whirlpoolUtxo) {
-    this.mixOrchestrator.mixStop(whirlpoolUtxo, MixFailReason.STOP);
+    this.mixOrchestrator.mixStop(whirlpoolUtxo, MixFailReason.STOP_UTXO);
   }
 
   public BipWallet getWalletDeposit() {

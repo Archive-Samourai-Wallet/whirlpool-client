@@ -105,7 +105,7 @@ public abstract class MixOrchestrator extends AbstractOrchestrator {
       log.debug("stopMixingClients: " + data.getMixing().size() + " mixing");
     }
     for (Mixing oneMixing : data.getMixing()) {
-      stopWhirlpoolClient(oneMixing, MixFailReason.CANCEL);
+      stopWhirlpoolClient(oneMixing, MixFailReason.STOP_MIXING);
     }
   }
 
@@ -406,19 +406,13 @@ public abstract class MixOrchestrator extends AbstractOrchestrator {
       // stop mixing
       stopWhirlpoolClient(myMixing, failReason);
     } else {
-      // remove from queue
-      log.debug("Remove from queue: " + whirlpoolUtxo);
-      boolean wasQueued = WhirlpoolUtxoStatus.MIX_QUEUE.equals(utxoState.getStatus());
+      // update status: stop or requeue
       WhirlpoolUtxoStatus utxoStatus =
-          MixFailReason.STOP.equals(failReason)
-              ? WhirlpoolUtxoStatus.STOP
-              : WhirlpoolUtxoStatus.READY;
+          failReason.isRequeue() ? WhirlpoolUtxoStatus.READY : WhirlpoolUtxoStatus.STOP;
       utxoState.setStatus(utxoStatus, false, false);
 
-      // recount QUEUE if it was queued
-      if (wasQueued) {
-        data.recountQueued();
-      }
+      // recount QUEUE
+      data.recountQueued();
     }
   }
 
@@ -524,7 +518,7 @@ public abstract class MixOrchestrator extends AbstractOrchestrator {
           if (log.isDebugEnabled()) {
             log.debug("Spent utxo is mixing, cancelling: " + whirlpoolUtxo);
           }
-          stopWhirlpoolClient(mixing, MixFailReason.STOP);
+          stopWhirlpoolClient(mixing, MixFailReason.INPUT_REJECTED);
         } else {
           if (log.isDebugEnabled()) {
             log.debug(

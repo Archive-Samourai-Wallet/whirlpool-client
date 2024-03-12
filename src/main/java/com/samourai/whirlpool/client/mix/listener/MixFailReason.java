@@ -6,8 +6,8 @@ public enum MixFailReason {
   INPUT_REJECTED("Input rejected", false, true, true),
   INTERNAL_ERROR("Internal error", false, true, true),
   ROTATE("Rotate", true, true, false),
-  CANCEL("Cancelled", true, false, false),
-  STOP("Stopped", false, false, false);
+  STOP_MIXING("Mixing halted", true, true, false),
+  STOP_UTXO("Mixing UTXO halted", false, false, false);
 
   private String message;
   private boolean silent;
