@@ -19,11 +19,10 @@ import com.samourai.whirlpool.client.whirlpool.beans.Coordinator;
 import com.samourai.whirlpool.client.whirlpool.beans.Pool;
 import com.samourai.whirlpool.protocol.soroban.WhirlpoolApiClient;
 import com.samourai.whirlpool.protocol.soroban.payload.coordinators.CoordinatorMessage;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.util.Collection;
 import java.util.stream.Collectors;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class ExpirableCoordinatorSupplier extends ExpirableSupplier<CoordinatorData>
     implements CoordinatorSupplier {

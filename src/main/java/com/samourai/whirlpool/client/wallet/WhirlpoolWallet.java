@@ -838,7 +838,7 @@ public class WhirlpoolWallet {
   protected void checkAndFixPostmixIndex(IPostmixHandler postmixHandler)
       throws NotifiableException {
     if (log.isDebugEnabled()) {
-      log.debug("Checking next index: " + postmixHandler.getClass().getName());
+      log.debug("Checking next postmixIndex");
     }
     ISeenBackend seenBackend = getSeenBackend();
     try {

@@ -2,7 +2,6 @@ package com.samourai.whirlpool.client.utils;
 
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.samourai.wallet.api.backend.beans.HttpException;
 import com.samourai.wallet.api.backend.beans.UnspentOutput;
 import com.samourai.wallet.bip47.rpc.PaymentCode;
 import com.samourai.wallet.client.indexHandler.IIndexHandler;
