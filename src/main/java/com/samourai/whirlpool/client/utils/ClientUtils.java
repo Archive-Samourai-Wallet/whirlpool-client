@@ -47,8 +47,7 @@ public class ClientUtils {
   private static final int BORDEREAU_LENGTH = 30;
 
   public static void setupEnv() {
-    // prevent user-agent tracking
-    System.setProperty("http.agent", null);
+    // nothing yet
   }
 
   public static Integer findTxOutputIndex(
