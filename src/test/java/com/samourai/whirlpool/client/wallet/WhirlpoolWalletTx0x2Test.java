@@ -4,18 +4,13 @@ import com.samourai.wallet.api.backend.beans.UnspentOutput;
 import com.samourai.wallet.bipWallet.BipWallet;
 import com.samourai.wallet.cahoots.Cahoots;
 import com.samourai.wallet.constants.BIP_WALLET;
-import com.samourai.wallet.constants.SamouraiAccount;
 import com.samourai.wallet.send.UTXO;
 import com.samourai.whirlpool.client.test.AbstractCahootsTest;
-import com.samourai.whirlpool.client.tx0.Tx0;
-import com.samourai.whirlpool.client.tx0.Tx0Config;
-import com.samourai.whirlpool.client.tx0.Tx0PreviewService;
-import com.samourai.whirlpool.client.tx0.Tx0Service;
+import com.samourai.whirlpool.client.tx0.*;
 import com.samourai.whirlpool.client.tx0x2.Tx0x2Context;
 import com.samourai.whirlpool.client.wallet.beans.Tx0FeeTarget;
 import com.samourai.whirlpool.client.whirlpool.beans.Pool;
 import com.samourai.whirlpool.protocol.feeOpReturn.FeeOpReturnImpl;
-import com.samourai.whirlpool.protocol.soroban.WhirlpoolApiClient;
 import java.util.Collection;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -28,9 +23,11 @@ import org.slf4j.LoggerFactory;
 
 public class WhirlpoolWalletTx0x2Test extends AbstractCahootsTest {
   private Logger log = LoggerFactory.getLogger(WhirlpoolWalletTx0x2Test.class);
+  private Tx0Info tx0Info;
 
   public WhirlpoolWalletTx0x2Test() throws Exception {
     super();
+    this.tx0Info = asyncUtil.blockingGet(whirlpoolWallet.fetchTx0Info());
   }
 
   @BeforeEach
@@ -60,26 +57,15 @@ public class WhirlpoolWalletTx0x2Test extends AbstractCahootsTest {
 
     // initiator: build initial TX0
     Collection<UnspentOutput> spendFroms = utxoSender1.toUnspentOutputs();
-    Tx0Config tx0Config =
-        new Tx0Config(
-            tx0PreviewService,
-            coordinatorSupplier.getPools(),
-            Tx0FeeTarget.BLOCKS_24,
-            Tx0FeeTarget.BLOCKS_24,
-            SamouraiAccount.DEPOSIT);
+    Tx0Config tx0Config = tx0Info.getTx0Config(Tx0FeeTarget.BLOCKS_24, Tx0FeeTarget.BLOCKS_24);
 
     Tx0 tx0Initiator =
-        asyncUtil.blockingGet(
-            whirlpoolWallet.withWhirlpoolApiClient(
-                whirlpoolApiClient ->
-                    tx0Service.tx0(
-                        spendFroms,
-                        walletSupplierSender,
-                        pool,
-                        tx0Config,
-                        utxoProviderSender,
-                        whirlpoolApiClient,
-                        whirlpoolWallet.getCoordinatorSupplier())));
+        tx0Info.tx0(
+            whirlpoolWallet.getWalletSupplier(),
+            whirlpoolWallet.getUtxoSupplier(),
+            spendFroms,
+            tx0Config,
+            pool);
 
     // run Cahoots
     Tx0x2Context cahootsContextSender =
@@ -138,24 +124,14 @@ public class WhirlpoolWalletTx0x2Test extends AbstractCahootsTest {
 
     // initiator: build initial TX0
     Collection<UnspentOutput> spendFroms = utxoSender1.toUnspentOutputs();
-    Tx0Config tx0Config =
-        new Tx0Config(
-            tx0PreviewService,
-            coordinatorSupplier.getPools(),
-            Tx0FeeTarget.BLOCKS_24,
-            Tx0FeeTarget.BLOCKS_24,
-            SamouraiAccount.DEPOSIT);
-    WhirlpoolApiClient whirlpoolApiClient = whirlpoolWallet.createWhirlpoolApiClient();
+    Tx0Config tx0Config = tx0Info.getTx0Config(Tx0FeeTarget.BLOCKS_24, Tx0FeeTarget.BLOCKS_24);
     Tx0 tx0Initiator =
-        asyncUtil.blockingGet(
-            tx0Service.tx0(
-                spendFroms,
-                walletSupplierSender,
-                pool,
-                tx0Config,
-                utxoProviderSender,
-                whirlpoolApiClient,
-                whirlpoolWallet.getCoordinatorSupplier()));
+        tx0Info.tx0(
+            whirlpoolWallet.getWalletSupplier(),
+            whirlpoolWallet.getUtxoSupplier(),
+            spendFroms,
+            tx0Config,
+            pool);
 
     // run Cahoots
     Tx0x2Context cahootsContextSender =

@@ -1,7 +1,6 @@
 package com.samourai.whirlpool.client.tx0;
 
 import com.samourai.wallet.api.backend.beans.UnspentOutput;
-import com.samourai.wallet.constants.SamouraiAccount;
 import com.samourai.wallet.hd.HD_Address;
 import com.samourai.wallet.util.TxUtil;
 import com.samourai.whirlpool.client.wallet.beans.Tx0FeeTarget;
@@ -16,9 +15,11 @@ import org.slf4j.LoggerFactory;
 
 public class Tx0ServiceV1Test extends AbstractTx0ServiceTest {
   private Logger log = LoggerFactory.getLogger(Tx0ServiceV1Test.class);
+  private Tx0Info tx0Info;
 
   public Tx0ServiceV1Test() throws Exception {
     super(46);
+    this.tx0Info = asyncUtil.blockingGet(whirlpoolWallet.fetchTx0Info());
   }
 
   @BeforeEach
@@ -56,6 +57,7 @@ public class Tx0ServiceV1Test extends AbstractTx0ServiceTest {
             feeChange,
             feeDiscountPercent,
             "test",
+            feePayload,
             feePayload,
             "tb1qjara0278vrsr8gvaga7jpy2c9amtgvytr44xym");
     Tx0Param tx0Param = new Tx0Param(feeSatPerByte, feeSatPerByte, pool01btc, null);
@@ -99,6 +101,7 @@ public class Tx0ServiceV1Test extends AbstractTx0ServiceTest {
             feeChange,
             feeDiscountPercent,
             "test",
+            feePayload,
             feePayload,
             "tb1qjara0278vrsr8gvaga7jpy2c9amtgvytr44xym");
 
@@ -152,6 +155,7 @@ public class Tx0ServiceV1Test extends AbstractTx0ServiceTest {
             feeChange,
             feeDiscountPercent,
             "test",
+            feePayload,
             feePayload,
             "tb1qjara0278vrsr8gvaga7jpy2c9amtgvytr44xym");
     Tx0Param tx0Param = new Tx0Param(feeSatPerByte, feeSatPerByte, pool01btc, null);
@@ -210,6 +214,7 @@ public class Tx0ServiceV1Test extends AbstractTx0ServiceTest {
             feeDiscountPercent,
             "test",
             feePayload,
+            feePayload,
             "tb1qjara0278vrsr8gvaga7jpy2c9amtgvytr44xym");
     Tx0Param tx0Param = new Tx0Param(feeSatPerByte, feeSatPerByte, pool01btc, null);
     Assertions.assertEquals(1000175, tx0Param.getPremixValue());
@@ -256,13 +261,7 @@ public class Tx0ServiceV1Test extends AbstractTx0ServiceTest {
             address);
     mockUtxos(spendFromUtxo);
 
-    Tx0Config tx0Config =
-        new Tx0Config(
-            tx0PreviewService,
-            coordinatorSupplier.getPools(),
-            Tx0FeeTarget.BLOCKS_24,
-            Tx0FeeTarget.BLOCKS_24,
-            SamouraiAccount.DEPOSIT);
+    Tx0Config tx0Config = tx0Info.getTx0Config(Tx0FeeTarget.BLOCKS_24, Tx0FeeTarget.BLOCKS_24);
     int nbOutputsExpected = 10;
     long premixValue = 1000150;
     String feePaymentCode =
@@ -283,6 +282,7 @@ public class Tx0ServiceV1Test extends AbstractTx0ServiceTest {
             feeChange,
             feeDiscountPercent,
             "test",
+            feePayload,
             feePayload,
             "tb1qjara0278vrsr8gvaga7jpy2c9amtgvytr44xym");
 
@@ -491,13 +491,7 @@ public class Tx0ServiceV1Test extends AbstractTx0ServiceTest {
             address); // balance with 11000 change
     mockUtxos(spendFromUtxo);
 
-    Tx0Config tx0Config =
-        new Tx0Config(
-            tx0PreviewService,
-            coordinatorSupplier.getPools(),
-            Tx0FeeTarget.BLOCKS_24,
-            Tx0FeeTarget.BLOCKS_24,
-            SamouraiAccount.DEPOSIT);
+    Tx0Config tx0Config = tx0Info.getTx0Config(Tx0FeeTarget.BLOCKS_24, Tx0FeeTarget.BLOCKS_24);
     int nbOutputsExpected = 1;
     long premixValue = 1000150;
     String feePaymentCode =
@@ -520,6 +514,7 @@ public class Tx0ServiceV1Test extends AbstractTx0ServiceTest {
             feeChange,
             feeDiscountPercent,
             "test",
+            feePayload,
             feePayload,
             "tb1qjara0278vrsr8gvaga7jpy2c9amtgvytr44xym");
 
@@ -575,13 +570,7 @@ public class Tx0ServiceV1Test extends AbstractTx0ServiceTest {
             address); // balance with 11000 change
     mockUtxos(spendFromUtxo);
 
-    Tx0Config tx0Config =
-        new Tx0Config(
-            tx0PreviewService,
-            coordinatorSupplier.getPools(),
-            Tx0FeeTarget.BLOCKS_24,
-            Tx0FeeTarget.BLOCKS_24,
-            SamouraiAccount.DEPOSIT);
+    Tx0Config tx0Config = tx0Info.getTx0Config(Tx0FeeTarget.BLOCKS_24, Tx0FeeTarget.BLOCKS_24);
     int nbOutputsExpected = 1;
     long premixValue = 1000150;
     String feePaymentCode =
@@ -604,6 +593,7 @@ public class Tx0ServiceV1Test extends AbstractTx0ServiceTest {
             feeChange,
             feeDiscountPercent,
             "test",
+            feePayload,
             feePayload,
             "tb1qjara0278vrsr8gvaga7jpy2c9amtgvytr44xym");
 
@@ -659,13 +649,7 @@ public class Tx0ServiceV1Test extends AbstractTx0ServiceTest {
             address); // balance with 11000 change
     mockUtxos(spendFromUtxo);
 
-    Tx0Config tx0Config =
-        new Tx0Config(
-            tx0PreviewService,
-            coordinatorSupplier.getPools(),
-            Tx0FeeTarget.BLOCKS_24,
-            Tx0FeeTarget.BLOCKS_24,
-            SamouraiAccount.DEPOSIT);
+    Tx0Config tx0Config = tx0Info.getTx0Config(Tx0FeeTarget.BLOCKS_24, Tx0FeeTarget.BLOCKS_24);
     int nbOutputsExpected = 1;
     long premixValue = 1000150;
     String feePaymentCode =
@@ -687,6 +671,7 @@ public class Tx0ServiceV1Test extends AbstractTx0ServiceTest {
             feeChange,
             feeDiscountPercent,
             "test",
+            encodeFeePayload(0, (short) 0, (short) 0),
             encodeFeePayload(0, (short) 0, (short) 0),
             "tb1qjara0278vrsr8gvaga7jpy2c9amtgvytr44xym");
 
@@ -742,13 +727,7 @@ public class Tx0ServiceV1Test extends AbstractTx0ServiceTest {
             address); // balance with 11000 change
     mockUtxos(spendFromUtxo);
 
-    Tx0Config tx0Config =
-        new Tx0Config(
-            tx0PreviewService,
-            coordinatorSupplier.getPools(),
-            Tx0FeeTarget.BLOCKS_24,
-            Tx0FeeTarget.BLOCKS_24,
-            SamouraiAccount.POSTMIX);
+    Tx0Config tx0Config = tx0Info.getTx0Config(Tx0FeeTarget.BLOCKS_24, Tx0FeeTarget.BLOCKS_24);
     int nbOutputsExpected = 1;
     long premixValue = 1000150;
     String feePaymentCode =
@@ -770,6 +749,7 @@ public class Tx0ServiceV1Test extends AbstractTx0ServiceTest {
             feeChange,
             feeDiscountPercent,
             "test",
+            encodeFeePayload(0, (short) 0, (short) 0),
             encodeFeePayload(0, (short) 0, (short) 0),
             "tb1qjara0278vrsr8gvaga7jpy2c9amtgvytr44xym");
 

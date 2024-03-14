@@ -1,13 +1,12 @@
 package com.samourai.whirlpool.client.event;
 
 import com.samourai.whirlpool.client.tx0.Tx0;
-import com.samourai.whirlpool.client.wallet.WhirlpoolWallet;
+import com.samourai.whirlpool.client.wallet.beans.WhirlpoolEvent;
 
-public class Tx0Event extends WhirlpoolWalletEvent {
+public class Tx0Event extends WhirlpoolEvent {
   private Tx0 tx0;
 
-  public Tx0Event(WhirlpoolWallet whirlpoolWallet, Tx0 tx0) {
-    super(whirlpoolWallet);
+  public Tx0Event(Tx0 tx0) {
     this.tx0 = tx0;
   }
 

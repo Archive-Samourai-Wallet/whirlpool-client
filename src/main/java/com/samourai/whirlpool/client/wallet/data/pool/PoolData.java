@@ -1,9 +1,6 @@
 package com.samourai.whirlpool.client.wallet.data.pool;
 
-import com.samourai.whirlpool.client.tx0.Tx0Preview;
-import com.samourai.whirlpool.client.tx0.Tx0PreviewConfig;
-import com.samourai.whirlpool.client.tx0.Tx0PreviewService;
-import com.samourai.whirlpool.client.tx0.Tx0Previews;
+import com.samourai.whirlpool.client.tx0.*;
 import com.samourai.whirlpool.client.wallet.beans.Tx0FeeTarget;
 import com.samourai.whirlpool.client.wallet.beans.WhirlpoolPoolByBalanceMinDescComparator;
 import com.samourai.whirlpool.client.whirlpool.beans.Pool;
@@ -48,9 +45,11 @@ public class PoolData {
             .collect(Collectors.toList());
 
     // compute & set tx0PreviewMin
-    Tx0PreviewConfig tx0PreviewConfig =
-        new Tx0PreviewConfig(tx0PreviewService, poolsOrdered, Tx0FeeTarget.MIN, Tx0FeeTarget.MIN);
-    final Tx0Previews tx0PreviewsMin = tx0PreviewService.tx0PreviewsMinimal(tx0PreviewConfig);
+    int tx0MaxRetry = 1; // TODO not used
+    Tx0InfoConfig tx0InfoConfig = new Tx0InfoConfig(tx0PreviewService, poolsOrdered, tx0MaxRetry);
+    Tx0PreviewConfig tx0PreviewConfig = new Tx0PreviewConfig(Tx0FeeTarget.MIN, Tx0FeeTarget.MIN);
+    final Tx0Previews tx0PreviewsMin =
+        tx0PreviewService.tx0PreviewsMinimal(tx0InfoConfig, tx0PreviewConfig);
     for (Pool pool : poolsOrdered) {
       Tx0Preview tx0PreviewMin = tx0PreviewsMin.getTx0Preview(pool.getPoolId());
       pool.setTx0PreviewMin(tx0PreviewMin);

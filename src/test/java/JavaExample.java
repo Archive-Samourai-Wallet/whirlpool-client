@@ -9,6 +9,7 @@ import com.samourai.wallet.api.paynym.beans.PaynymState;
 import com.samourai.wallet.bip47.rpc.java.Bip47UtilJava;
 import com.samourai.wallet.bip47.rpc.java.SecretPointFactoryJava;
 import com.samourai.wallet.bip47.rpc.secretPoint.ISecretPointFactory;
+import com.samourai.wallet.bipWallet.WalletSupplier;
 import com.samourai.wallet.constants.BIP_WALLETS;
 import com.samourai.wallet.constants.SamouraiAccount;
 import com.samourai.wallet.constants.SamouraiNetwork;
@@ -19,8 +20,12 @@ import com.samourai.wallet.util.AsyncUtil;
 import com.samourai.wallet.websocketClient.IWebsocketClient;
 import com.samourai.whirlpool.client.event.*;
 import com.samourai.whirlpool.client.tx0.*;
-import com.samourai.whirlpool.client.wallet.*;
+import com.samourai.whirlpool.client.wallet.WhirlpoolEventService;
+import com.samourai.whirlpool.client.wallet.WhirlpoolWallet;
+import com.samourai.whirlpool.client.wallet.WhirlpoolWalletConfig;
+import com.samourai.whirlpool.client.wallet.WhirlpoolWalletService;
 import com.samourai.whirlpool.client.wallet.beans.*;
+import com.samourai.whirlpool.client.wallet.data.WhirlpoolInfo;
 import com.samourai.whirlpool.client.wallet.data.dataPersister.DataPersister;
 import com.samourai.whirlpool.client.wallet.data.dataPersister.DataPersisterFactory;
 import com.samourai.whirlpool.client.wallet.data.dataSource.*;
@@ -215,6 +220,9 @@ public class JavaExample {
     whirlpoolWallet = new WhirlpoolWallet(config, bip44w);
     whirlpoolWalletService.openWallet(whirlpoolWallet, seedPassphrase);
 
+    // whirlpoolInfo can be used to fetch info without opening WhirlpoolWallet
+    WhirlpoolInfo whirlpoolInfo = whirlpoolWallet.getWhirlpoolInfo();
+
     // start whirlpool wallet
     whirlpoolWallet.startAsync().subscribe();
 
@@ -241,6 +249,8 @@ public class JavaExample {
 
     // preview smallest possible tx0 for pool (without taking SCODE into account)
     Tx0Preview txOPreviewMin = pool05btc.getTx0PreviewMin();
+
+    WalletSupplier walletSupplier = whirlpoolWallet.getWalletSupplier();
 
     /*
      * UTXOS
@@ -273,19 +283,19 @@ public class JavaExample {
       if (whirlpoolUtxo == null) {} // utxo not found
       Collection<WhirlpoolUtxo> utxos = Arrays.asList(whirlpoolUtxo);
 
+      // fetch tx0Datas once (you should refresh it after pushing any TX0)
+      Tx0Info tx0Info = asyncUtil.blockingGet(whirlpoolInfo.fetchTx0Info("scode"));
+
       // configure tx0
       Tx0FeeTarget tx0FeeTarget = Tx0FeeTarget.BLOCKS_4;
       Tx0FeeTarget mixFeeTarget = Tx0FeeTarget.BLOCKS_4;
       Tx0Config tx0Config =
-          whirlpoolWallet
-              .getTx0Config(tx0FeeTarget, mixFeeTarget)
-              .setChangeWallet(SamouraiAccount.BADBANK);
+          tx0Info.getTx0Config(tx0FeeTarget, mixFeeTarget).setChangeWallet(SamouraiAccount.BADBANK);
 
       // preview tx0
       try {
         // preview all pools
-        Tx0Previews tx0Previews =
-            asyncUtil.blockingGet(whirlpoolWallet.tx0Previews(utxos, tx0Config));
+        Tx0Previews tx0Previews = tx0Info.tx0Previews(utxos, tx0Config);
 
         // pool preview
         Tx0Preview tx0Preview = tx0Previews.getTx0Preview("0.5btc");
@@ -298,7 +308,7 @@ public class JavaExample {
 
       // execute tx0
       try {
-        Tx0 tx0 = whirlpoolWallet.tx0(utxos, pool05btc, tx0Config);
+        Tx0 tx0 = tx0Info.tx0(walletSupplier, utxoSupplier, utxos, pool05btc, tx0Config);
         String txid = tx0.getTx().getHashAsString(); // get txid
       } catch (Exception e) {
         // tx0 failed
@@ -311,19 +321,19 @@ public class JavaExample {
       UnspentOutput spendFrom = null; // provide utxo outpoint
       Collection<UnspentOutput> utxos = Arrays.asList(spendFrom);
 
+      // fetch tx0Datas once
+      Tx0Info tx0Info = asyncUtil.blockingGet(whirlpoolInfo.fetchTx0Info("scode"));
+
       // configure tx0
       Tx0FeeTarget tx0FeeTarget = Tx0FeeTarget.BLOCKS_4;
       Tx0FeeTarget mixFeeTarget = Tx0FeeTarget.BLOCKS_4;
       Tx0Config tx0Config =
-          whirlpoolWallet
-              .getTx0Config(tx0FeeTarget, mixFeeTarget)
-              .setChangeWallet(SamouraiAccount.BADBANK);
+          tx0Info.getTx0Config(tx0FeeTarget, mixFeeTarget).setChangeWallet(SamouraiAccount.BADBANK);
 
       // preview tx0
       try {
         // preview all pools
-        Tx0Previews tx0Previews =
-            asyncUtil.blockingGet(whirlpoolWallet.tx0Previews(tx0Config, utxos));
+        Tx0Previews tx0Previews = tx0Info.tx0Previews(tx0Config, utxos);
 
         // pool preview
         Tx0Preview tx0Preview = tx0Previews.getTx0Preview("0.5btc");
@@ -337,7 +347,7 @@ public class JavaExample {
 
       // execute tx0
       try {
-        Tx0 tx0 = asyncUtil.blockingGet(whirlpoolWallet.tx0(utxos, tx0Config, pool05btc));
+        Tx0 tx0 = tx0Info.tx0(walletSupplier, utxoSupplier, utxos, tx0Config, pool05btc);
         String txid = tx0.getTx().getHashAsString(); // get txid
         // mixing will start automatically when tx0 gets confirmed
       } catch (Exception e) {

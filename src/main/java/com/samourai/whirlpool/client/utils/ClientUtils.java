@@ -4,12 +4,17 @@ import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.samourai.wallet.api.backend.beans.UnspentOutput;
 import com.samourai.wallet.bip47.rpc.PaymentCode;
+import com.samourai.wallet.bipFormat.BIP_FORMAT;
+import com.samourai.wallet.bipWallet.BipWallet;
+import com.samourai.wallet.bipWallet.WalletSupplier;
 import com.samourai.wallet.client.indexHandler.IIndexHandler;
+import com.samourai.wallet.constants.SamouraiAccount;
 import com.samourai.wallet.httpClient.HttpResponseException;
 import com.samourai.wallet.segwit.bech32.Bech32UtilGeneric;
 import com.samourai.wallet.util.*;
 import com.samourai.whirlpool.client.exception.NotifiableException;
 import com.samourai.whirlpool.client.wallet.beans.IndexRange;
+import com.samourai.whirlpool.client.wallet.data.utxo.UtxoSupplier;
 import com.samourai.whirlpool.protocol.WhirlpoolProtocol;
 import com.samourai.whirlpool.protocol.beans.Utxo;
 import com.samourai.xmanager.protocol.rest.RestErrorResponse;
@@ -203,6 +208,33 @@ public class ClientUtils {
               } catch (InterruptedException e) {
               }
             });
+  }
+
+  public static Completable refreshUtxosDelayAsync(
+      UtxoSupplier utxoSupplier, NetworkParameters params) {
+    return sleepUtxosDelayAsync(params)
+        .doOnComplete(() -> refreshUtxosAsync(utxoSupplier).blockingAwait());
+  }
+
+  /** Refresh utxos now */
+  public static Completable refreshUtxosAsync(UtxoSupplier utxoSupplier) {
+    return AsyncUtil.getInstance().runIOAsyncCompletable(() -> utxoSupplier.refresh());
+  }
+
+  public static BipWallet getWalletDeposit(WalletSupplier walletSupplier) {
+    return walletSupplier.getWallet(SamouraiAccount.DEPOSIT, BIP_FORMAT.SEGWIT_NATIVE);
+  }
+
+  public static BipWallet getWalletPremix(WalletSupplier walletSupplier) {
+    return walletSupplier.getWallet(SamouraiAccount.PREMIX, BIP_FORMAT.SEGWIT_NATIVE);
+  }
+
+  public static BipWallet getWalletPostmix(WalletSupplier walletSupplier) {
+    return walletSupplier.getWallet(SamouraiAccount.POSTMIX, BIP_FORMAT.SEGWIT_NATIVE);
+  }
+
+  public static BipWallet getWalletBadbank(WalletSupplier walletSupplier) {
+    return walletSupplier.getWallet(SamouraiAccount.BADBANK, BIP_FORMAT.SEGWIT_NATIVE);
   }
 
   public static String sha256Hash(String str) {
