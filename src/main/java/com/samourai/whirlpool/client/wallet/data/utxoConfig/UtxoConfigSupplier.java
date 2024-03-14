@@ -9,9 +9,5 @@ public interface UtxoConfigSupplier extends PersistableSupplier {
 
   void setMixsDone(String utxoHash, int utxoIndex, int mixsDone);
 
-  void setBlocked(String utxoHash, int utxoIndex, boolean blocked);
-
-  void setNote(String utxoHash, int utxoIndex, String note);
-
   void clean(Collection<WhirlpoolUtxo> existingUtxos);
 }

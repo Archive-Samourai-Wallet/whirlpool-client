@@ -47,28 +47,6 @@ public class UtxoConfigPersistableSupplier extends AbstractPersistableSupplier<U
         });
   }
 
-  @Override
-  public void setBlocked(String hash, int index, boolean blocked) {
-    applyUtxoConfig(
-        hash,
-        index,
-        utxoConfigPersisted -> {
-          utxoConfigPersisted.setBlocked(blocked);
-          return null;
-        });
-  }
-
-  @Override
-  public void setNote(String hash, int index, String note) {
-    applyUtxoConfig(
-        hash,
-        index,
-        utxoConfigPersisted -> {
-          utxoConfigPersisted.setNote(note);
-          return null;
-        });
-  }
-
   protected synchronized void applyUtxoConfig(
       String hash, int index, CallbackWithArg<UtxoConfigPersisted, Void> callback) {
     String key = computeUtxoConfigKey(hash, index);

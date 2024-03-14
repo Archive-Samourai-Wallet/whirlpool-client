@@ -113,22 +113,6 @@ public class WhirlpoolUtxo {
     utxoConfigSupplier.setMixsDone(utxo.tx_hash, utxo.tx_output_n, mixsDone);
   }
 
-  public boolean isBlocked() {
-    return getUtxoConfigOrDefault().isBlocked();
-  }
-
-  public void setBlocked(boolean blocked) {
-    utxoConfigSupplier.setBlocked(utxo.tx_hash, utxo.tx_output_n, blocked);
-  }
-
-  public String getNote() {
-    return getUtxoConfigOrDefault().getNote();
-  }
-
-  public void setNote(String note) {
-    utxoConfigSupplier.setNote(utxo.tx_hash, utxo.tx_output_n, note);
-  }
-
   public UnspentOutput getUtxo() {
     return utxo;
   }

@@ -37,7 +37,6 @@ public class ClientUtils {
 
   private static final int SLEEP_REFRESH_UTXOS_TESTNET = 15000;
   private static final int SLEEP_REFRESH_UTXOS_MAINNET = 5000;
-  public static final String USER_AGENT = "whirlpool-client";
 
   private static final ObjectMapper objectMapper =
       new ObjectMapper()
@@ -49,7 +48,7 @@ public class ClientUtils {
 
   public static void setupEnv() {
     // prevent user-agent tracking
-    System.setProperty("http.agent", USER_AGENT);
+    System.setProperty("http.agent", null);
   }
 
   public static Integer findTxOutputIndex(
