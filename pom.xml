@@ -14,7 +14,7 @@
         <dependency>
             <groupId>io.samourai.code.whirlpool</groupId>
             <artifactId>whirlpool-protocol</artifactId>
-            <version>1.0.0-beta8</version>
+            <version>1.0.0-beta9</version>
         </dependency>
         <dependency>
             <groupId>io.samourai.code.wallet</groupId>
@@ -24,7 +24,7 @@
         <dependency>
             <groupId>io.samourai.code.wallet</groupId>
             <artifactId>soroban-client-java</artifactId>
-            <version>1.0.0-beta6</version>
+            <version>1.0.0-beta7</version>
             <scope>compile</scope>
         </dependency>
         <dependency>
