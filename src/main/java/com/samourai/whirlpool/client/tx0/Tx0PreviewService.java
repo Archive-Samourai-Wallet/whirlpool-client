@@ -5,19 +5,12 @@ import com.samourai.wallet.util.FeeUtil;
 import com.samourai.whirlpool.client.exception.NotifiableException;
 import com.samourai.whirlpool.client.utils.ClientUtils;
 import com.samourai.whirlpool.client.wallet.beans.Tx0FeeTarget;
-import com.samourai.whirlpool.client.wallet.data.coordinator.CoordinatorSupplier;
 import com.samourai.whirlpool.client.wallet.data.minerFee.MinerFeeSupplier;
-import com.samourai.whirlpool.client.whirlpool.beans.Coordinator;
 import com.samourai.whirlpool.client.whirlpool.beans.Pool;
 import com.samourai.whirlpool.client.whirlpool.beans.Tx0Data;
-import com.samourai.whirlpool.protocol.soroban.WhirlpoolApiClient;
-import com.samourai.whirlpool.protocol.soroban.payload.tx0.Tx0DataRequest;
-import io.reactivex.Single;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.LinkedHashMap;
 import java.util.Map;
-import java.util.stream.Collectors;
 import org.bitcoinj.core.NetworkParameters;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -33,7 +26,12 @@ public class Tx0PreviewService {
     this.config = config;
   }
 
-  public Tx0Param getTx0Param(Pool pool, Tx0FeeTarget tx0FeeTarget, Tx0FeeTarget mixFeeTarget) {
+  protected Tx0Param getTx0Param(Pool pool, Tx0PreviewConfig tx0PreviewConfig) {
+    return getTx0Param(
+        pool, tx0PreviewConfig.getTx0FeeTarget(), tx0PreviewConfig.getMixFeeTarget());
+  }
+
+  protected Tx0Param getTx0Param(Pool pool, Tx0FeeTarget tx0FeeTarget, Tx0FeeTarget mixFeeTarget) {
     int feeTx0 = minerFeeSupplier.getFee(tx0FeeTarget.getFeeTarget());
     int feePremix = minerFeeSupplier.getFee(mixFeeTarget.getFeeTarget());
     return getTx0Param(pool, feeTx0, feePremix);
@@ -103,11 +101,12 @@ public class Tx0PreviewService {
     return nbPremix;
   }
 
-  public Tx0Previews tx0PreviewsMinimal(Tx0PreviewConfig tx0PreviewConfig) {
+  public Tx0Previews tx0PreviewsMinimal(
+      Tx0InfoConfig tx0InfoConfig, Tx0PreviewConfig tx0PreviewConfig) {
     Map<String, Tx0Preview> tx0PreviewsByPoolId = new LinkedHashMap<String, Tx0Preview>();
-    for (Pool pool : tx0PreviewConfig.getPools()) {
+    for (Pool pool : tx0InfoConfig.getPools()) {
       final String poolId = pool.getPoolId();
-      Tx0Param tx0Param = tx0PreviewConfig.getTx0Param(poolId);
+      Tx0Param tx0Param = getTx0Param(pool, tx0PreviewConfig);
       try {
         // minimal preview estimation (without SCODE calculation)
         Tx0Preview tx0Preview = tx0PreviewMinimal(tx0Param);
@@ -119,35 +118,6 @@ public class Tx0PreviewService {
       }
     }
     return new Tx0Previews(tx0PreviewsByPoolId);
-  }
-
-  public Single<Tx0Previews> tx0Previews(
-      Tx0PreviewConfig tx0PreviewConfig,
-      Collection<UnspentOutput> spendFroms,
-      WhirlpoolApiClient whirlpoolApiClient,
-      CoordinatorSupplier coordinatorSupplier) {
-    // fetch fresh Tx0Data
-    boolean useCascading = tx0PreviewConfig.getCascadingParent() != null;
-    return fetchTx0Data(config.getPartner(), useCascading, whirlpoolApiClient, coordinatorSupplier)
-        .map(
-            tx0Datas -> {
-              // build Tx0Previews
-              Map<String, Tx0Preview> tx0PreviewsByPoolId = new LinkedHashMap<String, Tx0Preview>();
-              for (Tx0Data tx0Data : tx0Datas) {
-                final String poolId = tx0Data.getPoolId();
-                Tx0Param tx0Param = tx0PreviewConfig.getTx0Param(poolId);
-                try {
-                  // real preview for outputs (with SCODE and outputs calculation)
-                  Tx0Preview tx0Preview = tx0Preview(tx0Param, tx0Data, spendFroms);
-                  tx0PreviewsByPoolId.put(poolId, tx0Preview);
-                } catch (Exception e) {
-                  if (log.isDebugEnabled()) {
-                    log.debug("Pool not eligible for tx0: " + poolId, e.getMessage());
-                  }
-                }
-              }
-              return new Tx0Previews(tx0PreviewsByPoolId);
-            });
   }
 
   protected Tx0Preview tx0PreviewMinimal(Tx0Param tx0Param) throws Exception {
@@ -227,28 +197,7 @@ public class Tx0PreviewService {
     return tx0Preview;
   }
 
-  protected Single<Collection<Tx0Data>> fetchTx0Data(
-      String partnerId,
-      boolean cascading,
-      WhirlpoolApiClient whirlpoolApiClient,
-      CoordinatorSupplier coordinatorSupplier) {
-    Tx0DataRequest tx0DataRequest = new Tx0DataRequest(config.getScode(), partnerId, cascading);
-    Coordinator coordinator =
-        coordinatorSupplier.getCoordinatorRandom(); // TODO adapt for multi-coordinators
-    String poolId = coordinator.getPoolIds().iterator().next(); // TODO
-    return whirlpoolApiClient
-        .tx0FetchData(tx0DataRequest, coordinator.getSender(), poolId)
-        .map(
-            tx0DataResponse ->
-                Arrays.stream(tx0DataResponse.tx0Datas)
-                    .map(
-                        item -> {
-                          try {
-                            return new Tx0Data(item);
-                          } catch (Exception e) {
-                            throw new RuntimeException("invalid Tx0Data", e);
-                          }
-                        })
-                    .collect(Collectors.toList()));
+  public MinerFeeSupplier getMinerFeeSupplier() {
+    return minerFeeSupplier;
   }
 }
