@@ -3,7 +3,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>io.samourai.code.whirlpool</groupId>
     <artifactId>whirlpool-client</artifactId>
-    <version>1.0.0-beta19-SNAPSHOT</version>
+    <version>1.0.0-beta19</version>
     <name>whirlpool-client</name>
     <properties>
         <maven.compiler.source>1.8</maven.compiler.source>
@@ -135,6 +135,6 @@
     </repositories>
     <scm>
         <connection>scm:git:https://code.samourai.io/whirlpool/whirlpool-client.git</connection>
-        <tag>1.0.0-beta18</tag>
+        <tag>1.0.0-beta19</tag>
     </scm>
 </project>
