@@ -472,7 +472,9 @@ public class Tx0Service {
     Tx0PushRequest request = new Tx0PushRequest(tx64, poolId);
     Coordinator coordinator = coordinatorSupplier.findCoordinatorByPoolIdOrThrow(poolId);
     Tx0PushResponseSuccess response =
-        whirlpoolApiClient.tx0Push(request, coordinator.getSender()); // throws PushTxErrorException
+        asyncUtil.blockingGet(
+            whirlpoolApiClient.tx0Push(
+                request, coordinator.getSender())); // throws PushTxErrorException
     // notify
     WhirlpoolEventService.getInstance().post(new Tx0Event(tx0));
     return response;

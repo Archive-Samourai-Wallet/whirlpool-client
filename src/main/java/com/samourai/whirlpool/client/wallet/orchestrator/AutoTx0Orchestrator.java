@@ -2,6 +2,7 @@ package com.samourai.whirlpool.client.wallet.orchestrator;
 
 import com.samourai.wallet.constants.SamouraiAccount;
 import com.samourai.wallet.util.AbstractOrchestrator;
+import com.samourai.wallet.util.AsyncUtil;
 import com.samourai.whirlpool.client.exception.AutoTx0InsufficientBalanceException;
 import com.samourai.whirlpool.client.exception.NotifiableException;
 import com.samourai.whirlpool.client.tx0.Tx0;
@@ -66,7 +67,7 @@ public class AutoTx0Orchestrator extends AbstractOrchestrator {
         findAutoTx0SpendFrom(
             pool, tx0FeeTarget, mixFeeTarget); // throws AutoMixInsufficientBalanceException
 
-    Tx0Info tx0Info = whirlpoolWallet.fetchTx0Info();
+    Tx0Info tx0Info = AsyncUtil.getInstance().blockingGet(whirlpoolWallet.fetchTx0Info());
     Tx0Config tx0Config = tx0Info.getTx0Config(tx0FeeTarget, mixFeeTarget);
     return tx0Info.tx0(
         whirlpoolWallet.getWalletSupplier(),

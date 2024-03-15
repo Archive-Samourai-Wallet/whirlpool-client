@@ -17,7 +17,7 @@ import com.samourai.whirlpool.client.whirlpool.beans.Tx0Data;
 import com.samourai.whirlpool.protocol.SorobanAppWhirlpool;
 import com.samourai.whirlpool.protocol.soroban.WhirlpoolApiClient;
 import com.samourai.whirlpool.protocol.soroban.payload.tx0.Tx0DataRequest;
-import com.samourai.whirlpool.protocol.soroban.payload.tx0.Tx0DataResponse;
+import io.reactivex.Single;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.stream.Collectors;
@@ -103,34 +103,37 @@ public class WhirlpoolInfo {
     return new WhirlpoolApiClient(rpcSession, sorobanAppWhirlpool);
   }
 
-  public Tx0Info fetchTx0Info(String scode) throws Exception {
+  public Single<Tx0Info> fetchTx0Info(String scode) {
     Tx0DataRequest tx0DataRequest = new Tx0DataRequest(scode, partner);
     Coordinator coordinator =
         coordinatorSupplier.getCoordinatorRandom(); // TODO adapt for multi-coordinators
     String poolId = coordinator.getPoolIds().iterator().next(); // TODO
 
     // fetch Tx0Data with new Soroban identity
-    Tx0DataResponse tx0DataResponse =
-        createWhirlpoolApiClient().tx0FetchData(tx0DataRequest, coordinator.getSender(), poolId);
-
-    // instanciate Tx0Info
-    Collection<Pool> pools = coordinatorSupplier.getPools();
-    Tx0InfoConfig tx0InfoConfig = new Tx0InfoConfig(getTx0PreviewService(), pools, tx0MaxRetry);
-    Tx0Info tx0Info =
-        new Tx0Info(
-            this,
-            tx0InfoConfig,
-            Arrays.stream(tx0DataResponse.tx0Datas)
-                .map(
-                    item -> {
-                      try {
-                        return new Tx0Data(item);
-                      } catch (Exception e) {
-                        throw new RuntimeException("invalid Tx0Data", e);
-                      }
-                    })
-                .collect(Collectors.toList()));
-    return tx0Info;
+    return createWhirlpoolApiClient()
+        .tx0FetchData(tx0DataRequest, coordinator.getSender(), poolId)
+        .map(
+            tx0DataResponse -> {
+              // instanciate Tx0Info
+              Collection<Pool> pools = coordinatorSupplier.getPools();
+              Tx0InfoConfig tx0InfoConfig =
+                  new Tx0InfoConfig(getTx0PreviewService(), pools, tx0MaxRetry);
+              Tx0Info tx0Info =
+                  new Tx0Info(
+                      this,
+                      tx0InfoConfig,
+                      Arrays.stream(tx0DataResponse.tx0Datas)
+                          .map(
+                              item -> {
+                                try {
+                                  return new Tx0Data(item);
+                                } catch (Exception e) {
+                                  throw new RuntimeException("invalid Tx0Data", e);
+                                }
+                              })
+                          .collect(Collectors.toList()));
+              return tx0Info;
+            });
   }
 
   public Tx0PreviewService getTx0PreviewService() {

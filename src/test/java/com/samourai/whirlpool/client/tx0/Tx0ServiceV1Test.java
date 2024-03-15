@@ -19,7 +19,7 @@ public class Tx0ServiceV1Test extends AbstractTx0ServiceTest {
 
   public Tx0ServiceV1Test() throws Exception {
     super(46);
-    this.tx0Info = whirlpoolWallet.fetchTx0Info();
+    this.tx0Info = asyncUtil.blockingGet(whirlpoolWallet.fetchTx0Info());
   }
 
   @BeforeEach
