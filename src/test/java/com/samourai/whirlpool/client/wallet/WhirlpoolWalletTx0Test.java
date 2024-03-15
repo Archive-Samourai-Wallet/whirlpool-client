@@ -37,7 +37,7 @@ public class WhirlpoolWalletTx0Test extends AbstractTx0ServiceTest {
   @BeforeEach
   public void setup() throws Exception {
     super.setup();
-    this.tx0Info = asyncUtil.blockingGet(whirlpoolWallet.fetchTx0Info());
+    this.tx0Info = whirlpoolWallet.fetchTx0Info();
   }
 
   @Test

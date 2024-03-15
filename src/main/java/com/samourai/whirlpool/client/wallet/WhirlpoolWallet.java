@@ -57,7 +57,6 @@ import com.samourai.whirlpool.protocol.beans.Utxo;
 import com.samourai.whirlpool.protocol.soroban.WhirlpoolApiClient;
 import com.samourai.xmanager.protocol.XManagerService;
 import io.reactivex.Completable;
-import io.reactivex.Single;
 import java.util.Map;
 import java.util.Optional;
 import org.bitcoinj.core.NetworkParameters;
@@ -462,11 +461,11 @@ public class WhirlpoolWallet {
     return whirlpoolInfo;
   }
 
-  public Single<Tx0Info> fetchTx0Info() {
+  public Tx0Info fetchTx0Info() throws Exception {
     return fetchTx0Info(config.getScode());
   }
 
-  public Single<Tx0Info> fetchTx0Info(String scode) {
+  public Tx0Info fetchTx0Info(String scode) throws Exception {
     return whirlpoolInfo.fetchTx0Info(scode);
   }
 
