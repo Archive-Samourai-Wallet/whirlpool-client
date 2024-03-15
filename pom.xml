@@ -14,7 +14,7 @@
         <dependency>
             <groupId>io.samourai.code.whirlpool</groupId>
             <artifactId>whirlpool-protocol</artifactId>
-            <version>1.0.0-beta11</version>
+            <version>1.0.0-beta12</version>
         </dependency>
         <dependency>
             <groupId>io.samourai.code.wallet</groupId>
