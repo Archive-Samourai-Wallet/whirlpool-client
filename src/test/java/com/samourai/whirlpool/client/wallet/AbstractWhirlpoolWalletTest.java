@@ -1,11 +1,8 @@
 package com.samourai.whirlpool.client.wallet;
 
-import com.google.common.eventbus.Subscribe;
 import com.samourai.wallet.api.backend.beans.UnspentOutput;
 import com.samourai.wallet.api.backend.beans.WalletResponse;
 import com.samourai.wallet.bipWallet.BipWallet;
-import com.samourai.wallet.util.MessageListener;
-import com.samourai.whirlpool.client.event.UtxoChangesEvent;
 import com.samourai.whirlpool.client.test.AbstractTest;
 import com.samourai.whirlpool.client.wallet.beans.WhirlpoolUtxoChanges;
 import com.samourai.whirlpool.client.wallet.data.utxo.BasicUtxoSupplier;
@@ -28,18 +25,9 @@ public class AbstractWhirlpoolWalletTest extends AbstractTest {
 
   @BeforeEach
   public void setup() throws Exception {
-    WhirlpoolEventService.getInstance()
-        .register(
-            new MessageListener<UtxoChangesEvent>() {
-              @Subscribe
-              @Override
-              public void onMessage(UtxoChangesEvent message) {
-                lastUtxoChanges = message.getUtxoData().getUtxoChanges();
-              }
-            });
-
     whirlpoolWallet = computeWhirlpoolWallet();
     utxoSupplier = whirlpoolWallet.getUtxoSupplier();
+    utxoSupplier._setUtxoChangeListener(utxoData -> lastUtxoChanges = utxoData.getUtxoChanges());
     utxoConfigSupplier = whirlpoolWallet.getUtxoConfigSupplier();
     config = whirlpoolWallet.getConfig();
   }

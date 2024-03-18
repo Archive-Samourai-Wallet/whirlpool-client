@@ -284,7 +284,7 @@ public class JavaExample {
       Collection<WhirlpoolUtxo> utxos = Arrays.asList(whirlpoolUtxo);
 
       // fetch tx0Datas once (you should refresh it after pushing any TX0)
-      Tx0Info tx0Info = asyncUtil.blockingGet(whirlpoolInfo.fetchTx0Info("scode"));
+      Tx0Info tx0Info = whirlpoolInfo.fetchTx0Info("scode");
 
       // configure tx0
       Tx0FeeTarget tx0FeeTarget = Tx0FeeTarget.BLOCKS_4;
@@ -322,7 +322,7 @@ public class JavaExample {
       Collection<UnspentOutput> utxos = Arrays.asList(spendFrom);
 
       // fetch tx0Datas once
-      Tx0Info tx0Info = asyncUtil.blockingGet(whirlpoolInfo.fetchTx0Info("scode"));
+      Tx0Info tx0Info = whirlpoolInfo.fetchTx0Info("scode");
 
       // configure tx0
       Tx0FeeTarget tx0FeeTarget = Tx0FeeTarget.BLOCKS_4;

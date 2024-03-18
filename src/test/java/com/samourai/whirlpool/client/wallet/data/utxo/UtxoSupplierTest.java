@@ -1,6 +1,5 @@
 package com.samourai.whirlpool.client.wallet.data.utxo;
 
-import com.google.common.eventbus.Subscribe;
 import com.samourai.wallet.api.backend.IPushTx;
 import com.samourai.wallet.api.backend.ISweepBackend;
 import com.samourai.wallet.api.backend.beans.UnspentOutput;
@@ -9,10 +8,7 @@ import com.samourai.wallet.api.backend.seenBackend.ISeenBackend;
 import com.samourai.wallet.constants.BIP_WALLETS;
 import com.samourai.wallet.constants.SamouraiAccount;
 import com.samourai.wallet.hd.HD_Wallet;
-import com.samourai.wallet.util.MessageListener;
-import com.samourai.whirlpool.client.event.UtxoChangesEvent;
 import com.samourai.whirlpool.client.test.AbstractTest;
-import com.samourai.whirlpool.client.wallet.WhirlpoolEventService;
 import com.samourai.whirlpool.client.wallet.WhirlpoolWallet;
 import com.samourai.whirlpool.client.wallet.WhirlpoolWalletConfig;
 import com.samourai.whirlpool.client.wallet.beans.WhirlpoolUtxoChanges;
@@ -47,16 +43,6 @@ public class UtxoSupplierTest extends AbstractTest {
 
   @BeforeEach
   public void setup() throws Exception {
-    WhirlpoolEventService.getInstance()
-        .register(
-            new MessageListener<UtxoChangesEvent>() {
-              @Subscribe
-              @Override
-              public void onMessage(UtxoChangesEvent message) {
-                lastUtxoChanges = message.getUtxoData().getUtxoChanges();
-              }
-            });
-
     byte[] seed = hdWalletFactory.computeSeedFromWords(SEED_WORDS);
     HD_Wallet bip44w = hdWalletFactory.getBIP44(seed, SEED_PASSPHRASE, params);
 
@@ -110,6 +96,7 @@ public class UtxoSupplierTest extends AbstractTest {
         };
 
     utxoSupplier = dataSource.getUtxoSupplier();
+    utxoSupplier._setUtxoChangeListener(utxoData -> lastUtxoChanges = utxoData.getUtxoChanges());
     utxoConfigSupplier = dataPersister.getUtxoConfigSupplier();
 
     mockException = false;
