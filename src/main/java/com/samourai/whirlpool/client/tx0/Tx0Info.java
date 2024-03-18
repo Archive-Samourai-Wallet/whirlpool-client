@@ -229,7 +229,11 @@ public class Tx0Info {
   public Tx0Config getTx0Config(Tx0FeeTarget tx0FeeTarget, Tx0FeeTarget mixFeeTarget) {
     Tx0Config tx0Config =
         new Tx0Config(
-            tx0FeeTarget, mixFeeTarget, SamouraiAccount.DEPOSIT, tx0InfoConfig.getTx0MaxRetry());
+            tx0FeeTarget,
+            mixFeeTarget,
+            SamouraiAccount.DEPOSIT,
+            tx0InfoConfig.getTx0AttemptsAddressReuse(),
+            tx0InfoConfig.getTx0AttemptsSoroban());
     return tx0Config;
   }
 

@@ -101,10 +101,9 @@ public class Tx0PreviewService {
     return nbPremix;
   }
 
-  public Tx0Previews tx0PreviewsMinimal(
-      Tx0InfoConfig tx0InfoConfig, Tx0PreviewConfig tx0PreviewConfig) {
+  public Tx0Previews tx0PreviewsMinimal(Collection<Pool> pools, Tx0PreviewConfig tx0PreviewConfig) {
     Map<String, Tx0Preview> tx0PreviewsByPoolId = new LinkedHashMap<String, Tx0Preview>();
-    for (Pool pool : tx0InfoConfig.getPools()) {
+    for (Pool pool : pools) {
       final String poolId = pool.getPoolId();
       Tx0Param tx0Param = getTx0Param(pool, tx0PreviewConfig);
       try {

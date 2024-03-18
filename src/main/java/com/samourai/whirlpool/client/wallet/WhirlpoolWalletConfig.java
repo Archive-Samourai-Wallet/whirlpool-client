@@ -50,7 +50,8 @@ public class WhirlpoolWalletConfig extends WhirlpoolClientConfig
   private boolean autoMix;
   private String scode;
   private int tx0MaxOutputs;
-  private int tx0MaxRetry;
+  private int tx0AttemptsAddressReuse;
+  private int tx0AttemptsSoroban;
   private Map<String, Long> overspend;
 
   private int refreshUtxoDelay;
@@ -111,7 +112,8 @@ public class WhirlpoolWalletConfig extends WhirlpoolClientConfig
     this.autoMix = true;
     this.scode = null;
     this.tx0MaxOutputs = 0;
-    this.tx0MaxRetry = 5;
+    this.tx0AttemptsAddressReuse = 5;
+    this.tx0AttemptsSoroban = 3;
     this.overspend = new LinkedHashMap<String, Long>();
 
     // technical settings
@@ -299,12 +301,20 @@ public class WhirlpoolWalletConfig extends WhirlpoolClientConfig
     this.tx0MaxOutputs = tx0MaxOutputs;
   }
 
-  public int getTx0MaxRetry() {
-    return tx0MaxRetry;
+  public int getTx0AttemptsAddressReuse() {
+    return tx0AttemptsAddressReuse;
   }
 
-  public void setTx0MaxRetry(int tx0MaxRetry) {
-    this.tx0MaxRetry = tx0MaxRetry;
+  public void setTx0AttemptsSoroban(int tx0AttemptsSoroban) {
+    this.tx0AttemptsSoroban = tx0AttemptsSoroban;
+  }
+
+  public int getTx0AttemptsSoroban() {
+    return tx0AttemptsSoroban;
+  }
+
+  public void setTx0AttemptsAddressReuse(int tx0AttemptsAddressReuse) {
+    this.tx0AttemptsAddressReuse = tx0AttemptsAddressReuse;
   }
 
   public Long getOverspend(String poolId) {
@@ -483,7 +493,14 @@ public class WhirlpoolWalletConfig extends WhirlpoolClientConfig
             + (scode != null ? ClientUtils.maskString(scode) : "null")
             + ", overspend="
             + (overspend != null ? overspend.toString() : "null"));
-    configInfo.put("tx0", "tx0MaxOutputs=" + tx0MaxOutputs + ", tx0MaxRetry=" + tx0MaxRetry);
+    configInfo.put(
+        "tx0",
+        "tx0MaxOutputs="
+            + tx0MaxOutputs
+            + ", tx0AttemptsAddressReuse="
+            + tx0AttemptsAddressReuse
+            + ", tx0AttemptsSoroban="
+            + tx0AttemptsSoroban);
     configInfo.put(
         "fee", "fallback=" + getFeeFallback() + ", min=" + getFeeMin() + ", max=" + getFeeMax());
     configInfo.put("resyncOnFirstRun", Boolean.toString(resyncOnFirstRun));

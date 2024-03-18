@@ -34,7 +34,6 @@ import com.samourai.whirlpool.client.mix.handler.IPostmixHandler;
 import com.samourai.whirlpool.client.mix.handler.MixDestination;
 import com.samourai.whirlpool.client.mix.listener.MixFailReason;
 import com.samourai.whirlpool.client.mix.listener.MixStep;
-import com.samourai.whirlpool.client.tx0.Tx0Info;
 import com.samourai.whirlpool.client.tx0.Tx0PreviewService;
 import com.samourai.whirlpool.client.tx0.Tx0Service;
 import com.samourai.whirlpool.client.utils.ClientUtils;
@@ -459,14 +458,6 @@ public class WhirlpoolWallet {
 
   public WhirlpoolInfo getWhirlpoolInfo() {
     return whirlpoolInfo;
-  }
-
-  public Tx0Info fetchTx0Info() throws Exception {
-    return fetchTx0Info(config.getScode());
-  }
-
-  public Tx0Info fetchTx0Info(String scode) throws Exception {
-    return whirlpoolInfo.fetchTx0Info(scode);
   }
 
   public void mix(WhirlpoolUtxo whirlpoolUtxo) throws NotifiableException {

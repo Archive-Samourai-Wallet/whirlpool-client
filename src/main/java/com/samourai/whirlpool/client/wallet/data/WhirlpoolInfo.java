@@ -5,6 +5,7 @@ import com.samourai.whirlpool.client.tx0.Tx0Info;
 import com.samourai.whirlpool.client.tx0.Tx0InfoConfig;
 import com.samourai.whirlpool.client.tx0.Tx0PreviewService;
 import com.samourai.whirlpool.client.tx0.Tx0Service;
+import com.samourai.whirlpool.client.utils.ClientUtils;
 import com.samourai.whirlpool.client.wallet.WhirlpoolWalletConfig;
 import com.samourai.whirlpool.client.wallet.data.coordinator.CoordinatorSupplier;
 import com.samourai.whirlpool.client.wallet.data.coordinator.ExpirableCoordinatorSupplier;
@@ -34,7 +35,8 @@ public class WhirlpoolInfo {
   private RpcClientService rpcClientService;
 
   private String partner;
-  private int tx0MaxRetry;
+  private int tx0AttemptsAddressReuse;
+  private int tx0AttemptsSoroban;
 
   public WhirlpoolInfo(
       Tx0PreviewService tx0PreviewService,
@@ -43,14 +45,16 @@ public class WhirlpoolInfo {
       CoordinatorSupplier coordinatorSupplier,
       RpcClientService rpcClientService,
       String partner,
-      int tx0MaxRetry) {
+      int tx0AttemptsAddressReuse,
+      int tx0AttemptsSoroban) {
     this.tx0PreviewService = tx0PreviewService;
     this.tx0Service = tx0Service;
     this.rpcClientService = rpcClientService;
     this.sorobanAppWhirlpool = sorobanAppWhirlpool;
     this.coordinatorSupplier = coordinatorSupplier;
     this.partner = partner;
-    this.tx0MaxRetry = tx0MaxRetry;
+    this.tx0AttemptsAddressReuse = tx0AttemptsAddressReuse;
+    this.tx0AttemptsSoroban = tx0AttemptsSoroban;
   }
 
   public WhirlpoolInfo(
@@ -68,7 +72,8 @@ public class WhirlpoolInfo {
         computeCoordinatorSupplier(
             whirlpoolWalletConfig, tx0PreviewService, rpcClientService, sorobanAppWhirlpool);
     this.partner = whirlpoolWalletConfig.getPartner();
-    this.tx0MaxRetry = whirlpoolWalletConfig.getTx0MaxRetry();
+    this.tx0AttemptsAddressReuse = whirlpoolWalletConfig.getTx0AttemptsAddressReuse();
+    this.tx0AttemptsSoroban = whirlpoolWalletConfig.getTx0AttemptsSoroban();
   }
 
   protected Tx0PreviewService computeTx0PreviewService(
@@ -110,27 +115,30 @@ public class WhirlpoolInfo {
     String poolId = coordinator.getPoolIds().iterator().next(); // TODO
 
     // fetch Tx0Data with new Soroban identity
+    WhirlpoolApiClient whirlpoolClientApi = createWhirlpoolApiClient();
     Tx0DataResponse tx0DataResponse =
-        createWhirlpoolApiClient().tx0FetchData(tx0DataRequest, coordinator.getSender(), poolId);
+        ClientUtils.loopHttpAttempts(
+            tx0AttemptsSoroban,
+            () -> whirlpoolClientApi.tx0FetchData(tx0DataRequest, coordinator.getSender(), poolId));
 
     // instanciate Tx0Info
     Collection<Pool> pools = coordinatorSupplier.getPools();
-    Tx0InfoConfig tx0InfoConfig = new Tx0InfoConfig(getTx0PreviewService(), pools, tx0MaxRetry);
-    Tx0Info tx0Info =
-        new Tx0Info(
-            this,
-            tx0InfoConfig,
-            Arrays.stream(tx0DataResponse.tx0Datas)
-                .map(
-                    item -> {
-                      try {
-                        return new Tx0Data(item);
-                      } catch (Exception e) {
-                        throw new RuntimeException("invalid Tx0Data", e);
-                      }
-                    })
-                .collect(Collectors.toList()));
-    return tx0Info;
+    Tx0InfoConfig tx0InfoConfig =
+        new Tx0InfoConfig(
+            getTx0PreviewService(), pools, tx0AttemptsAddressReuse, tx0AttemptsSoroban);
+    return new Tx0Info(
+        this,
+        tx0InfoConfig,
+        Arrays.stream(tx0DataResponse.tx0Datas)
+            .map(
+                item -> {
+                  try {
+                    return new Tx0Data(item);
+                  } catch (Exception e) {
+                    throw new RuntimeException("invalid Tx0Data", e);
+                  }
+                })
+            .collect(Collectors.toList()));
   }
 
   public Tx0PreviewService getTx0PreviewService() {

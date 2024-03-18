@@ -8,15 +8,20 @@ public class Tx0InfoConfig {
   private Collection<Pool>
       pools; // list of pools being loaded by poolSupplier.computePools() (pool.tx0PreviewMinimal
   // not yet set)
-  private int tx0MaxRetry;
+  private int tx0AttemptsAddressReuse;
+  private int tx0AttemptsSoroban;
 
   private Tx0 cascadingParent; // set when cascading
 
   public Tx0InfoConfig(
-      Tx0PreviewService tx0PreviewService, Collection<Pool> pools, int tx0MaxRetry) {
+      Tx0PreviewService tx0PreviewService,
+      Collection<Pool> pools,
+      int tx0AttemptsAddressReuse,
+      int tx0AttemptsSoroban) {
     this.tx0PreviewService = tx0PreviewService;
     this.pools = pools;
-    this.tx0MaxRetry = tx0MaxRetry;
+    this.tx0AttemptsAddressReuse = tx0AttemptsAddressReuse;
+    this.tx0AttemptsSoroban = tx0AttemptsSoroban;
   }
 
   public Pool findPool(final String poolId) {
@@ -40,11 +45,19 @@ public class Tx0InfoConfig {
     this.cascadingParent = cascadingParent;
   }
 
-  public int getTx0MaxRetry() {
-    return tx0MaxRetry;
+  public int getTx0AttemptsAddressReuse() {
+    return tx0AttemptsAddressReuse;
   }
 
-  public void setTx0MaxRetry(int tx0MaxRetry) {
-    this.tx0MaxRetry = tx0MaxRetry;
+  public void setTx0AttemptsAddressReuse(int tx0AttemptsAddressReuse) {
+    this.tx0AttemptsAddressReuse = tx0AttemptsAddressReuse;
+  }
+
+  public int getTx0AttemptsSoroban() {
+    return tx0AttemptsSoroban;
+  }
+
+  public void setTx0AttemptsSoroban(int tx0AttemptsSoroban) {
+    this.tx0AttemptsSoroban = tx0AttemptsSoroban;
   }
 }

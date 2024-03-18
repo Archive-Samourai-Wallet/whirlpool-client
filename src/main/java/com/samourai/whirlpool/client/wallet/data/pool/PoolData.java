@@ -45,11 +45,9 @@ public class PoolData {
             .collect(Collectors.toList());
 
     // compute & set tx0PreviewMin
-    int tx0MaxRetry = 1; // TODO not used
-    Tx0InfoConfig tx0InfoConfig = new Tx0InfoConfig(tx0PreviewService, poolsOrdered, tx0MaxRetry);
     Tx0PreviewConfig tx0PreviewConfig = new Tx0PreviewConfig(Tx0FeeTarget.MIN, Tx0FeeTarget.MIN);
     final Tx0Previews tx0PreviewsMin =
-        tx0PreviewService.tx0PreviewsMinimal(tx0InfoConfig, tx0PreviewConfig);
+        tx0PreviewService.tx0PreviewsMinimal(poolsOrdered, tx0PreviewConfig);
     for (Pool pool : poolsOrdered) {
       Tx0Preview tx0PreviewMin = tx0PreviewsMin.getTx0Preview(pool.getPoolId());
       pool.setTx0PreviewMin(tx0PreviewMin);

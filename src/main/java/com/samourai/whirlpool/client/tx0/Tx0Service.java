@@ -472,7 +472,11 @@ public class Tx0Service {
     Tx0PushRequest request = new Tx0PushRequest(tx64, poolId);
     Coordinator coordinator = coordinatorSupplier.findCoordinatorByPoolIdOrThrow(poolId);
     Tx0PushResponseSuccess response =
-        whirlpoolApiClient.tx0Push(request, coordinator.getSender()); // throws PushTxErrorException
+        ClientUtils.loopHttpAttempts(
+            tx0.getTx0Config().getTx0AttemptsSoroban(),
+            () ->
+                whirlpoolApiClient.tx0Push(
+                    request, coordinator.getSender())); // throws PushTxErrorException
     // notify
     WhirlpoolEventService.getInstance().post(new Tx0Event(tx0));
     return response;
@@ -483,8 +487,8 @@ public class Tx0Service {
       throws Exception {
     // pushTx0 with multiple attempts on address-reuse
     Exception pushTx0Exception = null;
-    int tx0MaxRetry = tx0Info.getTx0DataConfig().getTx0MaxRetry();
-    for (int i = 0; i < tx0MaxRetry; i++) {
+    int tx0AttemptsAddressReuse = tx0Info.getTx0DataConfig().getTx0AttemptsAddressReuse();
+    for (int i = 0; i < tx0AttemptsAddressReuse; i++) {
       log.info(" • Pushing Tx0: txid=" + tx0.getTx().getHashAsString());
       if (log.isDebugEnabled()) {
         log.debug(tx0.getTx().toString());
@@ -501,7 +505,7 @@ public class Tx0Service {
                 + ", attempt="
                 + (i + 1)
                 + "/"
-                + tx0MaxRetry
+                + tx0AttemptsAddressReuse
                 + ", error="
                 + pushTxError.error);
 

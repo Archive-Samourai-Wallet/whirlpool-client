@@ -27,7 +27,7 @@ public class WhirlpoolWalletTx0x2Test extends AbstractCahootsTest {
 
   public WhirlpoolWalletTx0x2Test() throws Exception {
     super();
-    this.tx0Info = whirlpoolWallet.fetchTx0Info();
+    this.tx0Info = whirlpoolWallet.getWhirlpoolInfo().fetchTx0Info(null);
   }
 
   @BeforeEach

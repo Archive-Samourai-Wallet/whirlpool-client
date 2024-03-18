@@ -9,6 +9,7 @@ import com.samourai.wallet.bipWallet.BipWallet;
 import com.samourai.wallet.bipWallet.WalletSupplier;
 import com.samourai.wallet.client.indexHandler.IIndexHandler;
 import com.samourai.wallet.constants.SamouraiAccount;
+import com.samourai.wallet.httpClient.HttpNetworkException;
 import com.samourai.wallet.httpClient.HttpResponseException;
 import com.samourai.wallet.segwit.bech32.Bech32UtilGeneric;
 import com.samourai.wallet.util.*;
@@ -25,6 +26,8 @@ import java.security.interfaces.RSAPublicKey;
 import java.security.spec.X509EncodedKeySpec;
 import java.text.SimpleDateFormat;
 import java.util.*;
+import java.util.concurrent.Callable;
+import java.util.concurrent.TimeoutException;
 import java.util.stream.Collectors;
 import org.apache.commons.lang3.StringUtils;
 import org.bitcoinj.core.*;
@@ -253,7 +256,7 @@ public class ClientUtils {
     LogbackUtils.setLogLevel("com.samourai.whirlpool.client", logLevel);
     LogbackUtils.setLogLevel("com.samourai.whirlpool.client.mix.dialog", logLevel);
     LogbackUtils.setLogLevel("com.samourai.stomp.client", logLevel);
-    LogbackUtils.setLogLevel("com.samourai.wallet.util.FeeUtil", logLevel);
+    LogbackUtils.setLogLevel("com.samourai.wallet.util", logLevel);
 
     LogbackUtils.setLogLevel("com.samourai.whirlpool.client.utils", logLevel);
     LogbackUtils.setLogLevel("com.samourai.whirlpool.client.wallet", logLevel);
@@ -401,5 +404,26 @@ public class ClientUtils {
 
   public static String shortSender(PaymentCode sender) {
     return sender.toString().substring(0, 10);
+  }
+
+  /** Retry multiple attempts on HttpNetworkException or TimeoutException. */
+  public static <R> R loopHttpAttempts(int attempts, Callable<R> loop) throws Exception {
+    Exception lastException = null;
+    for (int i = 0; i < attempts; i++) {
+      try {
+        return loop.call();
+      } catch (HttpNetworkException e) {
+        lastException = e;
+        if (log.isDebugEnabled()) {
+          log.debug("loopHttpAttempts: " + i + "/" + attempts + " failed (NetworkException)");
+        }
+      } catch (TimeoutException e) {
+        lastException = e;
+        if (log.isDebugEnabled()) {
+          log.debug("loopHttpAttempts: " + i + "/" + attempts + " failed (TimeoutException)");
+        }
+      }
+    }
+    throw lastException;
   }
 }
