@@ -19,7 +19,7 @@
         <dependency>
             <groupId>io.samourai.code.wallet</groupId>
             <artifactId>extlibj</artifactId>
-            <version>1.0.0-beta10</version>
+            <version>1.0.0-beta11</version>
         </dependency>
         <dependency>
             <groupId>io.samourai.code.wallet</groupId>

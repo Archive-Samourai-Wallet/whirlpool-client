@@ -38,16 +38,23 @@ public class ExternalDestination {
     return xpub;
   }
 
+  // used by Sparrow
   public IPostmixHandler getPostmixHandlerCustom() {
     return postmixHandlerCustom;
   }
 
   public IPostmixHandler getPostmixHandlerCustomOrDefault(WhirlpoolWallet whirlpoolWallet) {
     if (postmixHandler == null) {
-      IIndexHandler indexHandlerExternal =
-          whirlpoolWallet.getWalletStateSupplier().getIndexHandlerExternal();
-      NetworkParameters params = whirlpoolWallet.getConfig().getSamouraiNetwork().getParams();
-      postmixHandler = new XPubPostmixHandler(indexHandlerExternal, params, xpub, chain);
+      if (postmixHandlerCustom != null) {
+        // custom PostmixHandler
+        postmixHandler = postmixHandlerCustom;
+      } else {
+        // default PostmixHandler
+        IIndexHandler indexHandlerExternal =
+            whirlpoolWallet.getWalletStateSupplier().getIndexHandlerExternal();
+        NetworkParameters params = whirlpoolWallet.getConfig().getSamouraiNetwork().getParams();
+        postmixHandler = new XPubPostmixHandler(indexHandlerExternal, params, xpub, chain);
+      }
     }
     return postmixHandler;
   }
