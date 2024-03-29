@@ -3,9 +3,7 @@ package com.samourai.whirlpool.client.tx0;
 import com.samourai.wallet.api.backend.beans.UnspentOutput;
 import com.samourai.wallet.bip69.BIP69OutputComparator;
 import com.samourai.wallet.bipFormat.BIP_FORMAT;
-import com.samourai.wallet.bipFormat.BipFormatSupplier;
 import com.samourai.wallet.bipWallet.BipWallet;
-import com.samourai.wallet.bipWallet.KeyBag;
 import com.samourai.wallet.bipWallet.WalletSupplier;
 import com.samourai.wallet.constants.BIP_WALLET;
 import com.samourai.wallet.hd.BipAddress;
@@ -344,9 +342,7 @@ public class Tx0Service {
       }
     }
 
-    KeyBag keyBag = new KeyBag();
-    keyBag.addAll(sortedSpendFroms, walletSupplier);
-    signTx0(tx, keyBag, utxoKeyProvider.getBipFormatSupplier());
+    signTx0(tx, utxoKeyProvider);
     tx.verify();
 
     // build changeUtxos *after* tx is signed
@@ -459,9 +455,8 @@ public class Tx0Service {
     return tx0.getChangeUtxos().get(0);
   }
 
-  protected void signTx0(Transaction tx, KeyBag keyBag, BipFormatSupplier bipFormatSupplier)
-      throws Exception {
-    SendFactoryGeneric.getInstance().signTransaction(tx, keyBag, bipFormatSupplier);
+  protected void signTx0(Transaction tx, UtxoKeyProvider utxoKeyProvider) throws Exception {
+    SendFactoryGeneric.getInstance().signTransaction(tx, utxoKeyProvider);
   }
 
   public Tx0PushResponseSuccess pushTx0(
