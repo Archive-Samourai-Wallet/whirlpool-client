@@ -274,6 +274,7 @@ public class MixClient {
         mixProcess.registerOutput(mixNotificationRegisterOutput);
 
     // use new identity to unlink from input
+    config.getHttpClientService().changeIdentity();
     WhirlpoolApiClient whirlpoolApiClient = mixParams.getWhirlpoolApiClient();
     WhirlpoolApiClient apiTemp = whirlpoolApiClient.createNewIdentity();
 
