@@ -519,15 +519,13 @@ public class WhirlpoolWallet {
     if (notifiableError != null) {
       message += " ; " + notifiableError;
     }
-    if (failReason.isSilent()) {
-      log.info(logPrefix + message);
-    } else {
+    if (failReason.isError()) {
       log.error(logPrefix + "⣿ WHIRLPOOL FAILED ⣿ " + message);
-    }
 
-    // mix history
-    if (!failReason.isSilent()) {
+      // mix history
       mixHistory.onMixFail(mixParams, failReason, notifiableError);
+    } else {
+      log.info(logPrefix + message);
     }
 
     // change Tor identity

@@ -94,10 +94,7 @@ public class AutoTx0Orchestrator extends AbstractOrchestrator {
     for (WhirlpoolUtxo whirlpoolUtxo : spendFroms) {
       // check confirmation
       WhirlpoolUtxoStatus utxoStatus = whirlpoolUtxo.getUtxoState().getStatus();
-      if (utxoStatus != WhirlpoolUtxoStatus.TX0
-          && utxoStatus != WhirlpoolUtxoStatus.TX0_SUCCESS
-          && utxoStatus != WhirlpoolUtxoStatus.MIX_STARTED
-          && utxoStatus != WhirlpoolUtxoStatus.MIX_SUCCESS) {
+      if (WhirlpoolUtxoStatus.isAutoTx0Possible(utxoStatus)) {
         // spend from ready utxos
         readyUtxos.add(whirlpoolUtxo);
         if (readyUtxos.size() >= MAX_INPUTS_PER_TX0) {

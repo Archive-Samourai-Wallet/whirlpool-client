@@ -367,8 +367,7 @@ public abstract class MixOrchestrator extends AbstractOrchestrator {
       }
       return;
     }
-    if (!WhirlpoolUtxoStatus.MIX_FAILED.equals(utxoStatus)
-        && !WhirlpoolUtxoStatus.READY.equals(utxoStatus)) {
+    if (!WhirlpoolUtxoStatus.isMixQueuePossible(utxoStatus)) {
       throw new NotifiableException(
           "cannot add to mix queue: utxoStatus=" + utxoStatus + " for " + whirlpoolUtxo);
     }
