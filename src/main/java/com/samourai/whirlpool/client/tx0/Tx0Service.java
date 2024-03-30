@@ -146,8 +146,7 @@ public class Tx0Service {
       throw new IllegalArgumentException("spendFroms should be > 0");
     }
     UnspentOutput firstInput = sortedSpendFroms.get(0);
-    BipAddress firstInputAddress = walletSupplier.getAddress(firstInput);
-    byte[] firstInputKey = firstInputAddress.getHdAddress().getECKey().getPrivKeyBytes();
+    byte[] firstInputKey = utxoKeyProvider._getPrivKey(firstInput.tx_hash, firstInput.tx_output_n);
     byte[] opReturn = computeOpReturn(firstInput, firstInputKey, tx0Data);
 
     //
