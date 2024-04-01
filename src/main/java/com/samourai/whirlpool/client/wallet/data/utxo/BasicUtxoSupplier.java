@@ -102,7 +102,7 @@ public abstract class BasicUtxoSupplier extends BasicSupplier<UtxoData>
       // BIP47
       samouraiAccount = SamouraiAccount.DEPOSIT;
       path = null;
-      ecKey = ECKey.fromPrivate(_getPrivKeyBip47(utxo.tx_hash, utxo.tx_output_n, xpub));
+      ecKey = ECKey.fromPrivate(_getPrivKeyBip47(utxo));
     }
 
     // add missing
@@ -198,7 +198,7 @@ public abstract class BasicUtxoSupplier extends BasicSupplier<UtxoData>
   }
 
   @Override
-  public byte[] _getPrivKeyBip47(String utxoHash, int utxoIndex, String xpub) throws Exception {
+  public byte[] _getPrivKeyBip47(UnspentOutput unspentOutput) throws Exception {
     throw new Exception("_getPrivKeyBip47() is not implemented yet");
   }
 

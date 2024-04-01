@@ -1,7 +1,6 @@
 package com.samourai.whirlpool.client.test;
 
 import ch.qos.logback.classic.Level;
-import com.samourai.http.client.JettyHttpClient;
 import com.samourai.http.client.JettyHttpClientService;
 import com.samourai.soroban.client.rpc.RpcClientService;
 import com.samourai.soroban.client.wallet.SorobanWalletService;
