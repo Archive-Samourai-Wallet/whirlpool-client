@@ -2,14 +2,13 @@ package com.samourai.whirlpool.client.wallet.beans;
 
 import com.samourai.wallet.api.backend.beans.UnspentOutput;
 import com.samourai.wallet.bipFormat.BipFormat;
-import com.samourai.wallet.bipWallet.BipWallet;
 import com.samourai.wallet.constants.SamouraiAccount;
-import com.samourai.wallet.hd.BipAddress;
 import com.samourai.whirlpool.client.wallet.data.utxoConfig.UtxoConfig;
 import com.samourai.whirlpool.client.wallet.data.utxoConfig.UtxoConfigPersisted;
 import com.samourai.whirlpool.client.wallet.data.utxoConfig.UtxoConfigSupplier;
 import java.util.Collection;
 import java.util.stream.Collectors;
+import org.bitcoinj.core.ECKey;
 import org.bitcoinj.core.NetworkParameters;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -20,48 +19,48 @@ public class WhirlpoolUtxo {
 
   private UnspentOutput utxo;
   private Integer blockHeight; // null when unconfirmed
-  private BipWallet bipWallet;
+  private SamouraiAccount account;
+  private ECKey ecKey;
+  private String path;
+  private NetworkParameters params;
   private BipFormat bipFormat;
   private WhirlpoolUtxoState utxoState;
   private UtxoConfigSupplier utxoConfigSupplier;
 
   public WhirlpoolUtxo(
       UnspentOutput utxo,
-      BipWallet bipWallet,
+      SamouraiAccount account,
+      ECKey ecKey,
+      String path,
+      NetworkParameters params,
       BipFormat bipFormat,
-      String poolId,
       UtxoConfigSupplier utxoConfigSupplier,
-      int latestBlockHeight) {
+      Integer blockHeight) {
     super();
     this.utxo = utxo;
-    this.blockHeight = computeBlockHeight(utxo.confirmations, latestBlockHeight);
-    this.bipWallet = bipWallet;
+    this.blockHeight = blockHeight;
+    this.account = account;
+    this.ecKey = ecKey;
+    this.path = path;
+    this.params = params;
     this.bipFormat = bipFormat;
-    this.utxoState = new WhirlpoolUtxoState(poolId);
+    this.utxoState = new WhirlpoolUtxoState();
     this.utxoConfigSupplier = utxoConfigSupplier;
-
-    this.setMixableStatus(latestBlockHeight);
   }
 
-  public BipAddress getBipAddress() {
-    return bipWallet.getAddressAt(utxo);
+  public void setPoolIdAndMixableStatus(String poolId, int latestBlockHeight) {
+    utxoState.setPoolId(poolId);
+    setMixableStatus(latestBlockHeight);
   }
 
-  private Integer computeBlockHeight(int utxoConfirmations, int latestBlockHeight) {
-    if (utxoConfirmations <= 0) {
-      return null;
-    }
-    return latestBlockHeight - utxoConfirmations;
-  }
-
-  private void setMixableStatus(int latestBlockHeight) {
+  protected void setMixableStatus(int latestBlockHeight) {
     MixableStatus mixableStatus = computeMixableStatus(latestBlockHeight);
     utxoState.setMixableStatus(mixableStatus);
   }
 
-  public void setUtxoConfirmed(UnspentOutput utxo, int latestBlockHeight) {
+  public void setUtxoConfirmed(UnspentOutput utxo, int blockHeight, int latestBlockHeight) {
     this.utxo = utxo;
-    this.blockHeight = computeBlockHeight(utxo.confirmations, latestBlockHeight);
+    this.blockHeight = blockHeight;
     this.setMixableStatus(latestBlockHeight);
   }
 
@@ -121,16 +120,16 @@ public class WhirlpoolUtxo {
     return blockHeight;
   }
 
-  public BipWallet getBipWallet() {
-    return bipWallet;
+  public ECKey getECKey() {
+    return ecKey;
+  }
+
+  public SamouraiAccount getAccount() {
+    return account;
   }
 
   public BipFormat getBipFormat() {
     return bipFormat;
-  }
-
-  public SamouraiAccount getAccount() {
-    return bipWallet.getAccount();
   }
 
   public WhirlpoolUtxoState getUtxoState() {
@@ -150,16 +149,17 @@ public class WhirlpoolUtxo {
   }
 
   public String getPathAddress() {
-    NetworkParameters params = bipWallet.getParams();
-    return bipWallet.getDerivation().getPathAddress(utxo, params);
+    return path;
+  }
+
+  public NetworkParameters getParams() {
+    return params;
   }
 
   @Override
   public String toString() {
     UtxoConfig utxoConfig = getUtxoConfigOrDefault();
     return getAccount()
-        + " / "
-        + bipWallet.getId()
         + ": "
         + utxo.toString()
         + ", blockHeight="

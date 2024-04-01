@@ -2,7 +2,6 @@ package com.samourai.whirlpool.client.wallet.data.utxo;
 
 import com.samourai.wallet.api.backend.beans.UnspentOutput;
 import com.samourai.wallet.api.backend.beans.WalletResponse;
-import com.samourai.wallet.bipFormat.BipFormat;
 import com.samourai.wallet.bipWallet.BipWallet;
 import com.samourai.wallet.bipWallet.WalletSupplier;
 import com.samourai.wallet.constants.SamouraiAccount;
@@ -15,7 +14,6 @@ import com.samourai.whirlpool.client.whirlpool.beans.Pool;
 import java.util.*;
 import java.util.stream.Collectors;
 import org.apache.commons.lang3.ArrayUtils;
-import org.bitcoinj.core.NetworkParameters;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -32,10 +30,12 @@ public class UtxoData {
   private WhirlpoolUtxoChanges utxoChanges;
   private Map<SamouraiAccount, Long> balanceByAccount;
   private long balanceTotal;
+  private int latestBlockHeight;
 
-  public UtxoData(UnspentOutput[] unspentOutputs, WalletResponse.Tx[] txs) {
+  public UtxoData(UnspentOutput[] unspentOutputs, WalletResponse.Tx[] txs, int latestBlockHeight) {
     this.unspentOutputs = unspentOutputs;
     this.txs = txs;
+    this.latestBlockHeight = latestBlockHeight;
   }
 
   protected void init(
@@ -43,13 +43,11 @@ public class UtxoData {
       UtxoConfigSupplier utxoConfigSupplier,
       UtxoSupplier utxoSupplier,
       PoolSupplier poolSupplier,
-      Map<String, WhirlpoolUtxo> previousUtxos,
-      int latestBlockHeight) {
+      Map<String, WhirlpoolUtxo> previousUtxos) {
     // txs
-    final Map<SamouraiAccount, List<WalletResponse.Tx>> freshTxs =
-        new LinkedHashMap<SamouraiAccount, List<WalletResponse.Tx>>();
+    final Map<SamouraiAccount, List<WalletResponse.Tx>> freshTxs = new LinkedHashMap<>();
     for (SamouraiAccount account : SamouraiAccount.values()) {
-      freshTxs.put(account, new LinkedList<WalletResponse.Tx>());
+      freshTxs.put(account, new LinkedList<>());
     }
     for (WalletResponse.Tx tx : txs) {
       Collection<SamouraiAccount> txAccounts = findTxAccounts(tx, walletSupplier);
@@ -60,7 +58,7 @@ public class UtxoData {
     this.txsByAccount = freshTxs;
 
     // fresh utxos
-    final Map<String, UnspentOutput> freshUtxos = new LinkedHashMap<String, UnspentOutput>();
+    final Map<String, UnspentOutput> freshUtxos = new LinkedHashMap<>();
     for (UnspentOutput utxo : unspentOutputs) {
       String utxoKey = ClientUtils.utxoToKey(utxo);
       freshUtxos.put(utxoKey, utxo);
@@ -69,12 +67,12 @@ public class UtxoData {
     // replace utxos
     boolean isFirstFetch = false;
     if (previousUtxos == null) {
-      previousUtxos = new LinkedHashMap<String, WhirlpoolUtxo>();
+      previousUtxos = new LinkedHashMap<>();
       isFirstFetch = true;
     }
 
-    this.utxos = new LinkedHashMap<String, WhirlpoolUtxo>();
-    this.utxosByAddress = new LinkedHashMap<String, List<WhirlpoolUtxo>>();
+    this.utxos = new LinkedHashMap<>();
+    this.utxosByAddress = new LinkedHashMap<>();
     this.utxoChanges = new WhirlpoolUtxoChanges(isFirstFetch);
 
     // add existing utxos
@@ -85,7 +83,9 @@ public class UtxoData {
       if (freshUtxo != null) {
         // set blockHeight when confirmed
         if (whirlpoolUtxo.getBlockHeight() == null && freshUtxo.confirmations > 0) {
-          whirlpoolUtxo.setUtxoConfirmed(freshUtxo, latestBlockHeight);
+          int blockHeight =
+              ClientUtils.computeBlockHeight(freshUtxo.confirmations, latestBlockHeight);
+          whirlpoolUtxo.setUtxoConfirmed(freshUtxo, blockHeight, latestBlockHeight);
           utxoChanges.getUtxosConfirmed().add(whirlpoolUtxo);
         }
         // update utxo.confirmations (not really needed)
@@ -104,27 +104,17 @@ public class UtxoData {
       if (!previousUtxos.containsKey(key)) {
         UnspentOutput utxo = e.getValue();
         try {
-          // find account
-          String pub = utxo.xpub.m;
-          BipWallet bipWallet = walletSupplier.getWalletByXPub(pub);
-          if (bipWallet == null) {
-            throw new Exception("Unknown wallet for: " + pub);
-          }
-          SamouraiAccount samouraiAccount = bipWallet.getAccount();
+          WhirlpoolUtxo whirlpoolUtxo = utxoSupplier.computeWhirlpoolUtxo(utxo, latestBlockHeight);
 
-          // auto-assign pool for mixable utxos
+          // auto-assign pool for mixable utxos & mixableStatus
           String poolId = null;
-          if (utxoSupplier.isMixableUtxo(utxo, bipWallet)) { //  exclude premix/postmix change
-            poolId = computeAutoAssignPoolId(samouraiAccount, utxo.value, poolSupplier);
+          if (utxoSupplier.isMixableUtxo(
+              utxo, whirlpoolUtxo.getAccount())) { //  exclude premix/postmix change
+            poolId = computeAutoAssignPoolId(whirlpoolUtxo.getAccount(), utxo.value, poolSupplier);
           }
 
-          // add missing
-          NetworkParameters params = bipWallet.getParams();
-          BipFormat bipFormat =
-              utxoSupplier.getBipFormatSupplier().findByAddress(utxo.addr, params);
-          WhirlpoolUtxo whirlpoolUtxo =
-              new WhirlpoolUtxo(
-                  utxo, bipWallet, bipFormat, poolId, utxoConfigSupplier, latestBlockHeight);
+          whirlpoolUtxo.setPoolIdAndMixableStatus(poolId, latestBlockHeight);
+
           if (!isFirstFetch) {
             // set lastActivity when utxo is detected but ignore on first fetch
             whirlpoolUtxo.getUtxoState().setLastActivity();
@@ -141,7 +131,7 @@ public class UtxoData {
     }
 
     // compute balances
-    this.balanceByAccount = new LinkedHashMap<SamouraiAccount, Long>();
+    this.balanceByAccount = new LinkedHashMap<>();
     long total = 0;
     for (SamouraiAccount account : SamouraiAccount.values()) {
       Collection<WhirlpoolUtxo> utxosForAccount = findUtxos(account);

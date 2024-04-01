@@ -186,7 +186,7 @@ public class MixOrchestratorImpl extends MixOrchestrator {
   }
 
   private IPremixHandler computePremixHandler(WhirlpoolUtxo whirlpoolUtxo) {
-    ECKey premixKey = whirlpoolUtxo.getBipAddress().getHdAddress().getECKey();
+    ECKey premixKey = whirlpoolUtxo.getECKey();
 
     UnspentOutput premixOrPostmixUtxo = whirlpoolUtxo.getUtxo();
     UtxoWithBalance utxoWithBalance =

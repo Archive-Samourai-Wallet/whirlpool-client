@@ -22,8 +22,8 @@ public class WhirlpoolUtxoState {
   private Long lastError;
   private Subject<WhirlpoolUtxoState> observable;
 
-  public WhirlpoolUtxoState(String poolId) {
-    this.poolId = poolId;
+  public WhirlpoolUtxoState() {
+    this.poolId = null;
     this.status = WhirlpoolUtxoStatus.READY;
     this.mixProgress = null;
     this.mixableStatus = null;
@@ -43,6 +43,10 @@ public class WhirlpoolUtxoState {
 
   public String getPoolId() {
     return poolId;
+  }
+
+  protected void setPoolId(String poolId) {
+    this.poolId = poolId;
   }
 
   public WhirlpoolUtxoStatus getStatus() {

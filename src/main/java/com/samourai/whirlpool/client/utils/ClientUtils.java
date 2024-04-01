@@ -426,4 +426,11 @@ public class ClientUtils {
     }
     throw lastException;
   }
+
+  public static Integer computeBlockHeight(int utxoConfirmations, int latestBlockHeight) {
+    if (utxoConfirmations <= 0) {
+      return null;
+    }
+    return latestBlockHeight - utxoConfirmations;
+  }
 }

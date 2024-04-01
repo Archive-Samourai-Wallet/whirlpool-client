@@ -11,7 +11,7 @@ import com.samourai.wallet.hd.Chain;
 import com.samourai.wallet.send.MyTransactionOutPoint;
 import com.samourai.wallet.send.UTXO;
 import com.samourai.wallet.send.provider.UtxoProvider;
-import com.samourai.whirlpool.client.exception.NotifiableException;
+import com.samourai.whirlpool.client.utils.ClientUtils;
 import com.samourai.whirlpool.client.wallet.beans.WhirlpoolUtxo;
 import com.samourai.whirlpool.client.wallet.data.coordinator.CoordinatorSupplier;
 import com.samourai.whirlpool.client.wallet.data.dataSource.DataSourceConfig;
@@ -22,6 +22,7 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
+import org.bitcoinj.core.ECKey;
 import org.bitcoinj.core.NetworkParameters;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -33,6 +34,7 @@ public abstract class BasicUtxoSupplier extends BasicSupplier<UtxoData>
   private final WalletSupplier walletSupplier;
   private final UtxoConfigSupplier utxoConfigSupplier;
   private final DataSourceConfig dataSourceConfig;
+  private final NetworkParameters params;
   private CoordinatorSupplier coordinatorSupplier;
   private Consumer<UtxoData> utxoChangesListener; // may be null
 
@@ -41,11 +43,13 @@ public abstract class BasicUtxoSupplier extends BasicSupplier<UtxoData>
   public BasicUtxoSupplier(
       WalletSupplier walletSupplier,
       UtxoConfigSupplier utxoConfigSupplier,
-      DataSourceConfig dataSourceConfig) {
+      DataSourceConfig dataSourceConfig,
+      NetworkParameters params) {
     super(log);
     this.walletSupplier = walletSupplier;
     this.utxoConfigSupplier = utxoConfigSupplier;
     this.dataSourceConfig = dataSourceConfig;
+    this.params = params;
     this.coordinatorSupplier = null; // will be set by init()
     this.utxoChangesListener = null;
     this.previousUtxos = null;
@@ -78,14 +82,39 @@ public abstract class BasicUtxoSupplier extends BasicSupplier<UtxoData>
   }
 
   @Override
+  public WhirlpoolUtxo computeWhirlpoolUtxo(UnspentOutput utxo, int latestBlockHeight)
+      throws Exception {
+    // find account
+    SamouraiAccount samouraiAccount;
+    String path;
+    ECKey ecKey;
+    String xpub = (utxo.xpub != null ? utxo.xpub.m : null);
+    if (utxo.hasPath()) {
+      // HD_WALLET
+      BipWallet bipWallet = walletSupplier.getWalletByXPub(xpub);
+      if (bipWallet == null) {
+        throw new Exception("Unknown wallet for: " + xpub);
+      }
+      samouraiAccount = bipWallet.getAccount();
+      path = bipWallet.getDerivation().getPathAddress(utxo, params);
+      ecKey = bipWallet.getAddressAt(utxo).getHdAddress().getECKey();
+    } else {
+      // BIP47
+      samouraiAccount = SamouraiAccount.DEPOSIT;
+      path = null;
+      ecKey = ECKey.fromPrivate(_getPrivKeyBip47(utxo.tx_hash, utxo.tx_output_n, xpub));
+    }
+
+    // add missing
+    BipFormat bipFormat = getBipFormatSupplier().findByAddress(utxo.addr, params);
+    Integer blockHeight = ClientUtils.computeBlockHeight(utxo.confirmations, latestBlockHeight);
+    return new WhirlpoolUtxo(
+        utxo, samouraiAccount, ecKey, path, params, bipFormat, utxoConfigSupplier, blockHeight);
+  }
+
+  @Override
   public synchronized void setValue(UtxoData utxoData) throws Exception {
-    utxoData.init(
-        walletSupplier,
-        utxoConfigSupplier,
-        this,
-        coordinatorSupplier,
-        previousUtxos,
-        dataSourceConfig.getChainSupplier().getLatestBlock().height);
+    utxoData.init(walletSupplier, utxoConfigSupplier, this, coordinatorSupplier, previousUtxos);
 
     // update previousUtxos
     Map<String, WhirlpoolUtxo> newPreviousUtxos = new LinkedHashMap<String, WhirlpoolUtxo>();
@@ -159,33 +188,22 @@ public abstract class BasicUtxoSupplier extends BasicSupplier<UtxoData>
     return toUTXOs(findUtxos(account));
   }
 
-  protected byte[] _getPrivKeyBip47(WhirlpoolUtxo whirlpoolUtxo) throws Exception {
-    // override this to support bip47
-    throw new NotifiableException("No privkey found for utxo: " + whirlpoolUtxo);
-  }
-
-  // overidden by Sparrow
-  protected byte[] _getPrivKey(WhirlpoolUtxo whirlpoolUtxo) throws Exception {
-    if (!whirlpoolUtxo.getUtxo().hasPath()) {
-      // bip47
-      return _getPrivKeyBip47(whirlpoolUtxo);
-    }
-    return whirlpoolUtxo.getBipAddress().getHdAddress().getECKey().getPrivKeyBytes();
-  }
-
   @Override
   public byte[] _getPrivKey(String utxoHash, int utxoIndex) throws Exception {
     WhirlpoolUtxo whirlpoolUtxo = findUtxo(utxoHash, utxoIndex);
     if (whirlpoolUtxo == null) {
       throw new Exception("Utxo not found: " + utxoHash + ":" + utxoIndex);
     }
-    return _getPrivKey(whirlpoolUtxo);
+    return whirlpoolUtxo.getECKey().getPrivKeyBytes();
   }
 
   @Override
-  public boolean isMixableUtxo(UnspentOutput unspentOutput, BipWallet bipWallet) {
-    SamouraiAccount samouraiAccount = bipWallet.getAccount();
+  public byte[] _getPrivKeyBip47(String utxoHash, int utxoIndex, String xpub) throws Exception {
+    throw new Exception("_getPrivKeyBip47() is not implemented yet");
+  }
 
+  @Override
+  public boolean isMixableUtxo(UnspentOutput unspentOutput, SamouraiAccount samouraiAccount) {
     // don't mix BADBANK utxos
     if (SamouraiAccount.BADBANK.equals(samouraiAccount)) {
       if (log.isDebugEnabled()) {
@@ -198,7 +216,7 @@ public abstract class BasicUtxoSupplier extends BasicSupplier<UtxoData>
     if (SamouraiAccount.PREMIX.equals(samouraiAccount)
         || SamouraiAccount.POSTMIX.equals(samouraiAccount)) {
       // ignore change utxos
-      if (unspentOutput.xpub != null && unspentOutput.xpub.path != null) {
+      if (unspentOutput.getPath() != null) {
         int chainIndex = unspentOutput.computePathChainIndex();
         if (chainIndex == Chain.CHANGE.getIndex()) {
           if (log.isDebugEnabled()) {
@@ -213,9 +231,8 @@ public abstract class BasicUtxoSupplier extends BasicSupplier<UtxoData>
 
   private Collection<UTXO> toUTXOs(Collection<WhirlpoolUtxo> whirlpoolUtxos) {
     // group utxos by script = same address
-    Map<String, UTXO> utxoByScript = new LinkedHashMap<String, UTXO>();
+    Map<String, UTXO> utxoByScript = new LinkedHashMap<>();
     for (WhirlpoolUtxo whirlpoolUtxo : whirlpoolUtxos) {
-      NetworkParameters params = whirlpoolUtxo.getBipWallet().getParams();
       MyTransactionOutPoint outPoint = whirlpoolUtxo.getUtxo().computeOutpoint(params);
       String script = whirlpoolUtxo.getUtxo().script;
 
@@ -245,5 +262,9 @@ public abstract class BasicUtxoSupplier extends BasicSupplier<UtxoData>
   @Override
   public BipFormatSupplier getBipFormatSupplier() {
     return dataSourceConfig.getBipFormatSupplier();
+  }
+
+  public NetworkParameters getParams() {
+    return params;
   }
 }

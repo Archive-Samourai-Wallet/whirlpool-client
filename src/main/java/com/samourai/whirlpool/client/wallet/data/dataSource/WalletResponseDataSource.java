@@ -23,6 +23,7 @@ import com.samourai.whirlpool.client.wallet.data.utxoConfig.UtxoConfigSupplier;
 import com.samourai.whirlpool.client.wallet.data.walletState.WalletStateSupplier;
 import java.util.Map;
 import org.apache.commons.lang3.math.NumberUtils;
+import org.bitcoinj.core.NetworkParameters;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -82,7 +83,8 @@ public abstract class WalletResponseDataSource extends AbstractDataSource {
       UtxoConfigSupplier utxoConfigSupplier,
       DataSourceConfig dataSourceConfig)
       throws Exception {
-    return new BasicUtxoSupplier(walletSupplier, utxoConfigSupplier, dataSourceConfig) {
+    NetworkParameters params = whirlpoolWallet.getConfig().getSamouraiNetwork().getParams();
+    return new BasicUtxoSupplier(walletSupplier, utxoConfigSupplier, dataSourceConfig, params) {
       @Override
       public void refresh() throws Exception {
         WalletResponseDataSource.this.refresh();
@@ -126,7 +128,11 @@ public abstract class WalletResponseDataSource extends AbstractDataSource {
         || walletResponse.txs == null) {
       throw new Exception("Invalid walletResponse.unspent_outputs/txs");
     }
-    UtxoData utxoData = new UtxoData(walletResponse.unspent_outputs, walletResponse.txs);
+    UtxoData utxoData =
+        new UtxoData(
+            walletResponse.unspent_outputs,
+            walletResponse.txs,
+            walletResponse.info.latest_block.height);
     utxoSupplier.setValue(utxoData);
 
     // update walletStateSupplier

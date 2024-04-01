@@ -2,6 +2,7 @@ package com.samourai.whirlpool.client.test;
 
 import ch.qos.logback.classic.Level;
 import com.samourai.http.client.JettyHttpClient;
+import com.samourai.http.client.JettyHttpClientService;
 import com.samourai.soroban.client.rpc.RpcClientService;
 import com.samourai.soroban.client.wallet.SorobanWalletService;
 import com.samourai.wallet.api.backend.BackendServer;
@@ -70,6 +71,7 @@ public class AbstractTest {
   protected static final String XPUB_POSTMIX =
       "tpubDCGZwoP3Ws5sZLQpXGpDhtbErQPyFdf59k8JmUpnL5fM6qAj8bbPXNwLLtfiS5s8ivZ1W1PQnaET7obFeiDSooTFBKcTweS29BkgHwhhsQD";
 
+  protected IHttpClientService httpClientService;
   protected IHttpClient httpClient;
 
   protected ChainSupplier mockChainSupplier =
@@ -111,7 +113,8 @@ public class AbstractTest {
   public AbstractTest() throws Exception {
     ClientUtils.setLogLevel(Level.DEBUG.toString());
 
-    httpClient = new JettyHttpClient(5000, HttpUsage.SOROBAN);
+    httpClientService = new JettyHttpClientService(5000);
+    httpClient = httpClientService.getHttpClient(HttpUsage.SOROBAN);
     oxtApi = new OxtApi(httpClient);
 
     pool01btc = new Pool();
@@ -188,21 +191,6 @@ public class AbstractTest {
     return spendFrom;
   }
 
-  protected IHttpClientService computeHttpClientService() {
-    return new IHttpClientService() {
-      @Override
-      public IHttpClient getHttpClient(HttpUsage httpUsage) {
-        return httpClient;
-      }
-
-      @Override
-      public void changeIdentity() {}
-
-      @Override
-      public void stop() {}
-    };
-  }
-
   protected void onPushTx0(Tx0PushRequest request, Transaction tx) throws Exception {
     // overridable
   }
@@ -211,7 +199,6 @@ public class AbstractTest {
     DataSourceFactory dataSourceFactory =
         new DojoDataSourceFactory(BackendServer.TESTNET, false, null, BIP_WALLETS.WHIRLPOOL);
     ISecretPointFactory secretPointFactory = SecretPointFactoryJava.getInstance();
-    IHttpClientService httpClientService = computeHttpClientService();
     CryptoUtil cryptoUtil = CryptoUtil.getInstanceJava();
     RpcClientService rpcClientService =
         new RpcClientService(httpClientService, cryptoUtil, bip47Util, false, params);
@@ -259,6 +246,7 @@ public class AbstractTest {
     utxo.tx_output_n = n;
     utxo.xpub = new UnspentOutput.Xpub();
     utxo.xpub.m = xpub;
+    utxo.xpub.path = "m/123/123";
     utxo.confirmations = confirms;
     return utxo;
   }
