@@ -12,7 +12,6 @@ import com.samourai.wallet.segwit.bech32.Bech32UtilGeneric;
 import com.samourai.wallet.send.MyTransactionOutPoint;
 import com.samourai.wallet.send.SendFactoryGeneric;
 import com.samourai.wallet.send.provider.UtxoKeyProvider;
-import com.samourai.wallet.util.AsyncUtil;
 import com.samourai.wallet.util.TxUtil;
 import com.samourai.whirlpool.client.event.Tx0Event;
 import com.samourai.whirlpool.client.exception.NotifiableException;
@@ -44,7 +43,6 @@ import org.slf4j.LoggerFactory;
 public class Tx0Service {
   private Logger log = LoggerFactory.getLogger(Tx0Service.class);
   private static final Bech32UtilGeneric bech32Util = Bech32UtilGeneric.getInstance();
-  private static final AsyncUtil asyncUtil = AsyncUtil.getInstance();
 
   private Tx0PreviewService tx0PreviewService;
   private NetworkParameters params;

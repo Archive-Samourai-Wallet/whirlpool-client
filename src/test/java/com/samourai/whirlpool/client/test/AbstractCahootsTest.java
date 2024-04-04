@@ -56,13 +56,14 @@ public abstract class AbstractCahootsTest extends AbstractWhirlpoolWalletTest {
   protected static String[] SENDER_PREMIX_84;
   protected static String[] COUNTERPARTY_PREMIX_84;
 
-  protected Tx0x2Service tx0x2Service = new Tx0x2Service(bipFormatSupplier, params);
+  protected Tx0x2Service tx0x2Service = new Tx0x2Service(extLibJConfig);
 
   public AbstractCahootsTest() throws Exception {
     super();
   }
 
-  public void setUp() throws Exception {
+  public void setup() throws Exception {
+    super.setup();
     final HD_Wallet bip84WalletSender =
         TestUtil.computeBip84wallet(SEED_WORDS, SEED_PASSPHRASE_INITIATOR);
     walletSupplierSender =

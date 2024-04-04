@@ -2,9 +2,9 @@ package com.samourai.whirlpool.client.tx0x2;
 
 import com.samourai.wallet.api.backend.beans.UnspentOutput;
 import com.samourai.wallet.bipFormat.BIP_FORMAT;
-import com.samourai.wallet.bipFormat.BipFormatSupplier;
 import com.samourai.wallet.cahoots.*;
 import com.samourai.wallet.constants.SamouraiAccountIndex;
+import com.samourai.wallet.util.ExtLibJConfig;
 import com.samourai.wallet.util.FeeUtil;
 import com.samourai.wallet.util.RandomUtil;
 import com.samourai.wallet.util.TxUtil;
@@ -22,8 +22,8 @@ import org.slf4j.LoggerFactory;
 public class Tx0x2Service extends AbstractCahoots2xService<Tx0x2, Tx0x2Context> {
   private static final Logger log = LoggerFactory.getLogger(Tx0x2Service.class);
 
-  public Tx0x2Service(BipFormatSupplier bipFormatSupplier, NetworkParameters params) {
-    super(CahootsType.TX0X2, bipFormatSupplier, params);
+  public Tx0x2Service(ExtLibJConfig extLibJConfig) {
+    super(extLibJConfig, CahootsType.TX0X2);
   }
 
   //
@@ -37,6 +37,7 @@ public class Tx0x2Service extends AbstractCahoots2xService<Tx0x2, Tx0x2Context> 
     int maxOutputsEach = (int) Math.floor(tx0Initiator.getPool().getTx0MaxOutputs() / 2);
     long samouraiFeeValueEach = (int) Math.floor(tx0Initiator.getFeeValue() / 2);
     byte[] fingerprint = cahootsContext.getCahootsWallet().getFingerprint();
+    NetworkParameters params = getExtLibJConfig().getSamouraiNetwork().getParams();
     Tx0x2 payload0 =
         new Tx0x2(params, fingerprint, poolId, premixValue, maxOutputsEach, samouraiFeeValueEach);
 
@@ -206,6 +207,7 @@ public class Tx0x2Service extends AbstractCahoots2xService<Tx0x2, Tx0x2Context> 
     int nbInputsCounterparty = payload1.getTransaction().getInputs().size();
     int nbInputsSender = tx0Initiator.getSpendFroms().size();
     int nbInputs = nbInputsCounterparty + nbInputsSender;
+    NetworkParameters params = getExtLibJConfig().getSamouraiNetwork().getParams();
     int tx0Size = ClientUtils.computeTx0Size(nbPremix, nbInputs, params);
     long fee = FeeUtil.getInstance().calculateFee(tx0Size, tx0Initiator.getTx0MinerFeePrice());
     if (fee % 2L != 0) {
@@ -264,7 +266,9 @@ public class Tx0x2Service extends AbstractCahoots2xService<Tx0x2, Tx0x2Context> 
 
     // use changeAddress from tx0Initiator to avoid index gap
     String changeAddress =
-        getBipFormatSupplier().getToAddress(tx0Initiator.getChangeOutputs().iterator().next());
+        getExtLibJConfig()
+            .getBipFormatSupplier()
+            .getToAddress(tx0Initiator.getChangeOutputs().iterator().next());
 
     if (log.isDebugEnabled()) {
       log.debug("+output (Sender change) = " + changeAddress + ", value=" + senderChangeAmount);
@@ -279,7 +283,9 @@ public class Tx0x2Service extends AbstractCahoots2xService<Tx0x2, Tx0x2Context> 
     Transaction tx = payload1.getTransaction();
     String collabChangeAddress = payload1.getCollabChange();
     TransactionOutput counterpartyChangeOutput =
-        TxUtil.getInstance().findOutputByAddress(tx, collabChangeAddress, getBipFormatSupplier());
+        TxUtil.getInstance()
+            .findOutputByAddress(
+                tx, collabChangeAddress, getExtLibJConfig().getBipFormatSupplier());
     if (counterpartyChangeOutput == null) {
       throw new Exception("Cannot compose #Cahoots: counterpartyChangeOutput not found");
     }
@@ -313,7 +319,7 @@ public class Tx0x2Service extends AbstractCahoots2xService<Tx0x2, Tx0x2Context> 
       }
 
       long premixOutputValue = premixOutput.getValue().longValue();
-      String changeAddress = getBipFormatSupplier().getToAddress(premixOutput);
+      String changeAddress = getExtLibJConfig().getBipFormatSupplier().getToAddress(premixOutput);
 
       if (log.isDebugEnabled()) {
         log.debug("+output (Sender change) = " + changeAddress + ", value=" + premixOutputValue);

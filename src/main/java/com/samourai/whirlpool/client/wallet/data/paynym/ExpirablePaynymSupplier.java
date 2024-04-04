@@ -7,6 +7,7 @@ import com.samourai.wallet.bip47.rpc.BIP47Account;
 import com.samourai.wallet.bip47.rpc.PaymentCode;
 import com.samourai.wallet.httpClient.HttpUsage;
 import com.samourai.wallet.httpClient.IHttpClient;
+import com.samourai.wallet.httpClient.IHttpClientService;
 import com.samourai.wallet.util.AsyncUtil;
 import com.samourai.whirlpool.client.event.PaynymChangeEvent;
 import com.samourai.whirlpool.client.exception.NotifiableException;
@@ -52,7 +53,9 @@ public class ExpirablePaynymSupplier extends ExpirableSupplier<PaynymState>
   }
 
   protected static PaynymApi computePaynymApi(WhirlpoolWalletConfig config) {
-    IHttpClient httpClient = config.getHttpClient(HttpUsage.BACKEND);
+    IHttpClientService httpClientService =
+        config.getSorobanConfig().getExtLibJConfig().getHttpClientService();
+    IHttpClient httpClient = httpClientService.getHttpClient(HttpUsage.BACKEND);
     String serverUrl = PaynymServer.get().getUrl();
     return new PaynymApi(httpClient, serverUrl, config.getBip47Util());
   }

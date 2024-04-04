@@ -27,13 +27,13 @@ public class WhirlpoolWalletTx0x2Test extends AbstractCahootsTest {
 
   public WhirlpoolWalletTx0x2Test() throws Exception {
     super();
-    this.tx0Info = whirlpoolWallet.getWhirlpoolInfo().fetchTx0Info(null);
   }
 
   @BeforeEach
   @Override
-  public void setUp() throws Exception {
-    super.setUp();
+  public void setup() throws Exception {
+    super.setup();
+    this.tx0Info = whirlpoolWallet.getWhirlpoolInfo().fetchTx0Info(null);
   }
 
   @Test

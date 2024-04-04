@@ -557,7 +557,7 @@ public class WhirlpoolWallet {
   }
 
   protected void changeIdentity() {
-    config.getHttpClientService().changeIdentity();
+    config.getSorobanConfig().getExtLibJConfig().getHttpClientService().changeIdentity();
   }
 
   public void onMixProgress(MixParams mixParams) {
@@ -827,7 +827,8 @@ public class WhirlpoolWallet {
 
   public SorobanWalletInitiator getSorobanWalletInitiator() {
     if (sorobanWalletInitiator == null) {
-      SorobanWalletService sorobanWalletService = config.getSorobanWalletService();
+      SorobanWalletService sorobanWalletService =
+          config.getSorobanConfig().getSorobanWalletService();
       if (sorobanWalletService == null) {
         log.error("whirlpoolWalletConfig.sorobanWalletService is NULL");
         return null;
@@ -840,7 +841,8 @@ public class WhirlpoolWallet {
 
   public SorobanWalletCounterparty getSorobanWalletCounterparty() {
     if (sorobanWalletCounterparty == null) {
-      SorobanWalletService sorobanWalletService = config.getSorobanWalletService();
+      SorobanWalletService sorobanWalletService =
+          config.getSorobanConfig().getSorobanWalletService();
       if (sorobanWalletService == null) {
         log.error("whirlpoolWalletConfig.sorobanWalletService is NULL");
         return null;

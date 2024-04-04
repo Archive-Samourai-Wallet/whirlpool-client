@@ -7,6 +7,7 @@ import com.samourai.wallet.bipWallet.BipWalletSupplier;
 import com.samourai.wallet.hd.HD_Wallet;
 import com.samourai.wallet.httpClient.HttpUsage;
 import com.samourai.wallet.httpClient.IHttpClient;
+import com.samourai.wallet.httpClient.IHttpClientService;
 import com.samourai.wallet.websocketClient.IWebsocketClient;
 import com.samourai.whirlpool.client.exception.NotifiableException;
 import com.samourai.whirlpool.client.wallet.WhirlpoolWallet;
@@ -55,7 +56,9 @@ public class DojoDataSourceFactory implements DataSourceFactory {
       UtxoConfigSupplier utxoConfigSupplier)
       throws Exception {
     WhirlpoolWalletConfig config = whirlpoolWallet.getConfig();
-    IHttpClient httpClientBackend = config.getHttpClient(HttpUsage.BACKEND);
+    IHttpClientService httpClientService =
+        config.getSorobanConfig().getExtLibJConfig().getHttpClientService();
+    IHttpClient httpClientBackend = httpClientService.getHttpClient(HttpUsage.BACKEND);
 
     // configure backendApi
     String myDojoApiKey = computeDojoApiKey(whirlpoolWallet, bip44w, passphrase);

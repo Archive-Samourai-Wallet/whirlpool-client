@@ -50,6 +50,8 @@ public class MockCoordinatorSupplier extends ExpirableCoordinatorSupplier {
           new SorobanInfo(
               sorobanServerDex.getSorobanUrlsClear(), sorobanServerDex.getSorobanUrlsOnion());
     }
-    setValue(new CoordinatorData(pairs, tx0PreviewService, config.isTorOnionCoordinator()));
+    setValue(
+        new CoordinatorData(
+            pairs, tx0PreviewService, config.getSorobanConfig().getExtLibJConfig().isOnion()));
   }
 }

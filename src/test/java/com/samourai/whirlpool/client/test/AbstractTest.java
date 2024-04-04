@@ -2,21 +2,16 @@ package com.samourai.whirlpool.client.test;
 
 import ch.qos.logback.classic.Level;
 import com.samourai.http.client.JettyHttpClientService;
-import com.samourai.soroban.client.rpc.RpcClientService;
-import com.samourai.soroban.client.wallet.SorobanWalletService;
+import com.samourai.soroban.client.SorobanConfig;
 import com.samourai.wallet.api.backend.BackendServer;
 import com.samourai.wallet.api.backend.OxtApi;
 import com.samourai.wallet.api.backend.beans.UnspentOutput;
 import com.samourai.wallet.api.backend.beans.WalletResponse;
-import com.samourai.wallet.bip47.rpc.java.Bip47UtilJava;
-import com.samourai.wallet.bip47.rpc.java.SecretPointFactoryJava;
-import com.samourai.wallet.bip47.rpc.secretPoint.ISecretPointFactory;
 import com.samourai.wallet.bipFormat.BIP_FORMAT;
 import com.samourai.wallet.bipFormat.BipFormatSupplier;
 import com.samourai.wallet.chain.ChainSupplier;
 import com.samourai.wallet.constants.BIP_WALLETS;
 import com.samourai.wallet.constants.SamouraiNetwork;
-import com.samourai.wallet.crypto.CryptoUtil;
 import com.samourai.wallet.hd.HD_Address;
 import com.samourai.wallet.hd.HD_WalletFactoryGeneric;
 import com.samourai.wallet.httpClient.HttpUsage;
@@ -24,6 +19,7 @@ import com.samourai.wallet.httpClient.IHttpClient;
 import com.samourai.wallet.httpClient.IHttpClientService;
 import com.samourai.wallet.segwit.bech32.Bech32UtilGeneric;
 import com.samourai.wallet.util.AsyncUtil;
+import com.samourai.wallet.util.ExtLibJConfig;
 import com.samourai.whirlpool.client.tx0.MockTx0PreviewServiceConfig;
 import com.samourai.whirlpool.client.tx0.Tx0PreviewService;
 import com.samourai.whirlpool.client.utils.ClientUtils;
@@ -51,6 +47,7 @@ import java.util.stream.Collectors;
 import org.bitcoinj.core.NetworkParameters;
 import org.bitcoinj.core.Transaction;
 import org.bitcoinj.params.TestNet3Params;
+import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.bouncycastle.util.encoders.Hex;
 import org.junit.jupiter.api.Assertions;
 import org.slf4j.Logger;
@@ -70,7 +67,7 @@ public class AbstractTest {
   protected static final String XPUB_POSTMIX =
       "tpubDCGZwoP3Ws5sZLQpXGpDhtbErQPyFdf59k8JmUpnL5fM6qAj8bbPXNwLLtfiS5s8ivZ1W1PQnaET7obFeiDSooTFBKcTweS29BkgHwhhsQD";
 
-  protected IHttpClientService httpClientService;
+  protected IHttpClientService httpClientService = new JettyHttpClientService(5000);
   protected IHttpClient httpClient;
 
   protected ChainSupplier mockChainSupplier =
@@ -84,13 +81,14 @@ public class AbstractTest {
 
   protected OxtApi oxtApi;
 
-  protected Bip47UtilJava bip47Util = Bip47UtilJava.getInstance();
   protected BipFormatSupplier bipFormatSupplier = BIP_FORMAT.PROVIDER;
   protected NetworkParameters params = TestNet3Params.get();
+  protected ExtLibJConfig extLibJConfig =
+      new ExtLibJConfig(samouraiNetwork, false, new BouncyCastleProvider(), httpClientService);
+  protected SorobanConfig sorobanConfig = new SorobanConfig(extLibJConfig);
   protected HD_WalletFactoryGeneric hdWalletFactory = HD_WalletFactoryGeneric.getInstance();
   protected Bech32UtilGeneric bech32Util = Bech32UtilGeneric.getInstance();
   protected AsyncUtil asyncUtil = AsyncUtil.getInstance();
-  protected CryptoUtil cryptoUtil = CryptoUtil.getInstanceJava();
   protected Pool pool01btc;
   protected Pool pool05btc;
   protected Pool pool001btc;
@@ -112,7 +110,6 @@ public class AbstractTest {
   public AbstractTest() throws Exception {
     ClientUtils.setLogLevel(Level.DEBUG.toString());
 
-    httpClientService = new JettyHttpClientService(5000);
     httpClient = httpClientService.getHttpClient(HttpUsage.SOROBAN);
     oxtApi = new OxtApi(httpClient);
 
@@ -197,23 +194,8 @@ public class AbstractTest {
   protected WhirlpoolWalletConfig computeWhirlpoolWalletConfig() {
     DataSourceFactory dataSourceFactory =
         new DojoDataSourceFactory(BackendServer.TESTNET, false, null, BIP_WALLETS.WHIRLPOOL);
-    ISecretPointFactory secretPointFactory = SecretPointFactoryJava.getInstance();
-    CryptoUtil cryptoUtil = CryptoUtil.getInstanceJava();
-    RpcClientService rpcClientService =
-        new RpcClientService(httpClientService, cryptoUtil, bip47Util, false, params);
-    SorobanWalletService sorobanWalletService =
-        new SorobanWalletService(bip47Util, bipFormatSupplier, params, rpcClientService);
     WhirlpoolWalletConfig config =
-        new WhirlpoolWalletConfig(
-            dataSourceFactory,
-            secretPointFactory,
-            cryptoUtil,
-            sorobanWalletService,
-            httpClientService,
-            bip47Util,
-            samouraiNetwork,
-            false,
-            false);
+        new WhirlpoolWalletConfig(dataSourceFactory, sorobanConfig, false);
     config.setDataPersisterFactory(new MemoryDataPersisterFactory());
     return config;
   }

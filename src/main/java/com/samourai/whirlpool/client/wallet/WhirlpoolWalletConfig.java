@@ -1,14 +1,9 @@
 package com.samourai.whirlpool.client.wallet;
 
 import com.samourai.soroban.client.SorobanConfig;
-import com.samourai.soroban.client.wallet.SorobanWalletService;
 import com.samourai.wallet.bip47.BIP47UtilGeneric;
 import com.samourai.wallet.bip47.rpc.java.Bip47UtilJava;
-import com.samourai.wallet.bip47.rpc.secretPoint.ISecretPointFactory;
-import com.samourai.wallet.constants.SamouraiNetwork;
-import com.samourai.wallet.crypto.CryptoUtil;
 import com.samourai.wallet.httpClient.HttpUsage;
-import com.samourai.wallet.httpClient.IHttpClientService;
 import com.samourai.wallet.util.FormatsUtilGeneric;
 import com.samourai.wallet.xmanagerClient.XManagerClient;
 import com.samourai.whirlpool.client.exception.NotifiableException;
@@ -68,35 +63,18 @@ public class WhirlpoolWalletConfig extends WhirlpoolClientConfig
   private int persistDelaySeconds;
   private String partner;
   private int bip47AccountId;
-
-  private ISecretPointFactory secretPointFactory;
-  private SorobanWalletService sorobanWalletService;
   private BIP47UtilGeneric bip47Util;
   private FeeOpReturnImpl feeOpReturnImpl;
 
   public WhirlpoolWalletConfig(
-      DataSourceFactory dataSourceFactory,
-      ISecretPointFactory secretPointFactory,
-      CryptoUtil cryptoUtil,
-      SorobanWalletService sorobanWalletService,
-      IHttpClientService httpClientService,
-      BIP47UtilGeneric bip47Util,
-      SamouraiNetwork samouraiNetwork,
-      boolean mobile,
-      boolean onion) {
-    // Android => odd indexs, CLI => even indexs
+      DataSourceFactory dataSourceFactory, SorobanConfig sorobanConfig, boolean mobile) {
     super(
-        httpClientService,
-        bip47Util,
-        cryptoUtil,
+        sorobanConfig,
         null,
-        samouraiNetwork,
-        mobile ? IndexRange.ODD : IndexRange.EVEN,
-        onion);
+        // Android => odd indexs, CLI => even indexs
+        mobile ? IndexRange.ODD : IndexRange.EVEN);
 
     this.dataSourceFactory = dataSourceFactory;
-    this.secretPointFactory = secretPointFactory;
-    this.sorobanWalletService = sorobanWalletService;
     this.dataPersisterFactory = new FileDataPersisterFactory();
     this.mobile = mobile;
 
@@ -135,22 +113,8 @@ public class WhirlpoolWalletConfig extends WhirlpoolClientConfig
     this.bip47Util = Bip47UtilJava.getInstance();
 
     // use OpReturnImplV1
-    XorMask xorMask = XorMask.getInstance(secretPointFactory);
+    XorMask xorMask = XorMask.getInstance(sorobanConfig.getExtLibJConfig().getSecretPointFactory());
     feeOpReturnImpl = new FeeOpReturnImplV1(xorMask);
-  }
-
-  public WhirlpoolWalletConfig(
-      DataSourceFactory dataSourceFactory, SorobanConfig sorobanConfig, boolean mobile) {
-    this(
-        dataSourceFactory,
-        sorobanConfig.getExtLibJConfig().getSecretPointFactory(),
-        sorobanConfig.getExtLibJConfig().getCryptoUtil(),
-        sorobanConfig.getSorobanWalletService(),
-        sorobanConfig.getExtLibJConfig().getHttpClientService(),
-        sorobanConfig.getExtLibJConfig().getBip47Util(),
-        sorobanConfig.getExtLibJConfig().getSamouraiNetwork(),
-        mobile,
-        sorobanConfig.getExtLibJConfig().isOnion());
   }
 
   public void verify() throws Exception {
@@ -170,7 +134,9 @@ public class WhirlpoolWalletConfig extends WhirlpoolClientConfig
     // verify JCE provider doesn't throw any exception
     try {
       ECKey ecKey = new ECKey();
-      secretPointFactory
+      getSorobanConfig()
+          .getExtLibJConfig()
+          .getSecretPointFactory()
           .newSecretPoint(ecKey.getPrivKeyBytes(), ecKey.getPubKey())
           .ECDHSecretAsBytes();
     } catch (Exception e) {
@@ -186,7 +152,12 @@ public class WhirlpoolWalletConfig extends WhirlpoolClientConfig
   public XManagerClient computeXManagerClient() {
     boolean testnet = FormatsUtilGeneric.getInstance().isTestNet(getSamouraiNetwork().getParams());
     return new XManagerClient(
-        getHttpClientService().getHttpClient(HttpUsage.BACKEND), testnet, false);
+        getSorobanConfig()
+            .getExtLibJConfig()
+            .getHttpClientService()
+            .getHttpClient(HttpUsage.BACKEND),
+        testnet,
+        false);
   }
 
   public DataSourceFactory getDataSourceFactory() {
@@ -421,18 +392,6 @@ public class WhirlpoolWalletConfig extends WhirlpoolClientConfig
     this.bip47AccountId = bip47AccountId;
   }
 
-  public ISecretPointFactory getSecretPointFactory() {
-    return secretPointFactory;
-  }
-
-  public void setSecretPointFactory(ISecretPointFactory secretPointFactory) {
-    this.secretPointFactory = secretPointFactory;
-  }
-
-  public SorobanWalletService getSorobanWalletService() {
-    return sorobanWalletService;
-  }
-
   public BIP47UtilGeneric getBip47Util() {
     return bip47Util;
   }
@@ -453,8 +412,8 @@ public class WhirlpoolWalletConfig extends WhirlpoolClientConfig
         "server",
         "network="
             + getSamouraiNetwork().getParams().getPaymentProtocolId()
-            + ", torOnionCoordinator="
-            + Boolean.toString(isTorOnionCoordinator()));
+            + ", onion="
+            + Boolean.toString(getSorobanConfig().getExtLibJConfig().isOnion()));
     configInfo.put(
         "externalDestination",
         (getExternalDestination() != null ? getExternalDestination().toString() : "null"));
@@ -507,11 +466,16 @@ public class WhirlpoolWalletConfig extends WhirlpoolClientConfig
     configInfo.put("postmixIndexCheck", Boolean.toString(postmixIndexCheck));
     configInfo.put("postmixIndexAutoFix", Boolean.toString(postmixIndexAutoFix));
     configInfo.put("persistDelaySeconds", Integer.toString(persistDelaySeconds));
-    configInfo.put("secretPointFactory", secretPointFactory.getClass().getName());
-    configInfo.put("cryptoUtil", getCryptoUtil().getClass().getName());
+    configInfo.put(
+        "secretPointFactory",
+        getSorobanConfig().getExtLibJConfig().getSecretPointFactory().getClass().getName());
+    configInfo.put(
+        "cryptoUtil", getSorobanConfig().getExtLibJConfig().getCryptoUtil().getClass().getName());
     configInfo.put(
         "sorobanWalletService",
-        sorobanWalletService != null ? sorobanWalletService.getClass().getName() : "null");
+        getSorobanConfig().getSorobanWalletService() != null
+            ? getSorobanConfig().getSorobanWalletService().getClass().getName()
+            : "null");
     configInfo.put("bip47Util", bip47Util.getClass().getName());
     return configInfo;
   }

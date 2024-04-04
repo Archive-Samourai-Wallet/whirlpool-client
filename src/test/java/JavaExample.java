@@ -1,22 +1,18 @@
 import com.google.common.eventbus.Subscribe;
-import com.samourai.soroban.client.wallet.SorobanWalletService;
+import com.samourai.soroban.client.SorobanConfig;
 import com.samourai.wallet.api.backend.BackendServer;
 import com.samourai.wallet.api.backend.IPushTx;
 import com.samourai.wallet.api.backend.ISweepBackend;
 import com.samourai.wallet.api.backend.beans.UnspentOutput;
 import com.samourai.wallet.api.backend.seenBackend.ISeenBackend;
 import com.samourai.wallet.api.paynym.beans.PaynymState;
-import com.samourai.wallet.bip47.rpc.java.Bip47UtilJava;
-import com.samourai.wallet.bip47.rpc.java.SecretPointFactoryJava;
-import com.samourai.wallet.bip47.rpc.secretPoint.ISecretPointFactory;
 import com.samourai.wallet.bipWallet.WalletSupplier;
 import com.samourai.wallet.constants.BIP_WALLETS;
 import com.samourai.wallet.constants.SamouraiAccount;
 import com.samourai.wallet.constants.SamouraiNetwork;
-import com.samourai.wallet.crypto.CryptoUtil;
 import com.samourai.wallet.hd.HD_Wallet;
-import com.samourai.wallet.httpClient.IHttpClientService;
 import com.samourai.wallet.util.AsyncUtil;
+import com.samourai.wallet.util.ExtLibJConfig;
 import com.samourai.wallet.websocketClient.IWebsocketClient;
 import com.samourai.whirlpool.client.event.*;
 import com.samourai.whirlpool.client.tx0.*;
@@ -63,27 +59,12 @@ public class JavaExample {
 
     SamouraiNetwork samouraiNetwork = SamouraiNetwork.TESTNET;
 
-    // coordinator configuration
-    IHttpClientService httpClientService = null; // provide impl here, ie: new AndroidHttpClient();
-    Bip47UtilJava bip47Util = Bip47UtilJava.getInstance();
-
-    // for Android, use AndroidSecretPointFactory from 'samourai-wallet-android'
-    ISecretPointFactory secretPointFactory = SecretPointFactoryJava.getInstance();
-    CryptoUtil cryptoUtil = CryptoUtil.getInstanceJava();
-    SorobanWalletService sorobanWalletService = null; // provide impl or null if not using Soroban
+    // configuration
     boolean mobile = false; // true for mobile configuration, false for desktop/CLI
-    boolean torOnionCoordinator = false;
+    ExtLibJConfig extLibJConfig = null; // TODO provide impl
+    SorobanConfig sorobanConfig = new SorobanConfig(extLibJConfig);
     WhirlpoolWalletConfig whirlpoolWalletConfig =
-        new WhirlpoolWalletConfig(
-            dataSourceFactory,
-            secretPointFactory,
-            cryptoUtil,
-            sorobanWalletService,
-            httpClientService,
-            bip47Util,
-            samouraiNetwork,
-            mobile,
-            torOnionCoordinator);
+        new WhirlpoolWalletConfig(dataSourceFactory, sorobanConfig, mobile);
 
     // optional - SCODE
     // whirlpoolWalletConfig.setScode("foo");

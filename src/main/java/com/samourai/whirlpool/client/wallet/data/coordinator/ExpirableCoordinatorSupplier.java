@@ -53,7 +53,7 @@ public class ExpirableCoordinatorSupplier extends ExpirableSupplier<CoordinatorD
     try {
       Collection<Pair<CoordinatorMessage, PaymentCode>> coordinatorMessages =
           whirlpoolApiClient.coordinatorsFetch();
-      boolean onion = config.isTorOnionCoordinator();
+      boolean onion = config.getSorobanConfig().getExtLibJConfig().isOnion();
       CoordinatorData coordinatorData =
           new CoordinatorData(coordinatorMessages, tx0PreviewService, onion);
 

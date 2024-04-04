@@ -19,12 +19,12 @@ public class Tx0ServiceV1Test extends AbstractTx0ServiceTest {
 
   public Tx0ServiceV1Test() throws Exception {
     super(46);
-    this.tx0Info = whirlpoolWallet.getWhirlpoolInfo().fetchTx0Info(null);
   }
 
   @BeforeEach
   public void setup() throws Exception {
     super.setup();
+    this.tx0Info = whirlpoolWallet.getWhirlpoolInfo().fetchTx0Info(null);
   }
 
   @Test

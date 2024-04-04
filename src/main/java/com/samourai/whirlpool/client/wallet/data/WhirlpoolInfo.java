@@ -27,53 +27,20 @@ import org.slf4j.LoggerFactory;
 
 public class WhirlpoolInfo {
   private static final Logger log = LoggerFactory.getLogger(DataSourceConfig.class);
+  private final WhirlpoolWalletConfig config;
 
   protected final Tx0PreviewService tx0PreviewService;
   private Tx0Service tx0Service;
   private SorobanAppWhirlpool sorobanAppWhirlpool;
   protected final CoordinatorSupplier coordinatorSupplier;
-  private RpcClientService rpcClientService;
 
-  private String partner;
-  private int tx0AttemptsAddressReuse;
-  private int tx0AttemptsSoroban;
-
-  public WhirlpoolInfo(
-      Tx0PreviewService tx0PreviewService,
-      Tx0Service tx0Service,
-      SorobanAppWhirlpool sorobanAppWhirlpool,
-      CoordinatorSupplier coordinatorSupplier,
-      RpcClientService rpcClientService,
-      String partner,
-      int tx0AttemptsAddressReuse,
-      int tx0AttemptsSoroban) {
-    this.tx0PreviewService = tx0PreviewService;
-    this.tx0Service = tx0Service;
-    this.rpcClientService = rpcClientService;
-    this.sorobanAppWhirlpool = sorobanAppWhirlpool;
-    this.coordinatorSupplier = coordinatorSupplier;
-    this.partner = partner;
-    this.tx0AttemptsAddressReuse = tx0AttemptsAddressReuse;
-    this.tx0AttemptsSoroban = tx0AttemptsSoroban;
-  }
-
-  public WhirlpoolInfo(
-      MinerFeeSupplier minerFeeSupplier, WhirlpoolWalletConfig whirlpoolWalletConfig) {
-    this.tx0PreviewService = computeTx0PreviewService(minerFeeSupplier, whirlpoolWalletConfig);
-    this.tx0Service =
-        new Tx0Service(
-            whirlpoolWalletConfig.getSamouraiNetwork().getParams(),
-            tx0PreviewService,
-            whirlpoolWalletConfig.getFeeOpReturnImpl());
-    this.rpcClientService =
-        whirlpoolWalletConfig.getSorobanWalletService().getSorobanService().getRpcClientService();
-    this.sorobanAppWhirlpool = new SorobanAppWhirlpool(whirlpoolWalletConfig.getSamouraiNetwork());
+  public WhirlpoolInfo(MinerFeeSupplier minerFeeSupplier, WhirlpoolWalletConfig config) {
+    this.config = config;
+    this.tx0PreviewService = computeTx0PreviewService(minerFeeSupplier, config);
+    this.tx0Service = computeTx0Service(config, tx0PreviewService);
+    this.sorobanAppWhirlpool = new SorobanAppWhirlpool(config.getSorobanConfig());
     this.coordinatorSupplier =
-        computeCoordinatorSupplier(
-            whirlpoolWalletConfig, tx0PreviewService, rpcClientService, sorobanAppWhirlpool);
-    this.partner = whirlpoolWalletConfig.getPartner();
-    this.tx0AttemptsAddressReuse = whirlpoolWalletConfig.getTx0AttemptsAddressReuse();
-    this.tx0AttemptsSoroban = whirlpoolWalletConfig.getTx0AttemptsSoroban();
+        computeCoordinatorSupplier(config, tx0PreviewService, sorobanAppWhirlpool);
   }
 
   protected Tx0PreviewService computeTx0PreviewService(
@@ -81,11 +48,19 @@ public class WhirlpoolInfo {
     return new Tx0PreviewService(minerFeeSupplier, whirlpoolWalletConfig);
   }
 
+  protected Tx0Service computeTx0Service(
+      WhirlpoolWalletConfig whirlpoolWalletConfig, Tx0PreviewService tx0PreviewService) {
+    return new Tx0Service(
+        whirlpoolWalletConfig.getSamouraiNetwork().getParams(),
+        tx0PreviewService,
+        whirlpoolWalletConfig.getFeeOpReturnImpl());
+  }
+
   protected ExpirableCoordinatorSupplier computeCoordinatorSupplier(
       WhirlpoolWalletConfig config,
       Tx0PreviewService tx0PreviewService,
-      RpcClientService rpcClientService,
       SorobanAppWhirlpool sorobanAppWhirlpool) {
+    RpcClientService rpcClientService = config.getSorobanConfig().getRpcClientService();
     RpcSessionClient rpcSession =
         new RpcSessionClient(rpcClientService.generateRpcWallet().createRpcSession());
     if (log.isDebugEnabled()) {
@@ -99,6 +74,7 @@ public class WhirlpoolInfo {
   }
 
   public WhirlpoolApiClient createWhirlpoolApiClient() {
+    RpcClientService rpcClientService = config.getSorobanConfig().getRpcClientService();
     RpcSessionClient rpcSession =
         new RpcSessionClient(rpcClientService.generateRpcWallet().createRpcSession());
     Collection<Coordinator> coordinators = coordinatorSupplier.getCoordinators(); // TODO
@@ -109,7 +85,7 @@ public class WhirlpoolInfo {
   }
 
   public Tx0Info fetchTx0Info(String scode) throws Exception {
-    Tx0DataRequest tx0DataRequest = new Tx0DataRequest(scode, partner);
+    Tx0DataRequest tx0DataRequest = new Tx0DataRequest(scode, config.getPartner());
     Coordinator coordinator =
         coordinatorSupplier.getCoordinatorRandom(); // TODO adapt for multi-coordinators
     String poolId = coordinator.getPoolIds().iterator().next(); // TODO
@@ -118,14 +94,17 @@ public class WhirlpoolInfo {
     WhirlpoolApiClient whirlpoolClientApi = createWhirlpoolApiClient();
     Tx0DataResponse tx0DataResponse =
         ClientUtils.loopHttpAttempts(
-            tx0AttemptsSoroban,
+            config.getTx0AttemptsSoroban(),
             () -> whirlpoolClientApi.tx0FetchData(tx0DataRequest, coordinator.getSender(), poolId));
 
     // instanciate Tx0Info
     Collection<Pool> pools = coordinatorSupplier.getPools();
     Tx0InfoConfig tx0InfoConfig =
         new Tx0InfoConfig(
-            getTx0PreviewService(), pools, tx0AttemptsAddressReuse, tx0AttemptsSoroban);
+            getTx0PreviewService(),
+            pools,
+            config.getTx0AttemptsAddressReuse(),
+            config.getTx0AttemptsSoroban());
     return new Tx0Info(
         this,
         tx0InfoConfig,
