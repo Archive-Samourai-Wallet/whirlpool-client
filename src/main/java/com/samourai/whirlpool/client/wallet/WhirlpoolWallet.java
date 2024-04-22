@@ -756,7 +756,7 @@ public class WhirlpoolWallet {
         getWalletSupplier().getWallet(spendAccount, BIP_FORMAT.SEGWIT_NATIVE);
     int bip47WalletOutgoingIdx = 0; // TODO zl !!!
     boolean samouraiFeeViaBIP47 = getPaynymSupplier().getPaynymState().isClaimed();
-    String samouraiFeeAddress = getXManagerClient().getAddressOrDefault(XManagerService.RICOCHET);
+    String samouraiFeeAddress = getXManagerClient().getAddressOrDefault(XManagerService.XM004);
     return new RicochetConfig(
         feePerB,
         samouraiFeeViaBIP47,
